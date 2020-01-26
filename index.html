@@ -17,21 +17,22 @@
 <script type="module">
 
 	import * as Potree from "./src/Potree.js";
-	import {createTestData} from "./test/createTestData.js"
+	import {createTestData} from "./test/createTestData.js";
+	import {POCLoader} from "./src/POCLoader.js";
 
 	async function run(){
 
 		let canvas = document.getElementById("renderArea");
 		await Potree.setup(canvas);
 
-		// let scene = Potree.scene;
+		let scene = Potree.scene;
 
-		// let url = "./pointclouds/lion/pointcloud.json";
-		// Potree.load(url).then(pointcloud => {
-		// 	console.log(pointcloud);
+		let url = "./pointclouds/test/cloud.json";
+		POCLoader.load(url).then(pointcloud => {
+			console.log(pointcloud);
 
-		// 	scene.add(pointcloud);
-		// });
+			//scene.add(pointcloud);
+		});
 
 		
 		let object = createTestData(1_000_000);
