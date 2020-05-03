@@ -4,8 +4,11 @@
 import {LASLoader} from "./LASLoader.js";
 import {WebGpuRenderer} from "./WebGpuRenderer.js";
 import {PotreeLoader} from "./src/octree/PotreeLoader.js"
+import {Camera} from "./src/scene/Camera.js";
+import {Quaternion} from "./src/math/Quaternion.js";
+import {Matrix4} from "./src/math/Matrix4.js";
 
-let urlPointcloud = "http://localhost:8080/nocommit/lion.las";
+
 let urlPotree = "http://localhost:8080/nocommit/lion/metadata.json";
 
 let frameCount = 0;
@@ -15,63 +18,11 @@ let renderer = null;
 let sceneObject = null;
 let worldViewProj = mat4.create();
 
-async function loadPointcloud(url, device){
-
-	let loader = new LASLoader(url);
-	await loader.loadHeader();
-
-	let numPoints = loader.header.numPoints;
-
-	// create position and color buffer
-	let descriptorPos = {
-		size: 12 * numPoints,
-		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-	};
-	let bufPositions = renderer.device.createBuffer(descriptorPos);
-
-	let descriptorCol = {
-		size: 16 * numPoints,
-		usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-	};
-	let bufColors = renderer.device.createBuffer(descriptorCol);
-
-	let sceneObject = {
-		n: 0,
-		bufPositions: bufPositions,
-		bufColors: bufColors,
-	};
-
-	let elProgress = document.getElementById("progress");
-
-	// this async function keeps on loading new data and updating the buffers
-	let asyncLoad = async () => {
-		let iterator = loader.loadBatches();
-		let pointsLoaded = 0;
-		for await (let batch of iterator){
-			
-			bufPositions.setSubData(12 * pointsLoaded, batch.positions);
-			bufColors.setSubData(16 * pointsLoaded, batch.colors);
-			
-			pointsLoaded += batch.size;
-
-			let progress = pointsLoaded / loader.header.numPoints;
-			let strProgress = `${parseInt(progress * 100)}`;
-			let msg = `loading: ${strProgress}%`;
-			elProgress.innerHTML = msg;
-
-			sceneObject.n = pointsLoaded;
-		}
-
-		elProgress.innerHTML = `loading finished`;
-	};
-
-	asyncLoad();
-	
-	return sceneObject;
-}
+let camera = new Camera();
+let quaternion = new Quaternion(0, 0, 0, 1);
+window.quaternion = quaternion;
 
 async function initScene(){
-	//sceneObject = await loadPointcloud(urlPointcloud, renderer.device);
 
 	let pointcloud = await PotreeLoader.load(urlPotree);
 	await pointcloud.loader.loadHierarchy(pointcloud.root);
@@ -133,6 +84,32 @@ function update(timestamp){
 			let position = vec3.fromValues(x, y, z);
 			let up = vec3.fromValues(0, 0, 1);
 			mat4.lookAt(view, position, target, up);
+
+			let rotate = new Matrix4();
+			rotate.setFromQuaternion(quaternion);
+
+			let translate = mat4.create();
+			mat4.translate(translate, translate, [0, -20, 0]);
+
+			let flip = [
+				1, 0, 0, 0,
+				0, 0, 1, 0,
+				0, 1, 0, 0,
+				0, 0, 0, 1,
+			];
+
+			let tmp = mat4.create();
+
+			//mat4.multiply(tmp, rotate.elements, translate);
+			mat4.multiply(tmp, translate, rotate.elements);
+			mat4.multiply(view, flip, tmp);
+
+
+
+			//mat4.multiply(view, translate, rotate);
+
+			// camera.position.set(x, y, z);
+			// camera.lookAt(target);
 		}
 
 		mat4.multiply(worldViewProj, proj, view);
