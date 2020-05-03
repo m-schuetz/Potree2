@@ -3,8 +3,10 @@
 
 import {LASLoader} from "./LASLoader.js";
 import {WebGpuRenderer} from "./WebGpuRenderer.js";
+import {PotreeLoader} from "./src/octree/PotreeLoader.js"
 
-let urlPointcloud = "http://mschuetz.potree.org/lion/lion.las";
+let urlPointcloud = "http://localhost:8080/nocommit/lion.las";
+let urlPotree = "http://localhost:8080/nocommit/lion/metadata.json";
 
 let frameCount = 0;
 let lastFpsMeasure = 0;
@@ -69,7 +71,41 @@ async function loadPointcloud(url, device){
 }
 
 async function initScene(){
-	sceneObject = await loadPointcloud(urlPointcloud, renderer.device);
+	//sceneObject = await loadPointcloud(urlPointcloud, renderer.device);
+
+	let pointcloud = await PotreeLoader.load(urlPotree);
+	await pointcloud.loader.loadHierarchy(pointcloud.root);
+	await pointcloud.loader.loadNode(pointcloud.root);
+
+	let node = pointcloud.root;
+
+	let position = pointcloud.root.buffers.position.buffer;
+	let rgb = pointcloud.root.buffers.rgb.buffer;
+	let numPoints = node.numPoints;
+
+	let {device} = renderer;
+
+	let [bufPositions, posMapping] = device.createBufferMapped({
+		size: 12 * numPoints,
+		usage: GPUBufferUsage.VERTEX,
+	});
+	new Int32Array(posMapping).set(new Int32Array(position));
+	bufPositions.unmap();
+
+	let [bufRGB, mappingRGB] = device.createBufferMapped({
+		size: 4 * numPoints,
+		usage: GPUBufferUsage.VERTEX,
+	});
+	new Uint8Array(mappingRGB).set(new Uint8Array(rgb));
+	bufRGB.unmap();
+
+	sceneObject = {
+		n: numPoints,
+		bufPositions: bufPositions,
+		bufColors: bufRGB,
+	};
+
+	
 }
 
 
@@ -87,8 +123,9 @@ function update(timestamp){
 		}
 
 		{ // view
-			let target = vec3.fromValues(2, 5, 0);
-			let r = 5;
+			//let target = vec3.fromValues(2, 5, 0);
+			let target = vec3.fromValues(0, 0, 0);
+			let r = 10;
 			let x = r * Math.sin(timestamp / 1000) + target[0];
 			let y = r * Math.cos(timestamp / 1000) + target[1];
 			let z = 2;
@@ -159,7 +196,8 @@ function render(timestamp){
 		let timeSinceLastFpsMeasure = (performance.now() - lastFpsMeasure) / 1000;
 		if(timeSinceLastFpsMeasure > 1){
 			let fps = frameCount / timeSinceLastFpsMeasure;
-			console.log(`fps: ${Math.round(fps)}`);
+			// console.log(`fps: ${Math.round(fps)}`);
+			document.title = `fps: ${Math.round(fps)}`;
 			lastFpsMeasure = performance.now();
 			frameCount = 0;
 		}
