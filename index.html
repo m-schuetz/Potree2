@@ -4,56 +4,22 @@
 </head>
 <body style="padding: 0; margin: 0">
 
-<div>
-	<canvas id="renderArea" width="800" height="600" 
-		style="
-		width: 100%; height: 100%; 
-		grid-column: 1; grid-row: 1;
-		border: 1px solid black">
-	</canvas>
-</div>
 
-<script src="./libs/gl-matrix/gl-matrix.js"></script>
-<script type="module">
+<canvas id="canvas" width="800" height="600" 
+	style="
+		width: 100%; height: 100%;
+		grid-column: 1; grid-row: 1">
+</canvas>
 
-	import * as Potree from "./src/Potree.js";
-	import {createTestData} from "./test/createTestData.js";
-	import {POCLoader} from "./src/POCLoader.js";
+<span style="position: fixed; z-index: 100; left: 10px; top: 10px;">
+	WebGPU Point Cloud rendering test. <br>
+	#points: 3,954,696 (134MB)<br>
+	More infos: <a href="https://github.com/m-schuetz/webgpu_pointcloud">github.com/m-schuetz/webgpu_pointcloud</a></a><br>
+	<span id="progress"></span>
+</span>
 
-	async function run(){
-
-		let canvas = document.getElementById("renderArea");
-		await Potree.setup(canvas);
-
-		let scene = Potree.scene;
-
-		let url = "./pointclouds/test/cloud.json";
-		POCLoader.load(url).then(pointcloud => {
-			console.log(pointcloud);
-
-			//scene.add(pointcloud);
-		});
-
-		
-		let object = createTestData(1_000_000);
-
-
-		function loop(timestamp){
-
-			Potree.renderer.render();
-			object.render(Potree.renderer, timestamp);
-
-			requestAnimationFrame(loop);
-		}
-
-		loop();
-	}
-
-	run();
-
-</script>
-
-<!-- <script type="module" src="src/Potree.js"></script> -->
+<script src="./libs/gl-matrix.js"></script>
+<script type="module" src="main.js"></script>
 
 
 </body>
