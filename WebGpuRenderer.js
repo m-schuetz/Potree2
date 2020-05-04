@@ -60,6 +60,8 @@ void main() {
 }
 `;
 
+import {vsMesh, fsMesh} from "./shaders.js";
+
 function configureSwapChain(device, swapChainFormat, context) {
 	const swapChainDescriptor = {
 		device: device,
@@ -110,6 +112,11 @@ export class WebGpuRenderer{
 		let shader = {
 			vsModule: makeShaderModule_GLSL(glslang, device, 'vertex', vs),
 			fsModule: makeShaderModule_GLSL(glslang, device, 'fragment', fs),
+		};
+
+		let shaderMesh = {
+			vsModule: makeShaderModule_GLSL(glslang, device, 'vertex', vsMesh),
+			fsModule: makeShaderModule_GLSL(glslang, device, 'fragment', fsMesh),
 		};
 
 		let uniformsBindGroupLayout = device.createBindGroupLayout({
@@ -212,6 +219,7 @@ export class WebGpuRenderer{
 		this.pipeline = pipeline;
 
 		this.shader = shader;
+		this.shaderMesh = shaderMesh;
 		this.uniformBuffer = uniformBuffer;
 		this.uniformBindGroup = uniformBindGroup;
 		this.depthTexture = depthTexture;
@@ -224,6 +232,136 @@ export class WebGpuRenderer{
 		};
 
 		return context.configureSwapChain(swapChainDescriptor);
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+	getMeshState(mesh){
+		let {device, shaderMesh} = this;
+
+		if(mesh.webgpu){
+			return mesh.webgpu;
+		}else{
+			let uniformsBindGroupLayout = device.createBindGroupLayout({
+				bindings: [{
+					binding: 0,
+					visibility: GPUShaderStage.VERTEX,
+					type: "uniform-buffer"
+				}]
+			});
+
+			let pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [uniformsBindGroupLayout] });
+			let shader = shaderMesh;
+
+			let pipeline = device.createRenderPipeline({
+				layout: pipelineLayout,
+				vertexStage: {
+					module: shader.vsModule,
+					entryPoint: 'main'
+				},
+				fragmentStage: {
+					module: shader.fsModule,
+					entryPoint: 'main'
+				},
+				vertexState: {
+					vertexBuffers: [
+						{
+							arrayStride: 3 * 4,
+							attributes: [
+								{ // position
+									shaderLocation: 0,
+									offset: 0,
+									format: "float3"
+								}
+							]
+						},{
+							arrayStride: 1 * 4,
+							attributes: [
+								{ // color
+									shaderLocation: 1,
+									offset: 0,
+									format: "uchar4"
+								}
+							]
+						}
+					]
+				},
+				colorStates: [
+					{
+						format: this.swapChainFormat,
+						alphaBlend: {
+							srcFactor: "src-alpha",
+							dstFactor: "one-minus-src-alpha",
+							operation: "add"
+						}
+					}
+				],
+				primitiveTopology: 'point-list',
+				rasterizationState: {
+					frontFace: "ccw",
+					cullMode: 'none'
+				},
+				depthStencilState: {
+					depthWriteEnabled: true,
+					depthCompare: "less",
+					format: "depth24plus-stencil8",
+				}
+			});
+
+			const uniformBufferSize = 4 * 16; // 4x4 matrix
+
+			let uniformBuffer = device.createBuffer({
+				size: uniformBufferSize,
+				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+			});
+
+			let uniformBindGroup = device.createBindGroup({
+				layout: uniformsBindGroupLayout,
+				bindings: [{
+					binding: 0,
+					resource: {
+						buffer: uniformBuffer,
+					},
+				}],
+			});
+
+			let webgpu = {
+				pipeline: pipeline,
+				uniformBuffer: uniformBuffer,
+				uniformBindGroup: uniformBindGroup,
+			};
+
+			mesh.webgpu = webgpu;
+
+			return mesh.webgpu;
+		}
+	}
+
+	renderMesh(mesh, worldViewProj, passEncoder){
+		let {device, swapChain, depthTexture} = this;
+
+		let meshState = this.getMeshState(mesh);
+		let {pipeline, uniformBindGroup} = meshState;
+
+		meshState.uniformBuffer.setSubData(0, worldViewProj);
+
+		passEncoder.setPipeline(pipeline);
+
+		passEncoder.setVertexBuffer(0, mesh.bufPositions);
+		passEncoder.setVertexBuffer(1, mesh.bufRGBA);
+		passEncoder.setBindGroup(0, uniformBindGroup);
+
+		passEncoder.draw(mesh.n, 1, 0, 0);
+
 	}
 
 }

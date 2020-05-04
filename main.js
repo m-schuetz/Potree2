@@ -7,20 +7,28 @@ import {PotreeLoader} from "./src/octree/PotreeLoader.js"
 import {Camera} from "./src/scene/Camera.js";
 import {Quaternion} from "./src/math/Quaternion.js";
 import {Matrix4} from "./src/math/Matrix4.js";
+import {Vector3} from "./src/math/Vector3.js";
+import {OrbitControls} from "./src/navigation/OrbitControls.js";
+import {createTestMesh} from "./src/Mesh.js";
 
 
 let urlPotree = "http://localhost:8080/nocommit/lion/metadata.json";
 
+let canvas = document.getElementById("canvas");
 let frameCount = 0;
 let lastFpsMeasure = 0;
 
 let renderer = null;
 let sceneObject = null;
+let testMesh = null;
 let worldViewProj = mat4.create();
 
 let camera = new Camera();
 let quaternion = new Quaternion(0, 0, 0, 1);
+let controls = new OrbitControls(canvas, camera);
+
 window.quaternion = quaternion;
+window.controls = controls;
 
 async function initScene(){
 
@@ -57,12 +65,16 @@ async function initScene(){
 	};
 
 	
+
+	testMesh = createTestMesh(renderer);
 }
 
 
-function update(timestamp){
+function update(timestamp, delta){
 
 	let {canvas} = renderer;
+
+	controls.update(delta);
 
 	{ // update worldViewProj
 		let proj = mat4.create();
@@ -75,34 +87,53 @@ function update(timestamp){
 
 		{ // view
 			//let target = vec3.fromValues(2, 5, 0);
-			let target = vec3.fromValues(0, 0, 0);
-			let r = 10;
-			let x = r * Math.sin(timestamp / 1000) + target[0];
-			let y = r * Math.cos(timestamp / 1000) + target[1];
-			let z = 2;
+			// let target = vec3.fromValues(0, 0, 0);
+			// let r = 10;
+			// let x = r * Math.sin(timestamp / 1000) + target[0];
+			// let y = r * Math.cos(timestamp / 1000) + target[1];
+			// let z = 2;
 
-			let position = vec3.fromValues(x, y, z);
-			let up = vec3.fromValues(0, 0, 1);
-			mat4.lookAt(view, position, target, up);
+			// let position = vec3.fromValues(x, y, z);
+			// let up = vec3.fromValues(0, 0, 1);
+			// mat4.lookAt(view, position, target, up);
 
-			let rotate = new Matrix4();
-			rotate.setFromQuaternion(quaternion);
+			//quaternion.x = controls.yaw;
+
+			// let qYaw = new Quaternion().setFromEuler(0, 0, controls.yaw);
+			// let qPitch = new Quaternion().setFromEuler(0, 0, 0);
+			// let qOrientation = new Quaternion().multiplyQuaternions(qPitch, qYaw);
+
+			let qOrientation = new Quaternion().setFromEuler(0, 0, controls.yaw);
+
+			//quaternion.setFromEuler(0, 0, controls.yaw);
+			// rotate.setFromQuaternion(qOrientation);
+			let rotate = new Matrix4().makeRotationZ(controls.yaw);
 
 			let translate = mat4.create();
-			mat4.translate(translate, translate, [0, -20, 0]);
-
-			let flip = [
-				1, 0, 0, 0,
-				0, 0, 1, 0,
-				0, 1, 0, 0,
-				0, 0, 0, 1,
-			];
-
+			
+			// mat4.translate(translate, translate, [0, -controls.radius, 0]);
+			let campos = controls.getPosition();
+			mat4.translate(translate, translate, [campos.x, campos.y, campos.z]);
+			
 			let tmp = mat4.create();
 
-			//mat4.multiply(tmp, rotate.elements, translate);
 			mat4.multiply(tmp, translate, rotate.elements);
-			mat4.multiply(view, flip, tmp);
+			//mat4.multiply(tmp, rotate.elements, translate);
+			// mat4.invert(tmp, tmp);
+			// mat4.multiply(tmp, translate, rotate.elements);#
+
+			let position = controls.getPosition();
+			let target = controls.target;
+			let up = [0, 0, 1];
+			mat4.lookAt(view, position.toArray(), target.toArray(), up);
+
+			// let flip = [
+			// 	1, 0, 0, 0,
+			// 	0, 0, 1, 0,
+			// 	0, 1, 0, 0,
+			// 	0, 0, 0, 1,
+			// ];
+			// mat4.multiply(view, flip, tmp);
 
 
 
@@ -165,7 +196,12 @@ function render(timestamp){
 		passEncoder.draw(sceneObject.n, 1, 0, 0);
 	}
 
+	if(testMesh){
+		renderer.renderMesh(testMesh, worldViewProj, passEncoder);
+	}
+
 	passEncoder.endPass();
+
 	renderer.device.defaultQueue.submit([commandEncoder.finish()]);
 
 	{// compute FPS
@@ -181,17 +217,20 @@ function render(timestamp){
 	}
 }
 
+let previousTimestamp = 0;
+
 function loop(timestamp){
 
-	update(timestamp);
-	render(timestamp);
+	let delta = timestamp - previousTimestamp;
+
+	update(timestamp, delta);
+	render(timestamp, delta);
 
 	requestAnimationFrame(loop);
 }
 
 async function run(){
 
-	let canvas = document.getElementById("canvas");
 	renderer = await WebGpuRenderer.create(canvas);
 
 	await initScene();

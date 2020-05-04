@@ -14,6 +14,8 @@ export class Quaternion{
 		this.y = -a.x * b.z + a.y * b.w + a.z * b.x + a.w * b.y;
 		this.z =  a.x * b.y - a.y * b.x + a.z * b.w + a.w * b.z;
 		this.w = -a.x * b.x - a.y * b.y - a.z * b.z + a.w * b.w;
+
+		return this;
 	}
 
 	setFromEuler(x, y, z){
@@ -32,6 +34,8 @@ export class Quaternion{
 		this.y = c1 * s2 * c3 - s1 * c2 * s3;
 		this.z = c1 * c2 * s3 + s1 * s2 * c3;
 		this.w = c1 * c2 * c3 - s1 * s2 * s3;
+
+		return this;
 	}
 
 }
