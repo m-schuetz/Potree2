@@ -12,14 +12,28 @@
 </canvas>
 
 <span style="position: fixed; z-index: 100; left: 10px; top: 10px;">
-	WebGPU Point Cloud rendering test. <br>
-	#points: 3,954,696 (134MB)<br>
-	More infos: <a href="https://github.com/m-schuetz/webgpu_pointcloud">github.com/m-schuetz/webgpu_pointcloud</a></a><br>
-	<span id="progress"></span>
+	
 </span>
 
 <script src="./libs/gl-matrix.js"></script>
-<script type="module" src="main.js"></script>
+<!-- <script type="module" src="main.js"></script> -->
+<script type="module" async>
+	//let {createTestMesh} = await import("./Mesh.js");
+	import {createTestMesh, Mesh} from "./src/Mesh.js";
+	import * as main from "./main.js";
+	window.main = main;
+
+	//let mesh = createTestMesh();
+	// let mesh = Mesh.createBox();
+	// main.scene.meshes.push(mesh);
+
+	let box = Geometry.createBox();
+	let node = new Mesh("box", box);
+	main.scene.nodes.push(node);
+
+
+</script>
+
 
 
 </body>

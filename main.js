@@ -20,15 +20,19 @@ let lastFpsMeasure = 0;
 
 let renderer = null;
 let sceneObject = null;
-let testMesh = null;
 let worldViewProj = mat4.create();
 
-let camera = new Camera();
+export let camera = new Camera();
 let quaternion = new Quaternion(0, 0, 0, 1);
 let controls = new OrbitControls(canvas, camera);
 
 window.quaternion = quaternion;
 window.controls = controls;
+
+export let scene = {
+	meshes: [],
+	nodes: [],
+};
 
 async function initScene(){
 
@@ -66,7 +70,7 @@ async function initScene(){
 
 	
 
-	testMesh = createTestMesh(renderer);
+	// testMesh = createTestMesh(renderer);
 }
 
 
@@ -86,61 +90,11 @@ function update(timestamp, delta){
 		}
 
 		{ // view
-			//let target = vec3.fromValues(2, 5, 0);
-			// let target = vec3.fromValues(0, 0, 0);
-			// let r = 10;
-			// let x = r * Math.sin(timestamp / 1000) + target[0];
-			// let y = r * Math.cos(timestamp / 1000) + target[1];
-			// let z = 2;
-
-			// let position = vec3.fromValues(x, y, z);
-			// let up = vec3.fromValues(0, 0, 1);
-			// mat4.lookAt(view, position, target, up);
-
-			//quaternion.x = controls.yaw;
-
-			// let qYaw = new Quaternion().setFromEuler(0, 0, controls.yaw);
-			// let qPitch = new Quaternion().setFromEuler(0, 0, 0);
-			// let qOrientation = new Quaternion().multiplyQuaternions(qPitch, qYaw);
-
-			let qOrientation = new Quaternion().setFromEuler(0, 0, controls.yaw);
-
-			//quaternion.setFromEuler(0, 0, controls.yaw);
-			// rotate.setFromQuaternion(qOrientation);
-			let rotate = new Matrix4().makeRotationZ(controls.yaw);
-
-			let translate = mat4.create();
-			
-			// mat4.translate(translate, translate, [0, -controls.radius, 0]);
-			let campos = controls.getPosition();
-			mat4.translate(translate, translate, [campos.x, campos.y, campos.z]);
-			
-			let tmp = mat4.create();
-
-			mat4.multiply(tmp, translate, rotate.elements);
-			//mat4.multiply(tmp, rotate.elements, translate);
-			// mat4.invert(tmp, tmp);
-			// mat4.multiply(tmp, translate, rotate.elements);#
-
 			let position = controls.getPosition();
 			let target = controls.target;
 			let up = [0, 0, 1];
 			mat4.lookAt(view, position.toArray(), target.toArray(), up);
 
-			// let flip = [
-			// 	1, 0, 0, 0,
-			// 	0, 0, 1, 0,
-			// 	0, 1, 0, 0,
-			// 	0, 0, 0, 1,
-			// ];
-			// mat4.multiply(view, flip, tmp);
-
-
-
-			//mat4.multiply(view, translate, rotate);
-
-			// camera.position.set(x, y, z);
-			// camera.lookAt(target);
 		}
 
 		mat4.multiply(worldViewProj, proj, view);
@@ -152,57 +106,8 @@ function render(timestamp){
 
 	let {canvas} = renderer;
 
-	let needsResize = canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight;
-	if(needsResize){
-		canvas.width = canvas.clientWidth;
-		canvas.height = canvas.clientHeight;
+	renderer.render(scene.meshes, camera, sceneObject);
 
-		renderer.depthTexture = renderer.device.createTexture({
-			size: {
-				width: canvas.width,
-				height: canvas.height,
-				depth: 1
-			},
-			format: "depth24plus-stencil8",
-			usage: GPUTextureUsage.OUTPUT_ATTACHMENT
-		});
-	}
-
-	renderer.uniformBuffer.setSubData(0, worldViewProj);
-
-	const commandEncoder = renderer.device.createCommandEncoder();
-	const textureView = renderer.swapChain.getCurrentTexture().createView();
-	const renderPassDescriptor = {
-		colorAttachments: [{
-			attachment: textureView,
-			loadValue: { r: 0, g: 0, b: 0, a: 0 },
-		}],
-		depthStencilAttachment: {
-			attachment: renderer.depthTexture.createView(),
-			depthLoadValue: 1.0,
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		}
-	};
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-	passEncoder.setPipeline(renderer.pipeline);
-
-	if(sceneObject){
-		passEncoder.setVertexBuffer(0, sceneObject.bufPositions);
-		passEncoder.setVertexBuffer(1, sceneObject.bufColors);
-		passEncoder.setBindGroup(0, renderer.uniformBindGroup);
-		passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-		passEncoder.draw(sceneObject.n, 1, 0, 0);
-	}
-
-	if(testMesh){
-		renderer.renderMesh(testMesh, worldViewProj, passEncoder);
-	}
-
-	passEncoder.endPass();
-
-	renderer.device.defaultQueue.submit([commandEncoder.finish()]);
 
 	{// compute FPS
 		frameCount++;

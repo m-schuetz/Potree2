@@ -8,8 +8,9 @@ import {Quaternion} from "../math/Quaternion.js";
 
 export class OrbitControls{
 
-	constructor(element){
+	constructor(element, camera){
 		this.element = element;
+		this.camera = camera;
 
 		this.target = new Vector3(0, 0, 0);
 		this.radius = 10.0;
@@ -141,8 +142,20 @@ export class OrbitControls{
 		return position;
 	}
 
+	getOrientation(){
+		let qYaw = new Quaternion().setFromEuler(0, 0, this.yaw);
+		let qPitch = new Quaternion().setFromEuler(this.pitch, 0, 0);
+		let orientation = new Quaternion().multiplyQuaternions(qYaw, qPitch);
+
+		return orientation;
+	}
+
 	update(delta){
-		//this.radius = this.targetRadius;
+		let {camera} = this;
+
+		camera.position.copy(this.getPosition());
+		camera.distance = this.radius;
+		camera.orientation = this.getOrientation();
 	}
 
 }

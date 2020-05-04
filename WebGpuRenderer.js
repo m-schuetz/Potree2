@@ -243,125 +243,272 @@ export class WebGpuRenderer{
 
 
 
-
-
-	getMeshState(mesh){
+	initializeMeshBuffers(mesh){
 		let {device, shaderMesh} = this;
 
-		if(mesh.webgpu){
-			return mesh.webgpu;
-		}else{
-			let uniformsBindGroupLayout = device.createBindGroupLayout({
-				bindings: [{
-					binding: 0,
-					visibility: GPUShaderStage.VERTEX,
-					type: "uniform-buffer"
-				}]
-			});
+		let {n, position, color} = mesh;
+		
+		let [bufPositions, posMapping] = device.createBufferMapped({
+			size: 12 * n,
+			usage: GPUBufferUsage.VERTEX,
+		});
+		new Float32Array(posMapping).set(new Float32Array(position));
+		bufPositions.unmap();
 
-			let pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [uniformsBindGroupLayout] });
-			let shader = shaderMesh;
+		let [bufRGBA, mappingRGB] = device.createBufferMapped({
+			size: 4 * n,
+			usage: GPUBufferUsage.VERTEX,
+		});
+		new Uint8Array(mappingRGB).set(new Uint8Array(color));
+		bufRGBA.unmap();
 
-			let pipeline = device.createRenderPipeline({
-				layout: pipelineLayout,
-				vertexStage: {
-					module: shader.vsModule,
-					entryPoint: 'main'
-				},
-				fragmentStage: {
-					module: shader.fsModule,
-					entryPoint: 'main'
-				},
-				vertexState: {
-					vertexBuffers: [
-						{
-							arrayStride: 3 * 4,
-							attributes: [
-								{ // position
-									shaderLocation: 0,
-									offset: 0,
-									format: "float3"
-								}
-							]
-						},{
-							arrayStride: 1 * 4,
-							attributes: [
-								{ // color
-									shaderLocation: 1,
-									offset: 0,
-									format: "uchar4"
-								}
-							]
-						}
-					]
-				},
-				colorStates: [
+		let buffers = {
+			position: bufPositions,
+			color: bufRGBA,
+		};
+
+		return buffers;
+	}
+
+	initializeMeshPipeline(mesh){
+		let {device, shaderMesh} = this;
+
+		let bindGroupLayout = device.createBindGroupLayout({
+			bindings: [{
+				binding: 0,
+				visibility: GPUShaderStage.VERTEX,
+				type: "uniform-buffer"
+			}]
+		});
+
+		let pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
+		let shader = shaderMesh;
+
+		let pipeline = device.createRenderPipeline({
+			layout: pipelineLayout,
+			vertexStage: {
+				module: shader.vsModule,
+				entryPoint: 'main'
+			},
+			fragmentStage: {
+				module: shader.fsModule,
+				entryPoint: 'main'
+			},
+			vertexState: {
+				vertexBuffers: [
 					{
-						format: this.swapChainFormat,
-						alphaBlend: {
-							srcFactor: "src-alpha",
-							dstFactor: "one-minus-src-alpha",
-							operation: "add"
-						}
+						arrayStride: 3 * 4,
+						attributes: [
+							{ // position
+								shaderLocation: 0,
+								offset: 0,
+								format: "float3"
+							}
+						]
+					},{
+						arrayStride: 1 * 4,
+						attributes: [
+							{ // color
+								shaderLocation: 1,
+								offset: 0,
+								format: "uchar4"
+							}
+						]
 					}
-				],
-				primitiveTopology: 'point-list',
-				rasterizationState: {
-					frontFace: "ccw",
-					cullMode: 'none'
-				},
-				depthStencilState: {
-					depthWriteEnabled: true,
-					depthCompare: "less",
-					format: "depth24plus-stencil8",
+				]
+			},
+			colorStates: [
+				{
+					format: this.swapChainFormat,
+					alphaBlend: {
+						srcFactor: "src-alpha",
+						dstFactor: "one-minus-src-alpha",
+						operation: "add"
+					}
 				}
-			});
+			],
+			primitiveTopology: 'triangle-list',
+			rasterizationState: {
+				frontFace: "ccw",
+				cullMode: 'none'
+			},
+			depthStencilState: {
+				depthWriteEnabled: true,
+				depthCompare: "less",
+				format: "depth24plus-stencil8",
+			}
+		});
 
-			const uniformBufferSize = 4 * 16; // 4x4 matrix
+		return {
+			pipeline: pipeline,
+			bindGroupLayout: bindGroupLayout,
+		};
+	}
 
-			let uniformBuffer = device.createBuffer({
-				size: uniformBufferSize,
-				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-			});
+	initializeMeshUniforms(mesh, bindGroupLayout){
+		let {device, shaderMesh} = this;
 
-			let uniformBindGroup = device.createBindGroup({
-				layout: uniformsBindGroupLayout,
-				bindings: [{
-					binding: 0,
-					resource: {
-						buffer: uniformBuffer,
-					},
-				}],
-			});
+		const uniformBufferSize = 4 * 16; // 4x4 matrix
 
-			let webgpu = {
-				pipeline: pipeline,
-				uniformBuffer: uniformBuffer,
-				uniformBindGroup: uniformBindGroup,
-			};
+		let buffer = device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
 
-			mesh.webgpu = webgpu;
+		let bindGroup = device.createBindGroup({
+			layout: bindGroupLayout,
+			bindings: [{
+				binding: 0,
+				resource: {
+					buffer: buffer,
+				},
+			}],
+		});
 
-			return mesh.webgpu;
-		}
+		let uniforms = {
+			buffer: buffer,
+			bindGroup: bindGroup,
+			bindGroupLayout: bindGroupLayout,
+		};
+
+		return uniforms;
+	}
+
+	initializeMesh(mesh){
+
+		let buffers = this.initializeMeshBuffers(mesh);
+		let {pipeline, bindGroupLayout} = this.initializeMeshPipeline(mesh);
+		let uniforms = this.initializeMeshUniforms(mesh, bindGroupLayout);
+
+		let webgpu = {
+			buffers: buffers,
+			pipeline: pipeline,
+			uniforms: uniforms,
+		};
+
+		mesh.webgpu = webgpu;
+
 	}
 
 	renderMesh(mesh, worldViewProj, passEncoder){
-		let {device, swapChain, depthTexture} = this;
 
-		let meshState = this.getMeshState(mesh);
-		let {pipeline, uniformBindGroup} = meshState;
+		if(!mesh.webgpu){
+			this.initializeMesh(mesh);
+		}
 
-		meshState.uniformBuffer.setSubData(0, worldViewProj);
+		let {buffers, pipeline, uniforms} = mesh.webgpu;
+
+		uniforms.buffer.setSubData(0, worldViewProj);
 
 		passEncoder.setPipeline(pipeline);
 
-		passEncoder.setVertexBuffer(0, mesh.bufPositions);
-		passEncoder.setVertexBuffer(1, mesh.bufRGBA);
-		passEncoder.setBindGroup(0, uniformBindGroup);
+		passEncoder.setVertexBuffer(0, buffers.position);
+		passEncoder.setVertexBuffer(1, buffers.color);
+		passEncoder.setBindGroup(0, uniforms.bindGroup);
 
 		passEncoder.draw(mesh.n, 1, 0, 0);
+	}
+
+	renderObject(object, passEncoder){
+
+		if(!object.webgpu){
+			this.setupObject(object);
+		}
+
+		let {buffers, pipeline, uniforms} = object.webgpu;
+
+		uniforms.buffer.setSubData(0, worldViewProj);
+
+		passEncoder.setPipeline(pipeline);
+
+		passEncoder.setVertexBuffer(0, buffers.position);
+		passEncoder.setVertexBuffer(1, buffers.color);
+		passEncoder.setBindGroup(0, uniforms.bindGroup);
+
+		passEncoder.draw(object.n, 1, 0, 0);
+
+	}
+
+	resize(){
+		let {canvas, device} = this;
+
+		let needsResize = canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight;
+		if(needsResize){
+			canvas.width = canvas.clientWidth;
+			canvas.height = canvas.clientHeight;
+
+			this.depthTexture = device.createTexture({
+				size: {
+					width: canvas.width,
+					height: canvas.height,
+					depth: 1
+				},
+				format: "depth24plus-stencil8",
+				usage: GPUTextureUsage.OUTPUT_ATTACHMENT
+			});
+		}
+	}
+
+	render(objects, camera, dbg){
+
+		
+		this.resize();
+
+		let aspect = this.canvas.width / this.canvas.height;
+		let view = camera.getView();
+		let proj = camera.getProjection(aspect);
+		let worldViewProj = mat4.create();
+		mat4.multiply(worldViewProj, proj, view);
+
+		this.uniformBuffer.setSubData(0, worldViewProj);
+
+		let {device, swapChain, depthTexture} = this;
+		const commandEncoder = device.createCommandEncoder();
+		const textureView = swapChain.getCurrentTexture().createView();
+		const renderPassDescriptor = {
+			colorAttachments: [{
+				attachment: textureView,
+				loadValue: { r: 0, g: 0, b: 0, a: 0 },
+			}],
+			depthStencilAttachment: {
+				attachment: depthTexture.createView(),
+				depthLoadValue: 1.0,
+				depthStoreOp: "store",
+				stencilLoadValue: 0,
+				stencilStoreOp: "store",
+			}
+		};
+		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+		passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+
+		if(dbg){
+			passEncoder.setPipeline(this.pipeline);
+			passEncoder.setVertexBuffer(0, dbg.bufPositions);
+			passEncoder.setVertexBuffer(1, dbg.bufColors);
+			passEncoder.setBindGroup(0, this.uniformBindGroup);
+			passEncoder.draw(dbg.n, 1, 0, 0);
+		}
+
+		for(let object of objects){
+			// passEncoder.setPipeline(object.webgpu.pipeline);
+			this.renderMesh(object, worldViewProj, passEncoder);
+		}
+
+		passEncoder.endPass();
+		device.defaultQueue.submit([commandEncoder.finish()]);
+
+
+
+		counter++;
+
+		if(counter === 100){
+			console.log("view", view);
+			console.log("proj", proj);
+		}
 
 	}
 
 }
+
+let counter = 0;

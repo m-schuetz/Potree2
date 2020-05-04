@@ -1,11 +1,10 @@
 
 
 
-export class Mesh{
-	constructor(n, position, color){
-		this.n = n;
-		this.position = position;
-		this.color = color;
+export class Geometry{
+	constructor(numPrimitives, buffers){
+		this.numPrimitives = numPrimitives;
+		this.buffers = buffers;
 	}
 
 	static createBox(){
@@ -46,47 +45,11 @@ export class Mesh{
 		}
 		let color = new Uint8Array(colorValues);
 
-		let n = position.length / 3;
+		let numTriangles = position.length / 3;
 
-		let mesh = new Mesh(n, position, color);
+		let geometry = new Geometry(numTriangles, [position, color]);
 
-		return mesh;
+		return geometry;
 	}
 }
-
-
-
-export function createTestMesh(renderer){
-	let n = 10_000;
-
-	let position = new Float32Array(3 * n);
-	let color = new Uint8Array(4 * n);
-
-	for(let i = 0; i < n; i++){
-		let x = Math.random() - 0.5;
-		let y = Math.random() - 0.5;
-		let z = Math.random() - 0.5;
-
-		let r = Math.random() * 255;
-		let g = Math.random() * 255;
-		let b = Math.random() * 255;
-
-		position[3 * i + 0] = x;
-		position[3 * i + 1] = y;
-		position[3 * i + 2] = z;
-
-		color[4 * i + 0] = r;
-		color[4 * i + 1] = g;
-		color[4 * i + 2] = b;
-		color[4 * i + 3] = 255;
-	}
-
-
-
-	let mesh = new Mesh(n, position, color);
-
-	return mesh;
-}
-
-
 
