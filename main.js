@@ -35,41 +35,38 @@ export let scene = {
 
 async function initScene(){
 
-	let pointcloud = await PotreeLoader.load(urlPotree);
-	await pointcloud.loader.loadHierarchy(pointcloud.root);
-	await pointcloud.loader.loadNode(pointcloud.root);
+	// let pointcloud = await PotreeLoader.load(urlPotree);
+	// await pointcloud.loader.loadHierarchy(pointcloud.root);
+	// await pointcloud.loader.loadNode(pointcloud.root);
 
-	let node = pointcloud.root;
+	// let node = pointcloud.root;
 
-	let position = pointcloud.root.buffers.position.buffer;
-	let rgb = pointcloud.root.buffers.rgb.buffer;
-	let numPoints = node.numPoints;
+	// let position = pointcloud.root.buffers.position.buffer;
+	// let rgb = pointcloud.root.buffers.rgb.buffer;
+	// let numPoints = node.numPoints;
 
-	let {device} = renderer;
+	// let {device} = renderer;
 
-	let [bufPositions, posMapping] = device.createBufferMapped({
-		size: 12 * numPoints,
-		usage: GPUBufferUsage.VERTEX,
-	});
-	new Int32Array(posMapping).set(new Int32Array(position));
-	bufPositions.unmap();
+	// let [bufPositions, posMapping] = device.createBufferMapped({
+	// 	size: 12 * numPoints,
+	// 	usage: GPUBufferUsage.VERTEX,
+	// });
+	// new Int32Array(posMapping).set(new Int32Array(position));
+	// bufPositions.unmap();
 
-	let [bufRGB, mappingRGB] = device.createBufferMapped({
-		size: 4 * numPoints,
-		usage: GPUBufferUsage.VERTEX,
-	});
-	new Uint8Array(mappingRGB).set(new Uint8Array(rgb));
-	bufRGB.unmap();
+	// let [bufRGB, mappingRGB] = device.createBufferMapped({
+	// 	size: 4 * numPoints,
+	// 	usage: GPUBufferUsage.VERTEX,
+	// });
+	// new Uint8Array(mappingRGB).set(new Uint8Array(rgb));
+	// bufRGB.unmap();
 
-	sceneObject = {
-		n: numPoints,
-		bufPositions: bufPositions,
-		bufColors: bufRGB,
-	};
+	// sceneObject = {
+	// 	n: numPoints,
+	// 	bufPositions: bufPositions,
+	// 	bufColors: bufRGB,
+	// };
 
-	
-
-	// testMesh = createTestMesh(renderer);
 }
 
 

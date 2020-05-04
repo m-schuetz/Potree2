@@ -1,4 +1,6 @@
 
+import {SceneNode} from "../scene/SceneNode.js";
+
 export class Node{
 
 	constructor(){
@@ -13,13 +15,16 @@ export class Node{
 }
 
 
-export class PointCloudOctree{
+export class PointCloudOctree extends SceneNode{
 
 	constructor(){
-		this.name = "";
+		super("");
+
 		this.loader = null;
 		this.root = null;
 		this.boundingBox = null;
+		this.visibleNodes = [];
+		
 	}
 
 }

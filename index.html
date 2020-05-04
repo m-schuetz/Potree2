@@ -16,27 +16,34 @@
 </span>
 
 <script src="./libs/gl-matrix.js"></script>
-<!-- <script type="module" src="main.js"></script> -->
+
 <script type="module" async>
-	//let {createTestMesh} = await import("./Mesh.js");
+	
+	import {PotreeLoader} from "./src/octree/PotreeLoader.js";
 	import {Geometry} from "./src/Geometry.js";
 	import {Mesh} from "./src/scene/Mesh.js";
 	import * as main from "./main.js";
 	window.main = main;
 
-	//let mesh = createTestMesh();
-	// let mesh = Mesh.createBox();
-	// main.scene.meshes.push(mesh);
-
 	let box = Geometry.createBox();
 	let node = new Mesh("box", box);
 	main.scene.nodes.push(node);
 
-	let box2 = Geometry.createBox();
-	let node2 = new Mesh("box2", box2);
-	node2.position.set(1, 1, -0.5);
+	let node2 = new Mesh("box2", box);
+	node2.position.set(1, 1, -0.3);
 	node2.scale.set(0.5, 0.5, 0.5);
 	main.scene.nodes.push(node2);
+
+	let url = "http://localhost:8080/nocommit/lion/metadata.json";
+	PotreeLoader.load(url).then( async (pointcloud) => {
+
+		await pointcloud.loader.loadHierarchy(pointcloud.root);
+		await pointcloud.loader.loadNode(pointcloud.root);
+
+		pointcloud.visibleNodes = [pointcloud.root];
+		main.scene.nodes.push(pointcloud);
+
+	});
 
 
 </script>

@@ -10,7 +10,7 @@ onmessage = function (event) {
 	let numPoints = buffer.byteLength / bytesPerPoint;
 	let cv = new DataView(buffer);
 	
-	let attributeBuffers = {};
+	let attributeBuffers = [];
 	let attributeOffset = 0;
 
 	for (let attribute of attributes) {
@@ -35,7 +35,8 @@ onmessage = function (event) {
 				colors[4 * j + 2] = b;
 			}
 
-			attributeBuffers[attribute.name] = { buffer: buff, attribute: attribute };
+			//attributeBuffers[attribute.name] = { buffer: buff, attribute: attribute };
+			attributeBuffers.push({name: attribute.name, array: buff});
 		}else{
 			let attributeSize = attribute.byteSize;
 			let buff = new ArrayBuffer(numPoints * attributeSize);
@@ -50,7 +51,8 @@ onmessage = function (event) {
 				}
 			}
 
-			attributeBuffers[attribute.name] = { buffer: buff, attribute: attribute };
+			//attributeBuffers[attribute.name] = { buffer: buff, attribute: attribute };
+			attributeBuffers.push({name: attribute.name, array: buff});
 		}
 		
 		attributeOffset += attribute.byteSize;
@@ -62,8 +64,11 @@ onmessage = function (event) {
 	};
 
 	let transferables = [];
-	for (let property in message.attributeBuffers) {
-		transferables.push(message.attributeBuffers[property].buffer);
+	// for (let property in message.attributeBuffers) {
+	// 	transferables.push(message.attributeBuffers[property].buffer);
+	// }
+	for(let buffer of message.attributeBuffers){
+		transferables.push(buffer.array);
 	}
 	transferables.push(buffer);
 

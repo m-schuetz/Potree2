@@ -3,7 +3,7 @@ import {PointCloudOctree, Node} from "./PointCloudOctree.js";
 import {Vector3} from "./../math/Vector3.js";
 import {BoundingBox} from "./../math/BoundingBox.js";
 import {WorkerPool} from "./../WorkerPool.js";
-import {PointAttribute} from "./PointAttributes.js";
+import {PointAttribute, getArrayType} from "./PointAttributes.js";
 
 let numLoading = 0;
 let pool = new WorkerPool();
@@ -72,7 +72,17 @@ export class PotreeLoader{
 
 						pool.returnWorker(workerPath, worker);
 
+						let attributes = this.attributes;
+
 						let attributeBuffers = e.data.attributeBuffers;
+						for(let buffer of attributeBuffers){
+							let attribute = attributes.find(a => a.name === buffer.name);
+
+							if(attribute){
+								let XArray = getArrayType(attribute.type);
+								buffer.array = new XArray(buffer.array);
+							}
+						}
 						node.buffers = attributeBuffers;
 						node.loading = false;
 						node.loaded = true;

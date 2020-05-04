@@ -87,9 +87,11 @@ export class WebGpuRenderer{
 	constructor(canvas){
 		this.canvas = canvas;
 		this.swapChainFormat = "bgra8unorm";
+		this.geometryBuffers = new Map();
 
 		this.nodeRenderers = {
 			"Mesh": this.renderMesh.bind(this),
+			"PointCloudOctree": this.renderPointCloudOctree.bind(this),
 		};
 
 	}
@@ -249,24 +251,32 @@ export class WebGpuRenderer{
 	initializeBuffers(geometry){
 		let {device} = this;
 
-		let {numPrimitives, buffers} = geometry;
+		if(this.geometryBuffers.has(geometry)){
+			let gpuBuffers = this.geometryBuffers.get(geometry);
 
-		let gpuBuffers = [];
-		for(let buffer of buffers){
+			return gpuBuffers;
+		}else{
+			let {numPrimitives, buffers} = geometry;
 
-			let XArray = buffer.array.constructor;
-			
-			let [gpuBuffer, mapping] = device.createBufferMapped({
-				size: buffer.array.byteLength,
-				usage: GPUBufferUsage.VERTEX,
-			});
-			new XArray(mapping).set(buffer.array);
-			gpuBuffer.unmap();
+			let gpuBuffers = [];
+			for(let buffer of buffers){
 
-			gpuBuffers.push({name: name, handle: gpuBuffer});
+				let XArray = buffer.array.constructor;
+				
+				let [gpuBuffer, mapping] = device.createBufferMapped({
+					size: buffer.array.byteLength,
+					usage: GPUBufferUsage.VERTEX,
+				});
+				new XArray(mapping).set(buffer.array);
+				gpuBuffer.unmap();
+
+				gpuBuffers.push({name: buffer.name, handle: gpuBuffer});
+			}
+
+			this.geometryBuffers.set(geometry, gpuBuffers);
+
+			return gpuBuffers;
 		}
-
-		return gpuBuffers;
 	}
 
 	initializeMeshPipeline(mesh){
@@ -424,23 +434,201 @@ export class WebGpuRenderer{
 		passEncoder.draw(mesh.geometry.numPrimitives, 1, 0, 0);
 	}
 
-	renderObject(object, passEncoder){
 
-		if(!object.webgpu){
-			this.setupObject(object);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	initializePointCloudOctreePipeline(octree){
+		let {device, shader} = this;
+
+		let bindGroupLayout = device.createBindGroupLayout({
+			bindings: [{
+				binding: 0,
+				visibility: GPUShaderStage.VERTEX,
+				type: "uniform-buffer"
+			}]
+		});
+
+		let pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
+
+		let pipeline = device.createRenderPipeline({
+			layout: pipelineLayout,
+			vertexStage: {
+				module: shader.vsModule,
+				entryPoint: 'main'
+			},
+			fragmentStage: {
+				module: shader.fsModule,
+				entryPoint: 'main'
+			},
+			vertexState: {
+				vertexBuffers: [
+					{
+						arrayStride: 3 * 4,
+						attributes: [
+							{ // position
+								shaderLocation: 0,
+								offset: 0,
+								format: "int3"
+							}
+						]
+					},{
+						arrayStride: 1 * 4,
+						attributes: [
+							{ // color
+								shaderLocation: 1,
+								offset: 0,
+								format: "uchar4"
+							}
+						]
+					}
+				]
+			},
+			colorStates: [
+				{
+					format: this.swapChainFormat,
+					alphaBlend: {
+						srcFactor: "src-alpha",
+						dstFactor: "one-minus-src-alpha",
+						operation: "add"
+					}
+				}
+			],
+			primitiveTopology: 'point-list',
+			rasterizationState: {
+				frontFace: "ccw",
+				cullMode: 'none'
+			},
+			depthStencilState: {
+				depthWriteEnabled: true,
+				depthCompare: "less",
+				format: "depth24plus-stencil8",
+			}
+		});
+
+		return {
+			pipeline: pipeline,
+			bindGroupLayout: bindGroupLayout,
+		};
+	}
+
+	initializePointCloudOctreeUniforms(octree, bindGroupLayout){
+		let {device} = this;
+
+		const uniformBufferSize = 4 * 16; // 4x4 matrix
+
+		let buffer = device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		let bindGroup = device.createBindGroup({
+			layout: bindGroupLayout,
+			bindings: [{
+				binding: 0,
+				resource: {
+					buffer: buffer,
+				},
+			}],
+		});
+
+		let uniforms = {
+			buffer: buffer,
+			bindGroup: bindGroup,
+			bindGroupLayout: bindGroupLayout,
+		};
+
+		return uniforms;
+	}
+
+	renderPointCloudOctree(octree, view, proj, passEncoder){
+
+		if(!octree.webgpu){
+			let {pipeline, bindGroupLayout} = this.initializePointCloudOctreePipeline(octree);
+			let uniforms = this.initializePointCloudOctreeUniforms(octree, bindGroupLayout);
+
+			octree.webgpu = {
+				pipeline: pipeline,
+				bindGroupLayout: bindGroupLayout,
+				uniforms: uniforms,
+			};
 		}
 
-		let {buffers, pipeline, uniforms} = object.webgpu;
+		let {webgpu} = octree;
+		let {pipeline, uniforms} = webgpu;
 
-		uniforms.buffer.setSubData(0, worldViewProj);
+		for(let node of octree.visibleNodes){
+			if(!node.webgpu){
+				let buffers = this.initializeBuffers(node);
 
-		passEncoder.setPipeline(pipeline);
+				node.webgpu = {
+					buffers: buffers,
+				};
+			}
 
-		passEncoder.setVertexBuffer(0, buffers.position);
-		passEncoder.setVertexBuffer(1, buffers.color);
-		passEncoder.setBindGroup(0, uniforms.bindGroup);
+			let webgpuNode = node.webgpu;
+			let {buffers} = webgpuNode;
 
-		passEncoder.draw(object.n, 1, 0, 0);
+			let transform = mat4.create();
+			let scale = mat4.create();
+			mat4.scale(scale, scale, octree.scale.toArray());
+			let translate = mat4.create();
+			mat4.translate(translate, translate, octree.position.toArray());
+			mat4.multiply(transform, translate, scale);
+
+			let worldView = mat4.create();
+			mat4.multiply(worldView, view, transform);
+
+			let worldViewProj = mat4.create();
+			mat4.multiply(worldViewProj, proj, worldView);
+
+			uniforms.buffer.setSubData(0, worldViewProj);
+
+			passEncoder.setPipeline(pipeline);
+
+			// for(let i = 0; i < buffers.length; i++){
+			// 	let buffer = buffers[i];
+			// 	passEncoder.setVertexBuffer(i, buffer.handle);
+			// }
+			let bufPos = buffers.find(b => b.name === "position");
+			let bufCol = buffers.find(b => b.name === "rgb");
+			passEncoder.setVertexBuffer(0, bufPos.handle);
+			passEncoder.setVertexBuffer(1, bufCol.handle);
+			
+			passEncoder.setBindGroup(0, uniforms.bindGroup);
+
+			passEncoder.draw(node.numPoints, 1, 0, 0);
+
+		}
 
 	}
 
@@ -448,7 +636,11 @@ export class WebGpuRenderer{
 
 		let nodeRenderer = this.nodeRenderers[node.constructor.name];
 		
-		nodeRenderer(node, view, proj, passEncoder);
+		if(nodeRenderer){
+			nodeRenderer(node, view, proj, passEncoder);
+		}else{
+			console.log(`no renderer found for: ${node.constructor.name}`);
+		}
 
 	}
 
@@ -520,14 +712,6 @@ export class WebGpuRenderer{
 		passEncoder.endPass();
 		device.defaultQueue.submit([commandEncoder.finish()]);
 
-
-
-		counter++;
-
-		if(counter === 100){
-			console.log("view", view);
-			console.log("proj", proj);
-		}
 
 	}
 
