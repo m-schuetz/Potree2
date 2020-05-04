@@ -9,7 +9,6 @@ import {Quaternion} from "./src/math/Quaternion.js";
 import {Matrix4} from "./src/math/Matrix4.js";
 import {Vector3} from "./src/math/Vector3.js";
 import {OrbitControls} from "./src/navigation/OrbitControls.js";
-import {createTestMesh} from "./src/Mesh.js";
 
 
 let urlPotree = "http://localhost:8080/nocommit/lion/metadata.json";
@@ -106,7 +105,7 @@ function render(timestamp){
 
 	let {canvas} = renderer;
 
-	renderer.render(scene.meshes, camera, sceneObject);
+	renderer.render(scene.nodes, camera, sceneObject);
 
 
 	{// compute FPS

@@ -19,7 +19,8 @@
 <!-- <script type="module" src="main.js"></script> -->
 <script type="module" async>
 	//let {createTestMesh} = await import("./Mesh.js");
-	import {createTestMesh, Mesh} from "./src/Mesh.js";
+	import {Geometry} from "./src/Geometry.js";
+	import {Mesh} from "./src/scene/Mesh.js";
 	import * as main from "./main.js";
 	window.main = main;
 
@@ -30,6 +31,12 @@
 	let box = Geometry.createBox();
 	let node = new Mesh("box", box);
 	main.scene.nodes.push(node);
+
+	let box2 = Geometry.createBox();
+	let node2 = new Mesh("box2", box2);
+	node2.position.set(1, 1, -0.5);
+	node2.scale.set(0.5, 0.5, 0.5);
+	main.scene.nodes.push(node2);
 
 
 </script>

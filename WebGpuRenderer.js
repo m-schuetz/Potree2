@@ -88,7 +88,10 @@ export class WebGpuRenderer{
 		this.canvas = canvas;
 		this.swapChainFormat = "bgra8unorm";
 
-		// this.init();
+		this.nodeRenderers = {
+			"Mesh": this.renderMesh.bind(this),
+		};
+
 	}
 
 	static async create(canvas){
@@ -243,31 +246,27 @@ export class WebGpuRenderer{
 
 
 
-	initializeMeshBuffers(mesh){
-		let {device, shaderMesh} = this;
+	initializeBuffers(geometry){
+		let {device} = this;
 
-		let {n, position, color} = mesh;
-		
-		let [bufPositions, posMapping] = device.createBufferMapped({
-			size: 12 * n,
-			usage: GPUBufferUsage.VERTEX,
-		});
-		new Float32Array(posMapping).set(new Float32Array(position));
-		bufPositions.unmap();
+		let {numPrimitives, buffers} = geometry;
 
-		let [bufRGBA, mappingRGB] = device.createBufferMapped({
-			size: 4 * n,
-			usage: GPUBufferUsage.VERTEX,
-		});
-		new Uint8Array(mappingRGB).set(new Uint8Array(color));
-		bufRGBA.unmap();
+		let gpuBuffers = [];
+		for(let buffer of buffers){
 
-		let buffers = {
-			position: bufPositions,
-			color: bufRGBA,
-		};
+			let XArray = buffer.array.constructor;
+			
+			let [gpuBuffer, mapping] = device.createBufferMapped({
+				size: buffer.array.byteLength,
+				usage: GPUBufferUsage.VERTEX,
+			});
+			new XArray(mapping).set(buffer.array);
+			gpuBuffer.unmap();
 
-		return buffers;
+			gpuBuffers.push({name: name, handle: gpuBuffer});
+		}
+
+		return gpuBuffers;
 	}
 
 	initializeMeshPipeline(mesh){
@@ -346,7 +345,7 @@ export class WebGpuRenderer{
 	}
 
 	initializeMeshUniforms(mesh, bindGroupLayout){
-		let {device, shaderMesh} = this;
+		let {device} = this;
 
 		const uniformBufferSize = 4 * 16; // 4x4 matrix
 
@@ -376,7 +375,7 @@ export class WebGpuRenderer{
 
 	initializeMesh(mesh){
 
-		let buffers = this.initializeMeshBuffers(mesh);
+		let buffers = this.initializeBuffers(mesh.geometry);
 		let {pipeline, bindGroupLayout} = this.initializeMeshPipeline(mesh);
 		let uniforms = this.initializeMeshUniforms(mesh, bindGroupLayout);
 
@@ -390,7 +389,7 @@ export class WebGpuRenderer{
 
 	}
 
-	renderMesh(mesh, worldViewProj, passEncoder){
+	renderMesh(mesh, view, proj, passEncoder){
 
 		if(!mesh.webgpu){
 			this.initializeMesh(mesh);
@@ -398,15 +397,31 @@ export class WebGpuRenderer{
 
 		let {buffers, pipeline, uniforms} = mesh.webgpu;
 
+		let transform = mat4.create();
+		let scale = mat4.create();
+		mat4.scale(scale, scale, mesh.scale.toArray());
+		let translate = mat4.create();
+		mat4.translate(translate, translate, mesh.position.toArray());
+		mat4.multiply(transform, translate, scale);
+
+		let worldView = mat4.create();
+		mat4.multiply(worldView, view, transform);
+
+		let worldViewProj = mat4.create();
+		mat4.multiply(worldViewProj, proj, worldView);
+
 		uniforms.buffer.setSubData(0, worldViewProj);
 
 		passEncoder.setPipeline(pipeline);
 
-		passEncoder.setVertexBuffer(0, buffers.position);
-		passEncoder.setVertexBuffer(1, buffers.color);
+		for(let i = 0; i < buffers.length; i++){
+			let buffer = buffers[i];
+			passEncoder.setVertexBuffer(i, buffer.handle);
+		}
+		
 		passEncoder.setBindGroup(0, uniforms.bindGroup);
 
-		passEncoder.draw(mesh.n, 1, 0, 0);
+		passEncoder.draw(mesh.geometry.numPrimitives, 1, 0, 0);
 	}
 
 	renderObject(object, passEncoder){
@@ -426,6 +441,14 @@ export class WebGpuRenderer{
 		passEncoder.setBindGroup(0, uniforms.bindGroup);
 
 		passEncoder.draw(object.n, 1, 0, 0);
+
+	}
+
+	renderNode(node, view, proj, passEncoder){
+
+		let nodeRenderer = this.nodeRenderers[node.constructor.name];
+		
+		nodeRenderer(node, view, proj, passEncoder);
 
 	}
 
@@ -449,7 +472,7 @@ export class WebGpuRenderer{
 		}
 	}
 
-	render(objects, camera, dbg){
+	render(nodes, camera, dbg){
 
 		
 		this.resize();
@@ -490,9 +513,8 @@ export class WebGpuRenderer{
 			passEncoder.draw(dbg.n, 1, 0, 0);
 		}
 
-		for(let object of objects){
-			// passEncoder.setPipeline(object.webgpu.pipeline);
-			this.renderMesh(object, worldViewProj, passEncoder);
+		for(let node of nodes){
+			this.renderNode(node, view, proj, passEncoder);
 		}
 
 		passEncoder.endPass();

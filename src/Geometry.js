@@ -47,7 +47,12 @@ export class Geometry{
 
 		let numTriangles = position.length / 3;
 
-		let geometry = new Geometry(numTriangles, [position, color]);
+		let buffers = [
+			{name: "position", array: position},
+			{name: "color", array: color},
+		];
+
+		let geometry = new Geometry(numTriangles, buffers);
 
 		return geometry;
 	}
