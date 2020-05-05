@@ -33,7 +33,7 @@ export class Geometry{
 			// right
 			1, -1, -1,    1, 1, -1,    1, 1, 1,
 			1, -1, -1,    1, 1, 1,    1, -1, 1,
-		]);
+		].map(v => v * 0.5));
 
 		let colorValues = [];
 		for(let i = 0; i < position.length; i += 3){
@@ -42,6 +42,45 @@ export class Geometry{
 			let blue = position[i + 2] < 0 ? 0 : 255;
 
 			colorValues.push(red, green, blue, 255);
+		}
+		let color = new Uint8Array(colorValues);
+
+		let numTriangles = position.length / 3;
+
+		let buffers = [
+			{name: "position", array: position},
+			{name: "color", array: color},
+		];
+
+		let geometry = new Geometry(numTriangles, buffers);
+
+		return geometry;
+	}
+
+	static createLinesBox(){
+		let position = new Float32Array([
+			// bottom
+			-1, -1, -1,     1, -1, -1,
+			 1, -1, -1,     1,  1, -1,
+			 1,  1, -1,    -1,  1, -1,
+			-1,  1, -1,    -1, -1, -1,
+
+			// top
+			-1, -1, 1,     1, -1, 1,
+			 1, -1, 1,     1,  1, 1,
+			 1,  1, 1,    -1,  1, 1,
+			-1,  1, 1,    -1, -1, 1,
+
+			// bottom to top
+			-1, -1, -1,    -1, -1, 1,
+			 1, -1, -1,     1, -1, 1,
+			 1,  1, -1,     1,  1, 1,
+			-1,  1, -1,    -1,  1, 1,
+		].map(v => v * 0.5));
+
+		let colorValues = [];
+		for(let i = 0; i < position.length; i++){
+			colorValues.push(255, 0, 0, 255);
 		}
 		let color = new Uint8Array(colorValues);
 

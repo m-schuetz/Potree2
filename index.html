@@ -22,17 +22,26 @@
 	import {PotreeLoader} from "./src/octree/PotreeLoader.js";
 	import {Geometry} from "./src/Geometry.js";
 	import {Mesh} from "./src/scene/Mesh.js";
+	import {Lines} from "./src/scene/Lines.js";
 	import * as main from "./main.js";
 	window.main = main;
 
+	let scene = main.scene;
+	window.scene = scene;
+
 	let box = Geometry.createBox();
 	let node = new Mesh("box", box);
-	main.scene.nodes.push(node);
+	scene.root.add(node);
 
 	let node2 = new Mesh("box2", box);
 	node2.position.set(1, 1, -0.3);
 	node2.scale.set(0.5, 0.5, 0.5);
-	main.scene.nodes.push(node2);
+	scene.root.add(node2);
+
+	let linesBox = Geometry.createLinesBox();
+	let lines = new Lines("lines", linesBox);
+	lines.position.set(2, 0, 0);
+	scene.root.add(lines);
 
 	let url = "http://localhost:8080/nocommit/lion/metadata.json";
 	PotreeLoader.load(url).then( async (pointcloud) => {
@@ -40,8 +49,20 @@
 		await pointcloud.loader.loadHierarchy(pointcloud.root);
 		await pointcloud.loader.loadNode(pointcloud.root);
 
-		pointcloud.visibleNodes = [pointcloud.root];
-		main.scene.nodes.push(pointcloud);
+		//pointcloud.visibleNodes = [pointcloud.root];
+		scene.root.add(pointcloud);
+
+		let boxSize = pointcloud.boundingBox.size();
+		let center = pointcloud.boundingBox.center();
+
+		let linesBox = Geometry.createLinesBox();
+		let boundingBox = new Lines("lines", linesBox);
+		boundingBox.position.copy(center);
+		boundingBox.scale.copy(boxSize);
+		pointcloud.add(boundingBox);
+
+		console.log(boxSize);
+		console.log(center);
 
 	});
 

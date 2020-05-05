@@ -73,10 +73,10 @@ onmessage = function (event) {
 	transferables.push(buffer);
 
 
-	let duration = performance.now() - tStart;
-	let pointsPerSec = ((numPoints / duration) * 1000);
-	pointsPerSec = (pointsPerSec / (1000 * 1000)).toFixed(1);
-	console.log(`${name}: ${duration.toFixed(3)}ms, numPoints: ${numPoints}, points/sec: ${pointsPerSec}M`);
+	// let duration = performance.now() - tStart;
+	// let pointsPerSec = ((numPoints / duration) * 1000);
+	// pointsPerSec = (pointsPerSec / (1000 * 1000)).toFixed(1);
+	// console.log(`${name}: ${duration.toFixed(3)}ms, numPoints: ${numPoints}, points/sec: ${pointsPerSec}M`);
 
 
 	postMessage(message, transferables);

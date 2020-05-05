@@ -17,4 +17,10 @@ export class SceneNode{
 		this.children.push(node);
 	}
 
+	update(timestamp, delta){
+		for(let child of this.children){
+			child.update(timestamp, delta);
+		}
+	}
+
 }

@@ -38,7 +38,7 @@ export class PotreeLoader{
 			return;
 		}
 
-		if(numLoading >= 4){
+		if(numLoading >= 40){
 			return;
 		}
 
@@ -67,8 +67,8 @@ export class PotreeLoader{
 					let worker = pool.getWorker(workerPath);
 
 					worker.onmessage = (e) => {
-						console.log(`node loaded: ${node.name}`);
-						console.log(e);
+						// console.log(`node loaded: ${node.name}`);
+						// console.log(e);
 
 						pool.returnWorker(workerPath, worker);
 
@@ -154,7 +154,6 @@ export class PotreeLoader{
 				}
 
 				let childName = current.name + childIndex;
-				//let childAABB = createChildAABB(node.boundingBox, childIndex);
 				let child = new Node();
 				child.name = childName;
 
@@ -173,6 +172,7 @@ export class PotreeLoader{
 		let max = new Vector3(...bbJson.max);
 		let box = new BoundingBox(min, max);
 		
+		return box;
 	}
 	
 	static async load(url){
@@ -194,9 +194,16 @@ export class PotreeLoader{
 		root.hierarchyByteSize = BigInt(metadata.hierarchy.firstChunkSize);
 
 		let octree = new PointCloudOctree();
+		octree.boundingBox = root.boundingBox;
 		octree.loader = loader;
 		octree.root = root;
 		octree.attributes = attributes;
+
+		// (async () => {
+		// 	await loader.loadHierarchy(root);
+		// 	await loader.loadNode(root);
+		// })();
+		
 
 
 		return octree;

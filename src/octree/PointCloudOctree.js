@@ -27,4 +27,47 @@ export class PointCloudOctree extends SceneNode{
 		
 	}
 
+	update(){
+
+		// console.log("update point cloud");
+
+		let visibleNodes = [];
+		let nodesToLoad = [];
+
+		let stack = [this.root];
+		while(stack.length > 0){
+			let node = stack.pop();
+
+			let visible = node.loaded;
+
+			if(!node.loaded){
+				nodesToLoad.push(node);
+			}
+
+			if(visible){
+				visibleNodes.push(node);
+
+				for(let child of node.children){
+					if(child){
+						stack.push(child);
+					}
+				}
+			}
+		}
+
+		for(let i = 0; i < nodesToLoad.length; i++){
+			let node = nodesToLoad[i];
+			this.loader.loadNode(node);
+
+			if(i >= 3){
+				break;
+			}
+		}
+
+		this.visibleNodes = visibleNodes;
+
+
+
+	}
+
 }
