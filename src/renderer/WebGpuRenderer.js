@@ -221,9 +221,11 @@ export class WebGpuRenderer{
 	}
 
 	drawBoundingBox(params){
-		if(this.drawCommands["boundingBoxes"].length === 0){
-			this.drawCommands["boundingBoxes"].push(params);
+		if(!this.drawCommands["boundingBoxes"]){
+			this.drawCommands["boundingBoxes"] = [];
 		}
+
+		this.drawCommands["boundingBoxes"].push(params);
 	}
 
 	getVisibleNodes(scene, camera){

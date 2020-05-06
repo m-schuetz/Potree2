@@ -219,6 +219,7 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 
 export function renderBoundingBoxes(boxes, view, proj, passEncoder){
 
+
 	if(boxes.length === 0){
 		return;
 	}

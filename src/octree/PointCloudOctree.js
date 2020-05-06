@@ -58,14 +58,14 @@ export class PointCloudOctree extends SceneNode{
 			}
 		}
 
-		for(let i = 0; i < nodesToLoad.length; i++){
-			let node = nodesToLoad[i];
-			this.loader.loadNode(node);
+		// for(let i = 0; i < nodesToLoad.length; i++){
+		// 	let node = nodesToLoad[i];
+		// 	this.loader.loadNode(node);
 
-			if(i >= 3){
-				break;
-			}
-		}
+		// 	if(i >= 3){
+		// 		break;
+		// 	}
+		// }
 
 		for(let node of visibleNodes){
 			state.drawBoundingBox({

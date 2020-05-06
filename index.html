@@ -22,49 +22,70 @@
 	import {PotreeLoader} from "./src/octree/PotreeLoader.js";
 	import {Geometry} from "./src/Geometry.js";
 	import {Mesh} from "./src/scene/Mesh.js";
+	import {Vector3} from "./src/math/Vector3.js";
 	import {Lines} from "./src/scene/Lines.js";
-	import * as main from "./main.js";
-	window.main = main;
+	import {Potree} from "./src/Potree.js";
 
-	let scene = main.scene;
-	window.scene = scene;
+	let canvas = document.getElementById("canvas");
+	new Potree().init(canvas).then((viewer) => {
+		
+		let scene = viewer.scene;
+		window.scene = scene;
 
-	let box = Geometry.createBox();
-	let node = new Mesh("box", box);
-	scene.root.add(node);
+		let box = Geometry.createBox();
+		let node = new Mesh("box", box);
+		scene.root.add(node);
 
-	let node2 = new Mesh("box2", box);
-	node2.position.set(1, 1, -0.3);
-	node2.scale.set(0.5, 0.5, 0.5);
-	scene.root.add(node2);
+		let node2 = new Mesh("box2", box);
+		node2.position.set(1, 1, -0.3);
+		node2.scale.set(0.5, 0.5, 0.5);
+		scene.root.add(node2);
 
-	let linesBox = Geometry.createBoundingBox();
-	let lines = new Lines("lines", linesBox);
-	lines.position.set(2, 0, 0);
-	scene.root.add(lines);
+		// let linesBox = Geometry.createBoundingBox();
+		// let lines = new Lines("lines", linesBox);
+		// lines.position.set(2, 0, 0);
+		// scene.root.add(lines);
 
-	let url = "http://localhost:8080/nocommit/lion/metadata.json";
-	PotreeLoader.load(url).then( async (pointcloud) => {
+		let url = "http://localhost:8080/nocommit/lion/metadata.json";
+		PotreeLoader.load(url).then( async (pointcloud) => {
 
-		await pointcloud.loader.loadHierarchy(pointcloud.root);
-		await pointcloud.loader.loadNode(pointcloud.root);
+			await pointcloud.loader.loadHierarchy(pointcloud.root);
+			await pointcloud.loader.loadNode(pointcloud.root);
 
-		//pointcloud.visibleNodes = [pointcloud.root];
-		scene.root.add(pointcloud);
+			//pointcloud.visibleNodes = [pointcloud.root];
+			scene.root.add(pointcloud);
 
-		let boxSize = pointcloud.boundingBox.size();
-		let center = pointcloud.boundingBox.center();
+			let boxSize = pointcloud.boundingBox.size();
+			let center = pointcloud.boundingBox.center();
 
-		// let linesBox = Geometry.createLinesBox();
-		// let boundingBox = new Lines("lines", linesBox);
-		// boundingBox.position.copy(center);
-		// boundingBox.scale.copy(boxSize);
-		// pointcloud.add(boundingBox);
+			// let linesBox = Geometry.createLinesBox();
+			// let boundingBox = new Lines("lines", linesBox);
+			// boundingBox.position.copy(center);
+			// boundingBox.scale.copy(boxSize);
+			// pointcloud.add(boundingBox);
 
-		console.log(boxSize);
-		console.log(center);
+			console.log(boxSize);
+			console.log(center);
+
+		});
+
+		viewer.addListener("update", (e) => {
+
+			viewer.renderer.drawBoundingBox({
+				position: new Vector3(1, 1, 1),
+				scale: new Vector3(1, 1, 1),
+			});
+
+			viewer.renderer.drawBoundingBox({
+				position: new Vector3(3, 1, 1),
+				scale: new Vector3(0.5, 0.5, 0.5),
+			});
+
+		});
 
 	});
+
+	
 
 
 </script>
