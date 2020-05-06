@@ -41,7 +41,7 @@ export class PointCloudOctree extends SceneNode{
 		while(stack.length > 0){
 			let node = stack.pop();
 
-			let visible = node.loaded;
+			let visible = node.loaded && node.name.length <= 4;
 
 			if(!node.loaded){
 				nodesToLoad.push(node);
@@ -58,14 +58,14 @@ export class PointCloudOctree extends SceneNode{
 			}
 		}
 
-		// for(let i = 0; i < nodesToLoad.length; i++){
-		// 	let node = nodesToLoad[i];
-		// 	this.loader.loadNode(node);
+		for(let i = 0; i < nodesToLoad.length; i++){
+			let node = nodesToLoad[i];
+			this.loader.loadNode(node);
 
-		// 	if(i >= 3){
-		// 		break;
-		// 	}
-		// }
+			if(i >= 3){
+				break;
+			}
+		}
 
 		for(let node of visibleNodes){
 			state.drawBoundingBox({

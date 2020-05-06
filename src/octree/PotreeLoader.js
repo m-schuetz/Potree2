@@ -180,7 +180,7 @@ export class PotreeLoader{
 				}
 
 				let childName = current.name + childIndex;
-				let childAABB = createChildAABB(node.boundingBox, childIndex);
+				let childAABB = createChildAABB(current.boundingBox, childIndex);
 				let child = new Node();
 				child.name = childName;
 				child.boundingBox = childAABB;

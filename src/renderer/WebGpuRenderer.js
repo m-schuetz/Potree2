@@ -1,5 +1,5 @@
 
-import {vsPointcloud, fsPointcloud, vsMesh, fsMesh} from "../../shaders.js";
+import {vsMesh, fsMesh} from "../../shaders.js";
 
 import {renderMesh} from "./mesh.js";
 import {renderLines} from "./lines.js";
@@ -82,11 +82,6 @@ export class WebGpuRenderer{
 		let context = this.canvas.getContext('gpupresent');
 		let swapChain = configureSwapChain(device, this.swapChainFormat, context);
 
-		let shader = {
-			vsModule: makeShaderModule_GLSL(glslang, device, 'vertex', vsPointcloud),
-			fsModule: makeShaderModule_GLSL(glslang, device, 'fragment', fsPointcloud),
-		};
-
 		let shaderMesh = {
 			vsModule: makeShaderModule_GLSL(glslang, device, 'vertex', vsMesh),
 			fsModule: makeShaderModule_GLSL(glslang, device, 'fragment', fsMesh),
@@ -109,7 +104,6 @@ export class WebGpuRenderer{
 		this.context = context;
 		this.swapChain = swapChain;
 
-		this.shader = shader;
 		this.shaderMesh = shaderMesh;
 		this.depthTexture = depthTexture;
 	}

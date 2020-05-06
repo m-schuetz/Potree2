@@ -12,14 +12,16 @@ layout(set = 0, binding = 0) uniform Uniforms {
 	mat4 worldViewProj;
 } uniforms;
 
+layout(set = 0, binding = 1) uniform Uniforms1 {
+	mat4 worldViewProj[200];
+} uniforms1;
+
 void main() {
 	vColor = vec4(1, 0, 0, 1);
 
-	// mat4 transform = projections.worldViewProj[gl_InstanceIndex];
+	mat4 transform = uniforms1.worldViewProj[gl_InstanceIndex];
+	gl_Position = transform * vec4(position, 1.0);
 
-	// gl_Position = transform * vec4(position, 1.0);
-
-	gl_Position = uniforms.worldViewProj * vec4(position, 1.0);
 }
 `;
 
@@ -45,6 +47,10 @@ function createPipeline(){
 	let bindGroupLayout = device.createBindGroupLayout({
 		entries: [{
 			binding: 0,
+			visibility: GPUShaderStage.VERTEX,
+			type: "uniform-buffer"
+		},{
+			binding: 1,
 			visibility: GPUShaderStage.VERTEX,
 			type: "uniform-buffer"
 		}]
@@ -109,6 +115,11 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	});
 
+	let buffer2 = device.createBuffer({
+		size: boxes.length * uniformBufferSize,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	});
+
 	let bindGroup = device.createBindGroup({
 		layout: bindGroupLayout,
 		entries: [{
@@ -116,11 +127,17 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 			resource: {
 				buffer: buffer,
 			},
+		},{
+			binding: 1,
+			resource: {
+				buffer: buffer2,
+			},
 		}],
 	});
 
 	let uniforms = {
 		buffer: buffer,
+		buffer2: buffer2,
 		bindGroup: bindGroup,
 		bindGroupLayout: bindGroupLayout,
 	};
@@ -134,6 +151,7 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 
 
 
+	let identity = mat4.create();
 	let transform = mat4.create();
 	let scale = mat4.create();
 	let translate = mat4.create();
@@ -143,15 +161,15 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 	for(let i = 0; i < boxes.length; i++){
 		let box = boxes[i];
 
-		mat4.scale(scale, scale, box.scale.toArray());
-		mat4.translate(translate, translate, box.position.toArray());
+		mat4.scale(scale, identity, box.scale.toArray());
+		mat4.translate(translate, identity, box.position.toArray());
 		mat4.multiply(transform, translate, scale);
 
 		mat4.multiply(worldView, view, transform);
 		mat4.multiply(worldViewProj, proj, worldView);
 
 		let offset = i * 16 * 4;
-		// buffer.set(new Uint8Array(worldViewProj.buffer), offset);
+		uniforms.buffer2.setSubData(offset, worldViewProj);
 	}
 
 	uniforms.buffer.setSubData(0, worldViewProj);
@@ -159,62 +177,6 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 	return uniforms;
 
 
-	// let {device} = this;
-
-	// let instanceSize = 4 * 16; // 4x4 matrix
-	// let bufferSize = boxes.length * instanceSize;
-
-	// let buffer = new Uint8Array(bufferSize);
-
-
-
-	// let transform = mat4.create();
-	// let scale = mat4.create();
-	// let translate = mat4.create();
-	// let worldView = mat4.create();
-	// let worldViewProj = mat4.create();
-	
-	// for(let i = 0; i < boxes.length; i++){
-	// 	let box = boxes[i];
-
-	// 	mat4.scale(scale, scale, box.scale.toArray());
-	// 	mat4.translate(translate, translate, box.position.toArray());
-	// 	mat4.multiply(transform, translate, scale);
-
-	// 	mat4.multiply(worldView, view, transform);
-	// 	mat4.multiply(worldViewProj, proj, worldView);
-
-	// 	let offset = i * 16 * 4;
-	// 	buffer.set(new Uint8Array(worldViewProj.buffer), offset);
-	// }
-
-
-
-
-	// let [gpuBuffer, mapping] = device.createBufferMapped({
-	// 	size: bufferSize,
-	// 	usage: GPUBufferUsage.VERTEX,
-	// });
-	// new Uint8Array(mapping).set(new Uint8Array(buffer));
-	// gpuBuffer.unmap();
-
-	// let bindGroup = device.createBindGroup({
-	// 	layout: bindGroupLayout,
-	// 	entries: [{
-	// 		binding: 0,
-	// 		resource: {
-	// 			buffer: gpuBuffer,
-	// 		},
-	// 	}],
-	// });
-
-	// let uniforms = {
-	// 	buffer: gpuBuffer,
-	// 	bindGroup: bindGroup,
-	// 	bindGroupLayout: bindGroupLayout,
-	// };
-
-	// return uniforms;
 }
 
 export function renderBoundingBoxes(boxes, view, proj, passEncoder){
