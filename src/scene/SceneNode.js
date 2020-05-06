@@ -17,9 +17,9 @@ export class SceneNode{
 		this.children.push(node);
 	}
 
-	update(timestamp, delta){
+	update(state){
 		for(let child of this.children){
-			child.update(timestamp, delta);
+			child.update(state);
 		}
 	}
 

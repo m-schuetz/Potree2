@@ -8,6 +8,32 @@ import {PointAttribute, getArrayType} from "./PointAttributes.js";
 let numLoading = 0;
 let pool = new WorkerPool();
 
+function createChildAABB(aabb, index){
+	let min = aabb.min.clone();
+	let max = aabb.max.clone();
+	let size = max.clone().sub(min);
+
+	if ((index & 0b0001) > 0) {
+		min.z += size.z / 2;
+	} else {
+		max.z -= size.z / 2;
+	}
+
+	if ((index & 0b0010) > 0) {
+		min.y += size.y / 2;
+	} else {
+		max.y -= size.y / 2;
+	}
+
+	if ((index & 0b0100) > 0) {
+		min.x += size.x / 2;
+	} else {
+		max.x -= size.x / 2;
+	}
+
+	return new BoundingBox(min, max);
+}
+
 function parseAttributes(jsonAttributes){
 
 	let attributes = [];
@@ -154,8 +180,10 @@ export class PotreeLoader{
 				}
 
 				let childName = current.name + childIndex;
+				let childAABB = createChildAABB(node.boundingBox, childIndex);
 				let child = new Node();
 				child.name = childName;
+				child.boundingBox = childAABB;
 
 				current.children[childIndex] = child;
 				child.parent = current;

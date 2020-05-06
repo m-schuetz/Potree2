@@ -27,9 +27,12 @@ export class PointCloudOctree extends SceneNode{
 		
 	}
 
-	update(){
+	update(state){
 
-		// console.log("update point cloud");
+		state.drawBoundingBox({
+			position: this.boundingBox.center(),
+			scale: this.boundingBox.size(),
+		});
 
 		let visibleNodes = [];
 		let nodesToLoad = [];
@@ -62,6 +65,13 @@ export class PointCloudOctree extends SceneNode{
 			if(i >= 3){
 				break;
 			}
+		}
+
+		for(let node of visibleNodes){
+			state.drawBoundingBox({
+				position: node.boundingBox.center(),
+				scale: node.boundingBox.size(),
+			});
 		}
 
 		this.visibleNodes = visibleNodes;

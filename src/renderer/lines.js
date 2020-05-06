@@ -10,11 +10,10 @@ export function initializeLinesPipeline(mesh){
 		}]
 	});
 
-	let pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
 	let shader = shaderMesh;
 
 	let pipeline = device.createRenderPipeline({
-		layout: pipelineLayout,
+		layout: device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] }),
 		vertexStage: {
 			module: shader.vsModule,
 			entryPoint: 'main'
@@ -115,17 +114,17 @@ export function initializeLines(lines){
 		uniforms: uniforms,
 	};
 
-	lines.webgpu = webgpu;
+	lines.geometry.webgpu = webgpu;
 
 }
 
 export function renderLines(lines, view, proj, passEncoder){
 
-	if(!lines.webgpu){
+	if(!lines.geometry.webgpu){
 		initializeLines.bind(this)(lines);
-	}
+	} 
 
-	let {buffers, pipeline, uniforms} = lines.webgpu;
+	let {buffers, pipeline, uniforms} = lines.geometry.webgpu;
 
 	let transform = mat4.create();
 	let scale = mat4.create();

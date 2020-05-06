@@ -61,7 +61,13 @@ function loop(timestamp){
 
 	let delta = timestamp - previousTimestamp;
 
-	update(timestamp, delta);
+	let state = {
+		timestamp: timestamp,
+		delta: delta,
+		drawBoundingBox: renderer.drawBoundingBox.bind(renderer),
+	};
+
+	update(state);
 	render(timestamp, delta);
 
 	requestAnimationFrame(loop);

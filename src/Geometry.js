@@ -57,7 +57,7 @@ export class Geometry{
 		return geometry;
 	}
 
-	static createLinesBox(){
+	static createBoundingBox(){
 		let position = new Float32Array([
 			// bottom
 			-1, -1, -1,     1, -1, -1,

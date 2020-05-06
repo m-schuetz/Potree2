@@ -38,7 +38,7 @@
 	node2.scale.set(0.5, 0.5, 0.5);
 	scene.root.add(node2);
 
-	let linesBox = Geometry.createLinesBox();
+	let linesBox = Geometry.createBoundingBox();
 	let lines = new Lines("lines", linesBox);
 	lines.position.set(2, 0, 0);
 	scene.root.add(lines);
@@ -55,11 +55,11 @@
 		let boxSize = pointcloud.boundingBox.size();
 		let center = pointcloud.boundingBox.center();
 
-		let linesBox = Geometry.createLinesBox();
-		let boundingBox = new Lines("lines", linesBox);
-		boundingBox.position.copy(center);
-		boundingBox.scale.copy(boxSize);
-		pointcloud.add(boundingBox);
+		// let linesBox = Geometry.createLinesBox();
+		// let boundingBox = new Lines("lines", linesBox);
+		// boundingBox.position.copy(center);
+		// boundingBox.scale.copy(boxSize);
+		// pointcloud.add(boundingBox);
 
 		console.log(boxSize);
 		console.log(center);

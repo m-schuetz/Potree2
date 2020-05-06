@@ -46,6 +46,7 @@ export function initializeMeshPipeline(mesh){
 				}
 			]
 		},
+		primitiveTopology: 'triangle-list',
 		colorStates: [
 			{
 				format: this.swapChainFormat,
@@ -56,7 +57,6 @@ export function initializeMeshPipeline(mesh){
 				}
 			}
 		],
-		primitiveTopology: 'triangle-list',
 		rasterizationState: {
 			frontFace: "ccw",
 			cullMode: 'none'
