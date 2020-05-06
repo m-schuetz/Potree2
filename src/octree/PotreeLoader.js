@@ -227,10 +227,10 @@ export class PotreeLoader{
 		octree.root = root;
 		octree.attributes = attributes;
 
-		// (async () => {
-		// 	await loader.loadHierarchy(root);
-		// 	await loader.loadNode(root);
-		// })();
+		(async () => {
+			await loader.loadHierarchy(root);
+			await loader.loadNode(root);
+		})();
 		
 
 

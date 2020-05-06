@@ -28,6 +28,7 @@
 
 	let canvas = document.getElementById("canvas");
 	new Potree().init(canvas).then((viewer) => {
+		window.potree = viewer;
 		
 		let scene = viewer.scene;
 		window.scene = scene;
@@ -41,32 +42,23 @@
 		node2.scale.set(0.5, 0.5, 0.5);
 		scene.root.add(node2);
 
-		// let linesBox = Geometry.createBoundingBox();
-		// let lines = new Lines("lines", linesBox);
-		// lines.position.set(2, 0, 0);
-		// scene.root.add(lines);
+		viewer.controls.yaw = 0.4637935622452329;
+		viewer.controls.pitch = -0.4136537176781808;
+		viewer.controls.target.set(
+			0.2250017942518924, 
+			-0.3310930078099392, 
+			3.829165648605102
+		);
+
+
 
 		let url = "http://localhost:8080/nocommit/lion/metadata.json";
 		PotreeLoader.load(url).then( async (pointcloud) => {
 
-			await pointcloud.loader.loadHierarchy(pointcloud.root);
-			await pointcloud.loader.loadNode(pointcloud.root);
+			pointcloud.loader.loadHierarchy(pointcloud.root);
+			pointcloud.loader.loadNode(pointcloud.root);
 
-			//pointcloud.visibleNodes = [pointcloud.root];
 			scene.root.add(pointcloud);
-
-			let boxSize = pointcloud.boundingBox.size();
-			let center = pointcloud.boundingBox.center();
-
-			// let linesBox = Geometry.createLinesBox();
-			// let boundingBox = new Lines("lines", linesBox);
-			// boundingBox.position.copy(center);
-			// boundingBox.scale.copy(boxSize);
-			// pointcloud.add(boundingBox);
-
-			console.log(boxSize);
-			console.log(center);
-
 		});
 
 		viewer.addListener("update", (e) => {

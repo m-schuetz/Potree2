@@ -4,7 +4,7 @@ import {vsMesh, fsMesh} from "../../shaders.js";
 import {renderMesh} from "./mesh.js";
 import {renderLines} from "./lines.js";
 import {renderBoundingBoxes} from "./boundingBoxes.js";
-import {renderPointCloudOctree} from "./pointCloudOctree.js";
+import {renderPointCloudOctree} from "./pointCloudOctree_quad.js";
 import {Geometry} from "../Geometry.js";
 import {Lines} from "../scene/Lines.js";
 

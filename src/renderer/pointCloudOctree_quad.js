@@ -1,64 +1,101 @@
 
-import {vs} from "./../shaders/pointcloud.vs.js";
-import {fs} from "./../shaders/pointcloud.fs.js";
+
+let vs = `
+#version 450
+
+layout(set = 0, binding = 0) uniform Uniforms {
+	mat4 worldViewProj;
+	ivec4 imin;
+	vec4 offset;
+	float screenWidth;
+	float screenHeight;
+} uniforms;
+
+layout(location = 0) in ivec3 a_position;
+layout(location = 1) in ivec4 a_rgb;
+
+layout(location=2) in vec3 posBillboard;
+
+layout(location = 0) out vec4 vColor;
+
+void main() {
+	vColor = vec4(
+		float(a_rgb.x) / 256.0,
+		float(a_rgb.y) / 256.0,
+		float(a_rgb.z) / 256.0,
+		1.0
+	);
+
+	ivec3 min = uniforms.imin.xyz;
+
+	int ix = (a_position.x) / 1000;
+	int iy = (a_position.y) / 1000;
+	int iz = (a_position.z) / 1000;
+	
+	ix = ix / 1000;
+	iy = iy / 1000;
+	iz = iz / 1000;
+
+	vec3 pos = vec3(
+		float(ix) * 0.0031996278762817386,
+		float(iy) * 0.004269749641418458,
+		float(iz) * 0.004647889137268066
+	);
+
+	pos = pos + uniforms.offset.xyz;
+
+	gl_Position = uniforms.worldViewProj * vec4(pos, 1.0);
+
+	float w = gl_Position.w;
+	float pointSize = 10.0;
+	gl_Position.x += w * pointSize * posBillboard.x / uniforms.screenWidth;
+	gl_Position.y += w * pointSize * posBillboard.y / uniforms.screenHeight;
+
+	
+
+}
+`;
+
+
+let fs = `
+
+#version 450
+
+layout(location = 0) in vec4 vColor;
+layout(location = 0) out vec4 outColor;
+
+void main() {
+	outColor = vColor;
+	// outColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+
+`;
 
 let shader = null;
 
+let billboardBuffer = null;
+function getBillboardBuffer(device){
 
-let whitelist = ["position", "rgb"];
+	if(billboardBuffer === null){
+		let values = [
+			-1, -1, 0,
+			1, -1, 0,
+			1, 1, 0,
+			-1, 1, 0
+		];
 
+		const [gpuBuffer, mapping] = device.createBufferMapped({
+			size: values.length * 4,
+			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+		});
+		new Float32Array(mapping).set(values);
+		gpuBuffer.unmap();
 
-function buildVertexShader(octree){
+		billboardBuffer = gpuBuffer;
 
-	// let attributes = octree.attributes;
-
-	// let srcAttributes = "";
-
-	// let i = 0;
-	// for(let attribute of octree.attributes){
-
-	// 	if(!whitelist.includes(attribute.name)){
-	// 		continue;
-	// 	}
-
-	// 	if(attribute.type === "double"){
-	// 		continue;
-	// 	}
-
-	// 	let glslAttributeName = "a_" + attribute.name.replace(/[^\w]/g, "_")
-
-	// 	let line = `layout(location = ${i}) in ivec4 ${glslAttributeName};\n`;
-
-	// 	srcAttributes += line;
-	// 	i++;
-	// }
-
-	// let built = vs.replace("<!-- POINT ATTRIBUTES -->", srcAttributes);
-
-	// console.log(built);
-
-	let built = vs;
-
-	return built;
-}
-
-
-
-function getFormatname(attribute){
-	let {type, numElements} = attribute;
-
-	let formatname = "";
-
-	// TODO
-
-	if(attribute.type === "int32"){
-		return "int3";
-	}else if(attribute.type === "uint16"){
-		return "uchar4";
 	}
-	
 
-	return formatname;
+	return billboardBuffer;
 }
 
 export function initializePointCloudOctreePipeline(octree){
@@ -74,53 +111,6 @@ export function initializePointCloudOctreePipeline(octree){
 
 	let pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
 
-
-	let vertexBuffers = [];
-	//for(let i = 0; i < octree.attributes.length; i++){
-	let i = 0;
-	for(let attribute of octree.attributes){
-
-		if(!whitelist.includes(attribute.name)){
-			continue;
-		}
-
-		if(attribute.type === "double"){
-			continue;
-		}
-
-		let formatname = getFormatname(attribute);
-
-		// TODO
-		let stride = attribute.byteSize;
-		if(stride === 6){
-			stride = 4;
-		}
-
-		let value = {
-			arrayStride: stride,
-			attributes: [{
-				shaderLocation: i,
-				offset: 0,
-				format: formatname,
-			}]
-		};
-
-		console.log(value);
-
-		vertexBuffers.push(value);
-		i++;
-	}
-	// {
-	// 	arrayStride: 3 * 4,
-	// 	attributes: [
-	// 		{ // position
-	// 			shaderLocation: 0,
-	// 			offset: 0,
-	// 			format: "int3"
-	// 		}
-	// 	]
-	// },
-
 	let pipeline = device.createRenderPipeline({
 		layout: pipelineLayout,
 		vertexStage: {
@@ -132,28 +122,38 @@ export function initializePointCloudOctreePipeline(octree){
 			entryPoint: 'main'
 		},
 		vertexState: {
-			vertexBuffers: vertexBuffers,
-			//[
-				// {
-				// 	arrayStride: 3 * 4,
-				// 	attributes: [
-				// 		{ // position
-				// 			shaderLocation: 0,
-				// 			offset: 0,
-				// 			format: "int3"
-				// 		}
-				// 	]
-				// },{
-				// 	arrayStride: 1 * 4,
-				// 	attributes: [
-				// 		{ // color
-				// 			shaderLocation: 1,
-				// 			offset: 0,
-				// 			format: "uchar4"
-				// 		}
-				// 	]
-				// }
-			//]
+			vertexBuffers: [
+				{
+					arrayStride: 3 * 4,
+					stepMode: "instance",
+					attributes: [
+						{ // position
+							shaderLocation: 0,
+							offset: 0,
+							format: "int3"
+						}
+					]
+				},{
+					arrayStride: 1 * 4,
+					stepMode: "instance",
+					attributes: [
+						{ // color
+							shaderLocation: 1,
+							offset: 0,
+							format: "uchar4"
+						}
+					]
+				},{
+					arrayStride: 4 * 4,
+					attributes: [
+						{ // billboard position
+							shaderLocation: 2,
+							offset: 0,
+							format: "float4"
+						}
+					]
+				}
+			]
 		},
 		colorStates: [
 			{
@@ -165,7 +165,7 @@ export function initializePointCloudOctreePipeline(octree){
 				}
 			}
 		],
-		primitiveTopology: 'point-list',
+		primitiveTopology: 'triangle-strip',
 		rasterizationState: {
 			frontFace: "ccw",
 			cullMode: 'none'
@@ -186,7 +186,10 @@ export function initializePointCloudOctreePipeline(octree){
 export function initializePointCloudOctreeUniforms(octree, bindGroupLayout){
 	let {device} = this;
 
-	const uniformBufferSize = 4 * 16 + 4 * 4 + 4 * 4;
+	const uniformBufferSize = 4 * 16 
+		+ 4 * 4 
+		+ 4 * 4 
+		+ 4 * 4;
 
 	let buffer = device.createBuffer({
 		size: uniformBufferSize,
@@ -216,7 +219,7 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 
 	if(shader === null){
 		shader = {
-			vsModule: this.makeShaderModule('vertex', buildVertexShader(octree)),
+			vsModule: this.makeShaderModule('vertex', vs),
 			fsModule: this.makeShaderModule('fragment', fs),
 		};
 
@@ -234,6 +237,7 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 		};
 	}
 
+	let {device} = this;
 	let {webgpu} = octree;
 	let {pipeline, uniforms} = webgpu;
 
@@ -243,6 +247,8 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 	let worldView = mat4.create();
 	let worldViewProj = mat4.create();
 	let identity = mat4.create();
+
+	passEncoder.setPipeline(pipeline);
 
 	for(let node of octree.visibleNodes){
 		if(!node.webgpu){
@@ -263,21 +269,26 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 		mat4.multiply(worldView, view, transform);
 		mat4.multiply(worldViewProj, proj, worldView);
 
+		let [width, height] = [this.canvas.clientWidth, this.canvas.clientHeight];
+
 		uniforms.buffer.setSubData(0, worldViewProj);
 		uniforms.buffer.setSubData(4 * 16, new Int32Array([0, 0, 0, 0]));
 		uniforms.buffer.setSubData(4 * 16 + 4 * 4, 
 			new Float32Array([-0.748212993144989, -2.7804059982299805, 2.547821283340454, 0]));
+		uniforms.buffer.setSubData(4 * 16 + 4 * 4 + 4 * 4, 
+			new Float32Array([width, height]));
 
-		passEncoder.setPipeline(pipeline);
+		
 
 		let bufPos = buffers.find(b => b.name === "position");
 		let bufCol = buffers.find(b => b.name === "rgb");
 		passEncoder.setVertexBuffer(0, bufPos.handle);
 		passEncoder.setVertexBuffer(1, bufCol.handle);
+		passEncoder.setVertexBuffer(2, getBillboardBuffer(device));
 		
 		passEncoder.setBindGroup(0, uniforms.bindGroup);
 
-		passEncoder.draw(node.numPoints, 1, 0, 0);
+		passEncoder.draw(4, node.numPoints, 0, 0);
 
 	}
 
