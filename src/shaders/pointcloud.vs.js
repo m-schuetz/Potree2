@@ -7,6 +7,7 @@ layout(set = 0, binding = 0) uniform Uniforms {
 	mat4 worldViewProj;
 	ivec4 imin;
 	vec4 offset;
+	vec4 fScale;
 } uniforms;
 
 layout(location = 0) in ivec3 a_position;
@@ -25,18 +26,24 @@ void main() {
 
 	ivec3 min = uniforms.imin.xyz;
 
-	int ix = (a_position.x) / 1000;
-	int iy = (a_position.y) / 1000;
-	int iz = (a_position.z) / 1000;
+	// int ix = (a_position.x) / 1000;
+	// int iy = (a_position.y) / 1000;
+	// int iz = (a_position.z) / 1000;
 	
-	ix = ix / 1000;
-	iy = iy / 1000;
-	iz = iz / 1000;
+	// ix = ix / 1000;
+	// iy = iy / 1000;
+	// iz = iz / 1000;
+
+	// vec3 pos = vec3(
+	// 	float(ix) * 0.0031996278762817386,
+	// 	float(iy) * 0.004269749641418458,
+	// 	float(iz) * 0.004647889137268066
+	// );
 
 	vec3 pos = vec3(
-		float(ix) * 0.0031996278762817386,
-		float(iy) * 0.004269749641418458,
-		float(iz) * 0.004647889137268066
+		float(ix) * 0.01,
+		float(iy) * 0.01,
+		float(iz) * 0.01,
 	);
 
 	pos = pos + uniforms.offset.xyz;

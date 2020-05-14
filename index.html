@@ -44,16 +44,25 @@
 
 		viewer.controls.yaw = 0.4637935622452329;
 		viewer.controls.pitch = -0.4136537176781808;
-		viewer.controls.target.set(
-			0.2250017942518924, 
-			-0.3310930078099392, 
-			3.829165648605102
-		);
+		viewer.controls.radius = 100;
+		// viewer.controls.target.set(
+		// 	0.2250017942518924, 
+		// 	-0.3310930078099392, 
+		// 	3.829165648605102
+		// );
+
+		viewer.controls.target.set(693983.231, 3915824.074, 53.839);
+
+		// 693350.589, 3914914.483, 664.125
+		// 693983.231, 3915824.074, 53.839
 
 
 
-		let url = "http://localhost:8080/nocommit/lion/metadata.json";
+		//let url = "http://localhost:8080/nocommit/lion/metadata.json";
+		let url = "http://localhost:8080/nocommit/morro/metadata.json";
 		PotreeLoader.load(url).then( async (pointcloud) => {
+
+			window.dbg = pointcloud;
 
 			pointcloud.loader.loadHierarchy(pointcloud.root);
 			pointcloud.loader.loadNode(pointcloud.root);

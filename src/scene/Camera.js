@@ -11,7 +11,7 @@ export class Camera{
 		this.fov = toRadians(60);
 		this.distance = 10;
 		this.near = 0.1;
-		this.far = 10_000;
+		this.far = 1_000_000;
 	}
 
 	lookAt(target){

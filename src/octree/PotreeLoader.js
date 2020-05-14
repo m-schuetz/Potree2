@@ -71,6 +71,11 @@ export class PotreeLoader{
 		node.loading = true;
 		numLoading++;
 
+		if(node.byteOffset === undefined){
+			await this.loadHierarchy(node);
+		}
+
+
 		let {byteOffset, byteSize} = node;
 
 		let promise = new Promise(async (resolve, reject) => {
@@ -214,6 +219,8 @@ export class PotreeLoader{
 		let loader = new PotreeLoader(url);
 		loader.metadata = metadata;
 		loader.attributes = attributes;
+		loader.scale = metadata.scale;
+		loader.offset = metadata.offset;
 
 		let root = new Node();
 		root.name = "r";
@@ -228,7 +235,7 @@ export class PotreeLoader{
 		octree.attributes = attributes;
 
 		(async () => {
-			await loader.loadHierarchy(root);
+			//await loader.loadHierarchy(root);
 			await loader.loadNode(root);
 		})();
 		

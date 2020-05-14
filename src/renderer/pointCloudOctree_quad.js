@@ -9,6 +9,8 @@ layout(set = 0, binding = 0) uniform Uniforms {
 	vec4 offset;
 	float screenWidth;
 	float screenHeight;
+	vec4 fScale;
+	ivec4 iScale;
 } uniforms;
 
 layout(location = 0) in ivec3 a_position;
@@ -26,32 +28,17 @@ void main() {
 		1.0
 	);
 
-	ivec3 min = uniforms.imin.xyz;
-
-	int ix = (a_position.x) / 1000;
-	int iy = (a_position.y) / 1000;
-	int iz = (a_position.z) / 1000;
-	
-	ix = ix / 1000;
-	iy = iy / 1000;
-	iz = iz / 1000;
-
-	vec3 pos = vec3(
-		float(ix) * 0.0031996278762817386,
-		float(iy) * 0.004269749641418458,
-		float(iz) * 0.004647889137268066
-	);
+	ivec3 ipos = a_position / uniforms.iScale.xyz;
+	vec3 pos = vec3(ipos) * uniforms.fScale.xyz;
 
 	pos = pos + uniforms.offset.xyz;
 
 	gl_Position = uniforms.worldViewProj * vec4(pos, 1.0);
 
 	float w = gl_Position.w;
-	float pointSize = 10.0;
+	float pointSize = 5.0;
 	gl_Position.x += w * pointSize * posBillboard.x / uniforms.screenWidth;
 	gl_Position.y += w * pointSize * posBillboard.y / uniforms.screenHeight;
-
-	
 
 }
 `;
@@ -186,10 +173,7 @@ export function initializePointCloudOctreePipeline(octree){
 export function initializePointCloudOctreeUniforms(octree, bindGroupLayout){
 	let {device} = this;
 
-	const uniformBufferSize = 4 * 16 
-		+ 4 * 4 
-		+ 4 * 4 
-		+ 4 * 4;
+	const uniformBufferSize = 4 * 16 + 16 + 16 + 16+ 16 + 16;
 
 	let buffer = device.createBuffer({
 		size: uniformBufferSize,
@@ -213,6 +197,23 @@ export function initializePointCloudOctreeUniforms(octree, bindGroupLayout){
 	};
 
 	return uniforms;
+}
+
+function getScaleComponents(scale){
+
+	let iScale = new Int32Array([1, 1, 1]);
+	let fScale = new Float32Array([0, 0, 0]);
+
+	for(let i = 0; i < 3; i++){
+		if(scale[i] < 0.0001){
+			iScale[i] = 1000;
+			fScale[i] = scale[i] * 1000;
+		}else{
+			fScale[i] = scale[i];
+		}
+	}
+	
+	return [iScale, fScale];
 }
 
 export function renderPointCloudOctree(octree, view, proj, passEncoder){
@@ -271,14 +272,18 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 
 		let [width, height] = [this.canvas.clientWidth, this.canvas.clientHeight];
 
-		uniforms.buffer.setSubData(0, worldViewProj);
-		uniforms.buffer.setSubData(4 * 16, new Int32Array([0, 0, 0, 0]));
-		uniforms.buffer.setSubData(4 * 16 + 4 * 4, 
-			new Float32Array([-0.748212993144989, -2.7804059982299805, 2.547821283340454, 0]));
-		uniforms.buffer.setSubData(4 * 16 + 4 * 4 + 4 * 4, 
-			new Float32Array([width, height]));
-
 		
+		let offsets = new Float32Array(octree.loader.offset);
+		let screenSize = new Float32Array([width, height]);
+		let [iScale, fScale] = getScaleComponents(octree.loader.scale);
+		//let fScale = new Float32Array(octree.loader.scale);
+
+		uniforms.buffer.setSubData(0, worldViewProj);
+		uniforms.buffer.setSubData(64, new Int32Array([0, 0, 0, 0]));
+		uniforms.buffer.setSubData(80, offsets);
+		uniforms.buffer.setSubData(96, screenSize);
+		uniforms.buffer.setSubData(112, fScale);
+		uniforms.buffer.setSubData(128, iScale);
 
 		let bufPos = buffers.find(b => b.name === "position");
 		let bufCol = buffers.find(b => b.name === "rgb");
