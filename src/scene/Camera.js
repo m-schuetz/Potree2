@@ -1,5 +1,6 @@
 
 import {Vector3} from "../math/Vector3.js";
+import {Matrix4} from "../math/Matrix4.js";
 import {Quaternion} from "../math/Quaternion.js";
 import {toRadians} from "../math/mathtools.js";
 
@@ -35,19 +36,35 @@ export class Camera{
 		let position = this.position;
 		let target = this.getTarget();
 
-		let up = [0, 0, 1];
-		let view = mat4.create();
-		mat4.lookAt(view, position.toArray(), target.toArray(), up);
+		let up = new Vector3(0, 0, 1);
+
+		let view = new Matrix4();
+		view.lookAt(position, target, up);
 
 		return view;
 	}
 
 	getProjection(aspect){
 
-		let {near, far} = this;
-		
-		let proj = mat4.create();
-		mat4.perspective(proj, 45, aspect, near, far);
+		let {near, far, fov} = this;
+
+		let top = near * Math.tan(0.5 * fov);
+		let height = 2 * top;
+		let width = aspect * height;
+		let left = - 0.5 * width;
+
+		let proj = new Matrix4();
+		proj.makePerspective( 
+			left, left + width, 
+			top, top - height, 
+			near, far);
+
+		// {
+		// 	let proj = mat4.create();
+		// 	mat4.perspective(proj, 45, aspect, near, far);
+
+		// 	let a = 10;
+		// }
 
 		return proj;
 	}

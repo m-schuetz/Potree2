@@ -41,10 +41,50 @@ export class Vector3{
 		return this;
 	}
 
+	subVectors(a, b){
+		this.x = a.x - b.x;
+		this.y = a.y - b.y;
+		this.z = a.z - b.z;
+
+		return this;
+	}
+
+	length(){
+		return Math.sqrt( this.x * this.x + this.y * this.y + this.z * this.z );
+	}
+
+	lengthSq(){
+		return this.x * this.x + this.y * this.y + this.z * this.z;
+	}
+
+	normalize(){
+		return this.divideScalar( this.length() || 1 );
+	}
+
+	crossVectors(a, b){
+		let ax = a.x, ay = a.y, az = a.z;
+		let bx = b.x, by = b.y, bz = b.z;
+
+		this.x = ay * bz - az * by;
+		this.y = az * bx - ax * bz;
+		this.z = ax * by - ay * bx;
+
+		return this;
+	}
+
+
 	multiplyScalar(scalar){
 		this.x *= scalar;
 		this.y *= scalar;
 		this.z *= scalar;
+
+		return this;
+	}
+
+	divideScalar(scalar){
+		this.x /= scalar;
+		this.y /= scalar;
+		this.z /= scalar;
 
 		return this;
 	}

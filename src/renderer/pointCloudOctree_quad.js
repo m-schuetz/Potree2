@@ -1,10 +1,12 @@
-
+import {Matrix4} from "../math/Matrix4.js";
 
 let vs = `
 #version 450
 
 layout(set = 0, binding = 0) uniform Uniforms {
 	mat4 worldViewProj;
+	mat4 worldView;
+	mat4 proj;
 	ivec4 imin;
 	vec4 offset;
 	float screenWidth;
@@ -29,6 +31,22 @@ void main() {
 	);
 
 	ivec3 ipos = a_position / uniforms.iScale.xyz;
+
+	// vec3 rescale = vec3(0.0, 0.0, 0.0);
+	// if(ipos.x > 1000 * 1000){
+	// 	rescale = 1000;
+	// 	ipos.x = ipos.x / 1000;
+	// }
+	// if(ipos.y > 10000){
+	// 	off.y = - 10000;
+	// 	ipos.y = ipos.y - 10000;
+	// }
+	// if(ipos.y > 10000){
+	// 	off.y = - 10000;
+	// 	ipos.y = ipos.y - 10000;
+	// }
+	
+
 	vec3 pos = vec3(ipos) * uniforms.fScale.xyz;
 
 	pos = pos + uniforms.offset.xyz;
@@ -173,7 +191,7 @@ export function initializePointCloudOctreePipeline(octree){
 export function initializePointCloudOctreeUniforms(octree, bindGroupLayout){
 	let {device} = this;
 
-	const uniformBufferSize = 4 * 16 + 16 + 16 + 16+ 16 + 16;
+	const uniformBufferSize = 3 * 64 + 16 + 16 + 16 + 16 + 16;
 
 	let buffer = device.createBuffer({
 		size: uniformBufferSize,
@@ -242,12 +260,12 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 	let {webgpu} = octree;
 	let {pipeline, uniforms} = webgpu;
 
-	let transform = mat4.create();
-	let scale = mat4.create();
-	let translate = mat4.create();
-	let worldView = mat4.create();
-	let worldViewProj = mat4.create();
-	let identity = mat4.create();
+	let transform = new Matrix4();
+	let scale = new Matrix4();
+	let translate = new Matrix4();
+	let worldView = new Matrix4();
+	let worldViewProj = new Matrix4();
+	let identity = new Matrix4();
 
 	passEncoder.setPipeline(pipeline);
 
@@ -263,12 +281,11 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 		let webgpuNode = node.webgpu;
 		let {buffers} = webgpuNode;
 
-		mat4.scale(scale, identity, octree.scale.toArray());
-		mat4.translate(translate, identity, octree.position.toArray());
-		mat4.multiply(transform, translate, scale);
-
-		mat4.multiply(worldView, view, transform);
-		mat4.multiply(worldViewProj, proj, worldView);
+		scale.makeScale(octree.scale.x, octree.scale.y, octree.scale.z);
+		translate.makeTranslation(octree.position.x, octree.position.y, octree.position.z);
+		transform.multiplyMatrices(translate, scale);
+		worldView.multiplyMatrices(view, transform);
+		worldViewProj.multiplyMatrices(proj, worldView);
 
 		let [width, height] = [this.canvas.clientWidth, this.canvas.clientHeight];
 
@@ -278,12 +295,14 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 		let [iScale, fScale] = getScaleComponents(octree.loader.scale);
 		//let fScale = new Float32Array(octree.loader.scale);
 
-		uniforms.buffer.setSubData(0, worldViewProj);
-		uniforms.buffer.setSubData(64, new Int32Array([0, 0, 0, 0]));
-		uniforms.buffer.setSubData(80, offsets);
-		uniforms.buffer.setSubData(96, screenSize);
-		uniforms.buffer.setSubData(112, fScale);
-		uniforms.buffer.setSubData(128, iScale);
+		uniforms.buffer.setSubData(0, new Float32Array(worldViewProj.elements));
+		uniforms.buffer.setSubData(64 + 0, new Float32Array(worldView.elements));
+		uniforms.buffer.setSubData(128 + 0, new Float32Array(proj.elements));
+		uniforms.buffer.setSubData(128 + 64, new Int32Array([0, 0, 0, 0]));
+		uniforms.buffer.setSubData(128 + 80, offsets);
+		uniforms.buffer.setSubData(128 + 96, screenSize);
+		uniforms.buffer.setSubData(128 + 112, fScale);
+		uniforms.buffer.setSubData(128 + 128, iScale);
 
 		let bufPos = buffers.find(b => b.name === "position");
 		let bufCol = buffers.find(b => b.name === "rgb");

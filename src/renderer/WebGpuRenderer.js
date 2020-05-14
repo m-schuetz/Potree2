@@ -248,8 +248,6 @@ export class WebGpuRenderer{
 		let aspect = this.canvas.width / this.canvas.height;
 		let view = camera.getView();
 		let proj = camera.getProjection(aspect);
-		let worldViewProj = mat4.create();
-		mat4.multiply(worldViewProj, proj, view);
 
 		let [commandEncoder, passEncoder] = this.createEncoders();
 

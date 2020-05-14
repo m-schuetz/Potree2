@@ -7,6 +7,7 @@ import {PointAttribute, getArrayType} from "./PointAttributes.js";
 
 let numLoading = 0;
 let pool = new WorkerPool();
+let dbg = 0;
 
 function createChildAABB(aabb, index){
 	let min = aabb.min.clone();
@@ -105,7 +106,15 @@ export class PotreeLoader{
 
 						let attributes = this.attributes;
 
+
 						let attributeBuffers = e.data.attributeBuffers;
+						
+						if(dbg === 0){
+							console.log(attributeBuffers);
+						}
+						dbg++;
+						
+						
 						for(let buffer of attributeBuffers){
 							let attribute = attributes.find(a => a.name === buffer.name);
 
