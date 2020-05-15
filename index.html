@@ -42,24 +42,20 @@
 		node2.scale.set(0.5, 0.5, 0.5);
 		scene.root.add(node2);
 
-		viewer.controls.yaw = 0.4637935622452329;
-		viewer.controls.pitch = -0.4136537176781808;
-		viewer.controls.radius = 100;
-		// viewer.controls.target.set(
-		// 	0.2250017942518924, 
-		// 	-0.3310930078099392, 
-		// 	3.829165648605102
-		// );
+		// viewer.controls.yaw = 0.846118694223537;
+		// viewer.controls.pitch = -0.540115107486389;
+		// viewer.controls.radius = 1077.8585227511016;
+		// viewer.controls.target.set(693889.3707829863, 3915957.049240404, 25.668688479273722);
 
-		viewer.controls.target.set(693983.231, 3915824.074, 53.839);
+		// eclepens
+		viewer.controls.yaw = 0.6146611737189656;
+		viewer.controls.pitch = -0.6617165745778338;
+		viewer.controls.radius = 801.7953205361365;
+		viewer.controls.target.set(-14.346648304200556, -80.13976481200487, -79.6659983626305);
 
-		// 693350.589, 3914914.483, 664.125
-		// 693983.231, 3915824.074, 53.839
-
-
-
+		let url = "http://localhost:8080/nocommit/eclepens/metadata.json";
 		//let url = "http://localhost:8080/nocommit/lion/metadata.json";
-		let url = "http://localhost:8080/nocommit/morro/metadata.json";
+		// let url = "http://localhost:8080/nocommit/morro/metadata.json";
 		PotreeLoader.load(url).then( async (pointcloud) => {
 
 			window.dbg = pointcloud;
@@ -70,19 +66,9 @@
 			scene.root.add(pointcloud);
 		});
 
-		viewer.addListener("update", (e) => {
+		// viewer.addListener("update", (e) => {
 
-			// viewer.renderer.drawBoundingBox({
-			// 	position: new Vector3(1, 1, 1),
-			// 	scale: new Vector3(1, 1, 1),
-			// });
-
-			// viewer.renderer.drawBoundingBox({
-			// 	position: new Vector3(3, 1, 1),
-			// 	scale: new Vector3(0.5, 0.5, 0.5),
-			// });
-
-		});
+		// });
 
 	});
 

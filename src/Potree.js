@@ -35,6 +35,8 @@ export class Potree extends EventDispatcher{
 			timestamp: timestamp,
 			delta: delta,
 			drawBoundingBox: renderer.drawBoundingBox.bind(renderer),
+			scene: this.scene,
+			camera: this.camera,
 		};
 
 		this.update(state);

@@ -10,7 +10,7 @@ export class WorkerPool{
 		}
 
 		if (this.workers[url].length === 0){
-			let worker = new Worker(url);
+			let worker = new Worker(url, { type: "module" });
 			this.workers[url].push(worker);
 		}
 

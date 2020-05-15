@@ -3,7 +3,7 @@ import {PointCloudOctree, Node} from "./PointCloudOctree.js";
 import {Vector3} from "./../math/Vector3.js";
 import {BoundingBox} from "./../math/BoundingBox.js";
 import {WorkerPool} from "./../WorkerPool.js";
-import {PointAttribute, getArrayType} from "./PointAttributes.js";
+import {PointAttribute, getArrayType, toWebgpuAttribute, webgpuTypedArrayName} from "./PointAttributes.js";
 
 let numLoading = 0;
 let pool = new WorkerPool();
@@ -61,21 +61,21 @@ export class PotreeLoader{
 	}
 
 	async loadNode(node){
+
 		if(node.loaded || node.loading){
 			return;
 		}
 
-		if(numLoading >= 40){
+		if(numLoading >= 5){
 			return;
 		}
 
 		node.loading = true;
 		numLoading++;
 
-		if(node.byteOffset === undefined){
+		if(node.nodeType === 2){
 			await this.loadHierarchy(node);
 		}
-
 
 		let {byteOffset, byteSize} = node;
 
@@ -119,7 +119,9 @@ export class PotreeLoader{
 							let attribute = attributes.find(a => a.name === buffer.name);
 
 							if(attribute){
-								let XArray = getArrayType(attribute.type);
+								//let XArray = getArrayType(attribute.type);
+								let webgpuAttribute = toWebgpuAttribute(attribute);
+								let XArray = webgpuTypedArrayName(attribute.type);
 								buffer.array = new XArray(buffer.array);
 							}
 						}
@@ -176,15 +178,35 @@ export class PotreeLoader{
 		for(let i = 0; i < numNodes; i++){
 			let current = nodes[i];
 
+			// if(node === "r440040"){
+			// 	debugger;
+			// }
+
 			let type = view.getUint8(i * bytesPerNode + 0);
 			let childMask = view.getUint8(i * bytesPerNode + 1);
 			let numPoints = view.getUint32(i * bytesPerNode + 2, true);
 			let byteOffset = view.getBigInt64(i * bytesPerNode + 6, true);
 			let byteSize = view.getBigInt64(i * bytesPerNode + 14, true);
 
-			current.byteOffset = byteOffset;
-			current.byteSize = byteSize;
-			current.numPoints = numPoints;
+
+			if(current.nodeType === 2){
+				// replace proxy with real node
+				current.byteOffset = byteOffset;
+				current.byteSize = byteSize;
+				current.numPoints = numPoints;
+			}else if(type === 2){
+				// load proxy
+				current.hierarchyByteOffset = byteOffset;
+				current.hierarchyByteSize = byteSize;
+				current.numPoints = numPoints;
+			}else{
+				// load real node 
+				current.byteOffset = byteOffset;
+				current.byteSize = byteSize;
+				current.numPoints = numPoints;
+			}
+			
+			current.nodeType = type;
 
 			for(let childIndex = 0; childIndex < 8; childIndex++){
 				let childExists = ((1 << childIndex) & childMask) !== 0;
@@ -194,6 +216,7 @@ export class PotreeLoader{
 				}
 
 				let childName = current.name + childIndex;
+
 				let childAABB = createChildAABB(current.boundingBox, childIndex);
 				let child = new Node();
 				child.name = childName;
@@ -234,6 +257,7 @@ export class PotreeLoader{
 		let root = new Node();
 		root.name = "r";
 		root.boundingBox = loader.readBoundingBox();
+		root.nodeType = 2;
 		root.hierarchyByteOffset = 0n;
 		root.hierarchyByteSize = BigInt(metadata.hierarchy.firstChunkSize);
 

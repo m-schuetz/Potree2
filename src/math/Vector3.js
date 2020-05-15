@@ -1,6 +1,8 @@
 
 import {Quaternion} from "./Quaternion.js";
 
+const {sqrt} = Math;
+
 export class Vector3{
 
 	constructor(x, y, z){
@@ -50,11 +52,20 @@ export class Vector3{
 	}
 
 	length(){
-		return Math.sqrt( this.x * this.x + this.y * this.y + this.z * this.z );
+		return sqrt( this.x * this.x + this.y * this.y + this.z * this.z );
 	}
 
 	lengthSq(){
 		return this.x * this.x + this.y * this.y + this.z * this.z;
+	}
+
+	distanceTo(point){
+
+		let dx = point.x - this.x;
+		let dy = point.y - this.y;
+		let dz = point.z - this.z;
+
+		return sqrt(dx * dx + dy * dy + dz * dz);
 	}
 
 	normalize(){

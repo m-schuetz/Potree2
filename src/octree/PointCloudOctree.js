@@ -27,27 +27,32 @@ export class PointCloudOctree extends SceneNode{
 		
 	}
 
-	update(state){
-
-		state.drawBoundingBox({
-			position: this.boundingBox.center(),
-			scale: this.boundingBox.size(),
-		});
-
+	getVisibleNodes(camera){
 		let visibleNodes = [];
 		let nodesToLoad = [];
+
+		let campos = camera.position;
 
 		let stack = [this.root];
 		while(stack.length > 0){
 			let node = stack.pop();
 
-			let visible = node.loaded && node.name.length <= 4;
+			let nodeCenter = node.boundingBox.center();
+			let camdist = campos.distanceTo(nodeCenter);
+			let nodesize = node.boundingBox.size().length();
 
-			if(!node.loaded){
-				nodesToLoad.push(node);
+			let priority = (Math.tan(camera.fov) * nodesize / 2) / camdist;
+			
+			let visible = priority > 0.1;
+
+			if(visible && !node.loaded){
+				nodesToLoad.push({
+					node: node,
+					priority: priority,
+				});
 			}
 
-			if(visible){
+			if(visible && node.loaded){
 				visibleNodes.push(node);
 
 				for(let child of node.children){
@@ -58,21 +63,31 @@ export class PointCloudOctree extends SceneNode{
 			}
 		}
 
+		nodesToLoad.sort( (a, b) => b.priority - a.priority);
+
 		for(let i = 0; i < nodesToLoad.length; i++){
-			let node = nodesToLoad[i];
-			this.loader.loadNode(node);
+			let item = nodesToLoad[i];
+			this.loader.loadNode(item.node);
 
 			if(i >= 3){
 				break;
 			}
 		}
 
-		for(let node of visibleNodes){
-			state.drawBoundingBox({
-				position: node.boundingBox.center(),
-				scale: node.boundingBox.size(),
-			});
-		}
+
+		return visibleNodes;
+	}
+
+	update(state){
+
+		let visibleNodes = this.getVisibleNodes(state.camera);
+
+		// for(let node of visibleNodes){
+		// 	state.drawBoundingBox({
+		// 		position: node.boundingBox.center(),
+		// 		scale: node.boundingBox.size(),
+		// 	});
+		// }
 
 		this.visibleNodes = visibleNodes;
 
