@@ -128,16 +128,16 @@ export function renderLines(lines, view, proj, passEncoder){
 
 	let transform = mat4.create();
 	let scale = mat4.create();
-	mat4.scale(scale, scale, lines.scale.toArray());
 	let translate = mat4.create();
+	let worldView = mat4.create();
+	let worldViewProj = mat4.create();
+
+	mat4.scale(scale, scale, lines.scale.toArray());
 	mat4.translate(translate, translate, lines.position.toArray());
 	mat4.multiply(transform, translate, scale);
-
-	let worldView = mat4.create();
 	mat4.multiply(worldView, view, transform);
-
-	let worldViewProj = mat4.create();
 	mat4.multiply(worldViewProj, proj, worldView);
+
 
 	uniforms.buffer.setSubData(0, worldViewProj);
 

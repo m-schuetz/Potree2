@@ -22,27 +22,12 @@ layout(set = 0, binding = 0) uniform Uniforms {
 
 <!-- POINT ATTRIBUTES -->
 
+<!-- ACTIVE ATTRIBUTE -->
+
 
 layout(location = 0) out vec4 vColor;
 
-vec3 getColor(){
-	vec3 rgb = vec3(a_rgb.xyz);
-
-	if(length(rgb) > 2.0){
-		rgb = rgb / 256.0;
-	}
-	if(length(rgb) > 2.0){
-		rgb = rgb / 256.0;
-	}
-
-	return rgb;
-}
-
-// vec3 getColor(){
-// 	float w = float(a_intensity) / 256.0;
-
-// 	return vec3(w, w, w);
-// }
+<!-- COLOR FUNCTION -->
 
 void main() {
 
@@ -98,6 +83,25 @@ void main() {
 
 let shader = null;
 
+let f32_for_mat4 = new Float32Array(4 * 4);
+let i32_vec4 = new Int32Array(4);
+
+// see https://github.com/cx20/webgpu-test/blob/master/examples/webgpu/cube/index.js
+function updateBufferData(device, dst, dstOffset, src, commandEncoder) {
+	const [uploadBuffer, mapping] = device.createBufferMapped({
+		size: src.byteLength,
+		usage: GPUBufferUsage.COPY_SRC,
+	});
+
+	new src.constructor(mapping).set(src);
+	uploadBuffer.unmap();
+
+	commandEncoder = commandEncoder || device.createCommandEncoder();
+	commandEncoder.copyBufferToBuffer(uploadBuffer, 0, dst, dstOffset, src.byteLength);
+
+	return { commandEncoder, uploadBuffer };
+}
+
 function buildVertexShader(octree){
 	let attributes = octree.attributes;
 
@@ -121,9 +125,41 @@ function buildVertexShader(octree){
 
 	srcAttributes.push(`layout(location = ${i}) in vec3 posBillboard;`);
 
-	let built = vs.replace("<!-- POINT ATTRIBUTES -->", srcAttributes.join("\n"));
 
-	//console.log(built);
+	let activeAttribute = window.debug?.attribute ?? "rgb";
+	let colorFunction = {
+		"rgb": `
+			vec3 getColor(){
+				vec3 rgb = vec3(activeAttribute.xyz);
+
+				if(length(rgb) > 2.0){
+					rgb = rgb / 256.0;
+				}
+				if(length(rgb) > 2.0){
+					rgb = rgb / 256.0;
+				}
+
+				return rgb;
+			}`,
+		"intensity": `
+			vec3 getColor(){
+				float w = float(activeAttribute) / 256.0;
+
+				return vec3(w, w, w);
+			}
+		`,
+	}[activeAttribute];
+
+	
+
+
+
+
+	let built = vs.replace("<!-- POINT ATTRIBUTES -->", srcAttributes.join("\n"));
+	built = built.replace("<!-- ACTIVE ATTRIBUTE -->", `#define activeAttribute a_${activeAttribute}`);
+	built = built.replace("<!-- COLOR FUNCTION -->", `${colorFunction}`);
+
+	console.log(built);
 
 	//let built = vs;
 
@@ -211,57 +247,11 @@ export function initializePointCloudOctreePipeline(octree){
 			module: shader.fsModule,
 			entryPoint: 'main'
 		},
-		vertexState: {
-			vertexBuffers:
-			vertexBuffers 
-			// [
-			// 	{
-			// 		arrayStride: 3 * 4,
-			// 		stepMode: "instance",
-			// 		attributes: [
-			// 			{ // position
-			// 				shaderLocation: 0,
-			// 				offset: 0,
-			// 				format: "int3"
-			// 			}
-			// 		]
-			// 	},{
-			// 		arrayStride: 2 * 4,
-			// 		stepMode: "instance",
-			// 		attributes: [
-			// 			{ // color
-			// 				shaderLocation: 1,
-			// 				offset: 0,
-			// 				format: "ushort4"
-			// 			}
-			// 		]
-			// 	},{
-			// 		arrayStride: 4 * 4,
-			// 		attributes: [
-			// 			{ // billboard position
-			// 				shaderLocation: 2,
-			// 				offset: 0,
-			// 				format: "float4"
-			// 			}
-			// 		]
-			// 	}
-			// ]
-		},
-		colorStates: [
-			{
-				format: this.swapChainFormat,
-				alphaBlend: {
-					srcFactor: "src-alpha",
-					dstFactor: "one-minus-src-alpha",
-					operation: "add"
-				}
-			}
-		],
+		vertexState: { vertexBuffers: vertexBuffers },
+		colorStates: [{
+			format: this.swapChainFormat,
+		}],
 		primitiveTopology: 'triangle-strip',
-		rasterizationState: {
-			frontFace: "ccw",
-			cullMode: 'none'
-		},
 		depthStencilState: {
 			depthWriteEnabled: true,
 			depthCompare: "less",
@@ -321,10 +311,17 @@ function getScaleComponents(scale){
 	return [iScale, fScale];
 }
 
-export function renderPointCloudOctree(octree, view, proj, passEncoder){
+export function renderPointCloudOctree(octree, view, proj, state){
+
+	let {device} = this;
+
+	let activeAttribute = window.debug?.activeAttribute ?? "rgb";
+	let shouldUpdateShader = activeAttribute !== shader?.activeAttribute;
 
 	if(shader === null){
+
 		shader = {
+			activeAttribute: activeAttribute,
 			vsModule: this.makeShaderModule('vertex', buildVertexShader(octree)),
 			fsModule: this.makeShaderModule('fragment', fs),
 		};
@@ -343,7 +340,6 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 		};
 	}
 
-	let {device} = this;
 	let {webgpu} = octree;
 	let {pipeline, uniforms} = webgpu;
 
@@ -354,6 +350,9 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 	let worldViewProj = new Matrix4();
 	let identity = new Matrix4();
 
+	let commandEncoder = device.createCommandEncoder();
+
+	let passEncoder = commandEncoder.beginRenderPass(state.renderPassDescriptor);
 	passEncoder.setPipeline(pipeline);
 
 	for(let node of octree.visibleNodes){
@@ -382,14 +381,55 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 		let [iScale, fScale] = getScaleComponents(octree.loader.scale);
 		//let fScale = new Float32Array(octree.loader.scale);
 
-		uniforms.buffer.setSubData(0, new Float32Array(worldViewProj.elements));
-		uniforms.buffer.setSubData(64 + 0, new Float32Array(worldView.elements));
-		uniforms.buffer.setSubData(128 + 0, new Float32Array(proj.elements));
-		uniforms.buffer.setSubData(128 + 64, new Int32Array([0, 0, 0, 0]));
+		f32_for_mat4.set(worldViewProj.elements)
+		uniforms.buffer.setSubData(0, f32_for_mat4);
+		f32_for_mat4.set(worldView.elements)
+		uniforms.buffer.setSubData(64 + 0, f32_for_mat4);
+		f32_for_mat4.set(proj.elements)
+		uniforms.buffer.setSubData(128 + 0, f32_for_mat4);
+
+		// uniforms.buffer.setSubData(0, new Float32Array(worldViewProj.elements));
+		// uniforms.buffer.setSubData(64 + 0, new Float32Array(worldView.elements));
+		// uniforms.buffer.setSubData(128 + 0, new Float32Array(proj.elements));
+
+		i32_vec4.set([0, 0, 0, 0])
+		uniforms.buffer.setSubData(128 + 64, i32_vec4);
 		uniforms.buffer.setSubData(128 + 80, offsets);
 		uniforms.buffer.setSubData(128 + 96, screenSize);
 		uniforms.buffer.setSubData(128 + 112, fScale);
 		uniforms.buffer.setSubData(128 + 128, iScale);
+
+		// {
+		// 	let U8 = Uint8Array;
+		// 	let I32 = Int32Array;
+		// 	let F32 = Float32Array;
+
+		// 	let buffer = new ArrayBuffer(256 + 16);
+		// 	let bufferU8 = new Uint8Array(buffer);
+		// 	let view = new DataView(buffer);
+
+		// 	// bufferU8.set(new U8(new F32(worldViewProj.elements)), 0);
+		// 	// bufferU8.set(new U8(new F32(worldView.elements)), 64);
+		// 	// bufferU8.set(new U8(new F32(proj.elements)), 128);
+		// 	// bufferU8.set(new U8(new I32([0, 0, 0, 0])), 192);
+		// 	// bufferU8.set(new U8(offsets), 208);
+		// 	// bufferU8.set(new U8(screenSize), 224);
+		// 	// bufferU8.set(new U8(fScale), 240);
+		// 	// bufferU8.set(new U8(iScale), 256);
+
+		// 	// uniforms.buffer.setSubData(0, bufferU8);
+		// }
+
+
+		
+
+		
+
+		// let { uploadBuffer: buffer1 } = updateBufferData(device, uniforms.buffer, 0, 
+		// 	new Float32Array(worldViewProj.elements), 
+		// 	commandEncoder);
+
+		
 
 		let i = 0;
 		for(let buffer of buffers){
@@ -399,12 +439,18 @@ export function renderPointCloudOctree(octree, view, proj, passEncoder){
 		}
 		passEncoder.setVertexBuffer(i, getBillboardBuffer(device));
 
-
-		
 		passEncoder.setBindGroup(0, uniforms.bindGroup);
 
 		passEncoder.draw(4, node.numPoints, 0, 0);
 
+
+
+		// buffer1.destroy();
 	}
+		
+	passEncoder.endPass();
+
+	device.defaultQueue.submit([commandEncoder.finish()]);
+
 
 }

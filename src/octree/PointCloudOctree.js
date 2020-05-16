@@ -43,7 +43,7 @@ export class PointCloudOctree extends SceneNode{
 
 			let priority = (Math.tan(camera.fov) * nodesize / 2) / camdist;
 			
-			let visible = priority > 0.1;
+			let visible = priority > 0.2;
 
 			if(visible && !node.loaded){
 				nodesToLoad.push({
@@ -69,7 +69,7 @@ export class PointCloudOctree extends SceneNode{
 			let item = nodesToLoad[i];
 			this.loader.loadNode(item.node);
 
-			if(i >= 3){
+			if(i >= 20){
 				break;
 			}
 		}
@@ -80,16 +80,29 @@ export class PointCloudOctree extends SceneNode{
 
 	update(state){
 
-		let visibleNodes = this.getVisibleNodes(state.camera);
+		if(!window.debug?.freeze){
+			let visibleNodes = this.getVisibleNodes(state.camera);
+			this.visibleNodes = visibleNodes;
+		}
 
-		// for(let node of visibleNodes){
-		// 	state.drawBoundingBox({
-		// 		position: node.boundingBox.center(),
-		// 		scale: node.boundingBox.size(),
-		// 	});
-		// }
 
-		this.visibleNodes = visibleNodes;
+		if(window.debug?.displayBoxes){
+			for(let node of this.visibleNodes){
+				state.drawBoundingBox({
+					position: node.boundingBox.center(),
+					scale: node.boundingBox.size(),
+				});
+			}
+		}
+
+		if(window.debug){
+			let visiblePoints = this.visibleNodes.reduce( (a, v) => a + v.numPoints, 0).toLocaleString();
+			// visiblePoints = visiblePoints.replace(/\./g, " ");
+
+			window.debug["#nodes"] = this.visibleNodes.length;
+			window.debug["#points"] = visiblePoints;
+
+		}
 
 
 

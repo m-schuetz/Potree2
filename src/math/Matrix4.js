@@ -157,7 +157,6 @@ export class Matrix4{
 			Math.abs(eyey - centery) < EPSILON &&
 			Math.abs(eyez - centerz) < EPSILON) {
 
-			//return mat4.identity(out);
 			return this;
 		}
 

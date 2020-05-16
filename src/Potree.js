@@ -74,6 +74,7 @@ export class Potree extends EventDispatcher{
 				document.title = `fps: ${Math.round(fps)}`;
 				this.lastFpsMeasure = performance.now();
 				this.frameCount = 0;
+				this.fps = fps;
 			}
 		}
 	}

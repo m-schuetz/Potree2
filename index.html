@@ -16,6 +16,8 @@
 </span>
 
 <script src="./libs/gl-matrix.js"></script>
+<script src="./libs/dat.gui.min.js"></script>
+
 
 <script type="module" async>
 	
@@ -26,6 +28,32 @@
 	import {Lines} from "./src/scene/Lines.js";
 	import {Potree} from "./src/Potree.js";
 
+
+	window.debug = {
+		"#nodes": "0",
+		"#points": "0",
+		fps: "0",
+		displayBoxes: false,
+		freeze: false,
+		attribute: "rgb",
+	};
+
+	window.onload = function() {
+		let gui = new dat.GUI();
+		// gui.add(text, 'message');
+		// gui.add(text, 'speed', -5, 5);
+		//gui.add(debug, 'fps');
+
+		gui.add(debug, '#nodes').listen();
+		gui.add(debug, '#points').listen();
+		gui.add(debug, 'fps').listen();
+		gui.add(debug, 'displayBoxes');
+		gui.add(debug, 'freeze');
+		gui.add(debug, 'attribute', { rgb: "rgb", intensity: "intensity"});
+		// gui.add(text, 'explode');
+	};
+
+
 	let canvas = document.getElementById("canvas");
 	new Potree().init(canvas).then((viewer) => {
 		window.potree = viewer;
@@ -33,14 +61,14 @@
 		let scene = viewer.scene;
 		window.scene = scene;
 
-		let box = Geometry.createBox();
-		let node = new Mesh("box", box);
-		scene.root.add(node);
+		// let box = Geometry.createBox();
+		// let node = new Mesh("box", box);
+		// scene.root.add(node);
 
-		let node2 = new Mesh("box2", box);
-		node2.position.set(1, 1, -0.3);
-		node2.scale.set(0.5, 0.5, 0.5);
-		scene.root.add(node2);
+		// let node2 = new Mesh("box2", box);
+		// node2.position.set(1, 1, -0.3);
+		// node2.scale.set(0.5, 0.5, 0.5);
+		// scene.root.add(node2);
 
 		// viewer.controls.yaw = 0.846118694223537;
 		// viewer.controls.pitch = -0.540115107486389;
@@ -66,9 +94,9 @@
 			scene.root.add(pointcloud);
 		});
 
-		// viewer.addListener("update", (e) => {
-
-		// });
+		viewer.addListener("update", (e) => {
+			window.debug.fps = Math.round(viewer.fps) + "";
+		});
 
 	});
 

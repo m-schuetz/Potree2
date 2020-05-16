@@ -17,7 +17,6 @@ let lastFpsMeasure = 0;
 
 let renderer = null;
 let sceneObject = null;
-let worldViewProj = mat4.create();
 
 export let camera = new Camera();
 let quaternion = new Quaternion(0, 0, 0, 1);

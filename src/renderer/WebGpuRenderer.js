@@ -158,12 +158,12 @@ export class WebGpuRenderer{
 	}
 
 
-	renderNode(node, view, proj, passEncoder){
+	renderNode(node, view, proj, state){
 
 		let nodeRenderer = this.nodeRenderers[node.constructor.name];
 		
 		if(nodeRenderer){
-			nodeRenderer(node, view, proj, passEncoder);
+			nodeRenderer(node, view, proj, state);
 		}else{
 			//console.log(`no renderer found for: ${node.constructor.name}`);
 		}
@@ -188,30 +188,6 @@ export class WebGpuRenderer{
 				usage: GPUTextureUsage.OUTPUT_ATTACHMENT
 			});
 		}
-	}
-
-	createEncoders(){
-		let {device, swapChain, depthTexture} = this;
-
-		let commandEncoder = device.createCommandEncoder();
-		let textureView = swapChain.getCurrentTexture().createView();
-		let renderPassDescriptor = {
-			colorAttachments: [{
-				attachment: textureView,
-				loadValue: { r: 0, g: 0, b: 0, a: 0 },
-			}],
-			depthStencilAttachment: {
-				attachment: depthTexture.createView(),
-				depthLoadValue: 1.0,
-				depthStoreOp: "store",
-				stencilLoadValue: 0,
-				stencilStoreOp: "store",
-			}
-		};
-		
-		let passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
-		return [commandEncoder, passEncoder];
 	}
 
 	drawBoundingBox(params){
@@ -241,6 +217,8 @@ export class WebGpuRenderer{
 
 	render(scene, camera){
 
+		let {device, swapChain, depthTexture} = this;
+
 		let nodes = this.getVisibleNodes(scene, camera);
 
 		this.resize();
@@ -249,23 +227,41 @@ export class WebGpuRenderer{
 		let view = camera.getView();
 		let proj = camera.getProjection(aspect);
 
-		let [commandEncoder, passEncoder] = this.createEncoders();
+		let commandEncoder = device.createCommandEncoder();
 
-		passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+		let textureView = swapChain.getCurrentTexture().createView();
+		let renderPassDescriptor = {
+			colorAttachments: [{
+				attachment: textureView,
+				loadValue: { r: 0, g: 0, b: 0, a: 0 },
+			}],
+			depthStencilAttachment: {
+				attachment: depthTexture.createView(),
+				depthLoadValue: 1.0,
+				depthStoreOp: "store",
+				stencilLoadValue: 0,
+				stencilStoreOp: "store",
+			}
+		};
+
+		let state = {
+			commandEncoder: commandEncoder,
+			renderPassDescriptor: renderPassDescriptor,
+		};
 
 		renderBoundingBoxes.bind(this)(
-			this.drawCommands.boundingBoxes, view, proj, passEncoder);
+			this.drawCommands.boundingBoxes, view, proj, state);
 
 		this.drawCommands = {
 			boundingBoxes: []
 		};
 
 		for(let node of nodes){
-			this.renderNode(node, view, proj, passEncoder);
+			this.renderNode(node, view, proj, state);
 		}
 
-		passEncoder.endPass();
-		this.device.defaultQueue.submit([commandEncoder.finish()]);
+		
+		// this.device.defaultQueue.submit([commandEncoder.finish()]);
 
 
 	}

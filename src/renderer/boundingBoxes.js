@@ -145,23 +145,11 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 
 
 
-
-
-
-
-
 	let transform = new Matrix4();
 	let scale = new Matrix4();
 	let translate = new Matrix4();
 	let worldView = new Matrix4();
 	let worldViewProj = new Matrix4();
-
-	// let identity = mat4.create();
-	// let transform = mat4.create();
-	// let scale = mat4.create();
-	// let translate = mat4.create();
-	// let worldView = mat4.create();
-	// let worldViewProj = mat4.create();
 	
 	for(let i = 0; i < boxes.length; i++){
 		let box = boxes[i];
@@ -172,14 +160,7 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 		worldView.multiplyMatrices(view, transform);
 		worldViewProj.multiplyMatrices(proj, worldView);
 
-		// mat4.scale(scale, identity, box.scale.toArray());
-		// mat4.translate(translate, identity, box.position.toArray());
-		// mat4.multiply(transform, translate, scale);
-		// mat4.multiply(worldView, view, transform);
-		// mat4.multiply(worldViewProj, proj, worldView);
-
 		let offset = i * 16 * 4;
-		//uniforms.buffer2.setSubData(offset, worldViewProj);
 		uniforms.buffer2.setSubData(offset, new Float32Array(worldViewProj.elements));
 	}
 
@@ -190,7 +171,7 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 
 }
 
-export function renderBoundingBoxes(boxes, view, proj, passEncoder){
+export function renderBoundingBoxes(boxes, view, proj, state){
 
 
 	if(boxes.length === 0){
@@ -211,6 +192,11 @@ export function renderBoundingBoxes(boxes, view, proj, passEncoder){
 	let {pipeline, bindGroupLayout} = createPipeline.bind(this)();
 	let uniforms = createUniforms.bind(this)(boxes, bindGroupLayout, view, proj);
 
+
+	let passEncoder = state.commandEncoder.beginRenderPass(state.renderPassDescriptor);
+	// passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+	
+
 	passEncoder.setPipeline(pipeline);
 
 	for(let i = 0; i < gpuBuffers.length; i++){
@@ -221,6 +207,7 @@ export function renderBoundingBoxes(boxes, view, proj, passEncoder){
 	passEncoder.setBindGroup(0, uniforms.bindGroup);
 
 	passEncoder.draw(geometry.numPrimitives, boxes.length, 0, 0);
+	passEncoder.endPass();
 
 
 }

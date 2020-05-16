@@ -66,7 +66,7 @@ export class PotreeLoader{
 			return;
 		}
 
-		if(numLoading >= 5){
+		if(numLoading >= 20){
 			return;
 		}
 
