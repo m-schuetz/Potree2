@@ -1,5 +1,7 @@
 
 import {SceneNode} from "../scene/SceneNode.js";
+import {Frustum} from "../math/Frustum.js";
+import {Matrix4} from "../math/Matrix4.js";
 
 export class Node{
 
@@ -33,6 +35,13 @@ export class PointCloudOctree extends SceneNode{
 
 		let campos = camera.position;
 
+		let view = camera.getView();
+		let camWorld = new Matrix4().getInverse(view);
+		let proj = camera.getProjection();
+
+		let frustum = new Frustum().setFromProjectionMatrix(proj);
+		frustum.applyMatrix4(camWorld);
+
 		let stack = [this.root];
 		while(stack.length > 0){
 			let node = stack.pop();
@@ -42,8 +51,10 @@ export class PointCloudOctree extends SceneNode{
 			let nodesize = node.boundingBox.size().length();
 
 			let priority = (Math.tan(camera.fov) * nodesize / 2) / camdist;
+			let intersects = frustum.intersectsBox(node.boundingBox);
 			
-			let visible = priority > 0.2;
+			let visible = priority > 0.2 && intersects;
+
 
 			if(visible && !node.loaded){
 				nodesToLoad.push({

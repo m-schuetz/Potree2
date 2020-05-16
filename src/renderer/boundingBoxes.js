@@ -143,8 +143,6 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 		bindGroupLayout: bindGroupLayout,
 	};
 
-
-
 	let transform = new Matrix4();
 	let scale = new Matrix4();
 	let translate = new Matrix4();
@@ -173,10 +171,11 @@ function createUniforms(boxes, bindGroupLayout, view, proj){
 
 export function renderBoundingBoxes(boxes, view, proj, state){
 
-
 	if(boxes.length === 0){
 		return;
 	}
+
+	let {device} = this;
 
 	if(shader === null){
 		shader = {
@@ -192,11 +191,9 @@ export function renderBoundingBoxes(boxes, view, proj, state){
 	let {pipeline, bindGroupLayout} = createPipeline.bind(this)();
 	let uniforms = createUniforms.bind(this)(boxes, bindGroupLayout, view, proj);
 
+	let commandEncoder = device.createCommandEncoder();
 
-	let passEncoder = state.commandEncoder.beginRenderPass(state.renderPassDescriptor);
-	// passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-	
-
+	let passEncoder = commandEncoder.beginRenderPass(state.renderPassDescriptor);
 	passEncoder.setPipeline(pipeline);
 
 	for(let i = 0; i < gpuBuffers.length; i++){
@@ -209,5 +206,6 @@ export function renderBoundingBoxes(boxes, view, proj, state){
 	passEncoder.draw(geometry.numPrimitives, boxes.length, 0, 0);
 	passEncoder.endPass();
 
+	device.defaultQueue.submit([commandEncoder.finish()]);
 
 }

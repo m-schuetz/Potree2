@@ -348,7 +348,6 @@ export function renderPointCloudOctree(octree, view, proj, state){
 	let translate = new Matrix4();
 	let worldView = new Matrix4();
 	let worldViewProj = new Matrix4();
-	let identity = new Matrix4();
 
 	let commandEncoder = device.createCommandEncoder();
 
@@ -375,11 +374,9 @@ export function renderPointCloudOctree(octree, view, proj, state){
 
 		let [width, height] = [this.canvas.clientWidth, this.canvas.clientHeight];
 
-		
 		let offsets = new Float32Array(octree.loader.offset);
 		let screenSize = new Float32Array([width, height]);
 		let [iScale, fScale] = getScaleComponents(octree.loader.scale);
-		//let fScale = new Float32Array(octree.loader.scale);
 
 		f32_for_mat4.set(worldViewProj.elements)
 		uniforms.buffer.setSubData(0, f32_for_mat4);
@@ -388,48 +385,12 @@ export function renderPointCloudOctree(octree, view, proj, state){
 		f32_for_mat4.set(proj.elements)
 		uniforms.buffer.setSubData(128 + 0, f32_for_mat4);
 
-		// uniforms.buffer.setSubData(0, new Float32Array(worldViewProj.elements));
-		// uniforms.buffer.setSubData(64 + 0, new Float32Array(worldView.elements));
-		// uniforms.buffer.setSubData(128 + 0, new Float32Array(proj.elements));
-
 		i32_vec4.set([0, 0, 0, 0])
 		uniforms.buffer.setSubData(128 + 64, i32_vec4);
 		uniforms.buffer.setSubData(128 + 80, offsets);
 		uniforms.buffer.setSubData(128 + 96, screenSize);
 		uniforms.buffer.setSubData(128 + 112, fScale);
 		uniforms.buffer.setSubData(128 + 128, iScale);
-
-		// {
-		// 	let U8 = Uint8Array;
-		// 	let I32 = Int32Array;
-		// 	let F32 = Float32Array;
-
-		// 	let buffer = new ArrayBuffer(256 + 16);
-		// 	let bufferU8 = new Uint8Array(buffer);
-		// 	let view = new DataView(buffer);
-
-		// 	// bufferU8.set(new U8(new F32(worldViewProj.elements)), 0);
-		// 	// bufferU8.set(new U8(new F32(worldView.elements)), 64);
-		// 	// bufferU8.set(new U8(new F32(proj.elements)), 128);
-		// 	// bufferU8.set(new U8(new I32([0, 0, 0, 0])), 192);
-		// 	// bufferU8.set(new U8(offsets), 208);
-		// 	// bufferU8.set(new U8(screenSize), 224);
-		// 	// bufferU8.set(new U8(fScale), 240);
-		// 	// bufferU8.set(new U8(iScale), 256);
-
-		// 	// uniforms.buffer.setSubData(0, bufferU8);
-		// }
-
-
-		
-
-		
-
-		// let { uploadBuffer: buffer1 } = updateBufferData(device, uniforms.buffer, 0, 
-		// 	new Float32Array(worldViewProj.elements), 
-		// 	commandEncoder);
-
-		
 
 		let i = 0;
 		for(let buffer of buffers){
@@ -442,10 +403,6 @@ export function renderPointCloudOctree(octree, view, proj, state){
 		passEncoder.setBindGroup(0, uniforms.bindGroup);
 
 		passEncoder.draw(4, node.numPoints, 0, 0);
-
-
-
-		// buffer1.destroy();
 	}
 		
 	passEncoder.endPass();

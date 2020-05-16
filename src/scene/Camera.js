@@ -13,6 +13,8 @@ export class Camera{
 		this.distance = 10;
 		this.near = 0.1;
 		this.far = 1_000_000;
+		this.width = 0;
+		this.height = 0;
 	}
 
 	lookAt(target){
@@ -44,7 +46,9 @@ export class Camera{
 		return view;
 	}
 
-	getProjection(aspect){
+	getProjection(){
+
+		let aspect = this.width / this.height;
 
 		let {near, far, fov} = this;
 

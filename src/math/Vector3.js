@@ -1,4 +1,8 @@
 
+// Taken and adapted from three.js: https://github.com/mrdoob/three.js
+// LICENSE: MIT
+// Copyright © 2010-2020 three.js authors
+
 import {Quaternion} from "./Quaternion.js";
 
 const {sqrt} = Math;
@@ -49,6 +53,10 @@ export class Vector3{
 		this.z = a.z - b.z;
 
 		return this;
+	}
+
+	dot(v){
+		return this.x * v.x + this.y * v.y + this.z * v.z;
 	}
 
 	length(){
@@ -120,6 +128,32 @@ export class Vector3{
 		return this;
 	}
 
+	applyMatrix3( m ) {
+
+		let {x, y, z} = this;
+		let e = m.elements;
+
+		this.x = e[ 0 ] * x + e[ 3 ] * y + e[ 6 ] * z;
+		this.y = e[ 1 ] * x + e[ 4 ] * y + e[ 7 ] * z;
+		this.z = e[ 2 ] * x + e[ 5 ] * y + e[ 8 ] * z;
+
+		return this;
+	}
+
+	applyMatrix4( m ) {
+
+		let {x, y, z} = this;
+		let e = m.elements;
+
+		let w = 1 / ( e[ 3 ] * x + e[ 7 ] * y + e[ 11 ] * z + e[ 15 ] );
+
+		this.x = ( e[ 0 ] * x + e[ 4 ] * y + e[ 8 ] * z + e[ 12 ] ) * w;
+		this.y = ( e[ 1 ] * x + e[ 5 ] * y + e[ 9 ] * z + e[ 13 ] ) * w;
+		this.z = ( e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] ) * w;
+
+		return this;
+	}
+
 	copy(vec){
 		this.x = vec.x;
 		this.y = vec.y;
@@ -135,5 +169,6 @@ export class Vector3{
 	toArray(){
 		return [this.x, this.y, this.z];
 	}
+
 
 }

@@ -39,6 +39,9 @@ export class Potree extends EventDispatcher{
 			camera: this.camera,
 		};
 
+		this.camera.width = renderer.canvas.clientWidth;
+		this.camera.height = renderer.canvas.clientHeight;
+
 		this.update(state);
 		this.render(timestamp, delta);
 

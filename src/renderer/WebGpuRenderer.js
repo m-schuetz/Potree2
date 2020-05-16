@@ -223,45 +223,62 @@ export class WebGpuRenderer{
 
 		this.resize();
 
-		let aspect = this.canvas.width / this.canvas.height;
+		//let aspect = this.canvas.width / this.canvas.height;
 		let view = camera.getView();
-		let proj = camera.getProjection(aspect);
-
-		let commandEncoder = device.createCommandEncoder();
+		let proj = camera.getProjection();
 
 		let textureView = swapChain.getCurrentTexture().createView();
+
+		{ // clear screen...?
+			let commandEncoder = device.createCommandEncoder();
+			let passEncoder = commandEncoder.beginRenderPass({
+				colorAttachments: [{
+					attachment: textureView,
+					loadValue: { r: 0.2, g: 0.3, b: 0.4, a: 1 },
+				}],
+				depthStencilAttachment: {
+					attachment: depthTexture.createView(),
+					depthLoadValue: 1,
+					depthStoreOp: "store",
+					stencilLoadValue: 0,
+					stencilStoreOp: "store",
+				}
+			});
+			passEncoder.endPass();
+
+			device.defaultQueue.submit([commandEncoder.finish()]);
+		}
+		
+		// subsequent passes "load" and don't set color and depth values
 		let renderPassDescriptor = {
 			colorAttachments: [{
 				attachment: textureView,
-				loadValue: { r: 0, g: 0, b: 0, a: 0 },
+				loadValue: "load",
 			}],
 			depthStencilAttachment: {
 				attachment: depthTexture.createView(),
-				depthLoadValue: 1.0,
+				depthLoadValue: "load",
 				depthStoreOp: "store",
-				stencilLoadValue: 0,
+				stencilLoadValue: "load",
 				stencilStoreOp: "store",
 			}
 		};
 
 		let state = {
-			commandEncoder: commandEncoder,
 			renderPassDescriptor: renderPassDescriptor,
 		};
 
-		renderBoundingBoxes.bind(this)(
-			this.drawCommands.boundingBoxes, view, proj, state);
-
-		this.drawCommands = {
-			boundingBoxes: []
-		};
+		
 
 		for(let node of nodes){
 			this.renderNode(node, view, proj, state);
 		}
 
+		renderBoundingBoxes.bind(this)(this.drawCommands.boundingBoxes, view, proj, state);
 		
-		// this.device.defaultQueue.submit([commandEncoder.finish()]);
+		this.drawCommands = {
+			boundingBoxes: []
+		};
 
 
 	}

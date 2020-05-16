@@ -1,4 +1,8 @@
 
+// Taken and adapted from three.js: https://github.com/mrdoob/three.js
+// LICENSE: MIT
+// Copyright © 2010-2020 three.js authors
+
 export class Quaternion{
 
 	constructor(x, y, z, w){
