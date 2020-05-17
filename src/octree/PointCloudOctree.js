@@ -52,8 +52,9 @@ export class PointCloudOctree extends SceneNode{
 
 			let priority = (Math.tan(camera.fov) * nodesize / 2) / camdist;
 			let intersects = frustum.intersectsBox(node.boundingBox);
-			
-			let visible = priority > 0.2 && intersects;
+
+			let priorityThreshold = window?.debug?.minNodeSize ?? 0.2;
+			let visible = priority > priorityThreshold && intersects;
 
 
 			if(visible && !node.loaded){

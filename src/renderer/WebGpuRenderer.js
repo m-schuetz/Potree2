@@ -242,7 +242,7 @@ export class WebGpuRenderer{
 					depthStoreOp: "store",
 					stencilLoadValue: 0,
 					stencilStoreOp: "store",
-				}
+				},
 			});
 			passEncoder.endPass();
 

@@ -36,6 +36,7 @@
 		displayBoxes: false,
 		freeze: false,
 		attribute: "rgb",
+		minNodeSize: 0.2,
 	};
 
 	window.onload = function() {
@@ -50,6 +51,7 @@
 		gui.add(debug, 'displayBoxes');
 		gui.add(debug, 'freeze');
 		gui.add(debug, 'attribute', { rgb: "rgb", intensity: "intensity"});
+		gui.add(debug, 'minNodeSize', 0.01, 0.5);
 		// gui.add(text, 'explode');
 	};
 
