@@ -36,21 +36,6 @@ void main() {
 
 	ivec3 ipos = a_position / uniforms.iScale.xyz;
 
-	// vec3 rescale = vec3(0.0, 0.0, 0.0);
-	// if(ipos.x > 1000 * 1000){
-	// 	rescale = 1000;
-	// 	ipos.x = ipos.x / 1000;
-	// }
-	// if(ipos.y > 10000){
-	// 	off.y = - 10000;
-	// 	ipos.y = ipos.y - 10000;
-	// }
-	// if(ipos.y > 10000){
-	// 	off.y = - 10000;
-	// 	ipos.y = ipos.y - 10000;
-	// }
-	
-
 	vec3 pos = vec3(ipos) * uniforms.fScale.xyz;
 
 	pos = pos + uniforms.offset.xyz;
@@ -58,7 +43,7 @@ void main() {
 	gl_Position = uniforms.worldViewProj * vec4(pos, 1.0);
 
 	float w = gl_Position.w;
-	float pointSize = 5.0;
+	float pointSize = 3.0;
 	gl_Position.x += w * pointSize * posBillboard.x / uniforms.screenWidth;
 	gl_Position.y += w * pointSize * posBillboard.y / uniforms.screenHeight;
 

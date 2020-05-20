@@ -1,6 +1,7 @@
 
 import {vsMesh, fsMesh} from "../../shaders.js";
 
+import {renderPointCloud} from "./pointcloud.js";
 import {renderMesh} from "./mesh.js";
 import {renderLines} from "./lines.js";
 import {renderBoundingBoxes} from "./boundingBoxes.js";
@@ -46,6 +47,7 @@ export class WebGpuRenderer{
 			"Lines": renderLines.bind(this),
 			"BoundingBoxes": renderBoundingBoxes.bind(this),
 			"PointCloudOctree": renderPointCloudOctree.bind(this),
+			"Pointcloud": renderPointCloud.bind(this),
 		};
 
 	}

@@ -1,6 +1,39 @@
 
 import {toWebgpuAttribute, webgpuTypedArrayName, createAttributeReader, createWebgpuWriter} from "./PointAttributes.js"
 
+// function buildComposite(attributes, numPoints, source){
+// 	let compositeSize = 0;
+// 	for(let attribute of attributes){
+// 		let alignedSize =  4 * (1 + parseInt(attribute.byteSize / 4));
+
+// 		compositeSize += alignedSize;
+// 	}
+// 	let compositeBuffer = new ArrayBuffer(compositeSize);
+
+
+// 	for(let attribute of attributes){
+// 		//let alignedSize =  4 * (1 + parseInt(attribute.byteSize / 4));
+
+// 		for(let i = 0; i < numPoints; i++){
+// 			for(let j = 0; j < attribute.numElements; j++){
+// 				let sourceOffset = i * sourcePointSize + sourceAttributeOffset + j * sourceElementSize;
+// 				let targetOffset = i * targetAttributeSize + j * targetElementSize;
+
+// 				let value = read(sourceOffset);
+// 				write(targetOffset, value);
+// 			}
+// 		}
+
+// 		sourceAttributeOffset += attribute.byteSize;
+// 	}
+
+// 	let composite = {
+// 		buffer: compositeBuffer,
+// 	};
+
+// 	return composite;
+// }
+
 onmessage = function (event) {
 
 	let tStart = performance.now();
@@ -14,6 +47,10 @@ onmessage = function (event) {
 	let attributeBuffers = [];
 	let sourceAttributeOffset = 0;
 
+	// let composite = buildComposite(attributes, numPoints, source);
+	
+	
+	// SEPERATE BUFFERS
 	for (let attribute of attributes) {
 
 		let webgpuAttribute = toWebgpuAttribute(attribute);
@@ -43,49 +80,6 @@ onmessage = function (event) {
 
 		attributeBuffers.push({name: attribute.name, array: targetBuffer});
 	
-
-
-
-		// if(attribute.name === "rgb"){
-		// 	let buff = new ArrayBuffer(numPoints * 4);
-		// 	let colors = new Uint8Array(buff);
-
-		// 	for (let j = 0; j < numPoints; j++) {
-		// 		let pointOffset = j * bytesPerPoint;
-
-		// 		let r = source.getUint16(pointOffset + attributeOffset + 0);
-		// 		let g = source.getUint16(pointOffset + attributeOffset + 2);
-		// 		let b = source.getUint16(pointOffset + attributeOffset + 4);
-
-		// 		r = r >= 256 ? r / 256 : r;
-		// 		g = g >= 256 ? g / 256 : g;
-		// 		b = b >= 256 ? b / 256 : b;
-
-		// 		colors[4 * j + 0] = r;
-		// 		colors[4 * j + 1] = g;
-		// 		colors[4 * j + 2] = b;
-		// 	}
-
-		// 	//attributeBuffers[attribute.name] = { buffer: buff, attribute: attribute };
-		// 	attributeBuffers.push({name: attribute.name, array: buff});
-		// }else{
-
-		// 	let attributeSize = attribute.byteSize;
-		// 	let buff = new ArrayBuffer(numPoints * attributeSize);
-		// 	let uint8 = new Uint8Array(buff);
-
-		// 	for (let j = 0; j < numPoints; j++) {
-		// 		let pointOffset = j * bytesPerPoint;
-
-		// 		for(let k = 0; k < attributeSize; k++){
-		// 			let value = source.getUint8(pointOffset + attributeOffset + k);
-		// 			uint8[j * attributeSize + k] = value;
-		// 		}
-		// 	}
-
-		// 	attributeBuffers.push({name: attribute.name, array: buff});
-		// }
-		
 		sourceAttributeOffset += attribute.byteSize;
 	}
 

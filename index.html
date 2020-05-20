@@ -33,10 +33,10 @@
 		"#nodes": "0",
 		"#points": "0",
 		fps: "0",
-		displayBoxes: false,
+		displayBoxes: true,
 		freeze: false,
 		attribute: "rgb",
-		minNodeSize: 0.2,
+		minNodeSize: 0.1,
 	};
 
 	window.onload = function() {
@@ -51,7 +51,7 @@
 		gui.add(debug, 'displayBoxes');
 		gui.add(debug, 'freeze');
 		gui.add(debug, 'attribute', { rgb: "rgb", intensity: "intensity"});
-		gui.add(debug, 'minNodeSize', 0.01, 0.5);
+		gui.add(debug, 'minNodeSize', 0.1, 0.5);
 		// gui.add(text, 'explode');
 	};
 
@@ -78,13 +78,33 @@
 		// viewer.controls.target.set(693889.3707829863, 3915957.049240404, 25.668688479273722);
 
 		// eclepens
-		viewer.controls.yaw = 0.6146611737189656;
-		viewer.controls.pitch = -0.6617165745778338;
-		viewer.controls.radius = 801.7953205361365;
-		viewer.controls.target.set(-14.346648304200556, -80.13976481200487, -79.6659983626305);
+		// viewer.controls.yaw = 0.6146611737189656;
+		// viewer.controls.pitch = -0.6617165745778338;
+		// viewer.controls.radius = 801.7953205361365;
+		// viewer.controls.target.set(-14.346648304200556, -80.13976481200487, -79.6659983626305);
 
+		// niederweiden
+		// viewer.controls.yaw = -5.506778966201321;
+		// viewer.controls.pitch = -0.5519282637794574;
+		// viewer.controls.radius = 78.95847011709691;
+		// viewer.controls.target.set(-7.557239923053686, -40.70128399655094, 174.85508561219544);
+
+		// viewer.controls.yaw = -5.521483778969719;
+		// viewer.controls.pitch = -0.5989836646383255;
+		// viewer.controls.radius = 208.91342750347806;
+		// viewer.controls.target.set(-28.308403585228035, 14.197131472397281, 1.1718433041032257);
+
+
+		// viewer.controls.yaw = -3.8127845352820673;
+		// viewer.controls.pitch = -0.46664034972275886;
+		// viewer.controls.radius = 6837.85326067025;
+		// viewer.controls.target.set(-246.88665361836246, -1368.6560357791268, -1266.5994731067453);
+
+		//  let url = "http://localhost:8080/nocommit/test/metadata.json";
+		// let url = "http://localhost:8080/nocommit/niederweiden/metadata.json";
+		// let url = "http://localhost:8080/nocommit/matterhorn/metadata.json";
 		let url = "http://localhost:8080/nocommit/eclepens/metadata.json";
-		//let url = "http://localhost:8080/nocommit/lion/metadata.json";
+		// let url = "http://localhost:8080/nocommit/lion/metadata.json";
 		// let url = "http://localhost:8080/nocommit/morro/metadata.json";
 		PotreeLoader.load(url).then( async (pointcloud) => {
 
@@ -94,6 +114,16 @@
 			pointcloud.loader.loadNode(pointcloud.root);
 
 			scene.root.add(pointcloud);
+
+			// align camera to point cloud
+			let center = pointcloud.boundingBox.center();
+			let radius = pointcloud.boundingBox.size().x;
+			center.z = center.z - radius * 0.4;
+			viewer.controls.yaw = -5.506778966201321;
+			viewer.controls.pitch = -0.5519282637794574;
+			viewer.controls.radius = radius;
+			viewer.controls.target.copy(center);
+
 		});
 
 		viewer.addListener("update", (e) => {

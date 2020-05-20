@@ -91,9 +91,16 @@ export function toWebgpuAttribute(attribute){
 	}else if(attribute.type.includes("int32")){
 		let sign = attribute.type.startsWith("u") ? "u" : "";
 
-		webgpu.type = `${sign}int${attribute.numElements}`;
-		webgpu.numElements = attribute.numElements;
-		webgpu.byteSize = attribute.byteSize;
+		if(attribute.numElements === 1){
+			webgpu.type = `${sign}int`;
+			webgpu.numElements = attribute.numElements;
+			webgpu.byteSize = attribute.byteSize;
+		}else{
+			webgpu.type = `${sign}int${attribute.numElements}`;
+			webgpu.numElements = attribute.numElements;
+			webgpu.byteSize = attribute.byteSize;
+		}
+		
 	}else if(attribute.type === "float"){
 		webgpu.type = `float${attribute.numElements}`;
 		webgpu.numElements = attribute.numElements;

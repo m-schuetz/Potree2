@@ -1,0 +1,133 @@
+<html>
+<head>
+
+</head>
+<body style="padding: 0; margin: 0">
+
+
+<canvas id="canvas" width="800" height="600" 
+	style="
+		width: 100%; height: 100%;
+		grid-column: 1; grid-row: 1">
+</canvas>
+
+<span style="position: fixed; z-index: 100; left: 10px; top: 10px;">
+	
+</span>
+
+<script src="./libs/gl-matrix.js"></script>
+<script src="./libs/dat.gui.min.js"></script>
+
+
+<script type="module" async>
+	
+	
+	import {Geometry} from "./src/Geometry.js";
+	import {Mesh} from "./src/scene/Mesh.js";
+	import {Pointcloud} from "./src/scene/Pointcloud.js";
+	import {Vector3} from "./src/math/Vector3.js";
+	import {Lines} from "./src/scene/Lines.js";
+	import {Potree} from "./src/Potree.js";
+	import {PotreeLoader} from "./src/octree/PotreeLoader.js";
+	
+	import {LASLoader} from "./src/las/LasLoader.js";
+
+
+	window.debug = {
+		"#nodes": "0",
+		"#points": "0",
+		fps: "0",
+		displayBoxes: false,
+		freeze: false,
+		attribute: "rgb",
+		minNodeSize: 0.2,
+		loaded: "0",
+	};
+
+	window.onload = function() {
+		let gui = new dat.GUI();
+		gui.add(debug, '#nodes').listen();
+		gui.add(debug, '#points').listen();
+		gui.add(debug, 'fps').listen();
+		gui.add(debug, 'displayBoxes');
+		gui.add(debug, 'freeze');
+		gui.add(debug, 'attribute', { rgb: "rgb", intensity: "intensity"});
+		gui.add(debug, 'minNodeSize', 0.01, 0.5);
+		gui.add(debug, 'loaded').listen();
+		// gui.add(text, 'explode');
+	};
+
+
+
+	let canvas = document.getElementById("canvas");
+	new Potree().init(canvas).then((viewer) => {
+		window.potree = viewer;
+		
+		let scene = viewer.scene;
+		window.scene = scene;
+
+		viewer.controls.yaw = 0.5558419226453803;
+		viewer.controls.pitch = -0.6999490877756642;
+		viewer.controls.radius = 5;
+		viewer.controls.target.set(0, 0, 0);
+		
+
+		viewer.addListener("update", (e) => {
+			window.debug.fps = Math.round(viewer.fps) + "";
+		});
+
+
+		let n = 1_000_000;
+		let position = new Float32Array(3 * n);
+		let color = new Uint8Array(4 * n);
+
+		let π = Math.PI;
+		let {abs, cos, sin, random, min, max} = Math;
+		let clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+
+		for(let i = 0; i < n; i++){
+			let x = random() * 2 - 1;
+			let y = random() * 2 - 1;
+			let z = 0.5 * cos(π * y) * cos(π * x);
+
+			let r = parseInt(clamp(255 * (z + 0.5), 0, 255));
+			let g = 0;
+			let b = 0;
+
+			position[3 * i + 0] = x;
+			position[3 * i + 1] = y;
+			position[3 * i + 2] = z;
+
+			
+			color[4 * i + 0] = r;
+			color[4 * i + 1] = g;
+			color[4 * i + 2] = b;
+			color[4 * i + 3] = 255;
+		}
+		
+		let buffers = [
+			{name: "position", array: position},
+			{name: "color", array: color},
+		];
+		let geometry = new Geometry(n, buffers);
+
+		let pointcloud = new Pointcloud("test", geometry);
+
+		scene.root.add(pointcloud);
+
+
+
+
+
+
+	});
+
+	
+
+
+</script>
+
+
+
+</body>
+</html>
