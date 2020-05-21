@@ -1,0 +1,177 @@
+<html>
+<head>
+
+</head>
+<body style="padding: 0; margin: 0">
+
+
+<canvas id="canvas" width="800" height="600" 
+	style="
+		width: 100%; height: 100%;
+		grid-column: 1; grid-row: 1">
+</canvas>
+
+<span style="position: fixed; z-index: 100; left: 10px; top: 10px;">
+	
+</span>
+
+<script src="../../libs/gl-matrix.js"></script>
+<script src="../../libs/dat.gui.min.js"></script>
+
+
+
+
+<script type="module" async>
+	
+	
+	import {Geometry} from "../../src/Geometry.js";
+	import {Mesh} from "../../src/scene/Mesh.js";
+	import {Pointcloud} from "../../src/scene/Pointcloud.js";
+	import {Vector3} from "../../src/math/Vector3.js";
+	import {Matrix4} from "../../src/math/Matrix4.js";
+	import {Lines} from "../../src/scene/Lines.js";
+	import {Potree} from "../../src/Potree.js";
+	import {SceneNode} from "../../src/scene/SceneNode.js";
+
+	import {prepareStuff} from "./stuff.js";
+	import {prepareCsGenerator} from "./compute.js";
+
+	window.debug = {
+		"#nodes": "0",
+		"#points": "0",
+		fps: "0",
+		displayBoxes: false,
+		freeze: false,
+		attribute: "rgb",
+		minNodeSize: 0.2,
+		loaded: "0",
+	};
+
+	window.onload = function() {
+		let gui = new dat.GUI();
+		gui.add(debug, '#nodes').listen();
+		gui.add(debug, '#points').listen();
+		gui.add(debug, 'fps').listen();
+		gui.add(debug, 'displayBoxes');
+		gui.add(debug, 'freeze');
+		gui.add(debug, 'attribute', { rgb: "rgb", intensity: "intensity"});
+		gui.add(debug, 'minNodeSize', 0.01, 0.5);
+		gui.add(debug, 'loaded').listen();
+		// gui.add(text, 'explode');
+	};
+
+	class TestCloud extends SceneNode{
+		constructor(name, geometry){
+			super(name);
+
+			this.geometry = geometry;
+		}
+	}
+
+	let numPoints = 10_000_000;
+	
+
+	let canvas = document.getElementById("canvas");
+	new Potree().init(canvas).then((viewer) => {
+		window.potree = viewer;
+		potree.camera.near = 0.01;
+
+		let {scene, renderer} = viewer;
+		window.scene = scene;
+
+		viewer.controls.yaw = 0.5558419226453803;
+		viewer.controls.pitch = -0.6999490877756642;
+		viewer.controls.radius = 5;
+		viewer.controls.target.set(0, 0, 0);
+		
+
+		viewer.addListener("update", (e) => {
+			window.debug.fps = Math.round(viewer.fps) + "";
+		});
+
+
+
+		let {device} = renderer;
+
+		let {shader, pipeline, bindGroup, uniforms} = prepareStuff(renderer);
+
+	
+		let gpubuffer = device.createBuffer({
+			size: 16 * numPoints,
+			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE
+		});
+
+		let geometry = new Geometry(numPoints, null);
+
+		let pointcloud = new TestCloud("test", geometry);
+
+		scene.root.add(pointcloud);
+
+		let initialized = false;
+
+		let compute = prepareCsGenerator(renderer, numPoints, gpubuffer);
+
+		let renderTestCloud = (pointcloud, view, proj, state) => {
+			let transform = new Matrix4();
+			let scale = new Matrix4();
+			let translate = new Matrix4();
+			let worldView = new Matrix4();
+			let worldViewProj = new Matrix4();
+
+			scale.makeScale(pointcloud.scale.x, pointcloud.scale.y, pointcloud.scale.z);
+			translate.makeTranslation(pointcloud.position.x, pointcloud.position.y, pointcloud.position.z);
+			transform.multiplyMatrices(translate, scale);
+			worldView.multiplyMatrices(view, transform);
+			worldViewProj.multiplyMatrices(proj, worldView);
+
+
+			let commandEncoder = device.createCommandEncoder();
+
+			if(!initialized){ // create vertex buffer
+				const computePass = commandEncoder.beginComputePass();
+				computePass.setPipeline(compute.pipeline);
+
+				computePass.setBindGroup(0, compute.bindGroup);
+				
+				computePass.dispatch(numPoints);
+				computePass.endPass();
+
+				initialized = true;
+			}
+
+			{ // render vertex buffer
+				let passEncoder = commandEncoder.beginRenderPass(state.renderPassDescriptor);
+				passEncoder.setPipeline(pipeline);
+
+				uniforms.buffer.setSubData(0, new Float32Array(worldViewProj.elements));
+
+				passEncoder.setVertexBuffer(0, gpubuffer);
+				passEncoder.setVertexBuffer(1, gpubuffer);
+
+				passEncoder.setBindGroup(0, uniforms.bindGroup);
+
+				passEncoder.draw(numPoints, 1, 0, 0);
+
+				passEncoder.endPass();
+			}
+
+			device.defaultQueue.submit([commandEncoder.finish()]);
+
+		};
+
+		renderer.nodeRenderers["TestCloud"] = renderTestCloud.bind(renderer);
+
+
+
+
+	});
+
+	
+
+
+</script>
+
+
+
+</body>
+</html>
