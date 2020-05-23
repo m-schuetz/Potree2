@@ -1,6 +1,9 @@
 import {Matrix4} from "../math/Matrix4.js";
 import {toWebgpuAttribute, webgpuToGlsl} from "../octree/PointAttributes.js";
 
+// to enable/disable quad, toggle occurances containing "billboard"
+// except some like posBillboard in the vertex shader
+
 let vs = `
 #version 450
 
@@ -43,9 +46,9 @@ void main() {
 	gl_Position = uniforms.worldViewProj * vec4(pos, 1.0);
 
 	float w = gl_Position.w;
-	float pointSize = 3.0;
-	gl_Position.x += w * pointSize * posBillboard.x / uniforms.screenWidth;
-	gl_Position.y += w * pointSize * posBillboard.y / uniforms.screenHeight;
+	float pointSize = 5.0;
+	//gl_Position.x += w * pointSize * posBillboard.x / uniforms.screenWidth;
+	//gl_Position.y += w * pointSize * posBillboard.y / uniforms.screenHeight;
 
 }
 `;
@@ -65,6 +68,8 @@ void main() {
 }
 
 `;
+
+let whitelist = ["position", "rgb"];
 
 let shader = null;
 
@@ -95,6 +100,10 @@ function buildVertexShader(octree){
 	let i = 0;
 	for(let attribute of octree.attributes){
 
+		if(!whitelist.includes(attribute.name)){
+			continue;
+		}
+
 		let webgpu = toWebgpuAttribute(attribute);
 
 		let glslType = webgpuToGlsl(webgpu.type);
@@ -108,7 +117,7 @@ function buildVertexShader(octree){
 		i++;
 	}
 
-	srcAttributes.push(`layout(location = ${i}) in vec3 posBillboard;`);
+	// srcAttributes.push(`layout(location = ${i}) in vec3 posBillboard;`);
 
 
 	let activeAttribute = window.debug?.attribute ?? "rgb";
@@ -190,8 +199,12 @@ export function initializePointCloudOctreePipeline(octree){
 	let pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
 
 	let vertexBuffers = [];
-	for(let i = 0; i < octree.attributes.length; i++){
-		let attribute = octree.attributes[i];
+	let i = 0;
+	for(let attribute of octree.attributes){
+
+		if(!whitelist.includes(attribute.name)){
+			continue;
+		}
 
 		let webgpu = toWebgpuAttribute(attribute);
 
@@ -208,19 +221,21 @@ export function initializePointCloudOctreePipeline(octree){
 		console.log(attribute.name, value);
 
 		vertexBuffers.push(value);
+
+		i++;
 	}
 
-	// billboard position
-	vertexBuffers.push({
-		arrayStride: 4 * 4,
-		attributes: [
-			{ 
-				shaderLocation: vertexBuffers.length,
-				offset: 0,
-				format: "float4"
-			}
-		]
-	});
+	// // billboard position
+	// vertexBuffers.push({
+	// 	arrayStride: 4 * 4,
+	// 	attributes: [
+	// 		{ 
+	// 			shaderLocation: vertexBuffers.length,
+	// 			offset: 0,
+	// 			format: "float4"
+	// 		}
+	// 	]
+	// });
 
 	let pipeline = device.createRenderPipeline({
 		layout: pipelineLayout,
@@ -236,7 +251,8 @@ export function initializePointCloudOctreePipeline(octree){
 		colorStates: [{
 			format: this.swapChainFormat,
 		}],
-		primitiveTopology: 'triangle-strip',
+		primitiveTopology: 'point-list',
+		//primitiveTopology: 'triangle-strip',
 		depthStencilState: {
 			depthWriteEnabled: true,
 			depthCompare: "less",
@@ -339,6 +355,13 @@ export function renderPointCloudOctree(octree, view, proj, state){
 	let passEncoder = commandEncoder.beginRenderPass(state.renderPassDescriptor);
 	passEncoder.setPipeline(pipeline);
 
+	let [width, height] = [this.canvas.clientWidth, this.canvas.clientHeight];
+	let offsets = new Float32Array(octree.loader.offset);
+	let screenSize = new Float32Array([width, height]);
+	let [iScale, fScale] = getScaleComponents(octree.loader.scale);
+
+	passEncoder.setBindGroup(0, uniforms.bindGroup);
+
 	for(let node of octree.visibleNodes){
 		if(!node.webgpu){
 			let buffers = this.initializeBuffers(node);
@@ -356,12 +379,6 @@ export function renderPointCloudOctree(octree, view, proj, state){
 		transform.multiplyMatrices(translate, scale);
 		worldView.multiplyMatrices(view, transform);
 		worldViewProj.multiplyMatrices(proj, worldView);
-
-		let [width, height] = [this.canvas.clientWidth, this.canvas.clientHeight];
-
-		let offsets = new Float32Array(octree.loader.offset);
-		let screenSize = new Float32Array([width, height]);
-		let [iScale, fScale] = getScaleComponents(octree.loader.scale);
 
 		f32_for_mat4.set(worldViewProj.elements)
 		uniforms.buffer.setSubData(0, f32_for_mat4);
@@ -383,9 +400,7 @@ export function renderPointCloudOctree(octree, view, proj, state){
 
 			i++;
 		}
-		passEncoder.setVertexBuffer(i, getBillboardBuffer(device));
-
-		passEncoder.setBindGroup(0, uniforms.bindGroup);
+		// passEncoder.setVertexBuffer(i, getBillboardBuffer(device));
 
 		passEncoder.draw(4, node.numPoints, 0, 0);
 	}

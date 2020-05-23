@@ -99,8 +99,6 @@ export class PotreeLoader{
 					let worker = pool.getWorker(workerPath);
 
 					worker.onmessage = (e) => {
-						// console.log(`node loaded: ${node.name}`);
-						// console.log(e);
 
 						pool.returnWorker(workerPath, worker);
 
@@ -114,17 +112,20 @@ export class PotreeLoader{
 						}
 						dbg++;
 						
+						let whitelist = ["position", "rgb"];
+						attributeBuffers = attributeBuffers.filter(b => whitelist.includes(b.name));
 						
 						for(let buffer of attributeBuffers){
 							let attribute = attributes.find(a => a.name === buffer.name);
 
 							if(attribute){
 								//let XArray = getArrayType(attribute.type);
-								let webgpuAttribute = toWebgpuAttribute(attribute);
+								//let webgpuAttribute = toWebgpuAttribute(attribute);
 								let XArray = webgpuTypedArrayName(attribute.type);
 								buffer.array = new XArray(buffer.array);
 							}
 						}
+
 						node.buffers = attributeBuffers;
 						node.loading = false;
 						node.loaded = true;
