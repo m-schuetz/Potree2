@@ -52,9 +52,9 @@ function createPointCube(n){
 	for(let j = 0; j < n; j++){
 	for(let k = 0; k < n; k++){
 
-		position[3 * processed + 0] = i / n;
-		position[3 * processed + 1] = j / n;
-		position[3 * processed + 2] = k / n;
+		position[3 * processed + 0] = i / n + Math.random() / n;
+		position[3 * processed + 1] = j / n + Math.random() / n;
+		position[3 * processed + 2] = k / n + Math.random() / n;
 
 		color[4 * processed + 0] = i / n;
 		color[4 * processed + 1] = j / n;

@@ -4,35 +4,6 @@
 import { mat4, vec3 } from '../../libs/gl-matrix.js';
 import * as shaders from "../prototyping/shaders.js";
 
-let cameraDistance = 20;
-
-let aspect = 3 / 4;
-let projectionMatrix = mat4.create();
-mat4.perspective(projectionMatrix, (2 * Math.PI) / 5, aspect, 0.1, 1000.0);
-
-function getTransformationMatrix() {
-
-	aspect = canvas.clientWidth / canvas.clientHeight;
-	mat4.perspective(projectionMatrix, (2 * Math.PI) / 5, aspect, 0.1, cameraDistance * 2.0);
-
-	let viewMatrix = mat4.create();
-	mat4.translate(viewMatrix, viewMatrix, vec3.fromValues(0, 0, -cameraDistance));
-	let now = Date.now() / 1000;
-
-	mat4.rotate(
-		viewMatrix,
-		viewMatrix,
-		now,
-		vec3.fromValues(0, 1, 0)
-	);
-
-	let modelViewProjectionMatrix = mat4.create();
-	mat4.multiply(modelViewProjectionMatrix, projectionMatrix, viewMatrix);
-
-	return modelViewProjectionMatrix;
-}
-
-
 export class Renderer{
 
 	constructor(){
@@ -68,6 +39,36 @@ export class Renderer{
 			format: "depth24plus-stencil8",
 			usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
 		});
+	}
+
+	getSize(){
+		return {
+			width: this.canvas.width,
+			height: this.canvas.height
+		};
+	}
+
+	setSize(width, height){
+
+		width = Math.min(width, 7680);
+		height = Math.min(height, 4320);
+
+		let resized = this.canvas.width !== width || this.canvas.height !== height;
+
+		if(resized){
+			this.canvas.width = width;
+			this.canvas.height = height;
+
+			this.depthTexture = this.device.createTexture({
+				size: {
+					width: this.canvas.width,
+					height: this.canvas.height,
+					depth: 1,
+				},
+				format: "depth24plus-stencil8",
+				usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
+			});
+		}
 	}
 
 	createBuffer(data){
@@ -182,6 +183,9 @@ export class Renderer{
 
 	start(){
 
+		let scale = window.devicePixelRatio
+		this.setSize(scale * this.canvas.clientWidth, scale * this.canvas.clientHeight);
+
 		let renderPassDescriptor = {
 			colorAttachments: [
 				{
@@ -212,12 +216,33 @@ export class Renderer{
 	render(pass, node, camera){
 
 		let {device, swapChain, depthTexture} = this;
+		let size = this.getSize();
 
 		let state = this.getState(node);
 
 		let {uniformBuffer, pipeline, uniformBindGroup} = state;
 
-		const transformationMatrix = getTransformationMatrix();
+		camera.aspect = size.width / size.height;
+		camera.updateProj();
+
+		let world = mat4.create();
+
+		mat4.translate(world, world, vec3.fromValues(-0.5, -0.5, -0.5));
+		// mat4.rotate(
+		// 	world,
+		// 	world,
+		// 	Date.now() / 1000,
+		// 	vec3.fromValues(0, 1, 0)
+		// );
+
+		let view = camera.view;
+		let proj = camera.proj;
+
+		let transformationMatrix = mat4.create();
+		mat4.multiply(transformationMatrix, view, world);
+		mat4.multiply(transformationMatrix, proj, transformationMatrix);
+
+		//const transformationMatrix = getTransformationMatrix();
 
 		device.defaultQueue.writeBuffer(
 			uniformBuffer,
