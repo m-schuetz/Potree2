@@ -1,83 +1,45 @@
 
-// based on cube example from https://github.com/cx20/webgpu-test (MIT license)
 
-import {LASLoader} from "./LASLoader.js";
-import {WebGpuRenderer} from "./src/renderer/WebGpuRenderer.js";
-import {PotreeLoader} from "./src/octree/PotreeLoader.js"
-import {Camera} from "./src/scene/Camera.js";
-import {Quaternion} from "./src/math/Quaternion.js";
-import {Matrix4} from "./src/math/Matrix4.js";
-import {Vector3} from "./src/math/Vector3.js";
-import {OrbitControls} from "./src/navigation/OrbitControls.js";
-import {Scene} from "./src/scene/Scene.js";
+import {cube, pointCube} from "./src/prototyping/cube.js";
 
-let canvas = document.getElementById("canvas");
-let frameCount = 0;
-let lastFpsMeasure = 0;
+import {Renderer} from "./src/renderer/Renderer.js";
+// import {loadTexture, drawTexture} from "./src/prototyping/textures.js";
+import {drawRect} from "./src/prototyping/rect.js";
 
-let renderer = null;
-let sceneObject = null;
-
-export let camera = new Camera();
-let quaternion = new Quaternion(0, 0, 0, 1);
-let controls = new OrbitControls(canvas, camera);
-
-window.quaternion = quaternion;
-window.controls = controls;
-
-export let scene = new Scene();
-
-function update(timestamp, delta){
-	controls.update(delta);
-
-	scene.update(timestamp, delta);
-
-}
-
-function render(timestamp){
-
-	let {canvas} = renderer;
-
-	renderer.render(scene, camera, sceneObject);
-
-
-	{// compute FPS
-		frameCount++;
-		let timeSinceLastFpsMeasure = (performance.now() - lastFpsMeasure) / 1000;
-		if(timeSinceLastFpsMeasure > 1){
-			let fps = frameCount / timeSinceLastFpsMeasure;
-			// console.log(`fps: ${Math.round(fps)}`);
-			document.title = `fps: ${Math.round(fps)}`;
-			lastFpsMeasure = performance.now();
-			frameCount = 0;
-		}
-	}
-}
-
-let previousTimestamp = 0;
-
-function loop(timestamp){
-
-	let delta = timestamp - previousTimestamp;
-
-	let state = {
-		timestamp: timestamp,
-		delta: delta,
-		drawBoundingBox: renderer.drawBoundingBox.bind(renderer),
-	};
-
-	update(state);
-	render(timestamp, delta);
-
-	requestAnimationFrame(loop);
-}
+let frame = 0;
 
 async function run(){
 
-	renderer = await WebGpuRenderer.create(canvas);
+	let renderer = new Renderer();
 
-	loop();
+	await renderer.init();
+
+	let node = pointCube;
+	let camera = null;
+
+	// let texture = loadTexture("./resources/images/background.jpg");
+
+	let loop = () => {
+		frame++;
+
+		let pass = renderer.start();
+
+			renderer.render(pass, node, camera);
+
+			drawRect(renderer, pass, -0.8, -0.8, 0.2, 0.5);
+
+		renderer.finish(pass);
+
+		requestAnimationFrame(loop);
+	};
+	requestAnimationFrame(loop);
 
 }
 
+
 run();
+
+
+
+
+
