@@ -151,7 +151,7 @@ function getState(renderer, node){
 	return state;
 }
 
-export function drawMesh(renderer, pass, node, camera){
+export function drawMesh(renderer, pass, node, camera, world){
 	let {device, swapChain, depthTexture} = renderer;
 	let size = renderer.getSize();
 
@@ -162,15 +162,16 @@ export function drawMesh(renderer, pass, node, camera){
 	camera.aspect = size.width / size.height;
 	camera.updateProj();
 
-	let world = mat4.create();
-
-	mat4.translate(world, world, vec3.fromValues(-0.5, -0.5, -0.5));
+	// let world = mat4.create();
+	//mat4.translate(world, world, vec3.fromValues(-0.5, -0.5, -0.5));
+	let glWorld = mat4.create();
+	mat4.set(glWorld, ...world.elements);
 
 	let view = camera.view;
 	let proj = camera.proj;
 
 	let transformationMatrix = mat4.create();
-	mat4.multiply(transformationMatrix, view, world);
+	mat4.multiply(transformationMatrix, view, glWorld);
 	mat4.multiply(transformationMatrix, proj, transformationMatrix);
 
 	device.defaultQueue.writeBuffer(
@@ -182,7 +183,7 @@ export function drawMesh(renderer, pass, node, camera){
 	);
 
 	{
-		let passEncoder = pass.commandEncoder.beginRenderPass(pass.renderPassDescriptor);
+		let {passEncoder} = pass;
 		passEncoder.setPipeline(pipeline);
 		passEncoder.setBindGroup(0, uniformBindGroup);
 
@@ -192,6 +193,6 @@ export function drawMesh(renderer, pass, node, camera){
 		}
 
 		passEncoder.draw(node.vertexCount, 1, 0, 0);
-		passEncoder.endPass();
+		
 	}
 }

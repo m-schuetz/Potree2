@@ -257,10 +257,11 @@ export function drawImage(renderer, pass, image, x, y, width, height){
 		sampleCount: 1,
 	};
 
-	const passEncoder = pass.commandEncoder.beginRenderPass(descriptor);
+	// const passEncoder = pass.commandEncoder.beginRenderPass(descriptor);
+	let {passEncoder} = pass;
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, uniformBindGroup);
 	passEncoder.draw(6, 1, 0, 0);
-	passEncoder.endPass();
+	// passEncoder.endPass();
 
 }

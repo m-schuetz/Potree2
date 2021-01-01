@@ -94,12 +94,18 @@ export class Renderer{
 		};
 
 		const commandEncoder = this.device.createCommandEncoder();
+		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-		return {commandEncoder, renderPassDescriptor};
+		return {commandEncoder, passEncoder, renderPassDescriptor};
 	}
 
 	finish(pass){
+
+		pass.passEncoder.endPass();
+
 		this.device.defaultQueue.submit([pass.commandEncoder.finish()]);
+
+
 	}
 
 };

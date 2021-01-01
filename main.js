@@ -12,7 +12,18 @@ import {Camera} from "./src/scene/Camera.js";
 import {mat4, vec3} from '../libs/gl-matrix.js';
 import {OrbitControls} from "./src/navigation/OrbitControls.js";
 
+import {SceneNode} from "./src/scene/SceneNode.js";
+
 let frame = 0;
+
+let testNode = new SceneNode("test");
+{
+
+	testNode.scale.set(0.1, 0.1, 0.1);
+	testNode.position.set(0, 1, 0);
+	testNode.updateWorld();
+}
+
 
 async function run(){
 
@@ -46,9 +57,9 @@ async function run(){
 
 			// drawPoints(renderer, pass, node, camera);
 			drawQuads(renderer, pass, node, camera);
-			drawMesh(renderer, pass, cube, camera);
-			// drawRect(renderer, pass, -0.8, -0.8, 0.2, 0.5);
-			// drawImage(renderer, pass, image, 0.3, 0.3, 0.4, -0.4);
+			drawMesh(renderer, pass, cube, camera, testNode.world);
+			drawRect(renderer, pass, -0.8, -0.8, 0.2, 0.5);
+			drawImage(renderer, pass, image, 0.3, 0.3, 0.4, -0.4);
 
 		renderer.finish(pass);
 

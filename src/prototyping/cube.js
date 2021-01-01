@@ -34,6 +34,14 @@ export const cube = {
 				1, 0, 0, 1,
 				0, 1, 0, 1,
 				0, 0, 1, 1,
+
+				1, 0, 0, 1,
+				0, 1, 0, 1,
+				0, 0, 1, 1,
+	
+				1, 0, 0, 1,
+				0, 1, 0, 1,
+				0, 0, 1, 1,
 			]),
 		}
 	]
@@ -81,4 +89,4 @@ function createPointCube(n){
 	return object;
 }
 
-export let pointCube = createPointCube(100);
+export let pointCube = createPointCube(50);
