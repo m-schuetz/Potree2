@@ -1,5 +1,5 @@
 
-import { mat4, vec3 } from '../../libs/gl-matrix.js';
+import { mat4, vec3 } from '../../../libs/gl-matrix.js';
 
 const vs = `
 [[block]] struct Uniforms {
@@ -151,39 +151,33 @@ function getState(renderer, node){
 	return state;
 }
 
-export function drawMesh(renderer, pass, node, camera, world){
-	let {device, swapChain, depthTexture} = renderer;
-	let size = renderer.getSize();
+export function drawMesh(renderer, pass, node, camera){
+	let {device} = renderer;
 
 	let state = getState(renderer, node);
 
-	let {uniformBuffer, pipeline, uniformBindGroup} = state;
+	{ // update uniforms
+		let glWorld = mat4.create();
+		mat4.set(glWorld, ...node.world.elements);
 
-	camera.aspect = size.width / size.height;
-	camera.updateProj();
+		let view = camera.view;
+		let proj = camera.proj;
 
-	// let world = mat4.create();
-	//mat4.translate(world, world, vec3.fromValues(-0.5, -0.5, -0.5));
-	let glWorld = mat4.create();
-	mat4.set(glWorld, ...world.elements);
+		let transform = mat4.create();
+		mat4.multiply(transform, view, glWorld);
+		mat4.multiply(transform, proj, transform);
 
-	let view = camera.view;
-	let proj = camera.proj;
+		let {uniformBuffer} = state;
+		device.defaultQueue.writeBuffer(
+			uniformBuffer, 0,
+			transform.buffer, transform.byteOffset, transform.byteLength
+		);
+	}
 
-	let transformationMatrix = mat4.create();
-	mat4.multiply(transformationMatrix, view, glWorld);
-	mat4.multiply(transformationMatrix, proj, transformationMatrix);
-
-	device.defaultQueue.writeBuffer(
-		uniformBuffer,
-		0,
-		transformationMatrix.buffer,
-		transformationMatrix.byteOffset,
-		transformationMatrix.byteLength
-	);
-
-	{
+	{ // render
 		let {passEncoder} = pass;
+		let {pipeline, uniformBindGroup} = state;
+
 		passEncoder.setPipeline(pipeline);
 		passEncoder.setBindGroup(0, uniformBindGroup);
 
@@ -192,7 +186,7 @@ export function drawMesh(renderer, pass, node, camera, world){
 			passEncoder.setVertexBuffer(i, vbos[i].vbo);
 		}
 
-		passEncoder.draw(node.vertexCount, 1, 0, 0);
+		passEncoder.draw(node.numVertices, 1, 0, 0);
 		
 	}
 }

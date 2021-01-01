@@ -109,10 +109,6 @@ export class Matrix4{
 	}
 	
 	translate(x, y, z){
-		// tmpTranslate.elements[ 3] = x;
-		// tmpTranslate.elements[ 7] = y;
-		// tmpTranslate.elements[11] = z;
-
 		tmpTranslate.elements[12] = x;
 		tmpTranslate.elements[13] = y;
 		tmpTranslate.elements[14] = z;

@@ -1,5 +1,5 @@
 
-import { mat4, vec3 } from '../../libs/gl-matrix.js';
+import { mat4, vec3 } from '../../../libs/gl-matrix.js';
 
 const vs = `
 [[block]] struct Uniforms {
@@ -64,14 +64,15 @@ let vbo_quad = null;
 function getVboQuad(renderer){
 	if(!vbo_quad){
 
-		let data = {
+		let geometry = {
 			buffers: [{
 				name: "position",
 				buffer: quad_position,
 			}]
 		};
+		let node = {geometry};
 
-		vbo_quad = createBuffer(renderer, data);
+		vbo_quad = createBuffer(renderer, node);
 	}
 
 	return vbo_quad;
@@ -83,7 +84,7 @@ function createBuffer(renderer, data){
 
 	let vbos = [];
 
-	for(let entry of data.buffers){
+	for(let entry of data.geometry.buffers){
 		let {name, buffer} = entry;
 
 		let vbo = device.createBuffer({
@@ -105,7 +106,7 @@ function createBuffer(renderer, data){
 	return vbos;
 }
 
-function createPipeline(renderer, vbos){
+function createPipeline(renderer){
 
 	let {device} = renderer;
 
@@ -204,51 +205,51 @@ function getState(renderer, node){
 }
 
 export function drawQuads(renderer, pass, node, camera){
-	let {device, swapChain, depthTexture} = renderer;
-	let size = renderer.getSize();
+	let {device} = renderer;
 
 	let state = getState(renderer, node);
 	let vbo_quad = getVboQuad(renderer);
 
-	let {uniformBuffer, pipeline, uniformBindGroup} = state;
+	{ // update uniforms
+		let {uniformBuffer} = state;
 
-	camera.aspect = size.width / size.height;
-	camera.updateProj();
+		{ // transform
+			let glWorld = mat4.create();
+			mat4.set(glWorld, ...node.world.elements);
 
-	let world = mat4.create();
+			let view = camera.view;
+			let proj = camera.proj;
 
-	mat4.translate(world, world, vec3.fromValues(-0.5, -0.5, -0.5));
+			let transform = mat4.create();
+			mat4.multiply(transform, view, glWorld);
+			mat4.multiply(transform, proj, transform);
 
-	let view = camera.view;
-	let proj = camera.proj;
+			device.defaultQueue.writeBuffer(
+				uniformBuffer, 0,
+				transform.buffer, transform.byteOffset, transform.byteLength
+			);
+		}
 
-	let transformationMatrix = mat4.create();
-	mat4.multiply(transformationMatrix, view, world);
-	mat4.multiply(transformationMatrix, proj, transformationMatrix);
-
-	device.defaultQueue.writeBuffer(
-		uniformBuffer,
-		0,
-		transformationMatrix.buffer,
-		transformationMatrix.byteOffset,
-		transformationMatrix.byteLength
-	);
-
-	{
-		let size = renderer.getSize();
-		let data = new Float32Array([size.width, size.height]);
-		device.defaultQueue.writeBuffer(
-			uniformBuffer,
-			4 * 16,
-			data.buffer,
-			data.byteOffset,
-			data.byteLength
-		);
+		{ // screen size
+			let size = renderer.getSize();
+			let data = new Float32Array([size.width, size.height]);
+			device.defaultQueue.writeBuffer(
+				uniformBuffer,
+				4 * 16,
+				data.buffer,
+				data.byteOffset,
+				data.byteLength
+			);
+		}
 	}
+
+	
 
 	{
 		//let passEncoder = pass.commandEncoder.beginRenderPass(pass.renderPassDescriptor);
 		let {passEncoder} = pass;
+		let {pipeline, uniformBindGroup} = state;
+
 		passEncoder.setPipeline(pipeline);
 		passEncoder.setBindGroup(0, uniformBindGroup);
 
@@ -261,7 +262,7 @@ export function drawQuads(renderer, pass, node, camera){
 		// 	passEncoder.setVertexBuffer(i, vbos[i].vbo);
 		// }
 
-		passEncoder.draw(6, node.vertexCount, 0, 0);
+		passEncoder.draw(6, node.geometry.numElements, 0, 0);
 		//passEncoder.draw(node.vertexCount, 1, 0, 0);
 		// passEncoder.endPass();
 	}
