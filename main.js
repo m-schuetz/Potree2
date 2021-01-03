@@ -11,10 +11,13 @@ import {Mesh} from "./src/modules/mesh/Mesh.js";
 import {Points} from "./src/modules/points/Points.js";
 import {drawPoints} from "./src/modules/points/drawPoints.js";
 import {drawQuads} from "./src/modules/points/drawQuads.js";
+import {renderProgressive} from "./src/modules/progressive/renderProgressive.js";
 import {Camera} from "./src/scene/Camera.js";
 import {mat4, vec3} from '../libs/gl-matrix.js';
 import {OrbitControls} from "./src/navigation/OrbitControls.js";
 import {SceneNode} from "./src/scene/SceneNode.js";
+
+import {Potree} from "./src/Potree.js";
 
 let frame = 0;
 
@@ -45,11 +48,11 @@ async function run(){
 	geometry.buffers = pointCube.buffers;
 	geometry.numElements = pointCube.vertexCount;
 	let points = new Points("test", geometry);
-	// points.scale.set(0.5, 0.5, 0.5);
-	// points.position.set(2, 0, 0);
 	points.updateWorld();
 
-	let texture = null;
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+		pointcloud.updateVisibility(camera);
+	});
 	
 
 	let renderTarget = null;
@@ -130,6 +133,10 @@ async function run(){
 			renderer.device.defaultQueue.submit([commandEncoder.finish()]);
 		}
 
+		
+		let rt = renderProgressive(renderer, points, camera);
+		
+
 		{ // draw to window
 			let pass = renderer.start();
 
@@ -137,7 +144,10 @@ async function run(){
 			drawMesh(renderer, pass, mesh, camera);
 
 			drawTexture(renderer, pass, renderTarget.texture, 0.3, 0.3, 0.4, -0.4);
-			// drawImage(renderer, pass, image, 0.3, 0.3, 0.4, -0.4);
+
+			drawTexture(renderer, pass, rt.colorAttachments[0].texture, -0.3, -0.3, 0.4, -0.4);
+
+			drawImage(renderer, pass, image, -0.9, 0.9, 0.4, -0.4);
 			// drawPoints(renderer, pass, points, camera);
 			// drawRect(renderer, pass, -0.8, -0.8, 0.2, 0.5);
 
