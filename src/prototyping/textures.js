@@ -157,7 +157,7 @@ function getBindGroupLayout(renderer){
 	return bindGroupLayout;
 }
 
-function getPipeline(renderer, image){
+function getPipeline(renderer, gpuTexture){
 
 	if(pipeline){
 		return pipeline;
@@ -200,8 +200,6 @@ function getPipeline(renderer, image){
 		minFilter: "linear",
 	});
 
-	let gpuTexture = getGpuTexture(renderer, image);
-
 	uniformBindGroup = device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [{
@@ -225,7 +223,8 @@ export function drawImage(renderer, pass, image, x, y, width, height){
 
 	let {device} = renderer;
 
-	let pipeline = getPipeline(renderer, image);
+	let texture = getGpuTexture(renderer, image);
+	let pipeline = getPipeline(renderer, texture);
 
 	let source = new ArrayBuffer(24);
 	let view = new DataView(source);
@@ -263,5 +262,30 @@ export function drawImage(renderer, pass, image, x, y, width, height){
 	passEncoder.setBindGroup(0, uniformBindGroup);
 	passEncoder.draw(6, 1, 0, 0);
 	// passEncoder.endPass();
+
+}
+
+export function drawTexture(renderer, pass, texture, x, y, width, height){
+
+	let {device} = renderer;
+
+	let pipeline = getPipeline(renderer, texture);
+
+	let source = new ArrayBuffer(24);
+	let view = new DataView(source);
+	view.setUint32(0, 5, true);
+	view.setFloat32(4, x, true);
+	view.setFloat32(8, y, true);
+	view.setFloat32(12, width, true);
+	view.setFloat32(16, height, true);
+	device.defaultQueue.writeBuffer(
+		uniformBuffer, 0,
+		source, 0, source.byteLength
+	);
+
+	let {passEncoder} = pass;
+	passEncoder.setPipeline(pipeline);
+	passEncoder.setBindGroup(0, uniformBindGroup);
+	passEncoder.draw(6, 1, 0, 0);
 
 }

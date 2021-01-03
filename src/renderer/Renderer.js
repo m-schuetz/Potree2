@@ -27,6 +27,7 @@ export class Renderer{
 		this.swapChain = this.context.configureSwapChain({
 			device: this.device,
 			format: this.swapChainFormat,
+			usage: GPUTextureUsage.OUTPUT_ATTACHMENT | GPUTextureUsage.COPY_DST,
 		});
 
 		this.depthTexture = this.device.createTexture({

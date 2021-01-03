@@ -246,7 +246,6 @@ export function drawQuads(renderer, pass, node, camera){
 	
 
 	{
-		//let passEncoder = pass.commandEncoder.beginRenderPass(pass.renderPassDescriptor);
 		let {passEncoder} = pass;
 		let {pipeline, uniformBindGroup} = state;
 
@@ -257,13 +256,7 @@ export function drawQuads(renderer, pass, node, camera){
 		passEncoder.setVertexBuffer(1, vbo_quad[0].vbo);
 		passEncoder.setVertexBuffer(2, state.vbos[1].vbo);
 
-		// let vbos = state.vbos;
-		// for(let i = 0; i < vbos.length; i++){
-		// 	passEncoder.setVertexBuffer(i, vbos[i].vbo);
-		// }
-
 		passEncoder.draw(6, node.geometry.numElements, 0, 0);
-		//passEncoder.draw(node.vertexCount, 1, 0, 0);
-		// passEncoder.endPass();
+
 	}
 }

@@ -3,7 +3,7 @@
 import {cube, pointCube} from "./src/prototyping/cube.js";
 
 import {Renderer} from "./src/renderer/Renderer.js";
-import {loadImage, drawImage} from "./src/prototyping/textures.js";
+import {loadImage, drawImage, drawTexture} from "./src/prototyping/textures.js";
 import {drawRect} from "./src/prototyping/rect.js";
 import {drawMesh} from "./src/modules/mesh/drawMesh.js";
 import {Geometry} from "./src/core/Geometry.js";
@@ -14,7 +14,6 @@ import {drawQuads} from "./src/modules/points/drawQuads.js";
 import {Camera} from "./src/scene/Camera.js";
 import {mat4, vec3} from '../libs/gl-matrix.js';
 import {OrbitControls} from "./src/navigation/OrbitControls.js";
-
 import {SceneNode} from "./src/scene/SceneNode.js";
 
 let frame = 0;
@@ -50,6 +49,45 @@ async function run(){
 	// points.position.set(2, 0, 0);
 	points.updateWorld();
 
+	let texture = null;
+	
+
+	let renderTarget = null;
+
+	{
+		let size = [800, 600, 1];
+		let rt = {};
+
+		{ // color
+			let {device} = renderer;
+
+			let descriptor = {
+				size: size,
+				format: renderer.swapChainFormat,
+				usage: GPUTextureUsage.SAMPLED 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+			};
+
+			rt.texture = device.createTexture(descriptor);
+		}
+
+		{ // depth
+			let descriptor = {
+				size: size,
+				format: "depth24plus-stencil8",
+				usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
+			};
+
+			rt.depthTexture = renderer.device.createTexture(descriptor);
+		}
+
+		renderTarget = rt;
+	}
+
+
+
 	let image = await loadImage("./resources/images/background.jpg");
 
 	let loop = () => {
@@ -63,17 +101,62 @@ async function run(){
 		camera.aspect = size.width / size.height;
 		camera.updateProj();
 
-		{
+		{ // draw to texture
+			let renderPassDescriptor = {
+				colorAttachments: [
+					{
+						attachment: renderTarget.texture.createView(),
+						loadValue: { r: 0.3, g: 0.2, b: 0.1, a: 1.0 },
+					},
+				],
+				depthStencilAttachment: {
+					attachment: renderTarget.depthTexture.createView(),
+					depthLoadValue: 1.0,
+					depthStoreOp: "store",
+					stencilLoadValue: 0,
+					stencilStoreOp: "store",
+				},
+				sampleCount: 1,
+			};
+
+			const commandEncoder = renderer.device.createCommandEncoder();
+			const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+			let pass = {commandEncoder, passEncoder, renderPassDescriptor};
+			drawQuads(renderer, pass, points, camera);
+
+			passEncoder.endPass();
+
+			renderer.device.defaultQueue.submit([commandEncoder.finish()]);
+		}
+
+		{ // draw to window
 			let pass = renderer.start();
 
 			drawQuads(renderer, pass, points, camera);
 			drawMesh(renderer, pass, mesh, camera);
+
+			drawTexture(renderer, pass, renderTarget.texture, 0.3, 0.3, 0.4, -0.4);
+			// drawImage(renderer, pass, image, 0.3, 0.3, 0.4, -0.4);
 			// drawPoints(renderer, pass, points, camera);
 			// drawRect(renderer, pass, -0.8, -0.8, 0.2, 0.5);
-			// drawImage(renderer, pass, image, 0.3, 0.3, 0.4, -0.4);
 
 			renderer.finish(pass);
 		}
+
+		// {
+		// 	const commandEncoder = renderer.device.createCommandEncoder();
+		// 	commandEncoder.copyTextureToTexture(
+		// 		{
+		// 			texture: renderTarget.texture,
+		// 		},{
+		// 			texture: renderer.swapChain.getCurrentTexture(),
+		// 		},{
+		// 			size: {width: 100, height: 100}
+		// 		}
+		// 	);
+		// 	renderer.device.defaultQueue.submit([commandEncoder.finish()]);
+		// }
 
 		requestAnimationFrame(loop);
 	};
