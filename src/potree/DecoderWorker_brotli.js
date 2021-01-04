@@ -1,5 +1,5 @@
 
-// import {PointAttribute, PointAttributeTypes} from "../../../loader/PointAttributes.js";
+import {PointAttribute, PointAttributeTypes} from "./PointAttributes.js";
 import {BrotliDecode} from "../../libs/brotli/decode.js";
 
 
@@ -56,15 +56,13 @@ onmessage = function (event) {
 
 	let buffer = BrotliDecode(new Int8Array(event.data.buffer));
 	let view = new DataView(buffer.buffer);
-
-	postMessage(buffer);
 	
-	// let attributeBuffers = {};
+	let attributeBuffers = {};
 
-	// let bytesPerPoint = 0;
-	// for (let pointAttribute of pointAttributes.attributes) {
-	// 	bytesPerPoint += pointAttribute.byteSize;
-	// }
+	let bytesPerPoint = 0;
+	for (let pointAttribute of pointAttributes.attributes) {
+		bytesPerPoint += pointAttribute.byteSize;
+	}
 
 	// let gridSize = 32;
 	// let grid = new Uint32Array(gridSize ** 3);

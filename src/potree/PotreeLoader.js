@@ -8,6 +8,36 @@ const NodeType = {
 	PROXY: 2,
 };
 
+function parseAttributes(jsonAttributes){
+
+	let attributes = new PointAttributes();
+
+	let replacements = {
+		"rgb": "rgba",
+	};
+
+	for(let jsonAttribute of jsonAttributes){
+		let {name, description, size, numElements, elementSize, min, max} = jsonAttribute;
+
+		let type = typenameTypeattributeMap[jsonAttribute.type];
+
+		let potreeAttributeName = replacements[name] ? replacements[name] : name;
+
+		let attribute = new PointAttribute(potreeAttributeName, type, numElements);
+
+		if(numElements === 1){
+			attribute.range = [min[0], max[0]];
+		}else{
+			attribute.range = [min, max];
+		}
+		
+		attribute.initialRange = attribute.range;
+
+		attributes.add(attribute);
+	}
+
+	return attributes;
+}
 
 export class PotreeLoader{
 
@@ -147,12 +177,21 @@ export class PotreeLoader{
 				console.log(e);
 			};
 
+			// let pointAttributes = this.pointAttributes;
+			// let scale = this.scale;
+			// let min = new Vector3(
+			// 	this.offset.x + this.boundingBox.x,
+			// 	this.offset.y + this.boundingBox.y,
+			// 	this.offset.z + this.boundingBox.z,
+			// );
+			// let size = 
+
 			let message = {
 				name: node.name,
 				buffer: buffer,
-				// pointAttributes: pointAttributes,
-				// scale: scale,
-				// min: min,
+				pointAttributes: pointAttributes,
+				scale: scale,
+				min: min,
 				// max: max,
 				// size: size,
 				// offset: offset,
@@ -183,7 +222,11 @@ export class PotreeLoader{
 		let response = await fetch(url);
 		let metadata = await response.json();
 
+		let attributes = OctreeLoader.parseAttributes(metadata.attributes);
 		loader.metadata = metadata;
+		loader.attributes = attributes;
+		loader.scale = metadata.scale;
+		loader.offset = metadata.offset;
 
 		let octree = new PointCloudOctree();
 		octree.url = url;
