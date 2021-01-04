@@ -23,11 +23,11 @@ fn main() -> void {
 	out_pos = uniforms.modelViewProjectionMatrix * pos_point;
 
 	var fx : f32 = out_pos.x / out_pos.w;
-	fx = fx + 2.0 * pos_quad.x / uniforms.screen_width;
+	fx = fx + 3.0 * pos_quad.x / uniforms.screen_width;
 	out_pos.x = fx * out_pos.w;
 
 	var fy : f32 = out_pos.y / out_pos.w;
-	fy = fy + 2.0 * pos_quad.y / uniforms.screen_height;
+	fy = fy + 3.0 * pos_quad.y / uniforms.screen_height;
 	out_pos.y = fy * out_pos.w;
 
 	fragColor = color;
