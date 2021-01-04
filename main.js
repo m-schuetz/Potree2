@@ -35,7 +35,7 @@ async function run(){
 	camera.updateView();
 
 	let controls = new OrbitControls(renderer.canvas);
-	controls.radius = 4;
+	controls.radius = 20;
 	controls.yaw = Math.PI / 4;
 	controls.pitch = Math.PI / 5;
 
@@ -52,6 +52,9 @@ async function run(){
 
 	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 		pointcloud.updateVisibility(camera);
+		pointcloud.position.set(0, 0, -2);
+		pointcloud.updateWorld();
+		window.pointcloud = pointcloud;
 	});
 	
 
@@ -104,50 +107,53 @@ async function run(){
 		camera.aspect = size.width / size.height;
 		camera.updateProj();
 
-		{ // draw to texture
-			let renderPassDescriptor = {
-				colorAttachments: [
-					{
-						attachment: renderTarget.texture.createView(),
-						loadValue: { r: 0.3, g: 0.2, b: 0.1, a: 1.0 },
-					},
-				],
-				depthStencilAttachment: {
-					attachment: renderTarget.depthTexture.createView(),
-					depthLoadValue: 1.0,
-					depthStoreOp: "store",
-					stencilLoadValue: 0,
-					stencilStoreOp: "store",
-				},
-				sampleCount: 1,
-			};
+		// { // draw to texture
+		// 	let renderPassDescriptor = {
+		// 		colorAttachments: [
+		// 			{
+		// 				attachment: renderTarget.texture.createView(),
+		// 				loadValue: { r: 0.3, g: 0.2, b: 0.1, a: 1.0 },
+		// 			},
+		// 		],
+		// 		depthStencilAttachment: {
+		// 			attachment: renderTarget.depthTexture.createView(),
+		// 			depthLoadValue: 1.0,
+		// 			depthStoreOp: "store",
+		// 			stencilLoadValue: 0,
+		// 			stencilStoreOp: "store",
+		// 		},
+		// 		sampleCount: 1,
+		// 	};
 
-			const commandEncoder = renderer.device.createCommandEncoder();
-			const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+		// 	const commandEncoder = renderer.device.createCommandEncoder();
+		// 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-			let pass = {commandEncoder, passEncoder, renderPassDescriptor};
-			drawQuads(renderer, pass, points, camera);
+		// 	let pass = {commandEncoder, passEncoder, renderPassDescriptor};
+		// 	drawQuads(renderer, pass, points, camera);
 
-			passEncoder.endPass();
+		// 	passEncoder.endPass();
 
-			renderer.device.defaultQueue.submit([commandEncoder.finish()]);
-		}
+		// 	renderer.device.defaultQueue.submit([commandEncoder.finish()]);
+		// }
 
 		
-		let rt = renderProgressive(renderer, points, camera);
+		// let rt = renderProgressive(renderer, points, camera);
 		
 
 		{ // draw to window
 			let pass = renderer.start();
 
 			drawQuads(renderer, pass, points, camera);
-			drawMesh(renderer, pass, mesh, camera);
+			// drawMesh(renderer, pass, mesh, camera);
+			// drawTexture(renderer, pass, renderTarget.texture, 0.3, 0.3, 0.4, -0.4);
+			// drawTexture(renderer, pass, rt.colorAttachments[0].texture, -0.3, -0.3, 0.4, -0.4);
 
-			drawTexture(renderer, pass, renderTarget.texture, 0.3, 0.3, 0.4, -0.4);
+			if(window.pointcloud){
+				window.pointcloud.updateVisibility(camera);
+				Potree.render(renderer, pass, window.pointcloud, camera);
+			}
 
-			drawTexture(renderer, pass, rt.colorAttachments[0].texture, -0.3, -0.3, 0.4, -0.4);
-
-			drawImage(renderer, pass, image, -0.9, 0.9, 0.4, -0.4);
+			// drawImage(renderer, pass, image, -0.9, 0.9, 0.4, -0.4);
 			// drawPoints(renderer, pass, points, camera);
 			// drawRect(renderer, pass, -0.8, -0.8, 0.2, 0.5);
 

@@ -89,4 +89,4 @@ function createPointCube(n){
 	return object;
 }
 
-export let pointCube = createPointCube(50);
+export let pointCube = createPointCube(10);

@@ -13,7 +13,6 @@ const vs = `
 
 [[location(0)]] var<in> pos_point : vec4<f32>;
 [[location(1)]] var<in> pos_quad : vec4<f32>;
-
 [[location(2)]] var<in> color : vec4<f32>;
 
 [[builtin(position)]] var<out> out_pos : vec4<f32>;
@@ -48,8 +47,8 @@ fn main() -> void {
 }
 `;
 
-let states = new Map();
-
+let octreeStates = new Map();
+let nodeStates = new Map();
 
 let quad_position = new Float32Array([
 	-1.0, -1.0, 0.0,
@@ -60,23 +59,6 @@ let quad_position = new Float32Array([
 	-1.0,  1.0, 0.0,
 ]);
 let vbo_quad = null;
-
-function getVboQuad(renderer){
-	if(!vbo_quad){
-
-		let geometry = {
-			buffers: [{
-				name: "position",
-				buffer: quad_position,
-			}]
-		};
-		let node = {geometry};
-
-		vbo_quad = createBuffer(renderer, node);
-	}
-
-	return vbo_quad;
-};
 
 function createBuffer(renderer, data){
 
@@ -105,6 +87,23 @@ function createBuffer(renderer, data){
 
 	return vbos;
 }
+
+function getVboQuad(renderer){
+	if(!vbo_quad){
+
+		let geometry = {
+			buffers: [{
+				name: "position",
+				buffer: quad_position,
+			}]
+		};
+		let node = {geometry};
+
+		vbo_quad = createBuffer(renderer, node);
+	}
+
+	return vbo_quad;
+};
 
 function createPipeline(renderer){
 
@@ -144,12 +143,12 @@ function createPipeline(renderer){
 						format: "float3",
 					}],
 				},{ // color
-					arrayStride: 4 * 4,
+					arrayStride: 4,
 					stepMode: "instance",
 					attributes: [{ 
 						shaderLocation: 2,
 						offset: 0,
-						format: "float4",
+						format: "uchar4norm",
 					}],
 				},
 			],
@@ -165,14 +164,13 @@ function createPipeline(renderer){
 	return pipeline;
 }
 
-function getState(renderer, node){
+function getOctreeState(renderer, node){
 
 	let {device} = renderer;
 
-	let state = states.get(node);
+	let state = octreeStates.get(node);
 
 	if(!state){
-		let vbos = createBuffer(renderer, node);
 		let pipeline = createPipeline(renderer);
 
 		const uniformBufferSize = 4 * 16 + 8;
@@ -191,37 +189,58 @@ function getState(renderer, node){
 		});
 
 		state = {
-			vbos: vbos,
 			pipeline: pipeline,
 			uniformBuffer: uniformBuffer,
 			uniformBindGroup: uniformBindGroup,
 		};
 
-		states.set(node, state);
+		octreeStates.set(node, state);
 
 	}
 
 	return state;
 }
 
-export function drawQuads(renderer, pass, node, camera){
+function getNodeState(renderer, node){
+	let state = nodeStates.get(node);
+
+	if(!state){
+		let vbos = createBuffer(renderer, node);
+
+		state = {vbos};
+	}
+
+	return state;
+}
+
+export function render(renderer, pass, octree, camera){
+
 	let {device} = renderer;
 
-	let state = getState(renderer, node);
 	let vbo_quad = getVboQuad(renderer);
 
+	let octreeState = getOctreeState(renderer, octree);
+
 	{ // update uniforms
-		let {uniformBuffer} = state;
+		let {uniformBuffer} = octreeState;
 
 		{ // transform
 			let glWorld = mat4.create();
-			mat4.set(glWorld, ...node.world.elements);
+			mat4.set(glWorld, ...octree.world.elements);
 
 			let view = camera.view;
 			let proj = camera.proj;
 
+			let flip = mat4.create();
+			mat4.set(flip,
+				1, 0, 0, 0,
+				0, 0, -1, 0,
+				0, 1, 0, 0,
+				0, 0, 0, 1,
+			);
 			let transform = mat4.create();
-			mat4.multiply(transform, view, glWorld);
+			mat4.multiply(transform, flip, glWorld);
+			mat4.multiply(transform, view, transform);
 			mat4.multiply(transform, proj, transform);
 
 			device.defaultQueue.writeBuffer(
@@ -243,20 +262,23 @@ export function drawQuads(renderer, pass, node, camera){
 		}
 	}
 
-	
+	let {passEncoder} = pass;
+	let {pipeline, uniformBindGroup} = octreeState;
 
-	{
-		let {passEncoder} = pass;
-		let {pipeline, uniformBindGroup} = state;
+	passEncoder.setPipeline(pipeline);
+	passEncoder.setBindGroup(0, uniformBindGroup);
 
-		passEncoder.setPipeline(pipeline);
-		passEncoder.setBindGroup(0, uniformBindGroup);
+	let nodes = octree.visibleNodes;
 
-		passEncoder.setVertexBuffer(0, state.vbos[0].vbo);
+	for(let node of nodes){
+		let nodeState = getNodeState(renderer, node);
+
+		passEncoder.setVertexBuffer(0, nodeState.vbos[0].vbo);
 		passEncoder.setVertexBuffer(1, vbo_quad[0].vbo);
-		passEncoder.setVertexBuffer(2, state.vbos[1].vbo);
-
-		passEncoder.draw(6, node.geometry.numElements, 0, 0);
-
+		passEncoder.setVertexBuffer(2, nodeState.vbos[1].vbo);
+	
+		let numElements = node.geometry.numElements;
+		passEncoder.draw(6, numElements, 0, 0);
 	}
-}
+
+};

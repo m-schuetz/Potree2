@@ -12,6 +12,7 @@ export class PointCloudOctree extends SceneNode{
 		this.spacing = 1;
 		this.loaded = false;
 		this.loading = false;
+		this.visibleNodes = [];
 		
 	}
 
@@ -25,6 +26,13 @@ export class PointCloudOctree extends SceneNode{
 
 	updateVisibility(camera){
 
+		let visibleNodes = [];
+
+		if(this.root.geometry){
+			visibleNodes.push(this.root);
+		}
+
+		this.visibleNodes = visibleNodes;
 	}
 
 }

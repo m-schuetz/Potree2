@@ -1,12 +1,28 @@
 
 import {PointCloudOctree} from "./PointCloudOctree.js";
 import {PointCloudOctreeNode} from "./PointCloudOctreeNode.js";
+import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
+import {WorkerPool} from "../misc/WorkerPool.js";
+import {Geometry} from "../core/Geometry.js";
 
 const NodeType = {
 	NORMAL: 0,
 	LEAF: 1,
 	PROXY: 2,
 };
+
+let typenameTypeattributeMap = {
+	"double": PointAttributeTypes.DATA_TYPE_DOUBLE,
+	"float": PointAttributeTypes.DATA_TYPE_FLOAT,
+	"int8": PointAttributeTypes.DATA_TYPE_INT8,
+	"uint8": PointAttributeTypes.DATA_TYPE_UINT8,
+	"int16": PointAttributeTypes.DATA_TYPE_INT16,
+	"uint16": PointAttributeTypes.DATA_TYPE_UINT16,
+	"int32": PointAttributeTypes.DATA_TYPE_INT32,
+	"uint32": PointAttributeTypes.DATA_TYPE_UINT32,
+	"int64": PointAttributeTypes.DATA_TYPE_INT64,
+	"uint64": PointAttributeTypes.DATA_TYPE_UINT64,
+}
 
 function parseAttributes(jsonAttributes){
 
@@ -139,6 +155,10 @@ export class PotreeLoader{
 		if(node.loaded || node.loading){
 			return;
 		}
+		if(node.loadAttempts > 5){
+			// give up if node failed to load multiple times in a row.
+			return;
+		}
 
 		console.log(`load: ${node.name}`);
 		node.loading = true;
@@ -171,14 +191,44 @@ export class PotreeLoader{
 
 			// TODO fix path. This isn't flexible. 
 			//new Worker("./src/potree/DecoderWorker_brotli.js",);
-			let worker = new Worker("./src/potree/DecoderWorker_brotli.js", { type: "module" });
+			//let worker = new Worker("./src/potree/DecoderWorker_brotli.js", { type: "module" });
+			let workerPath = "./src/potree/DecoderWorker_brotli.js";
+			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
 			worker.onmessage = function(e){
 				console.log(e);
+
+				let data = e.data;
+				let attributeBuffers = data.attributeBuffers;
+
+				let buffers = [];
+
+				for(let attributeName in attributeBuffers){
+
+					// let buffer = {
+					// 	name: attributeName,
+					// 	buffer: attributeBuffers[attributeName],
+					// };
+
+					buffers.push(attributeBuffers[attributeName]);
+				}
+
+				let geometry = new Geometry();
+				geometry.numElements = node.numPoints;
+				geometry.buffers = buffers;
+
+				node.loaded = true;
+				node.loading = false;
+				node.geometry = geometry;
+
+				WorkerPool.returnWorker(workerPath, worker);
 			};
 
-			// let pointAttributes = this.pointAttributes;
-			// let scale = this.scale;
+			let pointAttributes = this.attributes;
+			let scale = this.scale;
+			let offset = this.offset;
+			let min = [0, 0, 0];
+			let numPoints = node.numPoints;
 			// let min = new Vector3(
 			// 	this.offset.x + this.boundingBox.x,
 			// 	this.offset.y + this.boundingBox.y,
@@ -191,11 +241,11 @@ export class PotreeLoader{
 				buffer: buffer,
 				pointAttributes: pointAttributes,
 				scale: scale,
+				offset: offset,
 				min: min,
+				numPoints: numPoints,
 				// max: max,
 				// size: size,
-				// offset: offset,
-				// numPoints: numPoints
 			};
 
 			worker.postMessage(message, [message.buffer]);
@@ -222,7 +272,7 @@ export class PotreeLoader{
 		let response = await fetch(url);
 		let metadata = await response.json();
 
-		let attributes = OctreeLoader.parseAttributes(metadata.attributes);
+		let attributes = parseAttributes(metadata.attributes);
 		loader.metadata = metadata;
 		loader.attributes = attributes;
 		loader.scale = metadata.scale;
