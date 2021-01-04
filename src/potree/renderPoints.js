@@ -1,5 +1,5 @@
 
-import { mat4, vec3 } from '../../../libs/gl-matrix.js';
+import { mat4, vec3 } from '../../libs/gl-matrix.js';
 
 const vs = `
 [[block]] struct Uniforms {
@@ -12,8 +12,7 @@ const vs = `
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
 [[location(0)]] var<in> pos_point : vec4<f32>;
-[[location(1)]] var<in> pos_quad : vec4<f32>;
-[[location(2)]] var<in> color : vec4<f32>;
+[[location(1)]] var<in> color : vec4<f32>;
 
 [[builtin(position)]] var<out> out_pos : vec4<f32>;
 [[location(0)]] var<out> fragColor : vec4<f32>;
@@ -21,14 +20,6 @@ const vs = `
 [[stage(vertex)]]
 fn main() -> void {
 	out_pos = uniforms.modelViewProjectionMatrix * pos_point;
-
-	var fx : f32 = out_pos.x / out_pos.w;
-	fx = fx + 3.0 * pos_quad.x / uniforms.screen_width;
-	out_pos.x = fx * out_pos.w;
-
-	var fy : f32 = out_pos.y / out_pos.w;
-	fy = fy + 3.0 * pos_quad.y / uniforms.screen_height;
-	out_pos.y = fy * out_pos.w;
 
 	fragColor = color;
 
@@ -49,16 +40,6 @@ fn main() -> void {
 
 let octreeStates = new Map();
 let nodeStates = new Map();
-
-let quad_position = new Float32Array([
-	-1.0, -1.0, 0.0,
-	 1.0, -1.0, 0.0,
-	 1.0,  1.0, 0.0,
-	-1.0, -1.0, 0.0,
-	 1.0,  1.0, 0.0,
-	-1.0,  1.0, 0.0,
-]);
-let vbo_quad = null;
 
 function createBuffer(renderer, data){
 
@@ -88,23 +69,6 @@ function createBuffer(renderer, data){
 	return vbos;
 }
 
-function getVboQuad(renderer){
-	if(!vbo_quad){
-
-		let geometry = {
-			buffers: [{
-				name: "position",
-				buffer: quad_position,
-			}]
-		};
-		let node = {geometry};
-
-		vbo_quad = createBuffer(renderer, node);
-	}
-
-	return vbo_quad;
-};
-
 function createPipeline(renderer){
 
 	let {device} = renderer;
@@ -118,7 +82,7 @@ function createPipeline(renderer){
 			module: device.createShaderModule({code: fs}),
 			entryPoint: "main",
 		},
-		primitiveTopology: "triangle-list",
+		primitiveTopology: "point-list",
 		depthStencilState: {
 			depthWriteEnabled: true,
 			depthCompare: "less",
@@ -128,25 +92,17 @@ function createPipeline(renderer){
 			vertexBuffers: [
 				{ // point position
 					arrayStride: 3 * 4,
-					stepMode: "instance",
+					stepMode: "vertex",
 					attributes: [{ 
 						shaderLocation: 0,
 						offset: 0,
 						format: "float3",
 					}],
-				},{ // quad position
-					arrayStride: 3 * 4,
+				},{ // color
+					arrayStride: 4,
 					stepMode: "vertex",
 					attributes: [{ 
 						shaderLocation: 1,
-						offset: 0,
-						format: "float3",
-					}],
-				},{ // color
-					arrayStride: 4,
-					stepMode: "instance",
-					attributes: [{ 
-						shaderLocation: 2,
 						offset: 0,
 						format: "uchar4norm",
 					}],
@@ -208,6 +164,7 @@ function getNodeState(renderer, node){
 		let vbos = createBuffer(renderer, node);
 
 		state = {vbos};
+		nodeStates.set(node, state);
 	}
 
 	return state;
@@ -216,8 +173,6 @@ function getNodeState(renderer, node){
 export function render(renderer, pass, octree, camera){
 
 	let {device} = renderer;
-
-	let vbo_quad = getVboQuad(renderer);
 
 	let octreeState = getOctreeState(renderer, octree);
 
@@ -274,11 +229,11 @@ export function render(renderer, pass, octree, camera){
 		let nodeState = getNodeState(renderer, node);
 
 		passEncoder.setVertexBuffer(0, nodeState.vbos[0].vbo);
-		passEncoder.setVertexBuffer(1, vbo_quad[0].vbo);
-		passEncoder.setVertexBuffer(2, nodeState.vbos[1].vbo);
+		passEncoder.setVertexBuffer(1, nodeState.vbos[1].vbo);
 	
 		let numElements = node.geometry.numElements;
-		passEncoder.draw(6, numElements, 0, 0);
+		// numElements = Math.min(numElements, 10);
+		passEncoder.draw(numElements, 1, 0, 0);
 	}
 
 };

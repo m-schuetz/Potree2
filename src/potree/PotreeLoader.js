@@ -147,7 +147,7 @@ export class PotreeLoader{
 
 		this.parseHierarchy(node, buffer);
 
-		console.log(node);
+		// console.log(node);
 	}
 
 	async loadNode(node){
@@ -160,7 +160,7 @@ export class PotreeLoader{
 			return;
 		}
 
-		console.log(`load: ${node.name}`);
+		// console.log(`load: ${node.name}`);
 		node.loading = true;
 
 		try{
@@ -196,8 +196,6 @@ export class PotreeLoader{
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
 			worker.onmessage = function(e){
-				console.log(e);
-
 				let data = e.data;
 				let attributeBuffers = data.attributeBuffers;
 

@@ -51,7 +51,7 @@ function dealign24b(mortoncode){
 onmessage = function (event) {
 
 	//let {pointAttributes, scale, name, min, max, size, offset, numPoints} = event.data;
-	let {pointAttributes, numPoints, scale, offset, min} = event.data;
+	let {name, pointAttributes, numPoints, scale, offset, min} = event.data;
 
 	let tStart = performance.now();
 
@@ -228,8 +228,8 @@ onmessage = function (event) {
 	}
 
 	let duration = performance.now() - tStart;
-	let pointsPerMs = numPoints / duration;
-	console.log(`duration: ${duration.toFixed(1)}ms, #points: ${numPoints}, points/ms: ${pointsPerMs.toFixed(1)}`);
+	let pointsPerSecond = (1000 * numPoints / duration) / 1_000_000;
+	console.log(`[${name}] duration: ${duration.toFixed(1)}ms, #points: ${numPoints}, points/s: ${pointsPerSecond.toFixed(1)}M`);
 
 	let message = {
 		// buffer: buffer,
