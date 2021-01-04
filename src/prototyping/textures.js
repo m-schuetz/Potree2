@@ -157,7 +157,7 @@ function getBindGroupLayout(renderer){
 	return bindGroupLayout;
 }
 
-function getPipeline(renderer, image){
+function getPipeline(renderer, gpuTexture){
 
 	if(pipeline){
 		return pipeline;
@@ -195,72 +195,87 @@ function getPipeline(renderer, image){
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	});
 
-	let sampler = device.createSampler({
-		magFilter: "linear",
-		minFilter: "linear",
-	});
-
-	let gpuTexture = getGpuTexture(renderer, image);
-
-	uniformBindGroup = device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
-		entries: [{
-				binding: 0,
-				resource: {
-					buffer: uniformBuffer,
-				}
-			},{
-				binding: 1,
-				resource: sampler,
-			},{
-				binding: 2,
-				resource: gpuTexture.createView(),
-		}],
-	});
-
 	return pipeline;
 }
 
 export function drawImage(renderer, pass, image, x, y, width, height){
+	let texture = getGpuTexture(renderer, image);
+
+	drawTexture(renderer, pass, texture, x, y, width, height);
+}
+
+let states = new Map();
+function getState(renderer, texture){
+
+	let state = states.get(texture);
+
+	if(!state){
+		let {device} = renderer;
+
+		let uniformBufferSize = 24;
+		uniformBuffer = device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		let sampler = device.createSampler({
+			magFilter: "linear",
+			minFilter: "linear",
+		});
+
+		uniformBindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [{
+					binding: 0,
+					resource: {
+						buffer: uniformBuffer,
+					}
+				},{
+					binding: 1,
+					resource: sampler,
+				},{
+					binding: 2,
+					resource: texture.createView(),
+			}],
+		});
+
+		state = {uniformBuffer, uniformBindGroup};
+		states.set(texture, state);
+	}
+
+	return state;
+}
+
+export function drawTexture(renderer, pass, texture, x, y, width, height){
 
 	let {device} = renderer;
 
-	let pipeline = getPipeline(renderer, image);
+	let pipeline = getPipeline(renderer, texture);
 
-	let source = new ArrayBuffer(24);
-	let view = new DataView(source);
-	view.setUint32(0, 5, true);
-	view.setFloat32(4, x, true);
-	view.setFloat32(8, y, true);
-	view.setFloat32(12, width, true);
-	view.setFloat32(16, height, true);
-	device.defaultQueue.writeBuffer(
-		uniformBuffer, 0,
-		source, 0, source.byteLength
-	);
-
-	let descriptor = {
-		colorAttachments: [
-			{
-				attachment: renderer.swapChain.getCurrentTexture().createView(),
-				loadValue: "load",
-			},
-		],
-		depthStencilAttachment: {
-			attachment: renderer.depthTexture.createView(),
-
-			depthLoadValue: "load",
-			depthStoreOp: "store",
-			stencilLoadValue: "load",
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
-
-	const passEncoder = pass.commandEncoder.beginRenderPass(descriptor);
+	let {passEncoder} = pass;
 	passEncoder.setPipeline(pipeline);
-	passEncoder.setBindGroup(0, uniformBindGroup);
+
+	{
+		let state = getState(renderer, texture);
+
+		let source = new ArrayBuffer(24);
+		let view = new DataView(source);
+
+		view.setUint32(0, 5, true);
+		view.setFloat32(4, x, true);
+		view.setFloat32(8, y, true);
+		view.setFloat32(12, width, true);
+		view.setFloat32(16, height, true);
+		
+		device.defaultQueue.writeBuffer(
+			state.uniformBuffer, 0,
+			source, 0, source.byteLength
+		);
+
+		passEncoder.setBindGroup(0, state.uniformBindGroup);
+	}
+
+
 	passEncoder.draw(6, 1, 0, 0);
-	passEncoder.endPass();
 
 }

@@ -27,6 +27,7 @@ export class Renderer{
 		this.swapChain = this.context.configureSwapChain({
 			device: this.device,
 			format: this.swapChainFormat,
+			usage: GPUTextureUsage.OUTPUT_ATTACHMENT | GPUTextureUsage.COPY_DST,
 		});
 
 		this.depthTexture = this.device.createTexture({
@@ -94,12 +95,18 @@ export class Renderer{
 		};
 
 		const commandEncoder = this.device.createCommandEncoder();
+		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-		return {commandEncoder, renderPassDescriptor};
+		return {commandEncoder, passEncoder, renderPassDescriptor};
 	}
 
 	finish(pass){
+
+		pass.passEncoder.endPass();
+
 		this.device.defaultQueue.submit([pass.commandEncoder.finish()]);
+
+
 	}
 
 };

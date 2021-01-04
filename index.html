@@ -1,6 +1,12 @@
 <html>
 <head>
+<style>
 
+td{
+	padding: 2px 10px 0px 0px;
+}
+
+</style>
 </head>
 <body style="padding: 0; margin: 0">
 
@@ -11,9 +17,33 @@
 		grid-column: 1; grid-row: 1">
 </canvas>
 
-<span style="position: fixed; z-index: 100; left: 10px; top: 10px;">
+<span style="position: absolute; left: 10px; top: 10px; 
+	background-color: white; opacity: 0.7; padding: 10px;">
+	
+	<table >
+		<tr>
+			<td>#points</td>
+			<td id="lbl_points">16.6M</td>
+		</tr>
+		<tr>
+			<td>#nodes</td>
+			<td id="lbl_nodes">3'106</td>
+		</tr>
+		<tr>
+			<td>#fps</td>
+			<td id="lbl_fps">144</td>
+		</tr>
+		<tr>
+			<td>#primitive</td>
+			<td>point-list</td>
+		</tr>
+	</table>
+
+	<br>
+	"Heidentor" point cloud courtesy of <a href="https://archpro.lbg.ac.at/">ArchPro</a>
 	
 </span>
+
 
 <script type="module" src="main.js"></script>
 
