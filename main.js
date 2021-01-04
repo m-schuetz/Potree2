@@ -24,16 +24,23 @@ async function run(){
 	let camera = new Camera();
 
 	let controls = new OrbitControls(renderer.canvas);
-	controls.radius = 30;
+	controls.radius = 10;
 	controls.yaw = Math.PI / 4;
 	controls.pitch = Math.PI / 5;
 
-	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 		pointcloud.updateVisibility(camera);
-		pointcloud.position.set(3, -3, -6)
+		pointcloud.position.set(-0.9, 0.1, -5);
 		pointcloud.updateWorld();
 		window.pointcloud = pointcloud;
 	});
+
+	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+	// 	pointcloud.updateVisibility(camera);
+	// 	pointcloud.position.set(3, -3, -6)
+	// 	pointcloud.updateWorld();
+	// 	window.pointcloud = pointcloud;
+	// });
 	
 
 	let loop = () => {
