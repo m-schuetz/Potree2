@@ -4,6 +4,10 @@ import {Renderer} from "./src/renderer/Renderer.js";
 import {Camera} from "./src/scene/Camera.js";
 import {mat4, vec3} from './libs/gl-matrix.js';
 import {OrbitControls} from "./src/navigation/OrbitControls.js";
+import {Lines} from "./src/modules/lines/Lines.js";
+import {render as renderLines} from "./src/modules/lines/render.js";
+import {Geometry} from "./src/core/Geometry.js";
+import {Vector3} from "./src/math/Vector3.js";
 
 import {Potree} from "./src/Potree.js";
 
@@ -70,6 +74,24 @@ async function run(){
 			primitiveType = "quads";
 		});
 	}
+
+	let lines = null;
+	{
+		let geometry = new Geometry();
+		geometry.buffers = [{
+			name: "position",
+			buffer: new Float32Array([
+				-1, -1, -1,
+				1, 1, 1,
+				0, 0, 0,
+				6, 3, 1
+			]),
+		}];
+		geometry.numElements = 4;
+
+		lines = new Lines("test", geometry);
+
+	}
 	
 
 	let loop = () => {
@@ -84,6 +106,7 @@ async function run(){
 
 			lastFpsCount = now;
 			framesSinceLastCount = 0;
+			document.getElementById("lbl_fps").innerText = Math.floor(fps);
 		}
 		
 
@@ -109,7 +132,6 @@ async function run(){
 
 				document.getElementById("lbl_points").innerText = numPoints.toLocaleString();
 				document.getElementById("lbl_nodes").innerText = numNodes.toLocaleString();
-				document.getElementById("lbl_fps").innerText = Math.floor(fps);
 
 				//Potree.render(renderer, pass, window.pointcloud, camera);
 
@@ -120,6 +142,24 @@ async function run(){
 				}
 			}
 
+			if(lines){
+					renderLines(renderer, pass, lines, camera);
+			}
+
+			for(let i = 0; i < 1000; i++){
+				renderer.drawBoundingBox(
+					new Vector3(
+						10 * Math.random(),
+						10 * Math.random(),
+						10 * Math.random(),
+					), 
+					new Vector3(1, 1, 1), 
+					new Vector3(1, 0, 1)
+				);
+			}
+			
+
+			renderer.renderDrawCommands(pass, camera);
 			renderer.finish(pass);
 		}
 

@@ -41,7 +41,7 @@ export class PointCloudOctree extends SceneNode{
 			if(!node.loaded){
 				loadQueue.push(node);
 
-				if(loadQueue.length > 8){
+				if(loadQueue.length > 10){
 					break;
 				}
 
@@ -58,6 +58,45 @@ export class PointCloudOctree extends SceneNode{
 				}
 			}
 
+		}
+
+		if(loadQueue.length >= 16){
+			
+			loadQueue.sort((a, b) => {
+
+				if(a.byteOffset == null || b.byteOffset == null){
+					return -1;
+				}
+
+				return Number(a.byteOffset - b.byteOffset);
+			});
+
+			let first = {
+				byteOffset: loadQueue[0].byteOffset,
+				byteSize: loadQueue[0].byteSize,
+				nodes: [loadQueue[0]],
+			};
+			let batches = [first];
+			for(let i = 1; i < loadQueue.length; i++){
+				
+				let a = batches[batches.length - 1];
+				let b = first = {
+					byteOffset: loadQueue[i].byteOffset,
+					byteSize: loadQueue[i].byteSize,
+					nodes: [loadQueue[i]],
+				};
+				
+				if(a.byteOffset + a.byteSize === b.byteOffset){
+					// merge
+					a.byteSize += b.byteSize;
+					a.nodes.push(b);
+				}else{
+					batches.push(b);
+				}
+				
+				
+			}
+			console.log(`${loadQueue.length} => ${batches.length}`);
 		}
 
 		for(let node of loadQueue){

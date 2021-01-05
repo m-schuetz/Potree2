@@ -229,7 +229,7 @@ onmessage = function (event) {
 
 	let duration = performance.now() - tStart;
 	let pointsPerSecond = (1000 * numPoints / duration) / 1_000_000;
-	console.log(`[${name}] duration: ${duration.toFixed(1)}ms, #points: ${numPoints}, points/s: ${pointsPerSecond.toFixed(1)}M`);
+	// console.log(`[${name}] duration: ${duration.toFixed(1)}ms, #points: ${numPoints}, points/s: ${pointsPerSecond.toFixed(1)}M`);
 
 	let message = {
 		// buffer: buffer,

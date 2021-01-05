@@ -23,11 +23,11 @@ fn main() -> void {
 	out_pos = uniforms.modelViewProjectionMatrix * pos_point;
 
 	var fx : f32 = out_pos.x / out_pos.w;
-	fx = fx + 3.0 * pos_quad.x / uniforms.screen_width;
+	fx = fx + 5.0 * pos_quad.x / uniforms.screen_width;
 	out_pos.x = fx * out_pos.w;
 
 	var fy : f32 = out_pos.y / out_pos.w;
-	fy = fy + 3.0 * pos_quad.y / uniforms.screen_height;
+	fy = fy + 5.0 * pos_quad.y / uniforms.screen_height;
 	out_pos.y = fy * out_pos.w;
 
 	fragColor = color;
@@ -51,12 +51,23 @@ let octreeStates = new Map();
 let nodeStates = new Map();
 
 let quad_position = new Float32Array([
+	// indexed
 	-1.0, -1.0, 0.0,
 	 1.0, -1.0, 0.0,
 	 1.0,  1.0, 0.0,
-	-1.0, -1.0, 0.0,
-	 1.0,  1.0, 0.0,
 	-1.0,  1.0, 0.0,
+
+	// non-indexed
+	// -1.0, -1.0, 0.0,
+	//  1.0, -1.0, 0.0,
+	//  1.0,  1.0, 0.0,
+	// -1.0, -1.0, 0.0,
+	//  1.0,  1.0, 0.0,
+	// -1.0,  1.0, 0.0,
+]);
+let quad_elements = new Uint32Array([
+	0, 1, 2, 
+	0, 2, 3
 ]);
 let vbo_quad = null;
 
@@ -71,7 +82,7 @@ function createBuffer(renderer, data){
 
 		let vbo = device.createBuffer({
 			size: buffer.byteLength,
-			usage: GPUBufferUsage.VERTEX,
+			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX,
 			mappedAtCreation: true,
 		});
 
@@ -95,6 +106,9 @@ function getVboQuad(renderer){
 			buffers: [{
 				name: "position",
 				buffer: quad_position,
+			},{
+				name: "elements",
+				buffer: quad_elements,
 			}]
 		};
 		let node = {geometry};
@@ -277,10 +291,12 @@ export function render(renderer, pass, octree, camera){
 		passEncoder.setVertexBuffer(0, nodeState.vbos[0].vbo);
 		passEncoder.setVertexBuffer(1, vbo_quad[0].vbo);
 		passEncoder.setVertexBuffer(2, nodeState.vbos[1].vbo);
+		passEncoder.setIndexBuffer(vbo_quad[1].vbo, "uint32");
 	
 		let numElements = node.geometry.numElements;
 		// numElements = Math.min(numElements, 10);
-		passEncoder.draw(6, numElements, 0, 0);
+		passEncoder.drawIndexed(6, numElements, 0, 0);
+		// passEncoder.setIndexBuffer(null, "uint32");
 	}
 
 };

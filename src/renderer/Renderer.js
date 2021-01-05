@@ -3,6 +3,22 @@
 
 import { mat4, vec3 } from '../../libs/gl-matrix.js';
 import * as shaders from "../prototyping/shaders.js";
+import {renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
+
+
+class Draws{
+
+	constructor(){
+		this.boxes = [];
+		this.spheres = [];
+	}
+
+	reset(){
+		this.boxes = [];
+		this.spheres = [];
+	}
+
+};
 
 export class Renderer{
 
@@ -14,6 +30,7 @@ export class Renderer{
 		this.swapChain = null;
 		this.swapChainFormat = null;
 		this.depthTexture = null;
+		this.draws = new Draws();
 	}
 
 	async init(){
@@ -71,6 +88,10 @@ export class Renderer{
 		}
 	}
 
+	drawBoundingBox(position, size, color){
+		this.draws.boxes.push([position, size, color]);
+	}
+
 	start(){
 
 		let scale = window.devicePixelRatio
@@ -100,12 +121,17 @@ export class Renderer{
 		return {commandEncoder, passEncoder, renderPassDescriptor};
 	}
 
+	renderDrawCommands(pass, camera){
+		renderBoundingBoxes(this, pass, this.draws.boxes, camera);
+	}
+
 	finish(pass){
 
 		pass.passEncoder.endPass();
 
 		this.device.defaultQueue.submit([pass.commandEncoder.finish()]);
 
+		this.draws.reset();
 
 	}
 
