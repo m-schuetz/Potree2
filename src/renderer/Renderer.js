@@ -4,6 +4,7 @@
 import { mat4, vec3 } from '../../libs/gl-matrix.js';
 import * as shaders from "../prototyping/shaders.js";
 import {renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
+import {renderLines} from "../modules/drawCommands/renderLines.js";
 
 
 class Draws{
@@ -11,11 +12,13 @@ class Draws{
 	constructor(){
 		this.boxes = [];
 		this.spheres = [];
+		this.lines = [];
 	}
 
 	reset(){
 		this.boxes = [];
 		this.spheres = [];
+		this.lines = [];
 	}
 
 };
@@ -92,6 +95,10 @@ export class Renderer{
 		this.draws.boxes.push([position, size, color]);
 	}
 
+	drawLine(start, end, color){
+		this.draws.lines.push([start, end, color]);
+	}
+
 	start(){
 
 		let scale = window.devicePixelRatio
@@ -127,6 +134,7 @@ export class Renderer{
 
 	renderDrawCommands(pass, camera){
 		renderBoundingBoxes(this, pass, this.draws.boxes, camera);
+		renderLines(this, pass, this.draws.lines, camera);
 	}
 
 	finish(pass){

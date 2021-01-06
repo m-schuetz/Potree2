@@ -2,11 +2,8 @@
 
 import {Renderer} from "./src/renderer/Renderer.js";
 import {Camera} from "./src/scene/Camera.js";
-import {mat4, vec3} from './libs/gl-matrix.js';
+import {mat4} from './libs/gl-matrix.js';
 import {OrbitControls} from "./src/navigation/OrbitControls.js";
-import {Lines} from "./src/modules/lines/Lines.js";
-import {render as renderLines} from "./src/modules/lines/render.js";
-import {Geometry} from "./src/core/Geometry.js";
 import {Vector3} from "./src/math/Vector3.js";
 
 import {Potree} from "./src/Potree.js";
@@ -17,12 +14,13 @@ import {render as renderPoints}  from "./src/potree/renderPoints.js";
 import * as dat from "./libs/dat.gui/dat.gui.module.js";
 
 let frame = 0;
-let lastFrameStart = 0;
 let lastFpsCount = 0;
 let framesSinceLastCount = 0;
 let fps = 0;
 
-let primitiveType = "points";
+let renderer = null;
+let camera = null;
+let controls = null;
 
 let gui = null;
 let guiContent = {
@@ -59,22 +57,82 @@ function initGUI(){
 
 }
 
+function update(){
+	let now = performance.now();
+
+	if((now - lastFpsCount) >= 1000.0){
+
+		fps = framesSinceLastCount;
+
+		lastFpsCount = now;
+		framesSinceLastCount = 0;
+		guiContent["fps"] = Math.floor(fps).toLocaleString();
+	}
+	
+
+	frame++;
+	framesSinceLastCount++;
+
+	controls.update();
+	mat4.copy(camera.world, controls.world);
+	camera.updateView();
+
+	let size = renderer.getSize();
+	camera.aspect = size.width / size.height;
+	camera.updateProj();
+}
+
+function render(){
+	let pass = renderer.start();
+
+	// draw point cloud
+	if(window.pointcloud){
+		let pointcloud = window.pointcloud;
+
+		pointcloud.updateVisibility(camera);
+		pointcloud.showBoundingBox = guiContent["show bounding box"];
+
+		let numPoints = pointcloud.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
+		let numNodes = pointcloud.visibleNodes.length;
+
+		guiContent["#points"] = numPoints.toLocaleString();
+		guiContent["#nodes"] = numNodes.toLocaleString();
+
+		if(guiContent.primitive === "points"){
+			renderPoints(renderer, pass, pointcloud, camera);
+		}else if(guiContent.primitive === "quads"){
+			renderQuads(renderer, pass, pointcloud, camera);
+		}
+	}
+
+	{ // draw xyz axes
+		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(2, 0, 0), new Vector3(255, 0, 0));
+		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 2, 0), new Vector3(0, 255, 0));
+		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, 2), new Vector3(0, 0, 255));
+	}
+	
+	renderer.renderDrawCommands(pass, camera);
+	renderer.finish(pass);
+}
+
+function loop(){
+	update();
+	render();
+
+	requestAnimationFrame(loop);
+}
+
 async function run(){
 
 	initGUI();
 
-	let renderer = new Renderer();
-
+	renderer = new Renderer();
 	window.renderer = renderer;
 
 	await renderer.init();
 
-	let camera = new Camera();
-
-	let controls = new OrbitControls(renderer.canvas);
-	// controls.radius = 30;
-	// controls.yaw = Math.PI / 4;
-	// controls.pitch = Math.PI / 5;
+	camera = new Camera();
+	controls = new OrbitControls(renderer.canvas);
 
 	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
@@ -86,6 +144,7 @@ async function run(){
 		pointcloud.position.set(-0.9, 0.1, -5);
 		pointcloud.updateWorld();
 		window.pointcloud = pointcloud;
+
 	});
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
@@ -99,94 +158,6 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	let lines = null;
-	{
-		let geometry = new Geometry();
-		geometry.buffers = [{
-			name: "position",
-			buffer: new Float32Array([
-				-1, -1, -1,
-				1, 1, 1,
-				0, 0, 0,
-				6, 3, 1
-			]),
-		}];
-		geometry.numElements = 4;
-
-		lines = new Lines("test", geometry);
-
-	}
-	
-
-	let loop = () => {
-		// let timeSinceLastFrame = performance.now() - lastFrameStart;
-		// console.log(timeSinceLastFrame.toFixed(1));
-		// lastFrameStart = performance.now();
-		let now = performance.now();
-
-		if((now - lastFpsCount) >= 1000.0){
-
-			fps = framesSinceLastCount;
-
-			lastFpsCount = now;
-			framesSinceLastCount = 0;
-			guiContent["fps"] = Math.floor(fps).toLocaleString();
-		}
-		
-
-		frame++;
-		framesSinceLastCount++;
-
-		controls.update();
-		mat4.copy(camera.world, controls.world);
-		camera.updateView();
-
-		let size = renderer.getSize();
-		camera.aspect = size.width / size.height;
-		camera.updateProj();
-
-		{ // draw to window
-			let pass = renderer.start();
-
-			if(window.pointcloud){
-				let pointcloud = window.pointcloud;
-
-				pointcloud.updateVisibility(camera);
-				pointcloud.showBoundingBox = guiContent["show bounding box"];
-
-				let numPoints = pointcloud.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
-				let numNodes = pointcloud.visibleNodes.length;
-
-				guiContent["#points"] = numPoints.toLocaleString();
-				guiContent["#nodes"] = numNodes.toLocaleString();
-
-				//Potree.render(renderer, pass, window.pointcloud, camera);
-
-				if(guiContent.primitive === "points"){
-					renderPoints(renderer, pass, pointcloud, camera);
-				}else if(guiContent.primitive === "quads"){
-					renderQuads(renderer, pass, pointcloud, camera);
-				}
-			}
-
-			// if(lines){
-			// 		renderLines(renderer, pass, lines, camera);
-			// }
-
-			// renderer.drawBoundingBox(
-			// 	new Vector3(1, 2, 3), 
-			// 	new Vector3(0.3, 0.3, 0.3), 
-			// 	new Vector3(1, 0, 1)
-			// );
-			
-			
-
-			renderer.renderDrawCommands(pass, camera);
-			renderer.finish(pass);
-		}
-
-		requestAnimationFrame(loop);
-	};
 	requestAnimationFrame(loop);
 
 }

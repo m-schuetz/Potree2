@@ -24,6 +24,10 @@ export class Box3{
 		return this.max.clone().sub(this.min);
 	}
 
+	center(){
+		return this.min.clone().add(this.max).multiplyScalar(0.5);
+	}
+
 	expandByPoint(point){
 		this.min.x = Math.min(this.min.x, point.x);
 		this.min.y = Math.min(this.min.y, point.y);

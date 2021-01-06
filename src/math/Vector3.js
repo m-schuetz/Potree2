@@ -52,6 +52,16 @@ export class Vector3{
 		return this;
 	}
 
+	distanceTo(b){
+		let a = this;
+
+		let dd = (a.x - b.x) ** 2 
+		       + (a.y - b.y) ** 2 
+		       + (a.z - b.z) ** 2;
+
+		return Math.sqrt(dd);
+	}
+
 	clone(){
 		return new Vector3(this.x, this.y, this.z);
 	}
