@@ -4,6 +4,8 @@ import {PointCloudOctreeNode} from "./PointCloudOctreeNode.js";
 import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
 import {WorkerPool} from "../misc/WorkerPool.js";
 import {Geometry} from "../core/Geometry.js";
+import {Vector3} from "../math/Vector3.js";
+import {Box3} from "../math/Box3.js";
 
 const NodeType = {
 	NORMAL: 0,
@@ -22,6 +24,33 @@ let typenameTypeattributeMap = {
 	"uint32": PointAttributeTypes.DATA_TYPE_UINT32,
 	"int64": PointAttributeTypes.DATA_TYPE_INT64,
 	"uint64": PointAttributeTypes.DATA_TYPE_UINT64,
+};
+
+let tmpVec3 = new Vector3();
+function createChildAABB(aabb, index){
+	let min = aabb.min.clone();
+	let max = aabb.max.clone();
+	let size = tmpVec3.copy(max).sub(min);
+
+	if ((index & 0b0001) > 0) {
+		min.z += size.z / 2;
+	} else {
+		max.z -= size.z / 2;
+	}
+
+	if ((index & 0b0010) > 0) {
+		min.y += size.y / 2;
+	} else {
+		max.y -= size.y / 2;
+	}
+	
+	if ((index & 0b0100) > 0) {
+		min.x += size.x / 2;
+	} else {
+		max.x -= size.x / 2;
+	}
+
+	return new Box3(min, max);
 }
 
 function parseAttributes(jsonAttributes){
@@ -114,6 +143,7 @@ export class PotreeLoader{
 				let childName = current.name + childIndex;
 
 				let child = new PointCloudOctreeNode(childName);
+				child.boundingBox = createChildAABB(current.boundingBox, childIndex);
 				child.name = childName;
 				child.spacing = current.spacing / 2;
 				child.level = current.level + 1;
@@ -227,12 +257,6 @@ export class PotreeLoader{
 			let offset = this.offset;
 			let min = [0, 0, 0];
 			let numPoints = node.numPoints;
-			// let min = new Vector3(
-			// 	this.offset.x + this.boundingBox.x,
-			// 	this.offset.y + this.boundingBox.y,
-			// 	this.offset.z + this.boundingBox.z,
-			// );
-			// let size = 
 
 			let message = {
 				name: node.name,
@@ -242,8 +266,6 @@ export class PotreeLoader{
 				offset: offset,
 				min: min,
 				numPoints: numPoints,
-				// max: max,
-				// size: size,
 			};
 
 			worker.postMessage(message, [message.buffer]);
@@ -279,11 +301,16 @@ export class PotreeLoader{
 		let octree = new PointCloudOctree();
 		octree.url = url;
 		octree.spacing = metadata.spacing;
+		octree.boundingBox = new Box3(
+			new Vector3(...metadata.boundingBox.min),
+			new Vector3(...metadata.boundingBox.max),
+		);
 
 		octree.loader = loader;
 		loader.octree = octree;
 
 		let root = new PointCloudOctreeNode("r");
+		root.boundingBox = octree.boundingBox.clone();
 		root.level = 0;
 		root.nodeType = NodeType.PROXY;
 		root.hierarchyByteOffset = 0n;

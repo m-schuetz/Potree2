@@ -14,6 +14,8 @@ import {Potree} from "./src/Potree.js";
 import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
 
+import * as dat from "./libs/dat.gui/dat.gui.module.js";
+
 let frame = 0;
 let lastFrameStart = 0;
 let lastFpsCount = 0;
@@ -22,7 +24,44 @@ let fps = 0;
 
 let primitiveType = "points";
 
+let gui = null;
+let guiContent = {
+	"show bounding box": false,
+	"primitive": "points",
+	"#points": "0",
+	"#nodes": "0",
+	"fps": "0",
+};
+
+
+function initGUI(){
+
+	gui = new dat.GUI();
+	
+	{
+		let stats = gui.addFolder("stats");
+		stats.open();
+		stats.add(guiContent, "#points").listen();
+		stats.add(guiContent, "#nodes").listen();
+		stats.add(guiContent, "fps").listen();
+	}
+
+	{
+		let input = gui.addFolder("input");
+		input.open();
+
+		input.add(guiContent, "primitive", ["points", "quads"]);
+		input.add(guiContent, "show bounding box");
+
+		// slider
+		//input.add(text, 'fontSize', 6, 48).onChange(setValue);
+	}
+
+}
+
 async function run(){
+
+	initGUI();
 
 	let renderer = new Renderer();
 
@@ -60,21 +99,6 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	{
-		let elPoints = document.getElementById("btn_points");
-		let elQuads = document.getElementById("btn_quads");
-
-		elPoints.addEventListener("click", () => {
-			console.log("points!!");
-			primitiveType = "points";
-		});
-
-		elQuads.addEventListener("click", () => {
-			console.log("quads!!");
-			primitiveType = "quads";
-		});
-	}
-
 	let lines = null;
 	{
 		let geometry = new Geometry();
@@ -106,7 +130,7 @@ async function run(){
 
 			lastFpsCount = now;
 			framesSinceLastCount = 0;
-			document.getElementById("lbl_fps").innerText = Math.floor(fps);
+			guiContent["fps"] = Math.floor(fps).toLocaleString();
 		}
 		
 
@@ -125,38 +149,36 @@ async function run(){
 			let pass = renderer.start();
 
 			if(window.pointcloud){
-				window.pointcloud.updateVisibility(camera);
+				let pointcloud = window.pointcloud;
+
+				pointcloud.updateVisibility(camera);
+				pointcloud.showBoundingBox = guiContent["show bounding box"];
 
 				let numPoints = pointcloud.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
 				let numNodes = pointcloud.visibleNodes.length;
 
-				document.getElementById("lbl_points").innerText = numPoints.toLocaleString();
-				document.getElementById("lbl_nodes").innerText = numNodes.toLocaleString();
+				guiContent["#points"] = numPoints.toLocaleString();
+				guiContent["#nodes"] = numNodes.toLocaleString();
 
 				//Potree.render(renderer, pass, window.pointcloud, camera);
 
-				if(primitiveType === "points"){
-					renderPoints(renderer, pass, window.pointcloud, camera);
-				}else if(primitiveType === "quads"){
-					renderQuads(renderer, pass, window.pointcloud, camera);
+				if(guiContent.primitive === "points"){
+					renderPoints(renderer, pass, pointcloud, camera);
+				}else if(guiContent.primitive === "quads"){
+					renderQuads(renderer, pass, pointcloud, camera);
 				}
 			}
 
-			if(lines){
-					renderLines(renderer, pass, lines, camera);
-			}
+			// if(lines){
+			// 		renderLines(renderer, pass, lines, camera);
+			// }
 
-			for(let i = 0; i < 1000; i++){
-				renderer.drawBoundingBox(
-					new Vector3(
-						10 * Math.random(),
-						10 * Math.random(),
-						10 * Math.random(),
-					), 
-					new Vector3(1, 1, 1), 
-					new Vector3(1, 0, 1)
-				);
-			}
+			// renderer.drawBoundingBox(
+			// 	new Vector3(1, 2, 3), 
+			// 	new Vector3(0.3, 0.3, 0.3), 
+			// 	new Vector3(1, 0, 1)
+			// );
+			
 			
 
 			renderer.renderDrawCommands(pass, camera);

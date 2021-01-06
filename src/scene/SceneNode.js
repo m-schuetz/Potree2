@@ -1,5 +1,6 @@
 
 import {Vector3} from "../math/Vector3.js";
+import {Box3} from "../math/Box3.js";
 import {Matrix4} from "../math/Matrix4.js";
 
 export class SceneNode{
@@ -10,6 +11,7 @@ export class SceneNode{
 		this.position = new Vector3(0, 0, 0);
 		this.rotation = new Matrix4();
 		this.scale = new Vector3(1, 1, 1);
+		this.boundingBox = new Box3();
 
 		this.children = [];
 

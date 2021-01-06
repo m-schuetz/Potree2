@@ -115,7 +115,11 @@ export class Renderer{
 			sampleCount: 1,
 		};
 
-		const commandEncoder = this.device.createCommandEncoder();
+		let commandEncoderDescriptor = {
+			measureExecutionTime: true,
+		};
+
+		const commandEncoder = this.device.createCommandEncoder(commandEncoderDescriptor);
 		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
 		return {commandEncoder, passEncoder, renderPassDescriptor};
@@ -129,7 +133,14 @@ export class Renderer{
 
 		pass.passEncoder.endPass();
 
-		this.device.defaultQueue.submit([pass.commandEncoder.finish()]);
+		let commandBuffer = pass.commandEncoder.finish();
+		this.device.defaultQueue.submit([commandBuffer]);
+
+		// not yet available?
+		// https://github.com/gpuweb/gpuweb/issues/1325
+		// commandBuffer.executionTime.then( (e) => {
+		// 	console.log(e);
+		// });
 
 		this.draws.reset();
 

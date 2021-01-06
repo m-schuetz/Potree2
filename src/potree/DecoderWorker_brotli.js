@@ -1,6 +1,8 @@
 
 import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
 import {BrotliDecode} from "../../libs/brotli/decode.js";
+import {Vector3} from "../math/Vector3.js";
+import {Box3} from "../math/Box3.js";
 
 
 const typedArrayMapping = {
@@ -75,6 +77,8 @@ onmessage = function (event) {
 
 			let buff = new ArrayBuffer(numPoints * 4 * 3);
 			let positions = new Float32Array(buff);
+
+			// let box = new Box3();
 		
 			for (let j = 0; j < numPoints; j++) {
 
@@ -115,7 +119,12 @@ onmessage = function (event) {
 				positions[3 * j + 0] = x;
 				positions[3 * j + 1] = y;
 				positions[3 * j + 2] = z;
+
+				// box.expandByPoint(new Vector3(x, y, z));
 			}
+
+			// console.log(box);
+			// console.log(box.size());
 
 			// let duration = performance.now() - tStart;
 			// console.log(`xyz: ${duration.toFixed(1)}ms`);
@@ -126,19 +135,6 @@ onmessage = function (event) {
 
 			let buff = new ArrayBuffer(numPoints * 4);
 			let colors = new Uint8Array(buff);
-
-			// for (let j = 0; j < numPoints; j++) {
-			// 	let r = view.getUint16(byteOffset + 0, true);
-			// 	let g = view.getUint16(byteOffset + 2, true);
-			// 	let b = view.getUint16(byteOffset + 4, true);
-			// 	byteOffset += 6;
-
-			// 	colors[4 * j + 0] = r > 255 ? r / 256 : r;
-			// 	colors[4 * j + 1] = g > 255 ? g / 256 : g;
-			// 	colors[4 * j + 2] = b > 255 ? b / 256 : b;
-			// }
-
-			// let tStart = performance.now();
 
 			for (let j = 0; j < numPoints; j++) {
 

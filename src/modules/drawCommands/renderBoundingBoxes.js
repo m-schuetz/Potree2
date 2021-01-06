@@ -10,15 +10,21 @@ const vs = `
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> pos_box : vec4<f32>;
-[[location(1)]] var<in> pos_point : vec4<f32>;
+[[location(0)]] var<in> box_pos : vec4<f32>;
+[[location(1)]] var<in> box_scale : vec4<f32>;
+[[location(2)]] var<in> point_pos : vec4<f32>;
 
 [[builtin(position)]] var<out> out_pos : vec4<f32>;
 [[location(0)]] var<out> fragColor : vec4<f32>;
 
 [[stage(vertex)]]
 fn main() -> void {
-	out_pos = uniforms.viewProj * (pos_point + pos_box);
+	# out_pos = uniforms.viewProj * (box_pos + point_pos * box_scale);
+
+	var worldPos : vec4<f32> = box_pos + point_pos * box_scale;
+	worldPos.w = 1.0;
+
+	out_pos = uniforms.viewProj * worldPos;
 
 	fragColor = vec4<f32>(1.0, 1.0, 0.0, 1.0);
 
@@ -131,11 +137,19 @@ function createPipeline(renderer){
 						offset: 0,
 						format: "float3",
 					}],
+				},{ // box scale
+					arrayStride: 3 * 4,
+					stepMode: "instance",
+					attributes: [{ 
+						shaderLocation: 1,
+						offset: 0,
+						format: "float3",
+					}],
 				},{ // box-vertices position
 					arrayStride: 3 * 4,
 					stepMode: "vertex",
 					attributes: [{ 
-						shaderLocation: 1,
+						shaderLocation: 2,
 						offset: 0,
 						format: "float3",
 					}],
@@ -181,6 +195,9 @@ function init(renderer){
 		let geometry = {
 			buffers: [{
 				name: "position",
+				buffer: new Float32Array(3 * capacity),
+			},{
+				name: "scale",
 				buffer: new Float32Array(3 * capacity),
 			}]
 		};
@@ -260,12 +277,10 @@ export function renderBoundingBoxes(renderer, pass, boxes, camera){
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, uniformBindGroup);
 
-	// for(let box of boxes){
-	// 	// update vboBoxes[0]
-	// }
 
 	{
 		let position = new Float32Array(3 * boxes.length);
+		let scale = new Float32Array(3 * boxes.length);
 
 		for(let i = 0; i < boxes.length; i++){
 			let box = boxes[i];
@@ -274,39 +289,31 @@ export function renderBoundingBoxes(renderer, pass, boxes, camera){
 			position[3 * i + 0] = pos.x;
 			position[3 * i + 1] = pos.y;
 			position[3 * i + 2] = pos.z;
+
+			scale[3 * i + 0] = box[1].x;
+			scale[3 * i + 1] = box[1].y;
+			scale[3 * i + 2] = box[1].z;
 		}
 
 		device.defaultQueue.writeBuffer(
 			vbo_boxes[0].vbo, 0,
 			position.buffer, position.byteOffset, position.byteLength
 		);
+
+		device.defaultQueue.writeBuffer(
+			vbo_boxes[1].vbo, 0,
+			scale.buffer, scale.byteOffset, scale.byteLength
+		);
 	}
 
 	passEncoder.setVertexBuffer(0, vbo_boxes[0].vbo);
-	passEncoder.setVertexBuffer(1, vbo_box[0].vbo);
+	passEncoder.setVertexBuffer(1, vbo_boxes[1].vbo);
+	passEncoder.setVertexBuffer(2, vbo_box[0].vbo);
 	passEncoder.setIndexBuffer(vbo_box[1].vbo, "uint32");
 
 	let numBoxes = boxes.length;
 	let numVertices = box_elements.length;
 	passEncoder.drawIndexed(numVertices, numBoxes, 0, 0);
-	//passEncoder.draw(numVertices, numBoxes, 0, 0);
 
-	
-
-	// let nodes = octree.visibleNodes;
-
-	// for(let node of nodes){
-	// 	let nodeState = getNodeState(renderer, node);
-
-	// 	passEncoder.setVertexBuffer(0, nodeState.vbos[0].vbo);
-	// 	passEncoder.setVertexBuffer(1, vbo_quad[0].vbo);
-	// 	passEncoder.setVertexBuffer(2, nodeState.vbos[1].vbo);
-	// 	passEncoder.setIndexBuffer(vbo_quad[1].vbo, "uint32");
-	
-	// 	let numElements = node.geometry.numElements;
-	// 	// numElements = Math.min(numElements, 10);
-	// 	passEncoder.draw(6, numElements, 0, 0);
-	// 	// passEncoder.setIndexBuffer(null, "uint32");
-	// }
 
 };
