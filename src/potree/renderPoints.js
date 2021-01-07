@@ -189,16 +189,16 @@ export function render(renderer, pass, octree, camera){
 			let view = camera.view;
 			let proj = camera.proj;
 
-			let flip = mat4.create();
-			mat4.set(flip,
-				1, 0, 0, 0,
-				0, 0, -1, 0,
-				0, 1, 0, 0,
-				0, 0, 0, 1,
-			);
+			// let flip = mat4.create();
+			// mat4.set(flip,
+			// 	1, 0, 0, 0,
+			// 	0, 0, -1, 0,
+			// 	0, 1, 0, 0,
+			// 	0, 0, 0, 1,
+			// );
 			let transform = mat4.create();
-			mat4.multiply(transform, flip, glWorld);
-			mat4.multiply(transform, view, transform);
+			// mat4.multiply(transform, flip, glWorld);
+			mat4.multiply(transform, view, glWorld);
 			mat4.multiply(transform, proj, transform);
 
 			device.defaultQueue.writeBuffer(

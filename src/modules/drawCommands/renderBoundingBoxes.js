@@ -240,16 +240,16 @@ export function renderBoundingBoxes(renderer, pass, boxes, camera){
 			let view = camera.view;
 			let proj = camera.proj;
 
-			let flip = mat4.create();
-			mat4.set(flip,
-				1, 0, 0, 0,
-				0, 0, -1, 0,
-				0, 1, 0, 0,
-				0, 0, 0, 1,
-			);
+			// let flip = mat4.create();
+			// mat4.set(flip,
+			// 	1, 0, 0, 0,
+			// 	0, 0, -1, 0,
+			// 	0, 1, 0, 0,
+			// 	0, 0, 0, 1,
+			// );
 
 			let transform = mat4.create();
-			mat4.multiply(transform, flip, transform);
+			// mat4.multiply(transform, flip, transform);
 			mat4.multiply(transform, view, transform);
 			mat4.multiply(transform, proj, transform);
 

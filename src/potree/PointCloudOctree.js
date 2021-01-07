@@ -28,7 +28,9 @@ export class PointCloudOctree extends SceneNode{
 
 	}
 
-	updateVisibility1(camera){
+	updateVisibility(camera){
+
+		let tStart = performance.now();
 
 		let visibleNodes = [];
 		let loadQueue = [];
@@ -39,9 +41,22 @@ export class PointCloudOctree extends SceneNode{
 			weight: Number.MAX_VALUE,
 		});
 
+		let i = 0;
+		let numPoints = 0;
+
+		let camWorld = new Matrix4();
+		camWorld.elements.set(camera.world);
+		let camPos = new Vector3().applyMatrix4(camWorld);
+
 		while (priorityQueue.size() > 0) {
 			let element = priorityQueue.pop();
 			let {node, weight} = element;
+
+			// if(i >= this.nodeLimit){
+			// 	break;
+			// }
+
+			// i++;
 
 			if(!node.loaded){
 				loadQueue.push(node);
@@ -52,8 +67,13 @@ export class PointCloudOctree extends SceneNode{
 
 				continue;
 			}
+			if(numPoints + node.numPoints > this.pointBudget){
+				break;
+			}
 
 			visibleNodes.push(node);
+			numPoints += node.numPoints;
+
 
 			for(let child of node.children){
 				if(!child){
@@ -61,14 +81,10 @@ export class PointCloudOctree extends SceneNode{
 				}
 
 				let center = node.boundingBox.center();
-				let world = new Matrix4();
-				let view = new Matrix4();
-				world.elements.set(camera.world);
-				view.elements.set(camera.view);
+				
+				center.applyMatrix4(this.world);
 
-				let camPos = new Vector3().applyMatrix4(world);
-
-				center.applyMatrix4(view);
+				let radius = node.boundingBox.min.distanceTo(node.boundingBox.max) / 2;
 
 				let dx = camPos.x - center.x;
 				let dy = camPos.y - center.y;
@@ -77,14 +93,13 @@ export class PointCloudOctree extends SceneNode{
 				let dd = dx * dx + dy * dy + dz * dz;
 				let distance = Math.sqrt(dd);
 
-				let radius = node.boundingBox.min.distanceTo(node.boundingBox.max) / 2;
 
 				let fov = toRadians(camera.fov);
 				let slope = Math.tan(fov / 2);
 				let projFactor = 1 / (slope * distance);
 				// let projFactor = (0.5 * domHeight) / (slope * distance);
 
-				weight = projFactor;
+				let weight = radius * projFactor;
 
 				if(distance - radius < 0){
 					weight = Number.MAX_VALUE;
@@ -104,9 +119,13 @@ export class PointCloudOctree extends SceneNode{
 
 
 		this.visibleNodes = visibleNodes;
+
+		let duration = 1000 * (performance.now() - tStart);
+
+		return duration;
 	}
 
-	updateVisibility(camera){
+	updateVisibility1(camera){
 
 		let visibleNodes = [];
 

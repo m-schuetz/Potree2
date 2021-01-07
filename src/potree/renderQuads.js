@@ -255,8 +255,8 @@ export function render(renderer, pass, octree, camera){
 				0, 0, 0, 1,
 			);
 			let transform = mat4.create();
-			mat4.multiply(transform, flip, glWorld);
-			mat4.multiply(transform, view, transform);
+			// mat4.multiply(transform, flip, glWorld);
+			mat4.multiply(transform, view, glWorld);
 			mat4.multiply(transform, proj, transform);
 
 			device.defaultQueue.writeBuffer(

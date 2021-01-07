@@ -3,3 +3,6 @@ nocommit/
 resources/pointclouds/heidentor/hierarchy.bin
 resources/pointclouds/heidentor/metadata.json
 resources/pointclouds/heidentor/octree.bin
+resources/pointclouds/eclepens/hierarchy.bin
+resources/pointclouds/eclepens/metadata.json
+resources/pointclouds/eclepens/octree.bin
