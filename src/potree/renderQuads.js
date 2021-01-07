@@ -299,7 +299,7 @@ export function render(renderer, pass, octree, camera){
 			position.add(node.boundingBox.max).multiplyScalar(0.5);
 			position.applyMatrix4(octree.world);
 			let size = node.boundingBox.size();
-			let color = new Vector3(1, 1, 1);
+			let color = new Vector3(255, 0, 255);
 			renderer.drawBoundingBox(position, size, color);
 		}
 	

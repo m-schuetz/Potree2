@@ -1,6 +1,7 @@
 
 import { mat4, vec3 } from '../../libs/gl-matrix.js';
 import { Vector3 } from '../math/Vector3.js';
+import {SPECTRAL} from "../misc/Gradients.js";
 
 
 const vs = `
@@ -8,14 +9,23 @@ const vs = `
 	[[offset(0)]] modelViewProjectionMatrix : mat4x4<f32>;
 	[[offset(64)]] screen_width : f32;
 	[[offset(68)]] screen_height : f32;
+};
 
+struct NodeBuffer{
+	[[offset(0)]] color : vec4<f32>;
+};
+
+[[block]] struct Nodes{
+	[[offset(0)]] values : [[stride(16)]] array<NodeBuffer, 1000>;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(1), set(0)]] var<uniform> nodes : Nodes;
 
 [[location(0)]] var<in> pos_point : vec4<f32>;
 [[location(1)]] var<in> color : vec4<f32>;
 
+[[builtin(instance_idx)]] var<in> instanceIdx : i32;
 [[builtin(position)]] var<out> out_pos : vec4<f32>;
 [[location(0)]] var<out> fragColor : vec4<f32>;
 
@@ -24,7 +34,15 @@ fn main() -> void {
 	out_pos = uniforms.modelViewProjectionMatrix * pos_point;
 	# out_pos = uniforms.modelViewProjectionMatrix * (pos_point * vec4<f32>(0.5, 0.5, 0.5, 1.0));
 
-	fragColor = color;
+	var c : vec4<f32> = nodes.values[0].color;
+	c.w = 1.0;
+
+	# c.r = f32(instanceIdx);
+	# c.g = 0.0;
+	# c.b = 0.0;
+
+	fragColor = c;
+
 
 	return;
 }
@@ -37,6 +55,7 @@ const fs = `
 [[stage(fragment)]]
 fn main() -> void {
 	outColor = fragColor;
+
 	return;
 }
 `;
@@ -132,11 +151,14 @@ function getOctreeState(renderer, node){
 	if(!state){
 		let pipeline = createPipeline(renderer);
 
-		const uniformBufferSize = 4 * 16 + 8;
-
 		const uniformBuffer = device.createBuffer({
-			size: uniformBufferSize,
+			size: 4 * 16 + 8,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		const uNodesBuffer = device.createBuffer({
+			size: 16 * 1000,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		const uniformBindGroup = device.createBindGroup({
@@ -144,6 +166,9 @@ function getOctreeState(renderer, node){
 			entries: [{
 				binding: 0,
 				resource: {buffer: uniformBuffer},
+			},{
+				binding: 1,
+				resource: {buffer: uNodesBuffer},
 			}],
 		});
 
@@ -151,6 +176,7 @@ function getOctreeState(renderer, node){
 			pipeline: pipeline,
 			uniformBuffer: uniformBuffer,
 			uniformBindGroup: uniformBindGroup,
+			uNodesBuffer: uNodesBuffer,
 		};
 
 		octreeStates.set(node, state);
@@ -178,6 +204,8 @@ export function render(renderer, pass, octree, camera){
 	let {device} = renderer;
 
 	let octreeState = getOctreeState(renderer, octree);
+
+	let nodes = octree.visibleNodes;
 
 	{ // update uniforms
 		let {uniformBuffer} = octreeState;
@@ -218,6 +246,22 @@ export function render(renderer, pass, octree, camera){
 				data.byteLength
 			);
 		}
+
+		{ // nodes
+			let buffer = new Float32Array(4 * nodes.length);
+			for(let i = 0; i < nodes.length; i++){
+				buffer[4 * i + 0] = 0;
+				buffer[4 * i + 1] = i / 200;
+				buffer[4 * i + 2] = 0;
+				buffer[4 * i + 3] = 1;
+			}
+
+			device.defaultQueue.writeBuffer(
+				octreeState.uNodesBuffer, 0,
+				buffer.buffer, buffer.byteOffset, buffer.byteLength
+			);
+
+		}
 	}
 
 	let {passEncoder} = pass;
@@ -226,8 +270,7 @@ export function render(renderer, pass, octree, camera){
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, uniformBindGroup);
 
-	let nodes = octree.visibleNodes;
-
+	let i = 0;
 	for(let node of nodes){
 		let nodeState = getNodeState(renderer, node);
 
@@ -239,13 +282,19 @@ export function render(renderer, pass, octree, camera){
 			position.add(node.boundingBox.max).multiplyScalar(0.5);
 			position.applyMatrix4(octree.world);
 			let size = node.boundingBox.size();
-			let color = new Vector3(1, 1, 1);
+			let color = new Vector3(...SPECTRAL.get(node.level / 5));
 			renderer.drawBoundingBox(position, size, color);
 		}
 	
+		// passEncoder.setBindGroup(0, uniformBindGroup);
+
 		let numElements = node.geometry.numElements;
-		// numElements = Math.min(numElements, 10);
 		passEncoder.draw(numElements, 1, 0, 0);
+		i++
+
+		if(i > 5){
+			break;
+		}
 	}
 
 };
