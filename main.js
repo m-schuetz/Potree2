@@ -160,18 +160,18 @@ async function run(){
 	camera = new Camera();
 	controls = new OrbitControls(renderer.canvas);
 
-	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
-	// 	controls.radius = 10;
-	// 	controls.yaw = -Math.PI / 6;
-	// 	controls.pitch = Math.PI / 5;
+		controls.radius = 10;
+		controls.yaw = -Math.PI / 6;
+		controls.pitch = Math.PI / 5;
 
-	// 	pointcloud.updateVisibility(camera);
-	// 	pointcloud.position.set(-0.9, 0.1, -5);
-	// 	pointcloud.updateWorld();
-	// 	window.pointcloud = pointcloud;
+		pointcloud.updateVisibility(camera);
+		pointcloud.position.set(-0.9, 0.1, -5);
+		pointcloud.updateWorld();
+		window.pointcloud = pointcloud;
 
-	// });
+	});
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	controls.radius = 30;
@@ -184,18 +184,18 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
-		camera.near = 0.5;
-		camera.far = 10_000;
-		controls.radius = 1000;
-		controls.yaw = -0.2;
-		controls.pitch = Math.PI / 5;
+	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
+	// 	camera.near = 0.5;
+	// 	camera.far = 10_000;
+	// 	controls.radius = 1000;
+	// 	controls.yaw = -0.2;
+	// 	controls.pitch = Math.PI / 5;
 	
-		pointcloud.updateVisibility(camera);
-		pointcloud.position.set(3, -3, -6)
-		pointcloud.updateWorld();
-		window.pointcloud = pointcloud;
-	});
+	// 	pointcloud.updateVisibility(camera);
+	// 	pointcloud.position.set(3, -3, -6)
+	// 	pointcloud.updateWorld();
+	// 	window.pointcloud = pointcloud;
+	// });
 
 	requestAnimationFrame(loop);
 

@@ -32,17 +32,9 @@ struct NodeBuffer{
 [[stage(vertex)]]
 fn main() -> void {
 	out_pos = uniforms.modelViewProjectionMatrix * pos_point;
-	# out_pos = uniforms.modelViewProjectionMatrix * (pos_point * vec4<f32>(0.5, 0.5, 0.5, 1.0));
 
-	var c : vec4<f32> = nodes.values[0].color;
-	c.w = 1.0;
-
-	# c.r = f32(instanceIdx);
-	# c.g = 0.0;
-	# c.b = 0.0;
-
+	var c : vec4<f32> = color;
 	fragColor = c;
-
 
 	return;
 }
@@ -270,7 +262,6 @@ export function render(renderer, pass, octree, camera){
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, uniformBindGroup);
 
-	let i = 0;
 	for(let node of nodes){
 		let nodeState = getNodeState(renderer, node);
 
@@ -285,16 +276,9 @@ export function render(renderer, pass, octree, camera){
 			let color = new Vector3(...SPECTRAL.get(node.level / 5));
 			renderer.drawBoundingBox(position, size, color);
 		}
-	
-		// passEncoder.setBindGroup(0, uniformBindGroup);
 
 		let numElements = node.geometry.numElements;
 		passEncoder.draw(numElements, 1, 0, 0);
-		i++
-
-		if(i > 5){
-			break;
-		}
 	}
 
 };

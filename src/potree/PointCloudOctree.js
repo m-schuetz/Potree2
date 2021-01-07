@@ -17,7 +17,6 @@ export class PointCloudOctree extends SceneNode{
 		this.loaded = false;
 		this.loading = false;
 		this.visibleNodes = [];
-		
 	}
 
 	load(node){
@@ -51,12 +50,6 @@ export class PointCloudOctree extends SceneNode{
 		while (priorityQueue.size() > 0) {
 			let element = priorityQueue.pop();
 			let {node, weight} = element;
-
-			// if(i >= this.nodeLimit){
-			// 	break;
-			// }
-
-			// i++;
 
 			if(!node.loaded){
 				loadQueue.push(node);
