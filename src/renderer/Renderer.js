@@ -149,11 +149,7 @@ export class Renderer{
 			sampleCount: 1,
 		};
 
-		let commandEncoderDescriptor = {
-			measureExecutionTime: true,
-		};
-
-		const commandEncoder = this.device.createCommandEncoder(commandEncoderDescriptor);
+		const commandEncoder = this.device.createCommandEncoder();
 		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
 		return {commandEncoder, passEncoder, renderPassDescriptor};

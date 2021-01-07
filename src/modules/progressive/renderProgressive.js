@@ -1,50 +1,6 @@
 
 import {drawQuads} from "../points/drawQuads.js";
 
-
-class RenderTarget{
-
-	constructor(renderer){
-		this.colorAttachments = [];
-		this.depth = null;
-		this.size = [0, 0];
-		this.renderer = renderer;
-	}
-
-	setSize(width, height){
-
-		let resized = this.size[0] !== width || this.size[1] !== height;
-
-		if(resized){
-
-			this.size = [width, height];
-			
-			// resize color attachments
-			for(let attachment of this.colorAttachments){
-				attachment.texture.destroy();
-
-				let desc = attachment.descriptor;
-				desc.size = [...this.size, 1];
-
-				attachment.texture = this.renderer.device.createTexture(desc);
-			}
-
-			{ // resize depth attachment
-				let attachment = this.depth;
-				attachment.texture.destroy();
-				
-				let desc = attachment.descriptor;
-				desc.size = [...this.size, 1];
-
-				attachment.texture = this.renderer.device.createTexture(desc);
-			}
-
-		}
-
-	}
-
-}
-
 let renderTarget = null;
 
 function getRenderTarget(renderer){

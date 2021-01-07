@@ -11,6 +11,8 @@ import {Potree} from "./src/Potree.js";
 
 import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
+import {renderFill}  from "./src/potree/renderFill.js";
+import {drawTexture} from "./src/prototyping/textures.js";
 
 import * as dat from "./libs/dat.gui/dat.gui.module.js";
 
@@ -96,19 +98,16 @@ function update(){
 		mat4.multiply(camera.world, flip, camera.world);
 	}
 	camera.updateView();
-	
 
 	let size = renderer.getSize();
 	camera.aspect = size.width / size.height;
 	camera.updateProj();
-}
 
-function render(){
-	let pass = renderer.start();
-
-	// draw point cloud
-	if(window.pointcloud){
-		let pointcloud = window.pointcloud;
+	let pointcloud = window.pointcloud;
+	if(pointcloud){
+		pointcloud.showBoundingBox = guiContent["show bounding box"];
+		pointcloud.pointBudget = guiContent["point budget (M)"] * 1_000_000;
+		pointcloud.pointSize = guiContent["point size"];
 
 		if(guiContent["update"]){
 			let duration = pointcloud.updateVisibility(camera);
@@ -118,27 +117,37 @@ function render(){
 			}
 		}
 
-		pointcloud.showBoundingBox = guiContent["show bounding box"];
-		// pointcloud.nodeLimit = guiContent["num nodes"];
-		pointcloud.pointBudget = guiContent["point budget (M)"] * 1_000_000;
-		pointcloud.pointSize = guiContent["point size"];
-
 		let numPoints = pointcloud.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
 		let numNodes = pointcloud.visibleNodes.length;
 
 		guiContent["#points"] = numPoints.toLocaleString();
 		guiContent["#nodes"] = numNodes.toLocaleString();
+	}
+}
+
+function render(){
+
+	let pointcloud = window.pointcloud;
+	let target = null;
+
+	if(pointcloud){
+		target = renderFill(renderer, pointcloud, camera);
+	}
+
+
+	let pass = renderer.start();
+
+	// draw point cloud
+	if(pointcloud){
 
 		if(pointcloud.pointSize === 1){
 			renderPoints(renderer, pass, pointcloud, camera);
 		}else{
 			renderQuads(renderer, pass, pointcloud, camera);
 		}
-		// if(guiContent.primitive === "points"){
-		// 	renderPoints(renderer, pass, pointcloud, camera);
-		// }else if(guiContent.primitive === "quads"){
-		// 	renderQuads(renderer, pass, pointcloud, camera);
-		// }
+
+		drawTexture(renderer, pass, target.colorAttachments[0].texture, 
+			-0.3, -0.3, 0.3, -0.3);
 	}
 
 	{ // draw xyz axes

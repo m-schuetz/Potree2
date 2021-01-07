@@ -279,9 +279,7 @@ export function render(renderer, pass, octree, camera){
 		}
 	
 		let numElements = node.geometry.numElements;
-		// numElements = Math.min(numElements, 10);
 		passEncoder.drawIndexed(6, numElements, 0, 0);
-		// passEncoder.setIndexBuffer(null, "uint32");
 	}
 
 };
