@@ -55,34 +55,6 @@ fn main() -> void {
 let octreeStates = new Map();
 let nodeStates = new Map();
 
-function createBuffer(renderer, data){
-
-	let {device} = renderer;
-
-	let vbos = [];
-
-	for(let entry of data.geometry.buffers){
-		let {name, buffer} = entry;
-
-		let vbo = device.createBuffer({
-			size: buffer.byteLength,
-			usage: GPUBufferUsage.VERTEX,
-			mappedAtCreation: true,
-		});
-
-		let type = buffer.constructor;
-		new type(vbo.getMappedRange()).set(buffer);
-		vbo.unmap();
-
-		vbos.push({
-			name: name,
-			vbo: vbo,
-		});
-	}
-
-	return vbos;
-}
-
 function createPipeline(renderer){
 
 	let {device} = renderer;
@@ -182,7 +154,7 @@ function getNodeState(renderer, node){
 	let state = nodeStates.get(node);
 
 	if(!state){
-		let vbos = createBuffer(renderer, node);
+		let vbos = renderer.getGpuBuffers(node.geometry);
 
 		state = {vbos};
 		nodeStates.set(node, state);

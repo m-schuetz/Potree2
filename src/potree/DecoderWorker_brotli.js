@@ -50,15 +50,34 @@ function dealign24b(mortoncode){
 	return x;
 }
 
-onmessage = function (event) {
+onmessage = async function (event) {
 
 	//let {pointAttributes, scale, name, min, max, size, offset, numPoints} = event.data;
 	let {name, pointAttributes, numPoints, scale, offset, min} = event.data;
 
+	let buffer;
+	if(event.data.byteSize === 0n){
+		buffer = new ArrayBuffer(0);
+		console.warn(`loaded node with 0 bytes: ${name}`);
+	}else{
+		let {url, byteOffset, byteSize} = event.data;
+		let first = byteOffset;
+		let last = byteOffset + byteSize - 1n;
+
+		let response = await fetch(url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${first}-${last}`,
+			},
+		});
+
+		buffer = await response.arrayBuffer();
+	}
+
 	let tStart = performance.now();
 
-	let buffer = BrotliDecode(new Int8Array(event.data.buffer));
-	let view = new DataView(buffer.buffer);
+	let decoded = BrotliDecode(new Int8Array(buffer));
+	let view = new DataView(decoded.buffer);
 	
 	let attributeBuffers = {};
 
@@ -67,19 +86,15 @@ onmessage = function (event) {
 		bytesPerPoint += pointAttribute.byteSize;
 	}
 
+
 	let byteOffset = 0;
 	for (let pointAttribute of pointAttributes.attributes) {
 		
-
 		if(["POSITION_CARTESIAN", "position"].includes(pointAttribute.name)){
-
-			// let tStart = performance.now();
 
 			let buff = new ArrayBuffer(numPoints * 4 * 3);
 			let positions = new Float32Array(buff);
 
-			// let box = new Box3();
-		
 			for (let j = 0; j < numPoints; j++) {
 
 
@@ -120,18 +135,11 @@ onmessage = function (event) {
 				positions[3 * j + 1] = y;
 				positions[3 * j + 2] = z;
 
-				// box.expandByPoint(new Vector3(x, y, z));
 			}
 
-			// console.log(box);
-			// console.log(box.size());
-
-			// let duration = performance.now() - tStart;
-			// console.log(`xyz: ${duration.toFixed(1)}ms`);
-
 			attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute };
-			// attributeBuffers[pointAttribute.name] = { buffer: buff, attribute: pointAttribute };
-		}else if(["RGBA", "rgba"].includes(pointAttribute.name)){
+		}
+		else if(["RGBA", "rgba"].includes(pointAttribute.name)){
 
 			let buff = new ArrayBuffer(numPoints * 4);
 			let colors = new Uint8Array(buff);
@@ -220,7 +228,6 @@ onmessage = function (event) {
 			};
 		}
 
-		// attributeOffset += pointAttribute.byteSize;
 	}
 
 	let duration = performance.now() - tStart;

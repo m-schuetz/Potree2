@@ -7,6 +7,8 @@ import {Geometry} from "../core/Geometry.js";
 import {Vector3} from "../math/Vector3.js";
 import {Box3} from "../math/Box3.js";
 
+let nodesLoading = 0;
+
 const NodeType = {
 	NORMAL: 0,
 	LEAF: 1,
@@ -185,12 +187,17 @@ export class PotreeLoader{
 		if(node.loaded || node.loading){
 			return;
 		}
+
 		if(node.loadAttempts > 5){
 			// give up if node failed to load multiple times in a row.
 			return;
 		}
 
-		// console.log(`load: ${node.name}`);
+		if(nodesLoading >= 10){
+			return;
+		}
+
+		nodesLoading++;
 		node.loading = true;
 
 		try{
@@ -198,28 +205,7 @@ export class PotreeLoader{
 				await this.loadHierarchy(node);
 			}
 
-			let {byteOffset, byteSize} = node;
-			let urlOctree = `${this.url}/../octree.bin`;
-
-			let first = byteOffset;
-			let last = byteOffset + byteSize - 1n;
-
-			let buffer;
-			if(byteSize === 0n){
-				buffer = new ArrayBuffer(0);
-				console.warn(`loaded node with 0 bytes: ${node.name}`);
-			}else{
-				let response = await fetch(urlOctree, {
-					headers: {
-						'content-type': 'multipart/byteranges',
-						'Range': `bytes=${first}-${last}`,
-					},
-				});
-
-				buffer = await response.arrayBuffer();
-			}
-
-			// TODO fix path. This isn't flexible. 
+			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
 			//new Worker("./src/potree/DecoderWorker_brotli.js",);
 			//let worker = new Worker("./src/potree/DecoderWorker_brotli.js", { type: "module" });
 			let workerPath = "./src/potree/DecoderWorker_brotli.js";
@@ -232,12 +218,6 @@ export class PotreeLoader{
 				let buffers = [];
 
 				for(let attributeName in attributeBuffers){
-
-					// let buffer = {
-					// 	name: attributeName,
-					// 	buffer: attributeBuffers[attributeName],
-					// };
-
 					buffers.push(attributeBuffers[attributeName]);
 				}
 
@@ -247,32 +227,32 @@ export class PotreeLoader{
 
 				node.loaded = true;
 				node.loading = false;
+				nodesLoading--;
 				node.geometry = geometry;
 
 				WorkerPool.returnWorker(workerPath, worker);
 			};
 
+			let {byteOffset, byteSize} = node;
+			let url = new URL(`./${this.url}/../octree.bin`, document.baseURI).href;
 			let pointAttributes = this.attributes;
 			let scale = this.scale;
 			let offset = this.offset;
 			let min = [0, 0, 0];
 			let numPoints = node.numPoints;
+			let name = node.name;
 
 			let message = {
-				name: node.name,
-				buffer: buffer,
-				pointAttributes: pointAttributes,
-				scale: scale,
-				offset: offset,
-				min: min,
-				numPoints: numPoints,
+				name, url, byteOffset, byteSize, numPoints,
+				pointAttributes, scale, offset, min,
 			};
 
-			worker.postMessage(message, [message.buffer]);
+			worker.postMessage(message, []);
 			
 		}catch(e){
 			node.loaded = false;
 			node.loading = false;
+			nodesLoading--;
 
 			console.log(`failed to load ${node.name}`);
 			console.log(e);
@@ -280,7 +260,7 @@ export class PotreeLoader{
 
 			// loading with range requests frequently fails in chrome 
 			// loading again usually resolves this.
-			this.loadNode(node);
+			// this.loadNode(node);
 		}
 
 	}

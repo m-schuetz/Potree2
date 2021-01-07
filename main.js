@@ -26,11 +26,12 @@ let controls = null;
 let gui = null;
 let guiContent = {
 	"show bounding box": false,
-	"primitive": "points",
+	// "primitive": "points",
 	"#points": "0",
 	"#nodes": "0",
 	"fps": "0",
 	"point budget (M)": 2,
+	"point size": 1,
 	"duration(update)": "0",
 	"update": true,
 };
@@ -53,12 +54,13 @@ function initGUI(){
 		let input = gui.addFolder("input");
 		input.open();
 
-		input.add(guiContent, "primitive", ["points", "quads"]);
+		// input.add(guiContent, "primitive", ["points", "quads"]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
 
 		// slider
 		input.add(guiContent, 'point budget (M)', 0.5, 5);
+		input.add(guiContent, 'point size', 1, 5);
 	}
 
 }
@@ -80,7 +82,9 @@ function update(){
 	framesSinceLastCount++;
 
 	controls.update();
-	mat4.copy(camera.world, controls.world);
+	// mat4.copy(camera.world, controls.world);
+	mat4.set(camera.world, ...controls.world.elements);
+
 	{
 		let flip = mat4.create();
 		mat4.set(flip,
@@ -117,6 +121,7 @@ function render(){
 		pointcloud.showBoundingBox = guiContent["show bounding box"];
 		// pointcloud.nodeLimit = guiContent["num nodes"];
 		pointcloud.pointBudget = guiContent["point budget (M)"] * 1_000_000;
+		pointcloud.pointSize = guiContent["point size"];
 
 		let numPoints = pointcloud.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
 		let numNodes = pointcloud.visibleNodes.length;
@@ -124,11 +129,16 @@ function render(){
 		guiContent["#points"] = numPoints.toLocaleString();
 		guiContent["#nodes"] = numNodes.toLocaleString();
 
-		if(guiContent.primitive === "points"){
+		if(pointcloud.pointSize === 1){
 			renderPoints(renderer, pass, pointcloud, camera);
-		}else if(guiContent.primitive === "quads"){
+		}else{
 			renderQuads(renderer, pass, pointcloud, camera);
 		}
+		// if(guiContent.primitive === "points"){
+		// 	renderPoints(renderer, pass, pointcloud, camera);
+		// }else if(guiContent.primitive === "quads"){
+		// 	renderQuads(renderer, pass, pointcloud, camera);
+		// }
 	}
 
 	{ // draw xyz axes
@@ -159,6 +169,7 @@ async function run(){
 
 	camera = new Camera();
 	controls = new OrbitControls(renderer.canvas);
+	window.controls = controls;
 
 	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 

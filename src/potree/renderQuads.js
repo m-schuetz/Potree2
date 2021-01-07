@@ -7,7 +7,7 @@ const vs = `
 	[[offset(0)]] modelViewProjectionMatrix : mat4x4<f32>;
 	[[offset(64)]] screen_width : f32;
 	[[offset(68)]] screen_height : f32;
-
+	[[offset(72)]] point_size : f32;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
@@ -24,11 +24,11 @@ fn main() -> void {
 	out_pos = uniforms.modelViewProjectionMatrix * pos_point;
 
 	var fx : f32 = out_pos.x / out_pos.w;
-	fx = fx + 5.0 * pos_quad.x / uniforms.screen_width;
+	fx = fx + uniforms.point_size * pos_quad.x / uniforms.screen_width;
 	out_pos.x = fx * out_pos.w;
 
 	var fy : f32 = out_pos.y / out_pos.w;
-	fy = fy + 5.0 * pos_quad.y / uniforms.screen_height;
+	fy = fy + uniforms.point_size * pos_quad.y / uniforms.screen_height;
 	out_pos.y = fy * out_pos.w;
 
 	fragColor = color;
@@ -72,34 +72,6 @@ let quad_elements = new Uint32Array([
 ]);
 let vbo_quad = null;
 
-function createBuffer(renderer, data){
-
-	let {device} = renderer;
-
-	let vbos = [];
-
-	for(let entry of data.geometry.buffers){
-		let {name, buffer} = entry;
-
-		let vbo = device.createBuffer({
-			size: buffer.byteLength,
-			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX,
-			mappedAtCreation: true,
-		});
-
-		let type = buffer.constructor;
-		new type(vbo.getMappedRange()).set(buffer);
-		vbo.unmap();
-
-		vbos.push({
-			name: name,
-			vbo: vbo,
-		});
-	}
-
-	return vbos;
-}
-
 function getVboQuad(renderer){
 	if(!vbo_quad){
 
@@ -114,7 +86,7 @@ function getVboQuad(renderer){
 		};
 		let node = {geometry};
 
-		vbo_quad = createBuffer(renderer, node);
+		vbo_quad = renderer.getGpuBuffers(node.geometry);
 	}
 
 	return vbo_quad;
@@ -188,7 +160,7 @@ function getOctreeState(renderer, node){
 	if(!state){
 		let pipeline = createPipeline(renderer);
 
-		const uniformBufferSize = 4 * 16 + 8;
+		const uniformBufferSize = 4 * 16 + 8 + 4;
 
 		const uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
@@ -220,7 +192,7 @@ function getNodeState(renderer, node){
 	let state = nodeStates.get(node);
 
 	if(!state){
-		let vbos = createBuffer(renderer, node);
+		let vbos = renderer.getGpuBuffers(node.geometry);
 
 		state = {vbos};
 		nodeStates.set(node, state);
@@ -265,9 +237,12 @@ export function render(renderer, pass, octree, camera){
 			);
 		}
 
-		{ // screen size
+		{ // screen size, point size, ...
 			let size = renderer.getSize();
-			let data = new Float32Array([size.width, size.height]);
+			let data = new Float32Array([
+				size.width, size.height,
+				octree.pointSize
+			]);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer,
 				4 * 16,

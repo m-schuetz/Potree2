@@ -91,6 +91,33 @@ export class Renderer{
 		}
 	}
 
+	getGpuBuffers(geometry){
+		let {device} = renderer;
+
+		let vbos = [];
+
+		for(let entry of geometry.buffers){
+			let {name, buffer} = entry;
+
+			let vbo = device.createBuffer({
+				size: buffer.byteLength,
+				usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX,
+				mappedAtCreation: true,
+			});
+
+			let type = buffer.constructor;
+			new type(vbo.getMappedRange()).set(buffer);
+			vbo.unmap();
+
+			vbos.push({
+				name: name,
+				vbo: vbo,
+			});
+		}
+
+		return vbos;
+	}
+
 	drawBoundingBox(position, size, color){
 		this.draws.boxes.push([position, size, color]);
 	}
