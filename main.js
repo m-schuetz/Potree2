@@ -32,7 +32,7 @@ let guiContent = {
 	"#points": "0",
 	"#nodes": "0",
 	"fps": "0",
-	"point budget (M)": 2,
+	"point budget (M)": 0.1,
 	"point size": 1,
 	"duration(update)": "0",
 	"update": true,
@@ -147,7 +147,7 @@ function render(){
 		}
 
 		drawTexture(renderer, pass, target.colorAttachments[0].texture, 
-			-0.3, -0.3, 0.3, -0.3);
+			0, 0, 1, 1);
 	}
 
 	{ // draw xyz axes
