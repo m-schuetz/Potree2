@@ -6,9 +6,10 @@ import {SPECTRAL} from "../misc/Gradients.js";
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] modelViewProjectionMatrix : mat4x4<f32>;
-	[[offset(64)]] screen_width : f32;
-	[[offset(68)]] screen_height : f32;
+	[[offset(0)]] worldView : mat4x4<f32>;
+	[[offset(64)]] proj : mat4x4<f32>;
+	[[offset(128)]] screen_width : f32;
+	[[offset(132)]] screen_height : f32;
 };
 
 struct NodeBuffer{
@@ -31,7 +32,12 @@ struct NodeBuffer{
 
 [[stage(vertex)]]
 fn main() -> void {
-	out_pos = uniforms.modelViewProjectionMatrix * pos_point;
+
+	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
+	var far : f32 = 1000.0;
+
+	out_pos = uniforms.proj * viewPos;
+	out_pos.z = -viewPos.z * out_pos.w / far;
 
 	var c : vec4<f32> = color;
 	fragColor = c;
@@ -116,7 +122,7 @@ function getOctreeState(renderer, node){
 		let pipeline = createPipeline(renderer);
 
 		const uniformBuffer = device.createBuffer({
-			size: 4 * 16 + 8,
+			size: 2 * 4 * 16 + 8,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
@@ -175,27 +181,23 @@ export function render(renderer, pass, octree, camera){
 		let {uniformBuffer} = octreeState;
 
 		{ // transform
-			let glWorld = mat4.create();
-			mat4.set(glWorld, ...octree.world.elements);
+			let world = mat4.create();
+			mat4.set(world, ...octree.world.elements);
 
 			let view = camera.view;
 			let proj = camera.proj;
 
-			// let flip = mat4.create();
-			// mat4.set(flip,
-			// 	1, 0, 0, 0,
-			// 	0, 0, -1, 0,
-			// 	0, 1, 0, 0,
-			// 	0, 0, 0, 1,
-			// );
-			let transform = mat4.create();
-			// mat4.multiply(transform, flip, glWorld);
-			mat4.multiply(transform, view, glWorld);
-			mat4.multiply(transform, proj, transform);
+			let worldView = mat4.create();
+			mat4.multiply(worldView, view, world);
 
 			device.defaultQueue.writeBuffer(
 				uniformBuffer, 0,
-				transform.buffer, transform.byteOffset, transform.byteLength
+				worldView.buffer, worldView.byteOffset, worldView.byteLength
+			);
+
+			device.defaultQueue.writeBuffer(
+				uniformBuffer, 64,
+				proj.buffer, proj.byteOffset, proj.byteLength
 			);
 		}
 
@@ -204,7 +206,7 @@ export function render(renderer, pass, octree, camera){
 			let data = new Float32Array([size.width, size.height]);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer,
-				4 * 16,
+				128,
 				data.buffer,
 				data.byteOffset,
 				data.byteLength

@@ -28,11 +28,11 @@ let controls = null;
 let gui = null;
 let guiContent = {
 	"show bounding box": false,
-	// "primitive": "points",
+	"mode": "points/dilute",
 	"#points": "0",
 	"#nodes": "0",
 	"fps": "0",
-	"point budget (M)": 0.1,
+	"point budget (M)": 1,
 	"point size": 1,
 	"duration(update)": "0",
 	"update": true,
@@ -57,11 +57,12 @@ function initGUI(){
 		input.open();
 
 		// input.add(guiContent, "primitive", ["points", "quads"]);
+		input.add(guiContent, "mode", ["points/quads", "points/dilute"]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
 
 		// slider
-		input.add(guiContent, 'point budget (M)', 0.5, 5);
+		input.add(guiContent, 'point budget (M)', 0.1, 5);
 		input.add(guiContent, 'point size', 1, 5);
 	}
 
@@ -130,7 +131,7 @@ function render(){
 	let pointcloud = window.pointcloud;
 	let target = null;
 
-	if(pointcloud){
+	if(pointcloud && guiContent["mode"] === "points/dilute"){
 		target = renderFill(renderer, pointcloud, camera);
 	}
 
@@ -138,14 +139,14 @@ function render(){
 	let pass = renderer.start();
 
 	// draw point cloud
-	if(pointcloud){
+	if(pointcloud && guiContent["mode"] === "points/quads"){
 
 		if(pointcloud.pointSize === 1){
 			renderPoints(renderer, pass, pointcloud, camera);
 		}else{
 			renderQuads(renderer, pass, pointcloud, camera);
 		}
-
+	}else if(pointcloud && guiContent["mode"] === "points/dilute"){
 		drawTexture(renderer, pass, target.colorAttachments[0].texture, 
 			0, 0, 1, 1);
 	}
@@ -178,31 +179,35 @@ async function run(){
 
 	camera = new Camera();
 	controls = new OrbitControls(renderer.canvas);
+
+	window.camera = camera;
 	window.controls = controls;
 
-	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	camera.fov = 90;
 
-		controls.radius = 10;
-		controls.yaw = -Math.PI / 6;
-		controls.pitch = Math.PI / 5;
+	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
-		pointcloud.updateVisibility(camera);
-		pointcloud.position.set(-0.9, 0.1, -5);
-		pointcloud.updateWorld();
-		window.pointcloud = pointcloud;
-
-	});
-
-	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
-	// 	controls.radius = 30;
-	// 	controls.yaw = Math.PI / 4;
+	// 	controls.radius = 10;
+	// 	controls.yaw = -Math.PI / 6;
 	// 	controls.pitch = Math.PI / 5;
-	
+
 	// 	pointcloud.updateVisibility(camera);
-	// 	pointcloud.position.set(3, -3, -6)
+	// 	pointcloud.position.set(-0.9, 0.1, -5);
 	// 	pointcloud.updateWorld();
 	// 	window.pointcloud = pointcloud;
+
 	// });
+
+	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+		controls.radius = 30;
+		controls.yaw = Math.PI / 4;
+		controls.pitch = Math.PI / 5;
+	
+		pointcloud.updateVisibility(camera);
+		pointcloud.position.set(3, -3, -6)
+		pointcloud.updateWorld();
+		window.pointcloud = pointcloud;
+	});
 
 	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
 	// 	camera.near = 0.5;
@@ -223,8 +228,3 @@ async function run(){
 
 
 run();
-
-
-
-
-

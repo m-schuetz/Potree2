@@ -87,10 +87,11 @@ let fs = `
 	[[stage(fragment)]]
 	fn main() -> void {
 
-		var avg : vec4<f32>;
+		var avg : vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 
-		var window : i32 = 2;
+		var window : i32 = 1;
 		var closest : f32 = 1.0;
+		var far : f32 = 1000.0;
 
 		for(var i : i32 = -window; i <= window; i = i + 1){
 			for(var j : i32 = -window; j <= window; j = j + 1){
@@ -99,35 +100,58 @@ let fs = `
 				coords.y = i32(fragCoord.y) + j;
 
 				var d : f32 = textureLoad(myDepth, coords).x;
-				var color : vec4<f32> = textureLoad(myTexture, coords);
-
-				if(d < closest){
-					avg = color;
-				}
+				var linearDistance : f32 = d * far;
 
 				closest = min(closest, d);
 			}
 		}
 
 		
-#		for(var i : i32 = -window; i <= window; i = i + 1){
-#			for(var j : i32 = -window; j <= window; j = j + 1){
-#				var coords : vec2<i32>;
-#				coords.x = i32(fragCoord.x) + i;
-#				coords.y = i32(fragCoord.y) + j;
-#
-#				var color : vec4<f32> = textureLoad(myTexture, coords);
-#				var d : f32 = textureLoad(myDepth, coords).x;
-#
-#				avg = avg + color;
-#			}
-#		}
+		for(var i : i32 = -window; i <= window; i = i + 1){
+			for(var j : i32 = -window; j <= window; j = j + 1){
+				var coords : vec2<i32>;
+				coords.x = i32(fragCoord.x) + i;
+				coords.y = i32(fragCoord.y) + j;
 
-		avg.x = avg.x / avg.w;
-		avg.y = avg.y / avg.w;
-		avg.z = avg.z / avg.w;
-		avg.w = 1.0;
-		outColor = avg;
+				var d : f32 = textureLoad(myDepth, coords).x;
+				var linearDistance : f32 = d * far;
+
+
+				if(d < closest * 1.01){
+					var manhattanDistance : f32 = f32(abs(i) + abs(j));
+
+					var weight : f32 = 1.0;
+
+					if(manhattanDistance <= 0.0){
+						weight = 1.0;
+					}elseif(manhattanDistance <= 1.0){
+						weight = 0.3;
+					}elseif(manhattanDistance <= 2.0){
+						weight = 0.01;
+					}else{
+						weight = 0.001;
+					}
+					
+					var color : vec4<f32> = textureLoad(myTexture, coords);
+					color.x = color.x * weight;
+					color.y = color.y * weight;
+					color.z = color.z * weight;
+					color.w = color.w * weight;
+
+					avg = avg + color;
+				}
+			}
+		}
+
+		if(avg.x + avg.y + avg.z == 0.0){
+			outColor = vec4<f32>(0.1, 0.2, 0.3, 1.0);
+		}else{
+			avg.x = avg.x / avg.w;
+			avg.y = avg.y / avg.w;
+			avg.z = avg.z / avg.w;
+			avg.w = 1.0;
+			outColor = avg;
+		}
 
 		#outColor =  textureSample(myTexture, mySampler, fragUV);
 
@@ -312,7 +336,7 @@ export function renderFill(renderer, pointcloud, camera){
 			colorAttachments: [
 				{
 					attachment: target.colorAttachments[0].texture.createView(),
-					loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+					loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
 				},
 			],
 			depthStencilAttachment: {
