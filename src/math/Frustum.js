@@ -4,6 +4,11 @@
 // url: https://github.com/mrdoob/three.js/blob/dev/src/math/Frustum.js
 //
 
+import {Plane} from "./Plane.js";
+import {Vector3} from "./Vector3.js";
+
+const _vector = new Vector3();
+
 export class Frustum{
 
 	constructor( p0, p1, p2, p3, p4, p5 ) {

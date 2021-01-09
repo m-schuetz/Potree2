@@ -181,6 +181,9 @@ onmessage = async function (event) {
 			attributeBuffers[pointAttribute.name] = { buffer: colors, attribute: pointAttribute };
 			// attributeBuffers[pointAttribute.name] = { buffer: buff, attribute: pointAttribute };
 		}else{
+
+			continue;
+
 			let buff = new ArrayBuffer(numPoints * 4);
 			let f32 = new Float32Array(buff);
 

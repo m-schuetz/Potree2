@@ -6,3 +6,6 @@ resources/pointclouds/heidentor/octree.bin
 resources/pointclouds/eclepens/hierarchy.bin
 resources/pointclouds/eclepens/metadata.json
 resources/pointclouds/eclepens/octree.bin
+resources/pointclouds/CA13/hierarchy.bin
+resources/pointclouds/CA13/metadata.json
+resources/pointclouds/CA13/octree.bin

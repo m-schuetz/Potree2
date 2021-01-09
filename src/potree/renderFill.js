@@ -89,9 +89,9 @@ let fs = `
 
 		var avg : vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 
-		var window : i32 = 1;
+		var window : i32 = 2;
 		var closest : f32 = 1.0;
-		var far : f32 = 1000.0;
+		var far : f32 = 10000.0;
 
 		for(var i : i32 = -window; i <= window; i = i + 1){
 			for(var j : i32 = -window; j <= window; j = j + 1){

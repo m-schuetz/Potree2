@@ -83,6 +83,10 @@ export class Vector3{
 		return this;
 	}
 
+	length() {
+		return Math.sqrt( this.x * this.x + this.y * this.y + this.z * this.z );
+	}
+
 	toString(precision){
 		if(precision != null){
 			return `${this.x.toFixed(precision)}, ${this.y.toFixed(precision)}, ${this.z.toFixed(precision)}`;

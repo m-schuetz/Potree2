@@ -34,8 +34,8 @@ let guiContent = {
 	"camera": "",
 
 	"show bounding box": false,
-	"mode": "points/quads",
-	"point budget (M)": 1,
+	"mode": "points/dilute",
+	"point budget (M)": 3,
 	"point size": 1,
 	"update": true,
 };
@@ -225,22 +225,36 @@ async function run(){
 	// });
 
 	Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
-		camera.near = 0.5;
-		camera.far = 20_000;
-		controls.radius = 1000;
+		controls.radius = 700;
 		controls.yaw = -0.2;
-		controls.pitch = Math.PI / 5;
-
-		controls.radius = 50;
-		controls.yaw = -0.2;
-		controls.pitch = 0;
+		controls.pitch = 0.8;
 		camera.updateProj();
 	
 		pointcloud.updateVisibility(camera);
-		pointcloud.position.set(3, -3, -6)
+		// pointcloud.position.set(400, -300, -6)
 		pointcloud.updateWorld();
 		window.pointcloud = pointcloud;
 	});
+
+
+	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// 	camera.near = 0.5;
+	// 	camera.far = 20_000;
+	// 	// controls.radius = 1000;
+	// 	// controls.yaw = -0.2;
+	// 	// controls.pitch = Math.PI / 5;
+
+	// 	controls.radius = 1000;
+	// 	controls.yaw = -0.2;
+	// 	controls.pitch = 0;
+	// 	// controls.pivot.set(643431, 3889087, -2.7);
+	// 	camera.updateProj();
+	
+	// 	pointcloud.updateVisibility(camera);
+	// 	// pointcloud.position.set(-643431, -3889087, 0);
+	// 	pointcloud.updateWorld();
+	// 	window.pointcloud = pointcloud;
+	// });
 
 	requestAnimationFrame(loop);
 

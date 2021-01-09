@@ -5,6 +5,7 @@ import {BinaryHeap} from "../../libs/BinaryHeap/BinaryHeap.js";
 import {toRadians} from "../math/PMath.js";
 import {Matrix4} from "../math/Matrix4.js";
 import {Vector3} from "../math/Vector3.js";
+import {Frustum} from "../math/Frustum.js";
 
 export class PointCloudOctree extends SceneNode{
 
@@ -36,6 +37,13 @@ export class PointCloudOctree extends SceneNode{
 		let priorityQueue = new BinaryHeap(function (x) { return 1 / x.weight; });
 
 		let camPos = camera.getWorldPosition();
+		let world = this.world;
+		let view = camera.view;
+		let proj = camera.proj;
+		let fm = new Matrix4().multiply(proj).multiply(view).multiply(world);
+		//let fm = new Matrix4().multiplyMatrices(camera.proj, camera.view);
+		let frustum = new Frustum();
+		frustum.setFromMatrix(fm);
 
 		priorityQueue.push({ 
 			node: this.root, 
@@ -50,16 +58,26 @@ export class PointCloudOctree extends SceneNode{
 			let {node, weight} = element;
 
 			if(!node.loaded){
-				loadQueue.push(node);
 
-				if(loadQueue.length > 10){
-					break;
+				if(loadQueue.length < 10){
+					loadQueue.push(node);
 				}
 
 				continue;
 			}
+
 			if(numPoints + node.numPoints > this.pointBudget){
 				break;
+			}
+
+			let box = node.boundingBox;
+			let insideFrustum = frustum.intersectsBox(box);
+
+			let visible = insideFrustum;
+			visible = visible || node.level <= 3;
+
+			if(!visible){
+				continue;
 			}
 
 			visibleNodes.push(node);
@@ -154,50 +172,6 @@ export class PointCloudOctree extends SceneNode{
 
 
 		this.visibleNodes = visibleNodes;
-
-		// if(loadQueue.length >= 4){
-			
-		// 	loadQueue.sort((a, b) => {
-
-		// 		if(a.byteOffset == null || b.byteOffset == null){
-		// 			return -1;
-		// 		}
-
-		// 		return Number(a.byteOffset - b.byteOffset);
-		// 	});
-
-		// 	let first = {
-		// 		byteOffset: loadQueue[0].byteOffset,
-		// 		byteSize: loadQueue[0].byteSize,
-		// 		nodes: [loadQueue[0]],
-		// 	};
-		// 	let batches = [first];
-		// 	for(let i = 1; i < loadQueue.length; i++){
-				
-		// 		let a = batches[batches.length - 1];
-		// 		let b = first = {
-		// 			byteOffset: loadQueue[i].byteOffset,
-		// 			byteSize: loadQueue[i].byteSize,
-		// 			nodes: [loadQueue[i]],
-		// 		};
-
-		// 		if(a.byteOffset == null || b.byteOffset == null){
-		// 			continue;
-		// 		}
-				
-		// 		// if(a.byteOffset + a.byteSize === b.byteOffset){
-		// 		if(Math.abs(Number((a.byteOffset + a.byteSize) - b.byteOffset)) < 100_000 ){
-		// 			// merge
-		// 			a.byteSize += b.byteSize;
-		// 			a.nodes.push(b);
-		// 		}else{
-		// 			batches.push(b);
-		// 		}
-				
-				
-		// 	}
-		// 	console.log(`${loadQueue.length} => ${batches.length}`);
-		// }
 
 		
 	}
