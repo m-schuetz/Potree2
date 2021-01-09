@@ -1,6 +1,6 @@
 
-import { mat4, vec3 } from '../../libs/gl-matrix.js';
-import { Vector3 } from '../math/Vector3.js';
+import {Matrix4} from "../math/Matrix4.js";
+import {Vector3} from '../math/Vector3.js';
 import {SPECTRAL} from "../misc/Gradients.js";
 
 
@@ -34,7 +34,7 @@ struct NodeBuffer{
 fn main() -> void {
 
 	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
-	var far : f32 = 1000.0;
+	var far : f32 = 10000.0;
 
 	out_pos = uniforms.proj * viewPos;
 	out_pos.z = -viewPos.z * out_pos.w / far;
@@ -181,23 +181,22 @@ export function render(renderer, pass, octree, camera){
 		let {uniformBuffer} = octreeState;
 
 		{ // transform
-			let world = mat4.create();
-			mat4.set(world, ...octree.world.elements);
-
+			let world = octree.world;
 			let view = camera.view;
-			let proj = camera.proj;
+			let worldView = new Matrix4().multiplyMatrices(view, world);
 
-			let worldView = mat4.create();
-			mat4.multiply(worldView, view, world);
+			let tmp = new Float32Array(16);
 
+			tmp.set(worldView.elements);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer, 0,
-				worldView.buffer, worldView.byteOffset, worldView.byteLength
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
 
+			tmp.set(camera.proj.elements);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer, 64,
-				proj.buffer, proj.byteOffset, proj.byteLength
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
 		}
 

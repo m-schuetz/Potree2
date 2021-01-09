@@ -1,5 +1,6 @@
 
-import { mat4, vec3 } from '../../../libs/gl-matrix.js';
+import {Matrix4} from "../../math/Matrix4.js";
+import {Vector3} from '../../math/Vector3.js';
 
 const vs = `
 [[block]] struct Uniforms {
@@ -20,12 +21,14 @@ const vs = `
 
 [[stage(vertex)]]
 fn main() -> void {
-	# out_pos = uniforms.viewProj * (box_pos + point_pos * box_scale);
+	
+	var far : f32 = 10000.0;
 
 	var worldPos : vec4<f32> = box_pos + point_pos * box_scale;
 	worldPos.w = 1.0;
 
 	out_pos = uniforms.viewProj * worldPos;
+	out_pos.z = out_pos.z * out_pos.w / far;
 
 	fragColor = box_color;
 
@@ -249,25 +252,14 @@ export function renderBoundingBoxes(renderer, pass, boxes, camera){
 	{ // update uniforms
 
 		{ // transform
-			let view = camera.view;
-			let proj = camera.proj;
+			let viewProj = new Matrix4().multiplyMatrices(camera.proj, camera.view);
 
-			// let flip = mat4.create();
-			// mat4.set(flip,
-			// 	1, 0, 0, 0,
-			// 	0, 0, -1, 0,
-			// 	0, 1, 0, 0,
-			// 	0, 0, 0, 1,
-			// );
+			let tmp = new Float32Array(16);
 
-			let transform = mat4.create();
-			// mat4.multiply(transform, flip, transform);
-			mat4.multiply(transform, view, transform);
-			mat4.multiply(transform, proj, transform);
-
+			tmp.set(viewProj.elements);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer, 0,
-				transform.buffer, transform.byteOffset, transform.byteLength
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
 		}
 

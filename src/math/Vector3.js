@@ -52,6 +52,10 @@ export class Vector3{
 		return this;
 	}
 
+	dot( v ) {
+		return this.x * v.x + this.y * v.y + this.z * v.z;
+	}
+
 	distanceTo(b){
 		let a = this;
 
@@ -77,6 +81,14 @@ export class Vector3{
 		this.z = ( e[ 2 ] * x + e[ 6 ] * y + e[ 10 ] * z + e[ 14 ] ) * w;
 
 		return this;
+	}
+
+	toString(precision){
+		if(precision != null){
+			return `${this.x.toFixed(precision)}, ${this.y.toFixed(precision)}, ${this.z.toFixed(precision)}`;
+		}else{
+			return `${this.x}, ${this.y}, ${this.z}`;
+		}
 	}
 
 };

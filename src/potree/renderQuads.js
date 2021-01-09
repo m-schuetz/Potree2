@@ -1,13 +1,15 @@
 
-import { mat4, vec3 } from '../../libs/gl-matrix.js';
-import { Vector3 } from '../math/Vector3.js';
+import {Matrix4} from "../math/Matrix4.js";
+import {Vector3} from '../math/Vector3.js';
+import {SPECTRAL} from "../misc/Gradients.js";
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] modelViewProjectionMatrix : mat4x4<f32>;
-	[[offset(64)]] screen_width : f32;
-	[[offset(68)]] screen_height : f32;
-	[[offset(72)]] point_size : f32;
+	[[offset(0)]] worldView : mat4x4<f32>;
+	[[offset(64)]] proj : mat4x4<f32>;
+	[[offset(128)]] screen_width : f32;
+	[[offset(132)]] screen_height : f32;
+	[[offset(136)]] point_size : f32;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
@@ -21,7 +23,13 @@ const vs = `
 
 [[stage(vertex)]]
 fn main() -> void {
-	out_pos = uniforms.modelViewProjectionMatrix * pos_point;
+	# out_pos = uniforms.modelViewProjectionMatrix * pos_point;
+	
+	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
+	var far : f32 = 10000.0;
+
+	out_pos = uniforms.proj * viewPos;
+	out_pos.z = -viewPos.z * out_pos.w / far;
 
 	var fx : f32 = out_pos.x / out_pos.w;
 	fx = fx + uniforms.point_size * pos_quad.x / uniforms.screen_width;
@@ -160,7 +168,7 @@ function getOctreeState(renderer, node){
 	if(!state){
 		let pipeline = createPipeline(renderer);
 
-		const uniformBufferSize = 4 * 16 + 8 + 4;
+		const uniformBufferSize = 2 * 4 * 16 + 8 + 4;
 
 		const uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
@@ -213,27 +221,22 @@ export function render(renderer, pass, octree, camera){
 		let {uniformBuffer} = octreeState;
 
 		{ // transform
-			let glWorld = mat4.create();
-			mat4.set(glWorld, ...octree.world.elements);
-
+			let world = octree.world;
 			let view = camera.view;
-			let proj = camera.proj;
+			let worldView = new Matrix4().multiplyMatrices(view, world);
 
-			let flip = mat4.create();
-			mat4.set(flip,
-				1, 0, 0, 0,
-				0, 0, -1, 0,
-				0, 1, 0, 0,
-				0, 0, 0, 1,
-			);
-			let transform = mat4.create();
-			// mat4.multiply(transform, flip, glWorld);
-			mat4.multiply(transform, view, glWorld);
-			mat4.multiply(transform, proj, transform);
+			let tmp = new Float32Array(16);
 
+			tmp.set(worldView.elements);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer, 0,
-				transform.buffer, transform.byteOffset, transform.byteLength
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
+			);
+
+			tmp.set(camera.proj.elements);
+			device.defaultQueue.writeBuffer(
+				uniformBuffer, 64,
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
 		}
 
@@ -245,7 +248,7 @@ export function render(renderer, pass, octree, camera){
 			]);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer,
-				4 * 16,
+				128,
 				data.buffer,
 				data.byteOffset,
 				data.byteLength
@@ -274,7 +277,7 @@ export function render(renderer, pass, octree, camera){
 			position.add(node.boundingBox.max).multiplyScalar(0.5);
 			position.applyMatrix4(octree.world);
 			let size = node.boundingBox.size();
-			let color = new Vector3(255, 0, 255);
+			let color = new Vector3(...SPECTRAL.get(node.level / 5));
 			renderer.drawBoundingBox(position, size, color);
 		}
 	

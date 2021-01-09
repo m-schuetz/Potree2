@@ -34,7 +34,7 @@ let vs = `
 
 	[[stage(vertex)]]
 	fn main() -> void {
-		Position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
+		Position = vec4<f32>(pos[VertexIndex], 0.999, 1.0);
 		fragUV = uv[VertexIndex];
 
 		var x : f32 = uniforms.x * 2.0 - 1.0;

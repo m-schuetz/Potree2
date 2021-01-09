@@ -35,6 +35,8 @@ export class PointCloudOctree extends SceneNode{
 		let loadQueue = [];
 		let priorityQueue = new BinaryHeap(function (x) { return 1 / x.weight; });
 
+		let camPos = camera.getWorldPosition();
+
 		priorityQueue.push({ 
 			node: this.root, 
 			weight: Number.MAX_VALUE,
@@ -42,10 +44,6 @@ export class PointCloudOctree extends SceneNode{
 
 		let i = 0;
 		let numPoints = 0;
-
-		let camWorld = new Matrix4();
-		camWorld.elements.set(camera.world);
-		let camPos = new Vector3().applyMatrix4(camWorld);
 
 		while (priorityQueue.size() > 0) {
 			let element = priorityQueue.pop();

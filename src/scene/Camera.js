@@ -1,34 +1,38 @@
 
-import { mat4, vec3 } from '../../libs/gl-matrix.js';
+//import { mat4, vec3 } from '../../libs/gl-matrix.js';
 import {toRadians, toDegrees} from "../math/PMath.js";
+import {Matrix4} from "../math/Matrix4.js";
+import {SceneNode} from "./SceneNode.js";
 
-export class Camera{
+export class Camera extends SceneNode{
 
-	constructor(){
+	constructor(name){
+		super(name ?? "camera");
 
 		this.fov = 80;
 		this.near = 0.1;
 		this.far = 1000;
 		this.aspect = 1;
-		this.proj = mat4.create();
-		this.world = mat4.create();
-		this.view = mat4.create();
+		this.proj = new Matrix4();
+		this.view = new Matrix4();
 
 	}
 
 	updateView(){
-		mat4.invert(this.view, this.world);
+		this.view.copy(this.world).invert();
 	}
 
 	updateProj(){
+
 		let fovy = toRadians(0.5 * this.fov);
 
-		mat4.perspective(
-			this.proj, 
-			fovy, 
-			this.aspect, 
-			this.near, 
-			this.far);
+		const near = this.near;
+		let top = near * Math.tan(fovy);
+		let height = 2 * top;
+		let width = this.aspect * height;
+		let left = - 0.5 * width;
+
+		this.proj.makePerspective( left, left + width, top, top - height, near, this.far);
 	}
 
 
