@@ -34,7 +34,7 @@ let guiContent = {
 	"camera": "",
 
 	"show bounding box": false,
-	"mode": "points/dilute",
+	"mode": "points/quads",
 	"point budget (M)": 3,
 	"point size": 1,
 	"update": true,

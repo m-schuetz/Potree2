@@ -213,6 +213,19 @@ export class PotreeLoader{
 
 			worker.onmessage = function(e){
 				let data = e.data;
+
+				if(data === "failed"){
+					console.log(`failed to load ${node.name}. trying again!`);
+
+					node.loaded = false;
+					node.loading = false;
+					nodesLoading--;
+
+					WorkerPool.returnWorker(workerPath, worker);
+
+					return;
+				}
+
 				let attributeBuffers = data.attributeBuffers;
 
 				let buffers = [];

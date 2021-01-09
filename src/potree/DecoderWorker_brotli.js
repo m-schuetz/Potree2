@@ -1,8 +1,6 @@
 
 import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
 import {BrotliDecode} from "../../libs/brotli/decode.js";
-import {Vector3} from "../math/Vector3.js";
-import {Box3} from "../math/Box3.js";
 
 
 const typedArrayMapping = {
@@ -50,9 +48,8 @@ function dealign24b(mortoncode){
 	return x;
 }
 
-onmessage = async function (event) {
+async function load(event){
 
-	//let {pointAttributes, scale, name, min, max, size, offset, numPoints} = event.data;
 	let {name, pointAttributes, numPoints, scale, offset, min} = event.data;
 
 	let buffer;
@@ -182,6 +179,7 @@ onmessage = async function (event) {
 			// attributeBuffers[pointAttribute.name] = { buffer: buff, attribute: pointAttribute };
 		}else{
 
+			// TODO
 			continue;
 
 			let buff = new ArrayBuffer(numPoints * 4);
@@ -237,22 +235,32 @@ onmessage = async function (event) {
 	let pointsPerSecond = (1000 * numPoints / duration) / 1_000_000;
 	// console.log(`[${name}] duration: ${duration.toFixed(1)}ms, #points: ${numPoints}, points/s: ${pointsPerSecond.toFixed(1)}M`);
 
-	let message = {
-		// buffer: buffer,
-		attributeBuffers: attributeBuffers,
-	};
+	return attributeBuffers;
+}
 
-	let transferables = [];
-	for (let property in message.attributeBuffers) {
+onmessage = async function (event) {
 
-		let buffer = message.attributeBuffers[property].buffer;
+	try{
+		let attributeBuffers = await load(event);
 
-		if(buffer instanceof ArrayBuffer){
-			transferables.push(buffer);
-		}else{
-			transferables.push(buffer.buffer);
+		let message = {attributeBuffers};
+		
+		let transferables = [];
+		for (let property in message.attributeBuffers) {
+
+			let buffer = message.attributeBuffers[property].buffer;
+
+			if(buffer instanceof ArrayBuffer){
+				transferables.push(buffer);
+			}else{
+				transferables.push(buffer.buffer);
+			}
 		}
+
+		postMessage(message, transferables);
+	}catch(e){
+		postMessage("failed");
 	}
 
-	postMessage(message, transferables);
+	
 };
