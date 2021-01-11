@@ -104,14 +104,14 @@ function update(){
 		// 	0, 0, 0, 1,
 		// );
 
-		let flip = new Matrix4().set(
-			1, 0, 0, 0,
-			0, 0, -1, 0,
-			0, 1, 0, 0,
-			0, 0, 0, 1,
-		);
+		// let flip = new Matrix4().set(
+		// 	1, 0, 0, 0,
+		// 	0, 0, -1, 0,
+		// 	0, 1, 0, 0,
+		// 	0, 0, 0, 1,
+		// );
 
-		camera.world.multiplyMatrices(flip, camera.world);
+		// camera.world.multiplyMatrices(flip, camera.world);
 
 		// mat4.multiply(camera.world, flip, camera.world);
 	}

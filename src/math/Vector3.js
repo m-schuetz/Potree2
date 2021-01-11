@@ -87,6 +87,16 @@ export class Vector3{
 		return Math.sqrt( this.x * this.x + this.y * this.y + this.z * this.z );
 	}
 
+	normalize(){
+		let l = this.length();
+
+		this.x = this.x / l;
+		this.y = this.y / l;
+		this.z = this.z / l;
+
+		return this;
+	}
+
 	toString(precision){
 		if(precision != null){
 			return `${this.x.toFixed(precision)}, ${this.y.toFixed(precision)}, ${this.z.toFixed(precision)}`;

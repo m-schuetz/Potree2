@@ -3,9 +3,7 @@ import {SceneNode} from "../scene/SceneNode.js";
 import {PointCloudOctreeNode} from "./PointCloudOctreeNode.js";
 import {BinaryHeap} from "../../libs/BinaryHeap/BinaryHeap.js";
 import {toRadians} from "../math/PMath.js";
-import {Matrix4} from "../math/Matrix4.js";
-import {Vector3} from "../math/Vector3.js";
-import {Frustum} from "../math/Frustum.js";
+import {Vector3, Matrix4, Frustum} from "../math/math.js";
 
 export class PointCloudOctree extends SceneNode{
 

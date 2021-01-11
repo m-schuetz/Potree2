@@ -1,6 +1,5 @@
 
-import {Matrix4} from "../../math/Matrix4.js";
-import {Vector3} from '../../math/Vector3.js';
+import {Vector3, Matrix4} from "../../math/math.js";
 
 const vs = `
 [[block]] struct Uniforms {

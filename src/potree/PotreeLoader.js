@@ -4,8 +4,7 @@ import {PointCloudOctreeNode} from "./PointCloudOctreeNode.js";
 import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
 import {WorkerPool} from "../misc/WorkerPool.js";
 import {Geometry} from "../core/Geometry.js";
-import {Vector3} from "../math/Vector3.js";
-import {Box3} from "../math/Box3.js";
+import {Vector3, Box3} from "../math/math.js";
 
 let nodesLoading = 0;
 
