@@ -228,6 +228,7 @@ async function run(){
 			boxes = e.boxes;
 
 			progress = e.progress;
+			window.progress = progress;
 		});
 	}
 
@@ -255,17 +256,22 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
-		controls.radius = 700;
+	controls.radius = 700;
 		controls.yaw = -0.2;
 		controls.pitch = 0.8;
 		camera.updateProj();
+
+	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
+	// 	controls.radius = 700;
+	// 	controls.yaw = -0.2;
+	// 	controls.pitch = 0.8;
+	// 	camera.updateProj();
 	
-		pointcloud.updateVisibility(camera);
-		// pointcloud.position.set(400, -300, -6)
-		pointcloud.updateWorld();
-		window.pointcloud = pointcloud;
-	});
+	// 	pointcloud.updateVisibility(camera);
+	// 	// pointcloud.position.set(400, -300, -6)
+	// 	pointcloud.updateWorld();
+	// 	window.pointcloud = pointcloud;
+	// });
 
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {

@@ -55,7 +55,7 @@ onmessage = async function(e){
 
 
 	{
-		let n = Math.min(numPoints, 1000_000);
+		let n = Math.min(numPoints, 1_000_000);
 
 		let buffer = await file.slice(
 			offsetToPointData, 
@@ -95,14 +95,28 @@ onmessage = async function(e){
 			color[4 * i + 3] = 255;
 		}
 
-		postMessage({
+		let message = {
 			numPoints: n,
 			buffers: {
 				position: position,
 				color: color,
 			},
 			min, max,
-		});
+		};
+
+		let transferables = [];
+		for (let property in message.buffers) {
+
+			let buffer = message.buffers[property];
+
+			if(buffer instanceof ArrayBuffer){
+				transferables.push(buffer);
+			}else{
+				transferables.push(buffer.buffer);
+			}
+		}
+
+		postMessage(message, transferables);
 		
 	}
 
