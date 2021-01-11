@@ -1,0 +1,128 @@
+<html>
+<head>
+
+<style>
+	#dropzone{
+		border: 1px solid red;
+		position: absolute;
+		top: 0px;
+		left: 0px;
+		right: 0px;
+		bottom: 0px;
+	}
+</style>
+
+</head>
+<body>
+
+<div id="dropzone">
+
+	<span id="rect" style="border: 1px solid green; background-color: green; position: absolute; width: 32px; height: 32px; left: 100px; top: 100px;">
+
+	</span>
+
+</div>
+
+
+<script>
+
+let dropZone = document.getElementById("dropzone");
+
+dropZone.addEventListener('dragover', function(e) {
+	e.stopPropagation();
+	e.preventDefault();
+	e.dataTransfer.dropEffect = 'copy';
+});
+
+dropZone.addEventListener('drop', async function(e) {
+	e.stopPropagation();
+	e.preventDefault();
+
+
+
+	let files = e.dataTransfer.files;
+
+	let worker = new Worker("./LoadWorker.js");
+	worker.postMessage(files);
+
+	// let tStart = performance.now();
+
+	// let printElapsed = (label) => {
+	// 	let duration = performance.now() - tStart;
+	// 	console.log(`${label}: ${(duration / 1000).toFixed(3)}s`);
+	// };
+
+	// let promises = [];
+	// for (let file of files) {
+	// 	let blob = file.slice(0, 10);
+	// 	let promise = blob.arrayBuffer();
+
+	// 	promise.then(buffer => {
+	// 		console.log(buffer);
+	// 	});
+		
+	// 	promises.push(promise);
+
+	// 	if(promises.length > 100){
+	// 		break;
+	// 	}
+	// }
+
+	// await Promise.all(promises);
+
+	// printElapsed("promises");
+
+});
+
+function loop(delta){
+	let rect = document.getElementById("rect");
+
+	let pos = 100 * Math.cos(performance.now() / 100) + 100;
+	rect.style.left = `${pos}px`;
+
+	requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+
+// dropZone.addEventListener('drop', async function(e) {
+// 	e.stopPropagation();
+// 	e.preventDefault();
+// 	var files = e.dataTransfer.files;
+
+// 	let tStart = performance.now();
+
+// 	let printElapsed = (label) => {
+// 		let duration = performance.now() - tStart;
+// 		console.log(`${label}: ${(duration / 1000).toFixed(3)}s`);
+// 	};
+
+// 	let blobs = [];
+// 	for (let file of files) {
+// 		let promise = file.slice(0, 10);
+// 		blobs.push(promise);
+// 	}
+
+// 	printElapsed("00");
+// 	await Promise.all(blobs);
+// 	printElapsed("10");
+
+
+// 	let buffers = blobs.map(blob => blob.arrayBuffer());
+// 	printElapsed("20");
+// 	await Promise.all(buffers);
+// 	printElapsed("30");
+
+// 	let duration = performance.now() - tStart;
+// 	console.log(`duration: ${(duration / 1000).toFixed(3)}s`);
+
+// });
+
+</script>
+
+
+
+
+</body>
+</html>
+

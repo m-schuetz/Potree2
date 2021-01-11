@@ -2,10 +2,8 @@
 
 import {Renderer} from "./src/renderer/Renderer.js";
 import {Camera} from "./src/scene/Camera.js";
-import {mat4} from './libs/gl-matrix.js';
 import {OrbitControls} from "./src/navigation/OrbitControls.js";
-import {Vector3} from "./src/math/Vector3.js";
-import {Matrix4} from "./src/math/Matrix4.js";
+import {Vector3, Matrix4} from "./src/math/math.js";
 
 import {Potree} from "./src/Potree.js";
 
@@ -13,6 +11,8 @@ import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
 import {renderFill}  from "./src/potree/renderFill.js";
 import {drawTexture} from "./src/prototyping/textures.js";
+
+import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
 
 import * as dat from "./libs/dat.gui/dat.gui.module.js";
 
@@ -24,6 +24,9 @@ let fps = 0;
 let renderer = null;
 let camera = null;
 let controls = null;
+let progress = null;
+
+let boxes = [];
 
 let gui = null;
 let guiContent = {
@@ -171,6 +174,24 @@ function render(){
 		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 2, 0), new Vector3(0, 255, 0));
 		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, 2), new Vector3(0, 0, 255));
 	}
+
+	if(guiContent["show bounding box"]){ // draw boxes
+		for(let box of boxes){
+			let position = box.center();
+			let size = box.size();
+			let color = new Vector3(255, 255, 0);
+
+			renderer.drawBoundingBox(position, size, color);
+		}
+	}
+
+	{
+		if(progress?.octree?.visibleNodes.length > 0){
+			// console.log(progress);
+			renderPoints(renderer, pass, progress.octree, camera);
+		}
+		// renderPoints(renderer, pass, pointcloud, camera);
+	}
 	
 	renderer.renderDrawCommands(pass, camera);
 	renderer.finish(pass);
@@ -199,6 +220,16 @@ async function run(){
 	window.controls = controls;
 
 	camera.fov = 60;
+
+	{
+		let element = document.getElementById("canvas");
+		ProgressiveLoader.install(element, (e) => {
+			//console.log(e.boxes);
+			boxes = e.boxes;
+
+			progress = e.progress;
+		});
+	}
 
 	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
