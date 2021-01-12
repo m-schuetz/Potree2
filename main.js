@@ -37,7 +37,7 @@ let guiContent = {
 	"camera": "",
 
 	"show bounding box": false,
-	"mode": "points/quads",
+	"mode": "points/dilute",
 	"point budget (M)": 3,
 	"point size": 1,
 	"update": true,
@@ -188,7 +188,11 @@ function render(){
 	{
 		if(progress?.octree?.visibleNodes.length > 0){
 			// console.log(progress);
-			renderPoints(renderer, pass, progress.octree, camera);
+			// renderPoints(renderer, pass, progress.octree, camera);
+
+			let numPoints = progress.octree.visibleNodes.reduce( (a, i) => a + i.geometry.numElements, 0);
+			let text = `${(numPoints / 1_000_000).toFixed(1)}M points`;
+			document.getElementById("big_message").innerText = text;
 		}
 		// renderPoints(renderer, pass, pointcloud, camera);
 	}
@@ -233,23 +237,26 @@ async function run(){
 			console.log(progress);
 
 			let pivot = progress.boundingBox.center();
+			pivot.z = 0.8 * progress.boundingBox.min.z + 0.2 * progress.boundingBox.max.z;
 			controls.pivot.copy(pivot);
-			controls.radius = progress.boundingBox.size().length();
+			controls.radius = progress.boundingBox.size().length() * 0.7;
+
+			window.pointcloud = progress.octree;
 		});
 	}
 
-	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
-	// 	controls.radius = 10;
-	// 	controls.yaw = -Math.PI / 6;
-	// 	controls.pitch = Math.PI / 5;
+		controls.radius = 10;
+		controls.yaw = -Math.PI / 6;
+		controls.pitch = Math.PI / 5;
 
-	// 	pointcloud.updateVisibility(camera);
-	// 	pointcloud.position.set(-0.9, 0.1, -5);
-	// 	pointcloud.updateWorld();
-	// 	window.pointcloud = pointcloud;
+		pointcloud.updateVisibility(camera);
+		pointcloud.position.set(-0.9, 0.1, -5);
+		pointcloud.updateWorld();
+		window.pointcloud = pointcloud;
 
-	// });
+	});
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	controls.radius = 20;

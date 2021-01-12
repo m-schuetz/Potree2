@@ -6,6 +6,19 @@ td{
 	padding: 2px 10px 0px 0px;
 }
 
+#big_message{
+	position: absolute; 
+	left: calc(50%); 
+	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 4em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
 </style>
 </head>
 <body style="padding: 0; margin: 0">
@@ -22,7 +35,7 @@ td{
 	
 	A WebGPU point cloud rendering demo.<br>
 	<!-- "Heidentor" point cloud courtesy of <a href="https://archpro.lbg.ac.at/">ArchPro</a><br> -->
-	"Eclepens" point cloud courtesy of <a href="https://www.pix4d.com">Pix4D</a>. (68.7M points)<br>
+	<!-- "Eclepens" point cloud courtesy of <a href="https://www.pix4d.com">Pix4D</a>. (68.7M points)<br> -->
 	Requires <a href="https://www.google.com/intl/de/chrome/canary/">Chrome Canary 89</a><br>
 
 	<table >
@@ -31,11 +44,9 @@ td{
 			<td><a href="https://github.com/m-schuetz/Potree2">https://github.com/m-schuetz/Potree2</a></td>
 		</tr>
 	</table>
-
-	
-	
 </span>
 
+<span id="big_message"></span>
 
 <script type="module" src="main.js"></script>
 

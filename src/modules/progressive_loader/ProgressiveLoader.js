@@ -6,6 +6,7 @@ import {WorkerPool} from "../../misc/WorkerPool.js";
 
 let octree = new SceneNode("octree");
 octree.visibleNodes = [];
+octree.updateVisibility = () => {};
 
 let progress = {
 	header: null,
@@ -18,8 +19,8 @@ let workerPath = "./src/modules/progressive_loader/LasDecoder_worker.js";
 let workers = [
 	WorkerPool.getWorker(workerPath, {type: "module"}),
 	WorkerPool.getWorker(workerPath, {type: "module"}),
-	// WorkerPool.getWorker(workerPath, {type: "module"}),
-	// WorkerPool.getWorker(workerPath, {type: "module"}),
+	WorkerPool.getWorker(workerPath, {type: "module"}),
+	WorkerPool.getWorker(workerPath, {type: "module"}),
 	// WorkerPool.getWorker(workerPath, {type: "module"}),
 	// WorkerPool.getWorker(workerPath, {type: "module"}),
 ];
@@ -36,7 +37,7 @@ async function loadHeader(file){
 	let worker = workers.pop();
 
 	worker.onmessage = (e) => {
-		let {buffers, numPoints, min, max} = e.data;
+		let {buffers, numPoints, header, min, max} = e.data;
 
 		let geometry = new Geometry();
 		geometry.numElements = numPoints;
@@ -55,7 +56,9 @@ async function loadHeader(file){
 		
 		node.name = "0";
 		node.loaded = true;
-		node.boundingBox = new Box3(min, max);
+		node.boundingBox = new Box3();
+		node.boundingBox.min.copy(min);
+		node.boundingBox.max.copy(max);
 		node.level = 0;
 		node.geometry = geometry;
 		
@@ -68,7 +71,8 @@ async function loadHeader(file){
 		console.log("time: ", performance.now());
 	};
 
-	worker.postMessage({file});
+	let octree_min = octree.boundingBox.min;
+	worker.postMessage({file, octree_min});
 
 
 }
@@ -101,7 +105,7 @@ function install(element, callback){
 
 			promises.push(promise);
 
-			load(file);
+			// load(file);
 		}
 
 
@@ -131,6 +135,14 @@ function install(element, callback){
 		}
 
 		progress.boundingBox = full_aabb;
+
+		octree.boundingBox = full_aabb;
+		octree.position.copy(full_aabb.min);
+		octree.updateWorld();
+
+		for (let file of files) {
+			load(file);
+		}
 
 		// load(files.item(0));
 		// load(files.item(1));

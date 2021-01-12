@@ -2,11 +2,31 @@
 import {Vector3} from "../../math/math.js";
 import {Geometry} from "../../core/Geometry.js";
 
+// from https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+function shuffle(array) {
+	var currentIndex = array.length, temporaryValue, randomIndex;
+
+	// While there remain elements to shuffle...
+	while (0 !== currentIndex) {
+
+		// Pick a remaining element...
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex -= 1;
+
+		// And swap it with the current element.
+		temporaryValue = array[currentIndex];
+		array[currentIndex] = array[randomIndex];
+		array[randomIndex] = temporaryValue;
+	}
+
+	return array;
+}
+
 onmessage = async function(e){
 
 	console.log("test");
 
-	let {file} = e.data;
+	let {file, octree_min} = e.data;
 
 	let buffer = await file.slice(0, 375).arrayBuffer()
 
@@ -54,12 +74,28 @@ onmessage = async function(e){
 	};
 
 
-	{
-		let n = Math.min(numPoints, 5_000_000);
+	let batchSize = 1_000_000;
+	let batches = [];
+	for(let i = 0; i < numPoints; i += batchSize){
+		let batch = {
+			start: i,
+			count: Math.min(numPoints - i, batchSize),
+		};
+
+		batches.push(batch);
+	}
+	shuffle(batches);
+
+	// for(let absolute_i = 0; absolute_i < numPoints; absolute_i += batchSize){
+	// 	let n = Math.min(numPoints - absolute_i, batchSize);
+	for(let batch of batches){
+
+		let absolute_i = batch.start;
+		let n = batch.count;
 
 		let buffer = await file.slice(
-			offsetToPointData, 
-			offsetToPointData + n * recordLength,
+			offsetToPointData + absolute_i * recordLength, 
+			offsetToPointData + (absolute_i + n) * recordLength,
 		).arrayBuffer()
 		let view = new DataView(buffer);
 
@@ -81,9 +117,9 @@ onmessage = async function(e){
 			let Y = view.getInt32(pointOffset + 4, true);
 			let Z = view.getInt32(pointOffset + 8, true);
 
-			let x = X * header.scale.x + header.offset.x;
-			let y = Y * header.scale.y + header.offset.y;
-			let z = Z * header.scale.z + header.offset.z;
+			let x = X * header.scale.x + header.offset.x - octree_min.x;
+			let y = Y * header.scale.y + header.offset.y - octree_min.y;
+			let z = Z * header.scale.z + header.offset.z - octree_min.z;
 
 			position[3 * i + 0] = x;
 			position[3 * i + 1] = y;
