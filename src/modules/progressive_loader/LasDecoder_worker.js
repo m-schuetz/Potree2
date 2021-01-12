@@ -55,7 +55,7 @@ onmessage = async function(e){
 
 
 	{
-		let n = Math.min(numPoints, 1_000_000);
+		let n = Math.min(numPoints, 5_000_000);
 
 		let buffer = await file.slice(
 			offsetToPointData, 
@@ -102,6 +102,7 @@ onmessage = async function(e){
 				color: color,
 			},
 			min, max,
+			header,
 		};
 
 		let transferables = [];

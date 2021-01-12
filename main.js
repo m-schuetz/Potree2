@@ -229,6 +229,12 @@ async function run(){
 
 			progress = e.progress;
 			window.progress = progress;
+
+			console.log(progress);
+
+			let pivot = progress.boundingBox.center();
+			controls.pivot.copy(pivot);
+			controls.radius = progress.boundingBox.size().length();
 		});
 	}
 

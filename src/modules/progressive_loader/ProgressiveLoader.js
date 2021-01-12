@@ -18,10 +18,10 @@ let workerPath = "./src/modules/progressive_loader/LasDecoder_worker.js";
 let workers = [
 	WorkerPool.getWorker(workerPath, {type: "module"}),
 	WorkerPool.getWorker(workerPath, {type: "module"}),
-	WorkerPool.getWorker(workerPath, {type: "module"}),
-	WorkerPool.getWorker(workerPath, {type: "module"}),
-	WorkerPool.getWorker(workerPath, {type: "module"}),
-	WorkerPool.getWorker(workerPath, {type: "module"}),
+	// WorkerPool.getWorker(workerPath, {type: "module"}),
+	// WorkerPool.getWorker(workerPath, {type: "module"}),
+	// WorkerPool.getWorker(workerPath, {type: "module"}),
+	// WorkerPool.getWorker(workerPath, {type: "module"}),
 ];
 
 
@@ -107,6 +107,8 @@ function install(element, callback){
 
 		let buffers = await Promise.all(promises);
 
+		let full_aabb = new Box3();
+
 		let boxes = [];
 		for(let buffer of buffers){
 			let view = new DataView(buffer);
@@ -123,7 +125,12 @@ function install(element, callback){
 
 			let box = new Box3(min, max);
 			boxes.push(box);
+
+			full_aabb.expandByPoint(min);
+			full_aabb.expandByPoint(max);
 		}
+
+		progress.boundingBox = full_aabb;
 
 		// load(files.item(0));
 		// load(files.item(1));
