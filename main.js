@@ -10,6 +10,7 @@ import {Potree} from "./src/Potree.js";
 import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
 import {renderDilate}  from "./src/potree/renderDilate.js";
+import {renderAtomic}  from "./src/potree/renderAtomic.js";
 import {drawTexture} from "./src/prototyping/textures.js";
 
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
@@ -37,7 +38,7 @@ let guiContent = {
 	"camera": "",
 
 	"show bounding box": false,
-	"mode": "points/quads",
+	"mode": "points/dilate",
 	"point budget (M)": 3,
 	"point size": 1,
 	"update": true,
@@ -149,8 +150,10 @@ function render(){
 	let pointcloud = window.pointcloud;
 	let target = null;
 
+	let shouldDrawTarget = false;
 	if(pointcloud && guiContent["mode"] === "points/dilate"){
 		target = renderDilate(renderer, pointcloud, camera);
+		shouldDrawTarget = true;
 	}
 
 
@@ -164,7 +167,9 @@ function render(){
 		}else{
 			renderQuads(renderer, pass, pointcloud, camera);
 		}
-	}else if(pointcloud && guiContent["mode"] === "points/dilate"){
+	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
+		renderAtomic(renderer, pass, pointcloud, camera);
+	}else if(shouldDrawTarget){
 		drawTexture(renderer, pass, target.colorAttachments[0].texture, 
 			0, 0, 1, 1);
 	}
@@ -192,7 +197,7 @@ function render(){
 
 			let numPoints = progress.octree.visibleNodes.reduce( (a, i) => a + i.geometry.numElements, 0);
 			let text = `${(numPoints / 1_000_000).toFixed(1)}M points`;
-			document.getElementById("big_message").innerText = text;
+			// document.getElementById("big_message").innerText = text;
 		}
 		// renderPoints(renderer, pass, pointcloud, camera);
 	}
