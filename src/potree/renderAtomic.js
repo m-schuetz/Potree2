@@ -1,6 +1,7 @@
 
 import {Vector3, Matrix4} from "../math/math.js";
 import {SPECTRAL} from "../misc/Gradients.js";
+import {RenderTarget} from "../core/RenderTarget.js";
 
 import glslangModule from "../../libs/glslang/glslang.js";
 
@@ -44,6 +45,36 @@ void main() {
 	outColor = fragColor;
 }
 `;
+
+let _target_1 = null;
+
+function getTarget1(renderer){
+	if(_target_1 === null){
+
+		let size = [128, 128, 1];
+		_target_1 = new RenderTarget(renderer, {
+			size: size,
+			colorDescriptors: [{
+				size: size,
+				format: renderer.swapChainFormat,
+				usage: GPUTextureUsage.SAMPLED 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+			}],
+			depthDescriptor: {
+				size: size,
+				format: "depth24plus-stencil8",
+				usage: GPUTextureUsage.SAMPLED 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+			}
+		});
+	}
+
+	return _target_1;
+}
 
 let octreeStates = new Map();
 let nodeStates = new Map();
@@ -166,6 +197,76 @@ function getNodeState(renderer, node){
 	return state;
 }
 
+
+let computeState = null;
+
+function getComputeState(renderer){
+
+	if(!computeState){
+
+		let {device} = renderer;
+
+		let cs = `
+		
+#version 450
+
+
+layout(local_size_x = 128, local_size_y = 1) in;
+
+layout(std430, set = 0, binding = 0) buffer SSBO {
+	uint ssbo[];
+};
+
+
+void main(){
+
+	uint globalID = gl_GlobalInvocationID.x;
+	
+	ssbo[globalID] = 255;
+}
+		
+		`;
+
+		let target = getTarget1();
+		let ssboSize = 2560 * 1440 * 4 * 4;
+		let ssbo = renderer.createBuffer(ssboSize);
+
+		let csDescriptor = {
+			code: glslang.compileGLSL(cs, "compute"),
+			source: cs,
+		};
+		let csModule = device.createShaderModule(csDescriptor);
+
+		let pipeline = device.createComputePipeline({
+			computeStage: {
+				module: csModule,
+				entryPoint: "main",
+			}
+		});
+
+		let bindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [{
+				binding: 0,
+				resource: {
+
+
+
+					
+					buffer: ssbo,
+					offset: 0,
+					size: ssboSize,
+				}
+			}]
+		});
+
+		computeState = {pipeline, bindGroup};
+	}
+
+	return computeState;
+}
+
+
 export function renderAtomic(renderer, pass, octree, camera){
 
 	if(!glslang){
@@ -256,4 +357,20 @@ export function renderAtomic(renderer, pass, octree, camera){
 		let numElements = node.geometry.numElements;
 		passEncoder.draw(numElements, 1, 0, 0);
 	}
+
+
+	{ // RUN COMPUTE SHADER
+		let size = renderer.getSize();
+		let target = getTarget1(renderer);
+		target.setSize(size.width, size.height);
+
+		let {pipeline, bindGroup} = getComputeState(renderer);
+
+		
+
+
+		return target;
+	}
+
+
 }

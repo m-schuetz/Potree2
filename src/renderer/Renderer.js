@@ -90,6 +90,18 @@ export class Renderer{
 		}
 	}
 
+	createBuffer(size){
+
+		let buffer = this.device.createBuffer({
+			size: size,
+			usage: GPUBufferUsage.VERTEX 
+				| GPUBufferUsage.STORAGE
+				| GPUBufferUsage.UNIFORM,
+		});
+
+		return buffer;
+	}
+
 	getGpuBuffers(geometry){
 		let {device} = renderer;
 
