@@ -1,7 +1,6 @@
 
-//import { mat4, vec3 } from '../../libs/gl-matrix.js';
 import {toRadians, toDegrees} from "../math/PMath.js";
-import {Matrix4} from "../math/Matrix4.js";
+import {Matrix4} from "../math/math.js";
 import {SceneNode} from "./SceneNode.js";
 
 export class Camera extends SceneNode{

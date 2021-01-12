@@ -76,7 +76,6 @@ let fs = `
 	[[binding(1), set(0)]] var<uniform_constant> mySampler: sampler;
 	[[binding(2), set(0)]] var<uniform_constant> myTexture: texture_sampled_2d<f32>;
 	[[binding(3), set(0)]] var<uniform_constant> myDepth: texture_sampled_2d<f32>;
-	#[[binding(3), set(0)]] var<uniform_constant> myDepth: texture_depth_2d;
 
 	[[location(0)]] var<out> outColor : vec4<f32>;
 
@@ -117,7 +116,7 @@ let fs = `
 				var linearDistance : f32 = d * far;
 
 
-				if(d < closest * 1.01){
+				if(d <= closest ){
 					var manhattanDistance : f32 = f32(abs(i) + abs(j));
 
 					var weight : f32 = 1.0;
@@ -294,7 +293,7 @@ function init(renderer){
 
 }
 
-export function renderFill(renderer, pointcloud, camera){
+export function renderDilate(renderer, pointcloud, camera){
 
 	init(renderer);
 

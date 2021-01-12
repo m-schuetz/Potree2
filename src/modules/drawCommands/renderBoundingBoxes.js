@@ -3,9 +3,10 @@ import {Vector3, Matrix4} from "../../math/math.js";
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] viewProj : mat4x4<f32>;
-	[[offset(64)]] screen_width : f32;
-	[[offset(68)]] screen_height : f32;
+	[[offset(0)]] worldView : mat4x4<f32>;
+	[[offset(64)]] proj : mat4x4<f32>;
+	[[offset(128)]] screen_width : f32;
+	[[offset(132)]] screen_height : f32;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
@@ -21,13 +22,10 @@ const vs = `
 [[stage(vertex)]]
 fn main() -> void {
 	
-	var far : f32 = 10000.0;
-
 	var worldPos : vec4<f32> = box_pos + point_pos * box_scale;
 	worldPos.w = 1.0;
-
-	out_pos = uniforms.viewProj * worldPos;
-	out_pos.z = out_pos.z * out_pos.w / far;
+	var viewPos : vec4<f32> = uniforms.worldView * worldPos;
+	out_pos = uniforms.proj * viewPos;
 
 	fragColor = box_color;
 
@@ -224,7 +222,7 @@ function init(renderer){
 		pipeline = createPipeline(renderer);
 
 		let {device} = renderer;
-		const uniformBufferSize = 4 * 16 + 8;
+		const uniformBufferSize = 2 * 4 * 16 + 8;
 
 		uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
@@ -251,13 +249,21 @@ export function renderBoundingBoxes(renderer, pass, boxes, camera){
 	{ // update uniforms
 
 		{ // transform
-			let viewProj = new Matrix4().multiplyMatrices(camera.proj, camera.view);
+			let world = new Matrix4();
+			let view = camera.view;
+			let worldView = new Matrix4().multiplyMatrices(view, world);
 
 			let tmp = new Float32Array(16);
 
-			tmp.set(viewProj.elements);
+			tmp.set(worldView.elements);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer, 0,
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
+			);
+
+			tmp.set(camera.proj.elements);
+			device.defaultQueue.writeBuffer(
+				uniformBuffer, 64,
 				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
 		}
@@ -267,7 +273,7 @@ export function renderBoundingBoxes(renderer, pass, boxes, camera){
 			let data = new Float32Array([size.width, size.height]);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer,
-				4 * 16,
+				128,
 				data.buffer,
 				data.byteOffset,
 				data.byteLength

@@ -9,7 +9,7 @@ import {Potree} from "./src/Potree.js";
 
 import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
-import {renderFill}  from "./src/potree/renderFill.js";
+import {renderDilate}  from "./src/potree/renderDilate.js";
 import {drawTexture} from "./src/prototyping/textures.js";
 
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
@@ -37,7 +37,7 @@ let guiContent = {
 	"camera": "",
 
 	"show bounding box": false,
-	"mode": "points/dilute",
+	"mode": "points/quads",
 	"point budget (M)": 3,
 	"point size": 1,
 	"update": true,
@@ -63,7 +63,7 @@ function initGUI(){
 		input.open();
 
 		// input.add(guiContent, "primitive", ["points", "quads"]);
-		input.add(guiContent, "mode", ["points/quads", "points/dilute"]);
+		input.add(guiContent, "mode", ["points/quads", "points/dilate"]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
 
@@ -149,8 +149,8 @@ function render(){
 	let pointcloud = window.pointcloud;
 	let target = null;
 
-	if(pointcloud && guiContent["mode"] === "points/dilute"){
-		target = renderFill(renderer, pointcloud, camera);
+	if(pointcloud && guiContent["mode"] === "points/dilate"){
+		target = renderDilate(renderer, pointcloud, camera);
 	}
 
 
@@ -164,7 +164,7 @@ function render(){
 		}else{
 			renderQuads(renderer, pass, pointcloud, camera);
 		}
-	}else if(pointcloud && guiContent["mode"] === "points/dilute"){
+	}else if(pointcloud && guiContent["mode"] === "points/dilate"){
 		drawTexture(renderer, pass, target.colorAttachments[0].texture, 
 			0, 0, 1, 1);
 	}

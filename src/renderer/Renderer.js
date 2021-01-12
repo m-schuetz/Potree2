@@ -1,7 +1,6 @@
 
 // after https://github.com/austinEng/webgpu-samples/blob/master/src/examples/rotatingCube.ts
 
-import { mat4, vec3 } from '../../libs/gl-matrix.js';
 import * as shaders from "../prototyping/shaders.js";
 import {renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
 import {renderLines} from "../modules/drawCommands/renderLines.js";
