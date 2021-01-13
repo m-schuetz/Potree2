@@ -11,7 +11,7 @@ glslangModule().then( result => {
 	glslang = result;
 });
 
-let cs = `
+let csDepth = `
 
 #version 450
 
@@ -69,13 +69,96 @@ void main(){
 
 	uint color = colors[index];
 
+	//uint r = (color >> 0) & 0xFFu;
+	//uint g = (color >> 8) & 0xFFu;
+	//uint b = (color >> 16) & 0xFFu;
+	//uint a = 255u;
+	//uint c = (r << 24) | (g << 16) | (b << 8) | a;
+
+	//framebuffer[pixelID] = c;
+
+	uint depth = uint(-viewPos.z * 1000.0);
+
+	atomicMin(framebuffer[pixelID], depth);
+}
+
+`;
+
+let csColor = `
+
+#version 450
+
+layout(local_size_x = 128, local_size_y = 1) in;
+
+layout(set = 0, binding = 0) uniform Uniforms {
+	mat4 worldView;
+	mat4 proj;
+	uint width;
+	uint height;
+} uniforms;
+
+
+layout(std430, set = 0, binding = 1) buffer SSBO_COLORS {
+	uint ssbo_colors[];
+};
+
+layout(std430, set = 0, binding = 2) buffer SSBO_DEPTH {
+	uint ssbo_depth[];
+};
+
+layout(std430, set = 0, binding = 3) buffer SSBO_position {
+	float positions[];
+};
+
+layout(std430, set = 0, binding = 4) buffer SSBO_color {
+	uint colors[];
+};
+
+
+
+void main(){
+
+	uint index = gl_GlobalInvocationID.x;
+
+	vec4 pos_point = vec4(
+		positions[3 * index + 0],
+		positions[3 * index + 1],
+		positions[3 * index + 2],
+		1.0);
+
+	vec4 viewPos = uniforms.worldView * pos_point;
+	vec4 pos = uniforms.proj * viewPos;
+
+	pos.xyz = pos.xyz / pos.w;
+
+	if(pos.w <= 0.0 || pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0){
+		return;
+	}
+
+	ivec2 imageSize = ivec2(
+		int(uniforms.width),
+		int(uniforms.height)
+	);
+
+	vec2 imgPos = (pos.xy * 0.5 + 0.5) * imageSize;
+	ivec2 pixelCoords = ivec2(imgPos);
+	int pixelID = pixelCoords.x + pixelCoords.y * imageSize.x;
+
+	uint color = colors[index];
+
 	uint r = (color >> 0) & 0xFFu;
 	uint g = (color >> 8) & 0xFFu;
 	uint b = (color >> 16) & 0xFFu;
-	uint a = 255u;
-	uint c = (r << 24) | (g << 16) | (b << 8) | a;
 
-	framebuffer[pixelID] = c;
+	uint depth = uint(-viewPos.z * 1000.0);
+	uint bufferedDepth = ssbo_depth[pixelID];
+
+	if(depth < 1.01 * bufferedDepth){
+		atomicAdd(ssbo_colors[4 * pixelID + 0], r);
+		atomicAdd(ssbo_colors[4 * pixelID + 1], g);
+		atomicAdd(ssbo_colors[4 * pixelID + 2], b);
+		atomicAdd(ssbo_colors[4 * pixelID + 3], 1);
+	}
 }
 
 `;
@@ -90,11 +173,15 @@ layout(std430, set = 0, binding = 0) buffer SSBO {
 	uint framebuffer[];
 };
 
+layout(set = 0, binding = 1) uniform Uniforms {
+	uint value;
+} uniforms;
+
 void main(){
 
 	uint index = gl_GlobalInvocationID.x;
 
-	framebuffer[index] = 0;
+	framebuffer[index] = uniforms.value;
 }
 `;
 
@@ -184,7 +271,7 @@ let fs = `
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[binding(1), set(0)]] var<storage_buffer> colors : Colors;
+	[[binding(1), set(0)]] var<storage_buffer> ssbo_colors : Colors;
 
 	[[location(0)]] var<out> outColor : vec4<f32>;
 
@@ -198,15 +285,21 @@ let fs = `
 		var index : u32 = 
 			u32(fragCoord.x) +
 			(u32(uniforms.screenHeight) - u32(fragCoord.y) - 1) * u32(uniforms.screenWidth);
+		
+		var c : u32 = ssbo_colors.values[4 * index + 3];
+		var r : u32 = ssbo_colors.values[4 * index + 0] / c;
+		var g : u32 = ssbo_colors.values[4 * index + 1] / c;
+		var b : u32 = ssbo_colors.values[4 * index + 2] / c;
 
-		var c : u32 = colors.values[index];
-
-		outColor.r = f32((c >> 24) & 0xFFu) / 256.0;
-		outColor.g = f32((c >> 16) & 0xFFu) / 256.0;
-		outColor.b = f32((c >> 8) & 0xFFu) / 256.0;
+		outColor.r = f32(r) / 256.0;
+		outColor.g = f32(g) / 256.0;
+		outColor.b = f32(b) / 256.0;
 		outColor.a = 1.0;
 
-		return;
+		#outColor.r = f32(r) / 10.0;
+		#outColor.g = f32(g) / 10.0;
+		#outColor.b = f32(b) / 10.0;
+
 	}
 `;
 
@@ -244,13 +337,14 @@ function getTarget1(renderer){
 }
 
 
-let computeState = null;
+let depthState = null;
+let colorState = null;
 let resetState = null;
 let screenPassState = null;
 
-function getComputeState(renderer){
+function getDepthState(renderer){
 
-	if(!computeState){
+	if(!depthState){
 
 		let {device} = renderer;
 
@@ -259,8 +353,8 @@ function getComputeState(renderer){
 		let ssbo = renderer.createBuffer(ssboSize);
 
 		let csDescriptor = {
-			code: glslang.compileGLSL(cs, "compute"),
-			source: cs,
+			code: glslang.compileGLSL(csDepth, "compute"),
+			source: csDepth,
 		};
 		let csModule = device.createShaderModule(csDescriptor);
 
@@ -277,10 +371,44 @@ function getComputeState(renderer){
 			}
 		});
 
-		computeState = {pipeline, ssbo, ssboSize, uniformBuffer};
+		depthState = {pipeline, ssbo, ssboSize, uniformBuffer};
 	}
 
-	return computeState;
+	return depthState;
+}
+
+function getColorState(renderer){
+
+	if(!colorState){
+
+		let {device} = renderer;
+
+		let ssboSize = 4 * 2560 * 1440 * 4 * 4;
+		let ssbo_colors = renderer.createBuffer(ssboSize);
+
+		let csDescriptor = {
+			code: glslang.compileGLSL(csColor, "compute"),
+			source: csColor,
+		};
+		let csModule = device.createShaderModule(csDescriptor);
+
+		let uniformBufferSize = 2 * 64 + 8;
+		let uniformBuffer = device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		let pipeline = device.createComputePipeline({
+			computeStage: {
+				module: csModule,
+				entryPoint: "main",
+			}
+		});
+
+		colorState = {pipeline, ssbo_colors, ssboSize, uniformBuffer};
+	}
+
+	return colorState;
 }
 
 function getResetState(renderer){
@@ -289,9 +417,15 @@ function getResetState(renderer){
 
 		let {device} = renderer;
 
+		let uniformBufferSize = 4;
+		let uniformBuffer = device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
 		let csDescriptor = {
 			code: glslang.compileGLSL(csReset, "compute"),
-			source: cs,
+			source: csReset,
 		};
 		let csModule = device.createShaderModule(csDescriptor);
 
@@ -302,7 +436,7 @@ function getResetState(renderer){
 			}
 		});
 
-		resetState = {pipeline};
+		resetState = {pipeline, uniformBuffer};
 	}
 
 	return resetState;
@@ -361,7 +495,57 @@ function getScreenPassState(renderer){
 }
 
 let frame = 0;
-let resetBuffer = new ArrayBuffer(2560 * 1440 * 4);
+
+function reset(renderer, ssbo, numUints, value){
+
+	let {device} = renderer;
+	let {pipeline, uniformBuffer} = getResetState(renderer);
+
+	let bindGroup = device.createBindGroup({
+		layout: pipeline.getBindGroupLayout(0),
+		entries: [
+			{
+				binding: 0,
+				resource: {
+					buffer: ssbo,
+					offset: 0,
+					size: numUints * 4,
+				}
+			},{
+				binding: 1,
+				resource: {
+					buffer: uniformBuffer,
+				}
+			}
+		]
+	});
+
+
+	{ // uniform buffer
+		let data = new Uint32Array([value]);
+		device.defaultQueue.writeBuffer(
+			uniformBuffer,
+			0,
+			data.buffer,
+			data.byteOffset,
+			data.byteLength
+		);
+	}
+
+
+	const commandEncoder = device.createCommandEncoder();
+
+	let passEncoder = commandEncoder.beginComputePass();
+
+	passEncoder.setPipeline(pipeline);
+	passEncoder.setBindGroup(0, bindGroup);
+
+	let groups = numUints / 128;
+	passEncoder.dispatch(groups, 1, 1);
+	passEncoder.endPass();
+
+	device.defaultQueue.submit([commandEncoder.finish()]);
+}
 
 export function renderAtomic(renderer, octree, camera){
 
@@ -385,8 +569,8 @@ export function renderAtomic(renderer, octree, camera){
 		target.setSize(size.width, size.height);
 	}
 
-	{ // update uniforms
-		let {uniformBuffer} = getComputeState(renderer);
+	{ // update uniforms DEPTH
+		let {uniformBuffer} = getDepthState(renderer);
 
 		{ // transform
 			let world = octree.world;
@@ -421,43 +605,62 @@ export function renderAtomic(renderer, octree, camera){
 		}
 	}
 
-	{ // RESET
-		let {pipeline} = getResetState(renderer);
-		let {ssbo, ssboSize} = getComputeState(renderer);
+	{ // update uniforms COLOR
+		let {uniformBuffer} = getColorState(renderer);
+
+		{ // transform
+			let world = octree.world;
+			let view = camera.view;
+			let worldView = new Matrix4().multiplyMatrices(view, world);
+
+			let tmp = new Float32Array(16);
+
+			tmp.set(worldView.elements);
+			device.defaultQueue.writeBuffer(
+				uniformBuffer, 0,
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
+			);
+
+			tmp.set(camera.proj.elements);
+			device.defaultQueue.writeBuffer(
+				uniformBuffer, 64,
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
+			);
+		}
+
+		{ // screen size
+			let size = renderer.getSize();
+			let data = new Uint32Array([size.width, size.height]);
+			device.defaultQueue.writeBuffer(
+				uniformBuffer,
+				128,
+				data.buffer,
+				data.byteOffset,
+				data.byteLength
+			);
+		}
+	}
+
+	{ // RESET BUFFERS
 		let size = renderer.getSize();
+		let numUints = size.width * size.height;
 
-		let bindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [
-				{
-					binding: 0,
-					resource: {
-						buffer: ssbo,
-						offset: 0,
-						size: ssboSize,
-					}
-				}
-			]
-		});
+		{
+			let {ssbo} = getDepthState(renderer);
 
+			reset(renderer, ssbo, numUints, 0xffffff);
+		}
 
-		const commandEncoder = device.createCommandEncoder();
+		{
+			let {ssbo_colors} = getColorState(renderer);
 
-		let passEncoder = commandEncoder.beginComputePass();
-
-		passEncoder.setPipeline(pipeline);
-		passEncoder.setBindGroup(0, bindGroup);
-
-		let groups = size.width * size.height / 128;
-		passEncoder.dispatch(groups, 1, 1);
-		passEncoder.endPass();
-
-		device.defaultQueue.submit([commandEncoder.finish()]);
+			reset(renderer, ssbo_colors, 4 * numUints, 0);
+		}
 	}
 
 
-	{ // COMPUTE SHADER
-		let {pipeline, uniformBuffer, ssbo, ssboSize} = getComputeState(renderer);
+	{ // DEPTH PASS
+		let {pipeline, uniformBuffer, ssbo, ssboSize} = getDepthState(renderer);
 
 		//let node = nodes[0];
 
@@ -516,8 +719,77 @@ export function renderAtomic(renderer, octree, camera){
 
 	}
 
+	{ // COLOR PASS
+		let {pipeline, uniformBuffer, ssboSize} = getColorState(renderer);
+		let {ssbo_colors} = getColorState(renderer);
+		let ssbo_depth = getDepthState(renderer).ssbo;
+
+
+		for(let node of nodes){
+			let gpuBuffers = renderer.getGpuBuffers(node.geometry);
+
+			let bindGroup = device.createBindGroup({
+				layout: pipeline.getBindGroupLayout(0),
+				entries: [
+					{
+						binding: 0,
+						resource: {
+							buffer: uniformBuffer,
+						}
+					},{
+						binding: 1,
+						resource: {
+							buffer: ssbo_colors,
+							offset: 0,
+							size: ssboSize,
+						}
+					},{
+						binding: 2,
+						resource: {
+							buffer: ssbo_depth,
+							offset: 0,
+							size: ssboSize / 4,
+						}
+					},{
+						binding: 3,
+						resource: {
+							buffer: gpuBuffers[0].vbo,
+							offset: 0,
+							size: node.geometry.numElements * 12,
+						}
+					},{
+						binding: 4,
+						resource: {
+							buffer: gpuBuffers[1].vbo,
+							offset: 0,
+							size: node.geometry.numElements * 4,
+						}
+					}
+				]
+			});
+
+			const commandEncoder = device.createCommandEncoder();
+
+			let passEncoder = commandEncoder.beginComputePass();
+
+			passEncoder.setPipeline(pipeline);
+			passEncoder.setBindGroup(0, bindGroup);
+
+			let groups = [
+				Math.floor(node.geometry.numElements / 128),
+				1, 1
+			];
+			passEncoder.dispatch(...groups);
+			passEncoder.endPass();
+
+			device.defaultQueue.submit([commandEncoder.finish()]);
+		}
+
+	}
+
 	{ // resolve
-		let {ssbo} = getComputeState(renderer);
+		let {ssbo} = getDepthState(renderer);
+		let {ssbo_colors} = getColorState(renderer);
 		let {pipeline, uniformBuffer} = getScreenPassState(renderer);
 		let target = getTarget1(renderer);
 		let size = renderer.getSize();
@@ -529,7 +801,7 @@ export function renderAtomic(renderer, octree, camera){
 					resource: {buffer: uniformBuffer}
 				},{
 					binding: 1,
-					resource: {buffer: ssbo},
+					resource: {buffer: ssbo_colors},
 				}],
 		});
 
