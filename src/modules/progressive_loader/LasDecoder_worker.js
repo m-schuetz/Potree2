@@ -74,7 +74,7 @@ onmessage = async function(e){
 	};
 
 
-	let batchSize = 1_000_000;
+	let batchSize = 30_000_000;
 	let batches = [];
 	for(let i = 0; i < numPoints; i += batchSize){
 		let batch = {

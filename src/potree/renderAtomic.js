@@ -15,38 +15,84 @@ let cs = `
 
 #version 450
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 128, local_size_y = 1) in;
 
 layout(set = 0, binding = 0) uniform Uniforms {
+	mat4 worldView;
+	mat4 proj;
 	uint width;
 	uint height;
 } uniforms;
 
 
 layout(std430, set = 0, binding = 1) buffer SSBO {
-	uint ssbo[];
+	uint framebuffer[];
+};
+
+layout(std430, set = 0, binding = 2) buffer SSBO_position {
+	float positions[];
 };
 
 
 
 void main(){
 
-	// uint globalID = gl_GlobalInvocationID.x;
+	uint index = gl_GlobalInvocationID.x;
 
-	ivec2 pixelID = ivec2 (
-		gl_GlobalInvocationID.x,
-		gl_GlobalInvocationID.y);
-	
-	uint index = pixelID.y * uniforms.width + pixelID.x;
+	vec4 pos_point = vec4(
+		positions[3 * index + 0],
+		positions[3 * index + 1],
+		positions[3 * index + 2],
+		1.0);
 
-	// uint value = 255 * index / (uniforms.width * uniforms.height);
-	uint value = index / uniforms.height;
-	
-	ssbo[index] = value;
+	vec4 viewPos = uniforms.worldView * pos_point;
+	vec4 pos = uniforms.proj * viewPos;
+
+	pos.xyz = pos.xyz / pos.w;
+
+	if(pos.w <= 0.0 || pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0){
+		return;
+	}
+
+	ivec2 imageSize = ivec2(
+		int(uniforms.width),
+		int(uniforms.height)
+	);
+
+	vec2 imgPos = (pos.xy * 0.5 + 0.5) * imageSize;
+	ivec2 pixelCoords = ivec2(imgPos);
+	int pixelID = pixelCoords.x + pixelCoords.y * imageSize.x;
+
+
+	uint r = 0u;
+	uint g = 255u;
+	uint b = 0u;
+	uint a = 255u;
+	uint c = (r << 24) | (g << 16) | (b << 8) | a;
+
+	framebuffer[pixelID] = c;
 
 
 }
 
+`;
+
+let csReset = `
+
+#version 450
+
+layout(local_size_x = 128, local_size_y = 1) in;
+
+layout(std430, set = 0, binding = 0) buffer SSBO {
+	uint framebuffer[];
+};
+
+void main(){
+
+	uint index = gl_GlobalInvocationID.x;
+
+	framebuffer[index] = 0;
+}
 `;
 
 
@@ -124,6 +170,16 @@ let fs = `
 		[[offset(0)]] values : [[stride(4)]] array<u32>;
 	};
 
+	[[block]] struct Uniforms {
+		[[offset(0)]] uTest : u32;
+		[[offset(4)]] x : f32;
+		[[offset(8)]] y : f32;
+		[[offset(12)]] width : f32;
+		[[offset(16)]] height : f32;
+		[[offset(20)]] screenWidth : f32;
+		[[offset(24)]] screenHeight : f32;
+	};
+	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
 	[[binding(1), set(0)]] var<storage_buffer> colors : Colors;
 
@@ -136,23 +192,16 @@ let fs = `
 	[[stage(fragment)]]
 	fn main() -> void {
 
-		var index : u32 = 256u * u32(fragCoord.y) + u32(fragCoord.x);
+		var index : u32 = 
+			u32(fragCoord.x) +
+			(u32(uniforms.screenHeight) - u32(fragCoord.y) - 1) * u32(uniforms.screenWidth);
 
-		var c : vec4<f32>;
-		
-		c.x = f32(colors.values[index]) / 255.0;
-		c.y = f32(colors.values[index]) / 255.0;
-		c.z = f32(colors.values[index]) / 255.0;
+		var c : u32 = colors.values[index];
 
-		c.w = 1.0;
-
-		outColor = c;
-
-
-		#outColor.x = 0.0;
-		#outColor.y = 1.0;
-		#outColor.z = 0.0;
-		#outColor.w = 1.0;
+		outColor.r = f32((c >> 24) & 0xFFu) / 256.0;
+		outColor.g = f32((c >> 16) & 0xFFu) / 256.0;
+		outColor.b = f32((c >> 8) & 0xFFu) / 256.0;
+		outColor.a = 1.0;
 
 		return;
 	}
@@ -193,6 +242,7 @@ function getTarget1(renderer){
 
 
 let computeState = null;
+let resetState = null;
 let screenPassState = null;
 
 function getComputeState(renderer){
@@ -211,42 +261,48 @@ function getComputeState(renderer){
 		};
 		let csModule = device.createShaderModule(csDescriptor);
 
-		let uniformBufferSize = 24;
+		let uniformBufferSize = 2 * 64 + 8;
 		let uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
 		let pipeline = device.createComputePipeline({
-			// layout: layout, 
 			computeStage: {
 				module: csModule,
 				entryPoint: "main",
 			}
 		});
 
-		let bindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [{
-					binding: 0,
-					resource: {
-						buffer: uniformBuffer,
-					}
-				},{
-					binding: 1,
-					resource: {
-						buffer: ssbo,
-						offset: 0,
-						size: ssboSize,
-					}
-			}]
-		});
-
-
-		computeState = {pipeline, bindGroup, ssbo, uniformBuffer};
+		computeState = {pipeline, ssbo, ssboSize, uniformBuffer};
 	}
 
 	return computeState;
+}
+
+function getResetState(renderer){
+
+	if(!resetState){
+
+		let {device} = renderer;
+
+		let csDescriptor = {
+			code: glslang.compileGLSL(csReset, "compute"),
+			source: cs,
+		};
+		let csModule = device.createShaderModule(csDescriptor);
+
+		let pipeline = device.createComputePipeline({
+			computeStage: {
+				module: csModule,
+				entryPoint: "main",
+			}
+		});
+
+		resetState = {pipeline};
+	}
+
+	return resetState;
 }
 
 function getScreenPassState(renderer){
@@ -257,7 +313,7 @@ function getScreenPassState(renderer){
 		let bindGroupLayout = device.createBindGroupLayout({
 			entries: [{
 				binding: 0,
-				visibility: GPUShaderStage.VERTEX,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
 				type: "uniform-buffer"
 			},{
 				binding: 1,
@@ -289,7 +345,7 @@ function getScreenPassState(renderer){
 			}],
 		});
 
-		let uniformBufferSize = 24;
+		let uniformBufferSize = 32;
 		let uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -302,6 +358,7 @@ function getScreenPassState(renderer){
 }
 
 let frame = 0;
+let resetBuffer = new ArrayBuffer(2560 * 1440 * 4);
 
 export function renderAtomic(renderer, octree, camera){
 
@@ -313,24 +370,121 @@ export function renderAtomic(renderer, octree, camera){
 
 	let {device} = renderer;
 
+	let nodes = octree.visibleNodes;
+
+	if(nodes.length === 0){
+		return getTarget1(renderer).colorAttachments[0].texture;
+	}
+
+	{
+		let size = renderer.getSize();
+		let target = getTarget1(renderer);
+		target.setSize(size.width, size.height);
+	}
+
+	{ // update uniforms
+		let {uniformBuffer} = getComputeState(renderer);
+
+		{ // transform
+			let world = octree.world;
+			let view = camera.view;
+			let worldView = new Matrix4().multiplyMatrices(view, world);
+
+			let tmp = new Float32Array(16);
+
+			tmp.set(worldView.elements);
+			device.defaultQueue.writeBuffer(
+				uniformBuffer, 0,
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
+			);
+
+			tmp.set(camera.proj.elements);
+			device.defaultQueue.writeBuffer(
+				uniformBuffer, 64,
+				tmp.buffer, tmp.byteOffset, tmp.byteLength
+			);
+		}
+
+		{ // screen size
+			let size = renderer.getSize();
+			let data = new Uint32Array([size.width, size.height]);
+			device.defaultQueue.writeBuffer(
+				uniformBuffer,
+				128,
+				data.buffer,
+				data.byteOffset,
+				data.byteLength
+			);
+		}
+	}
+
+	{ // RESET
+		let {pipeline} = getResetState(renderer);
+		let {ssbo, ssboSize} = getComputeState(renderer);
+		let size = renderer.getSize();
+
+		let bindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [
+				{
+					binding: 0,
+					resource: {
+						buffer: ssbo,
+						offset: 0,
+						size: ssboSize,
+					}
+				}
+			]
+		});
+
+
+		const commandEncoder = device.createCommandEncoder();
+
+		let passEncoder = commandEncoder.beginComputePass();
+
+		passEncoder.setPipeline(pipeline);
+		passEncoder.setBindGroup(0, bindGroup);
+
+		let groups = size.width * size.height / 128;
+		passEncoder.dispatch(groups, 1, 1);
+		passEncoder.endPass();
+
+		device.defaultQueue.submit([commandEncoder.finish()]);
+	}
+
 
 	{ // COMPUTE SHADER
-		let {pipeline, bindGroup, uniformBuffer} = getComputeState(renderer);
-		let target = getTarget1(renderer);
+		let {pipeline, uniformBuffer, ssbo, ssboSize} = getComputeState(renderer);
 
-		let width = target.size[0];
-		let height = target.size[1];
+		let node = nodes[0];
+		let gpuBuffers = renderer.getGpuBuffers(node.geometry);
 
-		let source = new ArrayBuffer(24);
-		let view = new DataView(source);
-
-		view.setUint32(0, width, true);
-		view.setUint32(4, height, true);
-		
-		device.defaultQueue.writeBuffer(
-			uniformBuffer, 0,
-			source, 0, source.byteLength
-		);
+		let bindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [
+				{
+					binding: 0,
+					resource: {
+						buffer: uniformBuffer,
+					}
+				},{
+					binding: 1,
+					resource: {
+						buffer: ssbo,
+						offset: 0,
+						size: ssboSize,
+					}
+				},
+				{
+					binding: 2,
+					resource: {
+						buffer: gpuBuffers[0].vbo,
+						offset: 0,
+						size: node.geometry.numElements * 12,
+					}
+				}
+			]
+		});
 
 		const commandEncoder = device.createCommandEncoder();
 
@@ -340,23 +494,21 @@ export function renderAtomic(renderer, octree, camera){
 		passEncoder.setBindGroup(0, bindGroup);
 
 		let groups = [
-			target.size[0] / 8,
-			target.size[1] / 8,
-			1
+			Math.floor(node.geometry.numElements / 128),
+			1, 1
 		];
 		passEncoder.dispatch(...groups);
 		passEncoder.endPass();
 
 		device.defaultQueue.submit([commandEncoder.finish()]);
 
-		// renderer.readBuffer(ssbo, 0, 32).then(buffer => {
-		// 	console.log(new Uint32Array(buffer));
-		// });
 	}
 
 	{ // resolve
 		let {ssbo} = getComputeState(renderer);
 		let {pipeline, uniformBuffer} = getScreenPassState(renderer);
+		let target = getTarget1(renderer);
+		let size = renderer.getSize();
 
 		let uniformBindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
@@ -370,12 +522,6 @@ export function renderAtomic(renderer, octree, camera){
 		});
 
 
-
-
-
-		let size = renderer.getSize();
-		let target = getTarget1(renderer);
-		target.setSize(size.width, size.height);
 
 		let renderPassDescriptor = {
 			colorAttachments: [{
@@ -398,19 +544,23 @@ export function renderAtomic(renderer, octree, camera){
 		passEncoder.setPipeline(pipeline);
 
 		{
-			let source = new ArrayBuffer(24);
+			let source = new ArrayBuffer(32);
 			let view = new DataView(source);
 
 			let x = 0;
 			let y = 0;
 			let width = 1;
 			let height = 1;
+			let screenWidth = size.width;
+			let screenHeight = size.height;
 
 			view.setUint32(0, 5, true);
 			view.setFloat32(4, x, true);
 			view.setFloat32(8, y, true);
 			view.setFloat32(12, width, true);
 			view.setFloat32(16, height, true);
+			view.setFloat32(20, screenWidth, true);
+			view.setFloat32(24, screenHeight, true);
 			
 			device.defaultQueue.writeBuffer(
 				uniformBuffer, 0,

@@ -38,7 +38,8 @@ let guiContent = {
 	"camera": "",
 
 	"show bounding box": false,
-	"mode": "points/atomic",
+	"mode": "points/dilate",
+	// "mode": "points/atomic",
 	"point budget (M)": 3,
 	"point size": 1,
 	"update": true,
@@ -63,8 +64,7 @@ function initGUI(){
 		let input = gui.addFolder("input");
 		input.open();
 
-		// input.add(guiContent, "primitive", ["points", "quads"]);
-		input.add(guiContent, "mode", ["points/quads", "points/dilate"]);
+		input.add(guiContent, "mode", ["points/quads", "points/dilate", "points/atomic"]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
 
@@ -174,7 +174,7 @@ function render(){
 			renderQuads(renderer, pass, pointcloud, camera);
 		}
 	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
-		drawTexture(renderer, pass, target, 0, 0, 0.5, 0.5);
+		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 
 
 

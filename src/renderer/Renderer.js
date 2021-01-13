@@ -33,6 +33,8 @@ export class Renderer{
 		this.swapChainFormat = null;
 		this.depthTexture = null;
 		this.draws = new Draws();
+
+		this.buffers = new Map();
 	}
 
 	async init(){
@@ -150,6 +152,7 @@ export class Renderer{
 			usage: GPUBufferUsage.VERTEX 
 				| GPUBufferUsage.STORAGE
 				| GPUBufferUsage.COPY_SRC
+				| GPUBufferUsage.COPY_DST
 				| GPUBufferUsage.UNIFORM,
 		});
 
@@ -157,30 +160,40 @@ export class Renderer{
 	}
 
 	getGpuBuffers(geometry){
-		let {device} = renderer;
 
-		let vbos = [];
+		let buffers = this.buffers.get(geometry);
 
-		for(let entry of geometry.buffers){
-			let {name, buffer} = entry;
+		if(!buffers){
 
-			let vbo = device.createBuffer({
-				size: buffer.byteLength,
-				usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX,
-				mappedAtCreation: true,
-			});
+			let {device} = renderer;
 
-			let type = buffer.constructor;
-			new type(vbo.getMappedRange()).set(buffer);
-			vbo.unmap();
+			let vbos = [];
 
-			vbos.push({
-				name: name,
-				vbo: vbo,
-			});
+			for(let entry of geometry.buffers){
+				let {name, buffer} = entry;
+
+				let vbo = device.createBuffer({
+					size: buffer.byteLength,
+					usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE,
+					mappedAtCreation: true,
+				});
+
+				let type = buffer.constructor;
+				new type(vbo.getMappedRange()).set(buffer);
+				vbo.unmap();
+
+				vbos.push({
+					name: name,
+					vbo: vbo,
+				});
+			}
+
+			this.buffers.set(geometry, vbos);
+
+			buffers = vbos;
 		}
 
-		return vbos;
+		return buffers;
 	}
 
 	drawBoundingBox(position, size, color){
