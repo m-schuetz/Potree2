@@ -33,6 +33,10 @@ layout(std430, set = 0, binding = 2) buffer SSBO_position {
 	float positions[];
 };
 
+layout(std430, set = 0, binding = 3) buffer SSBO_color {
+	uint colors[];
+};
+
 
 
 void main(){
@@ -63,16 +67,15 @@ void main(){
 	ivec2 pixelCoords = ivec2(imgPos);
 	int pixelID = pixelCoords.x + pixelCoords.y * imageSize.x;
 
+	uint color = colors[index];
 
-	uint r = 0u;
-	uint g = 255u;
-	uint b = 0u;
+	uint r = (color >> 0) & 0xFFu;
+	uint g = (color >> 8) & 0xFFu;
+	uint b = (color >> 16) & 0xFFu;
 	uint a = 255u;
 	uint c = (r << 24) | (g << 16) | (b << 8) | a;
 
 	framebuffer[pixelID] = c;
-
-
 }
 
 `;
@@ -456,7 +459,9 @@ export function renderAtomic(renderer, octree, camera){
 	{ // COMPUTE SHADER
 		let {pipeline, uniformBuffer, ssbo, ssboSize} = getComputeState(renderer);
 
-		let node = nodes[0];
+		//let node = nodes[0];
+
+		for(let node of nodes){
 		let gpuBuffers = renderer.getGpuBuffers(node.geometry);
 
 		let bindGroup = device.createBindGroup({
@@ -474,13 +479,19 @@ export function renderAtomic(renderer, octree, camera){
 						offset: 0,
 						size: ssboSize,
 					}
-				},
-				{
+				},{
 					binding: 2,
 					resource: {
 						buffer: gpuBuffers[0].vbo,
 						offset: 0,
 						size: node.geometry.numElements * 12,
+					}
+				},{
+					binding: 3,
+					resource: {
+						buffer: gpuBuffers[1].vbo,
+						offset: 0,
+						size: node.geometry.numElements * 4,
 					}
 				}
 			]
@@ -501,6 +512,7 @@ export function renderAtomic(renderer, octree, camera){
 		passEncoder.endPass();
 
 		device.defaultQueue.submit([commandEncoder.finish()]);
+		}
 
 	}
 
