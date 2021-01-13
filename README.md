@@ -8,3 +8,4 @@
 # Resources
 
 * [WebGPU Samples](http://austin-eng.com/webgpu-samples/?wgsl=1#animometer). Github: [austinEng/webgpu-samples](https://github.com/austinEng/webgpu-samples)
+* [WebGPU x-mas card](http://trierlab.com/VClab/webtek/xmas/)

@@ -11,40 +11,155 @@ glslangModule().then( result => {
 	glslang = result;
 });
 
+let cs = `
 
-const vs = `
 #version 450
+
+layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(set = 0, binding = 0) uniform Uniforms {
-	mat4 worldView;
-	mat4 proj;
-	float screen_width;
-	float screen_height;
+	uint width;
+	uint height;
 } uniforms;
 
-layout(location = 0) in vec4 pos_point;
-layout(location = 1) in vec4 color;
 
-layout(location = 0) out vec4 fragColor;
+layout(std430, set = 0, binding = 1) buffer SSBO {
+	uint ssbo[];
+};
 
-void main() {
-	vec4 viewPos = uniforms.worldView * pos_point;
-	gl_Position = uniforms.proj * viewPos;
 
-	fragColor = color;
+
+void main(){
+
+	// uint globalID = gl_GlobalInvocationID.x;
+
+	ivec2 pixelID = ivec2 (
+		gl_GlobalInvocationID.x,
+		gl_GlobalInvocationID.y);
+	
+	uint index = pixelID.y * uniforms.width + pixelID.x;
+
+	// uint value = 255 * index / (uniforms.width * uniforms.height);
+	uint value = index / uniforms.height;
+	
+	ssbo[index] = value;
+
+
 }
+
 `;
 
-const fs = `
-#version 450
 
-layout(location = 0) in vec4 fragColor;
-layout(location = 0) out vec4 outColor;
 
-void main() {
-	outColor = fragColor;
-}
+let vs = `
+	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+		vec2<f32>(0.0, 0.0),
+		vec2<f32>(0.1, 0.0),
+		vec2<f32>(0.1, 0.1),
+		vec2<f32>(0.0, 0.0),
+		vec2<f32>(0.1, 0.1),
+		vec2<f32>(0.0, 0.1)
+	);
+
+	const uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+		vec2<f32>(0.0, 1.0),
+		vec2<f32>(1.0, 1.0),
+		vec2<f32>(1.0, 0.0),
+		vec2<f32>(0.0, 1.0),
+		vec2<f32>(1.0, 0.0),
+		vec2<f32>(0.0, 0.0)
+	);
+
+	[[builtin(position)]] var<out> Position : vec4<f32>;
+	[[builtin(vertex_idx)]] var<in> VertexIndex : i32;
+
+	[[block]] struct Uniforms {
+		[[offset(0)]] uTest : u32;
+		[[offset(4)]] x : f32;
+		[[offset(8)]] y : f32;
+		[[offset(12)]] width : f32;
+		[[offset(16)]] height : f32;
+	};
+	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+
+	[[location(0)]] var<out> fragUV : vec2<f32>;
+
+	[[stage(vertex)]]
+	fn main() -> void {
+		Position = vec4<f32>(pos[VertexIndex], 0.999, 1.0);
+		fragUV = uv[VertexIndex];
+
+		var x : f32 = uniforms.x * 2.0 - 1.0;
+		var y : f32 = uniforms.y * 2.0 - 1.0;
+		var width : f32 = uniforms.width * 2.0;
+		var height : f32 = uniforms.height * 2.0;
+
+		if(VertexIndex == 0){
+			Position.x = x;
+			Position.y = y;
+		}elseif(VertexIndex == 1){
+			Position.x = x + width;
+			Position.y = y;
+		}elseif(VertexIndex == 2){
+			Position.x = x + width;
+			Position.y = y + height;
+		}elseif(VertexIndex == 3){
+			Position.x = x;
+			Position.y = y;
+		}elseif(VertexIndex == 4){
+			Position.x = x + width;
+			Position.y = y + height;
+		}elseif(VertexIndex == 5){
+			Position.x = x;
+			Position.y = y + height;
+		}
+
+		return;
+	}
 `;
+
+let fs = `
+
+	[[block]] struct Colors {
+		[[offset(0)]] values : [[stride(4)]] array<u32>;
+	};
+
+
+	[[binding(1), set(0)]] var<storage_buffer> colors : Colors;
+
+	[[location(0)]] var<out> outColor : vec4<f32>;
+
+	[[location(0)]] var<in> fragUV: vec2<f32>;
+
+	[[builtin(frag_coord)]] var<in> fragCoord : vec4<f32>;
+
+	[[stage(fragment)]]
+	fn main() -> void {
+
+		var index : u32 = 256u * u32(fragCoord.y) + u32(fragCoord.x);
+
+		var c : vec4<f32>;
+		
+		c.x = f32(colors.values[index]) / 255.0;
+		c.y = f32(colors.values[index]) / 255.0;
+		c.z = f32(colors.values[index]) / 255.0;
+
+		c.w = 1.0;
+
+		outColor = c;
+
+
+		#outColor.x = 0.0;
+		#outColor.y = 1.0;
+		#outColor.z = 0.0;
+		#outColor.w = 1.0;
+
+		return;
+	}
+`;
+
+
+
 
 let _target_1 = null;
 
@@ -58,16 +173,16 @@ function getTarget1(renderer){
 				size: size,
 				format: renderer.swapChainFormat,
 				usage: GPUTextureUsage.SAMPLED 
-					| GPUTextureUsage.COPY_SRC 
-					| GPUTextureUsage.COPY_DST 
+					// | GPUTextureUsage.COPY_SRC 
+					// | GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.OUTPUT_ATTACHMENT,
 			}],
 			depthDescriptor: {
 				size: size,
 				format: "depth24plus-stencil8",
 				usage: GPUTextureUsage.SAMPLED 
-					| GPUTextureUsage.COPY_SRC 
-					| GPUTextureUsage.COPY_DST 
+					// | GPUTextureUsage.COPY_SRC 
+					// | GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.OUTPUT_ATTACHMENT,
 			}
 		});
@@ -76,129 +191,9 @@ function getTarget1(renderer){
 	return _target_1;
 }
 
-let octreeStates = new Map();
-let nodeStates = new Map();
-
-function createPipeline(renderer){
-
-	let {device} = renderer;
-
-	let smVertexDescriptor = {
-		code: glslang.compileGLSL(vs, "vertex"),
-		source: vs,
-	};
-	let smVertex = device.createShaderModule(smVertexDescriptor);
-
-	let smFragmentDescriptor = {
-		code: glslang.compileGLSL(fs, "fragment"),
-		source: vs,
-	};
-	let smFragment = device.createShaderModule(smFragmentDescriptor);
-		
-
-	const pipeline = device.createRenderPipeline({
-		vertexStage: {
-			module: smVertex,
-			entryPoint: "main",
-		},
-		fragmentStage: {
-			module: smFragment,
-			entryPoint: "main",
-		},
-		primitiveTopology: "point-list",
-		depthStencilState: {
-			depthWriteEnabled: true,
-			depthCompare: "less",
-			format: "depth24plus-stencil8",
-		},
-		vertexState: {
-			vertexBuffers: [
-				{ // point position
-					arrayStride: 3 * 4,
-					stepMode: "vertex",
-					attributes: [{ 
-						shaderLocation: 0,
-						offset: 0,
-						format: "float3",
-					}],
-				},{ // color
-					arrayStride: 4,
-					stepMode: "vertex",
-					attributes: [{ 
-						shaderLocation: 1,
-						offset: 0,
-						format: "uchar4norm",
-					}],
-				},
-			],
-		},
-		rasterizationState: {
-			cullMode: "none",
-		},
-		colorStates: [{
-			format: "bgra8unorm",
-		}],
-	});
-
-	return pipeline;
-}
-
-function getOctreeState(renderer, node){
-
-	let {device} = renderer;
-
-	let state = octreeStates.get(node);
-
-	if(!state){
-		let pipeline = createPipeline(renderer);
-
-		const uniformBuffer = device.createBuffer({
-			size: 2 * 4 * 16 + 8,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-		});
-
-		const uNodesBuffer = device.createBuffer({
-			size: 16 * 1000,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		});
-
-		const uniformBindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [{
-				binding: 0,
-				resource: {buffer: uniformBuffer},
-			}],
-		});
-
-		state = {
-			pipeline: pipeline,
-			uniformBuffer: uniformBuffer,
-			uniformBindGroup: uniformBindGroup,
-			uNodesBuffer: uNodesBuffer,
-		};
-
-		octreeStates.set(node, state);
-
-	}
-
-	return state;
-}
-
-function getNodeState(renderer, node){
-	let state = nodeStates.get(node);
-
-	if(!state){
-		let vbos = renderer.getGpuBuffers(node.geometry);
-
-		state = {vbos};
-		nodeStates.set(node, state);
-	}
-
-	return state;
-}
-
 
 let computeState = null;
+let screenPassState = null;
 
 function getComputeState(renderer){
 
@@ -206,28 +201,7 @@ function getComputeState(renderer){
 
 		let {device} = renderer;
 
-		let cs = `
-		
-#version 450
-
-
-layout(local_size_x = 128, local_size_y = 1) in;
-
-layout(std430, set = 0, binding = 0) buffer SSBO {
-	uint ssbo[];
-};
-
-
-void main(){
-
-	uint globalID = gl_GlobalInvocationID.x;
-	
-	ssbo[globalID] = 255;
-}
-		
-		`;
-
-		let target = getTarget1();
+		// let target = getTarget1(renderer);
 		let ssboSize = 2560 * 1440 * 4 * 4;
 		let ssbo = renderer.createBuffer(ssboSize);
 
@@ -237,7 +211,14 @@ void main(){
 		};
 		let csModule = device.createShaderModule(csDescriptor);
 
+		let uniformBufferSize = 24;
+		let uniformBuffer = device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
 		let pipeline = device.createComputePipeline({
+			// layout: layout, 
 			computeStage: {
 				module: csModule,
 				entryPoint: "main",
@@ -247,27 +228,82 @@ void main(){
 		let bindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [{
-				binding: 0,
-				resource: {
-
-
-
-					
-					buffer: ssbo,
-					offset: 0,
-					size: ssboSize,
-				}
+					binding: 0,
+					resource: {
+						buffer: uniformBuffer,
+					}
+				},{
+					binding: 1,
+					resource: {
+						buffer: ssbo,
+						offset: 0,
+						size: ssboSize,
+					}
 			}]
 		});
 
-		computeState = {pipeline, bindGroup};
+
+		computeState = {pipeline, bindGroup, ssbo, uniformBuffer};
 	}
 
 	return computeState;
 }
 
+function getScreenPassState(renderer){
 
-export function renderAtomic(renderer, pass, octree, camera){
+	if(!screenPassState){
+		let {device, swapChainFormat} = renderer;
+
+		let bindGroupLayout = device.createBindGroupLayout({
+			entries: [{
+				binding: 0,
+				visibility: GPUShaderStage.VERTEX,
+				type: "uniform-buffer"
+			},{
+				binding: 1,
+				visibility: GPUShaderStage.FRAGMENT,
+				type: "storage-buffer"
+			}]
+		});
+
+		let layout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
+		
+		let pipeline = device.createRenderPipeline({
+			layout: layout, 
+			vertexStage: {
+				module: device.createShaderModule({code: vs}),
+				entryPoint: "main",
+			},
+			fragmentStage: {
+				module: device.createShaderModule({code: fs}),
+				entryPoint: "main",
+			},
+			primitiveTopology: "triangle-list",
+			depthStencilState: {
+					depthWriteEnabled: true,
+					depthCompare: "less",
+					format: "depth24plus-stencil8",
+			},
+			colorStates: [{
+				format: swapChainFormat,
+			}],
+		});
+
+		let uniformBufferSize = 24;
+		let uniformBuffer = device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		screenPassState = {bindGroupLayout, pipeline, uniformBuffer}
+	}
+
+	return screenPassState;
+}
+
+let frame = 0;
+
+export function renderAtomic(renderer, octree, camera){
 
 	if(!glslang){
 		console.log("glslang not yet initialized");
@@ -277,100 +313,125 @@ export function renderAtomic(renderer, pass, octree, camera){
 
 	let {device} = renderer;
 
-	let octreeState = getOctreeState(renderer, octree);
 
-	let nodes = octree.visibleNodes;
+	{ // COMPUTE SHADER
+		let {pipeline, bindGroup, uniformBuffer} = getComputeState(renderer);
+		let target = getTarget1(renderer);
 
-	{ // update uniforms
-		let {uniformBuffer} = octreeState;
+		let width = target.size[0];
+		let height = target.size[1];
 
-		{ // transform
-			let world = octree.world;
-			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
+		let source = new ArrayBuffer(24);
+		let view = new DataView(source);
 
-			let tmp = new Float32Array(16);
+		view.setUint32(0, width, true);
+		view.setUint32(4, height, true);
+		
+		device.defaultQueue.writeBuffer(
+			uniformBuffer, 0,
+			source, 0, source.byteLength
+		);
 
-			tmp.set(worldView.elements);
-			device.defaultQueue.writeBuffer(
-				uniformBuffer, 0,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
+		const commandEncoder = device.createCommandEncoder();
 
-			tmp.set(camera.proj.elements);
-			device.defaultQueue.writeBuffer(
-				uniformBuffer, 64,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
-		}
+		let passEncoder = commandEncoder.beginComputePass();
 
-		{ // screen size
-			let size = renderer.getSize();
-			let data = new Float32Array([size.width, size.height]);
-			device.defaultQueue.writeBuffer(
-				uniformBuffer,
-				128,
-				data.buffer,
-				data.byteOffset,
-				data.byteLength
-			);
-		}
+		passEncoder.setPipeline(pipeline);
+		passEncoder.setBindGroup(0, bindGroup);
 
-		{ // nodes
-			let buffer = new Float32Array(4 * nodes.length);
-			for(let i = 0; i < nodes.length; i++){
-				buffer[4 * i + 0] = 0;
-				buffer[4 * i + 1] = i / 200;
-				buffer[4 * i + 2] = 0;
-				buffer[4 * i + 3] = 1;
-			}
+		let groups = [
+			target.size[0] / 8,
+			target.size[1] / 8,
+			1
+		];
+		passEncoder.dispatch(...groups);
+		passEncoder.endPass();
 
-			device.defaultQueue.writeBuffer(
-				octreeState.uNodesBuffer, 0,
-				buffer.buffer, buffer.byteOffset, buffer.byteLength
-			);
+		device.defaultQueue.submit([commandEncoder.finish()]);
 
-		}
+		// renderer.readBuffer(ssbo, 0, 32).then(buffer => {
+		// 	console.log(new Uint32Array(buffer));
+		// });
 	}
 
-	let {passEncoder} = pass;
-	let {pipeline, uniformBindGroup} = octreeState;
+	{ // resolve
+		let {ssbo} = getComputeState(renderer);
+		let {pipeline, uniformBuffer} = getScreenPassState(renderer);
 
-	passEncoder.setPipeline(pipeline);
-	passEncoder.setBindGroup(0, uniformBindGroup);
-
-	for(let node of nodes){
-		let nodeState = getNodeState(renderer, node);
-
-		passEncoder.setVertexBuffer(0, nodeState.vbos[0].vbo);
-		passEncoder.setVertexBuffer(1, nodeState.vbos[1].vbo);
-
-		if(octree.showBoundingBox === true){
-			let position = node.boundingBox.min.clone();
-			position.add(node.boundingBox.max).multiplyScalar(0.5);
-			position.applyMatrix4(octree.world);
-			let size = node.boundingBox.size();
-			let color = new Vector3(...SPECTRAL.get(node.level / 5));
-			renderer.drawBoundingBox(position, size, color);
-		}
-
-		let numElements = node.geometry.numElements;
-		passEncoder.draw(numElements, 1, 0, 0);
-	}
+		let uniformBindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [{
+					binding: 0,
+					resource: {buffer: uniformBuffer}
+				},{
+					binding: 1,
+					resource: {buffer: ssbo},
+				}],
+		});
 
 
-	{ // RUN COMPUTE SHADER
+
+
+
 		let size = renderer.getSize();
 		let target = getTarget1(renderer);
 		target.setSize(size.width, size.height);
 
-		let {pipeline, bindGroup} = getComputeState(renderer);
+		let renderPassDescriptor = {
+			colorAttachments: [{
+				attachment: target.colorAttachments[0].texture.createView(),
+				loadValue: { r: 0.4, g: 0.2, b: 0.3, a: 1.0 },
+			}],
+			depthStencilAttachment: {
+				attachment: target.depth.texture.createView(),
+				depthLoadValue: 1.0,
+				depthStoreOp: "store",
+				stencilLoadValue: 0,
+				stencilStoreOp: "store",
+			},
+			sampleCount: 1,
+		};
 
-		
+		const commandEncoder = renderer.device.createCommandEncoder();
+		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+		passEncoder.setPipeline(pipeline);
+
+		{
+			let source = new ArrayBuffer(24);
+			let view = new DataView(source);
+
+			let x = 0;
+			let y = 0;
+			let width = 1;
+			let height = 1;
+
+			view.setUint32(0, 5, true);
+			view.setFloat32(4, x, true);
+			view.setFloat32(8, y, true);
+			view.setFloat32(12, width, true);
+			view.setFloat32(16, height, true);
+			
+			device.defaultQueue.writeBuffer(
+				uniformBuffer, 0,
+				source, 0, source.byteLength
+			);
+
+			passEncoder.setBindGroup(0, uniformBindGroup);
+		}
 
 
-		return target;
+		passEncoder.draw(6, 1, 0, 0);
+
+
+		passEncoder.endPass();
+
+		let commandBuffer = commandEncoder.finish();
+		renderer.device.defaultQueue.submit([commandBuffer]);
+
 	}
 
+	frame++;
 
+	return getTarget1(renderer).colorAttachments[0].texture;
 }

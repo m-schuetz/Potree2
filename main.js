@@ -149,10 +149,16 @@ function render(){
 
 	let pointcloud = window.pointcloud;
 	let target = null;
+	let texture = null;
 
 	let shouldDrawTarget = false;
 	if(pointcloud && guiContent["mode"] === "points/dilate"){
 		target = renderDilate(renderer, pointcloud, camera);
+		target = target.colorAttachments[0].texture;
+
+		shouldDrawTarget = true;
+	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
+		target = renderAtomic(renderer, pointcloud, camera);
 		shouldDrawTarget = true;
 	}
 
@@ -168,10 +174,16 @@ function render(){
 			renderQuads(renderer, pass, pointcloud, camera);
 		}
 	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
-		renderAtomic(renderer, pass, pointcloud, camera);
+		drawTexture(renderer, pass, target, 0, 0, 0.5, 0.5);
+
+
+
+		// let source = {texture: target};
+		// let destination = {texture: renderer.swapChain.getCurrentTexture()};
+		// let copySize = {width: 800, height: 800, depth: 1};
+		// pass.commandEncoder.copyTextureToTexture(source, destination, copySize);
 	}else if(shouldDrawTarget){
-		drawTexture(renderer, pass, target.colorAttachments[0].texture, 
-			0, 0, 1, 1);
+		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}
 
 	{ // draw xyz axes
@@ -204,6 +216,13 @@ function render(){
 	
 	renderer.renderDrawCommands(pass, camera);
 	renderer.finish(pass);
+
+	// if(target){
+	// 	let source = {texture: target};
+	// 	let destination = {texture: renderer.swapChain.getCurrentTexture()};
+	// 	let copySize = {width: 800, height: 800, depth: 1};
+	// 	pass.commandEncoder.copyTextureToTexture(source, destination, copySize);
+	// }
 }
 
 function loop(){

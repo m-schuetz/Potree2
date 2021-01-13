@@ -90,12 +90,66 @@ export class Renderer{
 		}
 	}
 
+	async readBuffer(source, start, size){
+		const target = this.device.createBuffer({
+			size: size,
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+		});
+
+		let sourceOffset = start;
+		let targetOffset = 0;
+		let targetSize = size;
+
+		const copyEncoder = this.device.createCommandEncoder();
+		copyEncoder.copyBufferToBuffer(
+			source, sourceOffset,
+			target, targetOffset, targetSize);
+
+		// Submit copy commands.
+		const copyCommands = copyEncoder.finish();
+		this.device.defaultQueue.submit([copyCommands]);
+
+		await target.mapAsync(GPUMapMode.READ);
+
+		const copyArrayBuffer = target.getMappedRange();
+
+		let cloned = copyArrayBuffer.slice();
+
+		target.unmap();
+
+		return cloned;
+		
+	}
+
+	createTexture(width, height, params = {}){
+
+		let format = params.format ?? "rgba8uint";
+
+		let texture = this.device.createTexture({
+			size: [width, height, 1],
+			format: format,
+			usage: 
+				GPUTextureUsage.STORAGE
+				| GPUTextureUsage.SAMPLED 
+				| GPUTextureUsage.COPY_SRC 
+				| GPUTextureUsage.COPY_DST 
+				| GPUTextureUsage.OUTPUT_ATTACHMENT
+				// | GPUTextureUsage.STORAGE
+				// | GPUTextureUsage.COPY_SRC 
+				// | GPUTextureUsage.COPY_DST 
+				// | GPUTextureUsage.OUTPUT_ATTACHMENT,
+		});
+
+		return texture;
+	}
+
 	createBuffer(size){
 
 		let buffer = this.device.createBuffer({
 			size: size,
 			usage: GPUBufferUsage.VERTEX 
 				| GPUBufferUsage.STORAGE
+				| GPUBufferUsage.COPY_SRC
 				| GPUBufferUsage.UNIFORM,
 		});
 
