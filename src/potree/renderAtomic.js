@@ -287,18 +287,23 @@ let fs = `
 			(u32(uniforms.screenHeight) - u32(fragCoord.y) - 1) * u32(uniforms.screenWidth);
 		
 		var c : u32 = ssbo_colors.values[4 * index + 3];
-		var r : u32 = ssbo_colors.values[4 * index + 0] / c;
-		var g : u32 = ssbo_colors.values[4 * index + 1] / c;
-		var b : u32 = ssbo_colors.values[4 * index + 2] / c;
 
-		outColor.r = f32(r) / 256.0;
-		outColor.g = f32(g) / 256.0;
-		outColor.b = f32(b) / 256.0;
-		outColor.a = 1.0;
+		if(c == 0){
+			#outColor.r = 0.0;
+			#outColor.g = 0.0;
+			#outColor.b = 0.0;
+			#outColor.a = 0.0;
+			discard;
+		}else{
+			var r : u32 = ssbo_colors.values[4 * index + 0] / c;
+			var g : u32 = ssbo_colors.values[4 * index + 1] / c;
+			var b : u32 = ssbo_colors.values[4 * index + 2] / c;
 
-		#outColor.r = f32(r) / 10.0;
-		#outColor.g = f32(g) / 10.0;
-		#outColor.b = f32(b) / 10.0;
+			outColor.r = f32(r) / 256.0;
+			outColor.g = f32(g) / 256.0;
+			outColor.b = f32(b) / 256.0;
+			outColor.a = 1.0;
+		}
 
 	}
 `;

@@ -271,14 +271,14 @@ export function render(renderer, pass, octree, camera){
 		passEncoder.setVertexBuffer(2, nodeState.vbos[1].vbo);
 		passEncoder.setIndexBuffer(vbo_quad[1].vbo, "uint32");
 
-		if(octree.showBoundingBox === true){
-			let position = node.boundingBox.min.clone();
-			position.add(node.boundingBox.max).multiplyScalar(0.5);
-			position.applyMatrix4(octree.world);
-			let size = node.boundingBox.size();
-			let color = new Vector3(...SPECTRAL.get(node.level / 5));
-			renderer.drawBoundingBox(position, size, color);
-		}
+		// if(octree.showBoundingBox === true){
+		// 	let position = node.boundingBox.min.clone();
+		// 	position.add(node.boundingBox.max).multiplyScalar(0.5);
+		// 	position.applyMatrix4(octree.world);
+		// 	let size = node.boundingBox.size();
+		// 	let color = new Vector3(...SPECTRAL.get(node.level / 5));
+		// 	renderer.drawBoundingBox(position, size, color);
+		// }
 	
 		let numElements = node.geometry.numElements;
 		passEncoder.drawIndexed(6, numElements, 0, 0);
