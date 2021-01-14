@@ -100,9 +100,14 @@ onmessage = async function(e){
 		let view = new DataView(buffer);
 
 		let offsetRGB = {
+			"0": 0,
+			"1": 0,
 			"2": 20,
 			"3": 28,
+			"4": 0,
 			"5": 28,
+			"6": 0,
+			"7": 0,
 		}[pointFormat];
 
 		

@@ -66,16 +66,6 @@ void main(){
 	ivec2 pixelCoords = ivec2(imgPos);
 	int pixelID = pixelCoords.x + pixelCoords.y * imageSize.x;
 
-	uint color = colors[index];
-
-	//uint r = (color >> 0) & 0xFFu;
-	//uint g = (color >> 8) & 0xFFu;
-	//uint b = (color >> 16) & 0xFFu;
-	//uint a = 255u;
-	//uint c = (r << 24) | (g << 16) | (b << 8) | a;
-
-	//framebuffer[pixelID] = c;
-
 	uint depth = uint(-viewPos.z * 1000.0);
 
 	atomicMin(framebuffer[pixelID], depth);
