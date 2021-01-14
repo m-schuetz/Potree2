@@ -11,6 +11,7 @@ import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
 import {renderDilate}  from "./src/potree/renderDilate.js";
 import {renderAtomic}  from "./src/potree/renderAtomic.js";
+import {renderAtomicDilate}  from "./src/potree/renderAtomicDilate.js";
 import {drawTexture} from "./src/prototyping/textures.js";
 
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
@@ -39,7 +40,8 @@ let guiContent = {
 
 	"show bounding box": false,
 	// "mode": "points/dilate",
-	"mode": "points/atomic",
+	//"mode": "points/atomic",
+	"mode": "points/atomic/dilate",
 	"point budget (M)": 3,
 	"point size": 1,
 	"update": true,
@@ -64,7 +66,7 @@ function initGUI(){
 		let input = gui.addFolder("input");
 		input.open();
 
-		input.add(guiContent, "mode", ["points/quads", "points/dilate", "points/atomic"]);
+		input.add(guiContent, "mode", ["points/quads", "points/dilate", "points/atomic", "points/atomic/dilate"]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
 
@@ -160,6 +162,9 @@ function render(){
 	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
 		target = renderAtomic(renderer, pointcloud, camera);
 		shouldDrawTarget = true;
+	}else if(pointcloud && guiContent["mode"] === "points/atomic/dilate"){
+		target = renderAtomicDilate(renderer, pointcloud, camera);
+		shouldDrawTarget = true;
 	}
 
 
@@ -175,13 +180,8 @@ function render(){
 		}
 	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
-
-
-
-		// let source = {texture: target};
-		// let destination = {texture: renderer.swapChain.getCurrentTexture()};
-		// let copySize = {width: 800, height: 800, depth: 1};
-		// pass.commandEncoder.copyTextureToTexture(source, destination, copySize);
+	}else if(pointcloud && guiContent["mode"] === "points/atomic/dilate"){
+		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}else if(shouldDrawTarget){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}
