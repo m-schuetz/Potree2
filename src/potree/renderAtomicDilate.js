@@ -287,7 +287,7 @@ let fs = `
 	fn main() -> void {
 
 		var avg : vec4<f32>;
-		var window : i32 = 2;
+		var window : i32 = 1;
 
 		
 

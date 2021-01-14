@@ -1,0 +1,69 @@
+<html>
+<head>
+<style>
+
+td{
+	padding: 2px 10px 0px 0px;
+}
+
+#big_message{
+	position: absolute; 
+	left: calc(50%); 
+	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 4em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+</style>
+</head>
+<body style="padding: 0; margin: 0">
+
+
+<canvas id="canvas" width="800" height="600" 
+	style="
+		width: 100%; height: 100%;
+		grid-column: 1; grid-row: 1">
+</canvas>
+
+<span style="position: absolute; left: 10px; top: 10px; 
+	background-color: white; opacity: 0.7; padding: 10px;">
+	
+	<h><b>WebGPU LAS file viewer. (no LAZ, yet)</b></h>
+	<ul>
+		<li>Highly experimental and crashy.</li>
+		<li>Requires the <a href="https://www.google.com/intl/de/chrome/canary/">Chrome Canary 89</a> browser.</li>
+		<li>To enable WebGPU, open this URL: <pre>chrome://flags/#enable-unsafe-webgpu</pre></li>
+		<li>Drag & Drop one or more las files into the browser window.</li>
+		<li>I recommend to load at most 10M to 100M points, depending on your hardware.</li>
+		<ul>
+			<li>119 M points, 40fps on an RTX 2080</li>
+			<li>145 M points, 56fps on an RTX 2080<br>
+				(Viewpoint and order matter. Sometimes more points are rendered faster.)
+			</li>
+			<li>25 M points, 144fps on an RTX 2080</li>
+		</ul>
+		<li>Reload page (F5) before loading another point cloud.</li>
+		<li>Github: <a href="https://github.com/m-schuetz/Potree2">https://github.com/m-schuetz/Potree2</a></li>
+	</ul>
+
+	Rendering modes:
+	<ul>
+		<li>atomic: <a href="https://github.com/m-schuetz/compute_rasterizer">Render with compute shader</a></li>
+		<li>atomic/dilate: Like atomic, but increase size in post-process.</li>
+		<li>points/quads: Render as "point-list" or instanced quads, depending on size.</li>
+		<li>points/dilate: Render as "point-list", increase size in post-process.</li>
+	</ul>
+
+</span>
+
+<span id="big_message"></span>
+
+<script type="module" src="lasviewer_main.js"></script>
+
+</body>
+</html>
