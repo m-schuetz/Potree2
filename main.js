@@ -293,10 +293,10 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	controls.radius = 700;
-		controls.yaw = -0.2;
-		controls.pitch = 0.8;
-		camera.updateProj();
+	controls.radius = 20;
+	controls.yaw = -0.2;
+	controls.pitch = 0.8;
+	camera.updateProj();
 
 	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
 	// 	controls.radius = 700;

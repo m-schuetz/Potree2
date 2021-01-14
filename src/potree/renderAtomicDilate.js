@@ -725,6 +725,7 @@ function reset(renderer, ssbo, numUints, value){
 	device.defaultQueue.submit([commandEncoder.finish()]);
 }
 
+
 export function renderAtomicDilate(renderer, octree, camera){
 
 	// if(!glslang){
@@ -734,113 +735,78 @@ export function renderAtomicDilate(renderer, octree, camera){
 	// }
 
 	let {device} = renderer;
-
 	let nodes = octree.visibleNodes;
 
 	if(nodes.length === 0){
 		return getTarget1(renderer).colorAttachments[0].texture;
 	}
 
-	{
+	{ // RESIZE RENDER TARGET
 		let size = renderer.getSize();
 		let target = getTarget1(renderer);
 		target.setSize(size.width, size.height);
 	}
 
-	{ // update uniforms DEPTH
-		let {uniformBuffer} = getDepthState(renderer);
+	{ // UPDATE UNIFORMS
+
+		let data = new ArrayBuffer(136);
+		let f32 = new Float32Array(data);
+		let view = new DataView(data);
 
 		{ // transform
 			let world = octree.world;
 			let view = camera.view;
 			let worldView = new Matrix4().multiplyMatrices(view, world);
 
-			let tmp = new Float32Array(16);
-
-			tmp.set(worldView.elements);
-			device.defaultQueue.writeBuffer(
-				uniformBuffer, 0,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
-
-			tmp.set(camera.proj.elements);
-			device.defaultQueue.writeBuffer(
-				uniformBuffer, 64,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
+			f32.set(worldView.elements, 0);
+			f32.set(camera.proj.elements, 16);
 		}
 
 		{ // screen size
 			let size = renderer.getSize();
-			let data = new Uint32Array([size.width, size.height]);
-			device.defaultQueue.writeBuffer(
-				uniformBuffer,
-				128,
-				data.buffer,
-				data.byteOffset,
-				data.byteLength
-			);
+
+			view.setUint32(128, size.width, true);
+			view.setUint32(132, size.height, true);
 		}
-	}
 
-	{ // update uniforms COLOR
-		let {uniformBuffer} = getColorState(renderer);
-
-		{ // transform
-			let world = octree.world;
-			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
-
-			let tmp = new Float32Array(16);
-
-			tmp.set(worldView.elements);
+		{ // set depth pass uniforms
+			let {uniformBuffer} = getDepthState(renderer);
 			device.defaultQueue.writeBuffer(
 				uniformBuffer, 0,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
-
-			tmp.set(camera.proj.elements);
-			device.defaultQueue.writeBuffer(
-				uniformBuffer, 64,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
+				data, data.byteOffset, data.byteLength
 			);
 		}
 
-		{ // screen size
-			let size = renderer.getSize();
-			let data = new Uint32Array([size.width, size.height]);
+		{ // set color pass uniforms
+			let {uniformBuffer} = getColorState(renderer);
 			device.defaultQueue.writeBuffer(
-				uniformBuffer,
-				128,
-				data.buffer,
-				data.byteOffset,
-				data.byteLength
+				uniformBuffer, 0,
+				data, data.byteOffset, data.byteLength
 			);
 		}
+
 	}
 
 	{ // RESET BUFFERS
 		let size = renderer.getSize();
 		let numUints = size.width * size.height;
 
-		{
-			let {ssbo} = getDepthState(renderer);
+		let {ssbo} = getDepthState(renderer);
+		let {ssbo_colors} = getColorState(renderer);
 
-			reset(renderer, ssbo, numUints, 0xffffff);
-		}
-
-		{
-			let {ssbo_colors} = getColorState(renderer);
-
-			reset(renderer, ssbo_colors, 4 * numUints, 0);
-		}
+		reset(renderer, ssbo, numUints, 0xffffff);
+		reset(renderer, ssbo_colors, 4 * numUints, 0);
 	}
 
 
 	{ // DEPTH PASS
-		let {pipeline, uniformBuffer, ssbo, ssboSize} = getDepthState(renderer);
+		let {pipeline, uniformBuffer} = getDepthState(renderer);
+		let ssbo_depth = getDepthState(renderer).ssbo;
 
-		//let node = nodes[0];
+		const commandEncoder = device.createCommandEncoder();
+		let passEncoder = commandEncoder.beginComputePass();
+
+		passEncoder.setPipeline(pipeline);
 
 		for(let node of nodes){
 			let gpuBuffers = renderer.getGpuBuffers(node.geometry);
@@ -849,51 +815,26 @@ export function renderAtomicDilate(renderer, octree, camera){
 				layout: pipeline.getBindGroupLayout(0),
 				entries: [
 					{
-						binding: 0,
-						resource: {
-							buffer: uniformBuffer,
-						}
+						binding: 0, resource: {buffer: uniformBuffer}
 					},{
-						binding: 1,
-						resource: {
-							buffer: ssbo,
-							offset: 0,
-							size: ssboSize,
-						}
+						binding: 1, resource: {buffer: ssbo_depth}
 					},{
-						binding: 2,
-						resource: {
-							buffer: gpuBuffers[0].vbo,
-							offset: 0,
-							size: node.geometry.numElements * 12,
-						}
+						binding: 2, resource: {buffer: gpuBuffers[0].vbo}
 					},{
-						binding: 3,
-						resource: {
-							buffer: gpuBuffers[1].vbo,
-							offset: 0,
-							size: node.geometry.numElements * 4,
-						}
+						binding: 3, resource: {buffer: gpuBuffers[1].vbo}
 					}
 				]
 			});
-
-			const commandEncoder = device.createCommandEncoder();
-
-			let passEncoder = commandEncoder.beginComputePass();
-
-			passEncoder.setPipeline(pipeline);
+			
 			passEncoder.setBindGroup(0, bindGroup);
 
-			let groups = [
-				Math.floor(node.geometry.numElements / 128),
-				1, 1
-			];
-			passEncoder.dispatch(...groups);
-			passEncoder.endPass();
-
-			device.defaultQueue.submit([commandEncoder.finish()]);
+			let groups = Math.floor(node.geometry.numElements / 128);
+			passEncoder.dispatch(groups);
+			
 		}
+
+		passEncoder.endPass();
+		device.defaultQueue.submit([commandEncoder.finish()]);
 
 	}
 
@@ -902,6 +843,10 @@ export function renderAtomicDilate(renderer, octree, camera){
 		let {ssbo_colors} = getColorState(renderer);
 		let ssbo_depth = getDepthState(renderer).ssbo;
 
+		const commandEncoder = device.createCommandEncoder();
+		let passEncoder = commandEncoder.beginComputePass();
+
+		passEncoder.setPipeline(pipeline);
 
 		for(let node of nodes){
 			let gpuBuffers = renderer.getGpuBuffers(node.geometry);
@@ -910,63 +855,32 @@ export function renderAtomicDilate(renderer, octree, camera){
 				layout: pipeline.getBindGroupLayout(0),
 				entries: [
 					{
-						binding: 0,
-						resource: {
-							buffer: uniformBuffer,
-						}
+						binding: 0, resource: {buffer: uniformBuffer}
 					},{
-						binding: 1,
-						resource: {
-							buffer: ssbo_colors,
-							offset: 0,
-							size: ssboSize,
-						}
+						binding: 1, resource: {buffer: ssbo_colors}
 					},{
-						binding: 2,
-						resource: {
-							buffer: ssbo_depth,
-							offset: 0,
-							size: ssboSize / 4,
-						}
+						binding: 2, resource: {buffer: ssbo_depth}
 					},{
-						binding: 3,
-						resource: {
-							buffer: gpuBuffers[0].vbo,
-							offset: 0,
-							size: node.geometry.numElements * 12,
-						}
+						binding: 3, resource: {buffer: gpuBuffers[0].vbo}
 					},{
-						binding: 4,
-						resource: {
-							buffer: gpuBuffers[1].vbo,
-							offset: 0,
-							size: node.geometry.numElements * 4,
-						}
+						binding: 4, resource: {buffer: gpuBuffers[1].vbo}
 					}
 				]
 			});
 
-			const commandEncoder = device.createCommandEncoder();
-
-			let passEncoder = commandEncoder.beginComputePass();
-
-			passEncoder.setPipeline(pipeline);
 			passEncoder.setBindGroup(0, bindGroup);
 
-			let groups = [
-				Math.floor(node.geometry.numElements / 128),
-				1, 1
-			];
-			passEncoder.dispatch(...groups);
-			passEncoder.endPass();
-
-			device.defaultQueue.submit([commandEncoder.finish()]);
+			let groups = Math.floor(node.geometry.numElements / 128);
+			passEncoder.dispatch(groups, 1, 1);
 		}
+
+		passEncoder.endPass();
+		device.defaultQueue.submit([commandEncoder.finish()]);
 
 	}
 
 	{ // resolve
-		let {ssbo} = getDepthState(renderer);
+		let ssbo_depth = getDepthState(renderer).ssbo;
 		let {ssbo_colors} = getColorState(renderer);
 		let {pipeline, uniformBuffer} = getScreenPassState(renderer);
 		let target = getTarget1(renderer);
@@ -982,11 +896,9 @@ export function renderAtomicDilate(renderer, octree, camera){
 					resource: {buffer: ssbo_colors},
 				},{
 					binding: 2,
-					resource: {buffer: ssbo},
+					resource: {buffer: ssbo_depth},
 				}],
 		});
-
-
 
 		let renderPassDescriptor = {
 			colorAttachments: [{
