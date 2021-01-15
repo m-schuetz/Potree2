@@ -45,6 +45,10 @@ export class Matrix4{
 		return this;
 	}
 
+	clone(){
+		return new Matrix4().copy(this);
+	}
+
 	multiply(b){
 
 		const ae = this.elements;

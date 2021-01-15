@@ -38,7 +38,8 @@ export class PointCloudOctree extends SceneNode{
 		let world = this.world;
 		let view = camera.view;
 		let proj = camera.proj;
-		let fm = new Matrix4().multiply(proj).multiply(view).multiply(world);
+		// let worldI = world.clone().invert();
+		let fm = new Matrix4().multiply(proj).multiply(view); //.multiply(world);
 		//let fm = new Matrix4().multiplyMatrices(camera.proj, camera.view);
 		let frustum = new Frustum();
 		frustum.setFromMatrix(fm);
@@ -89,7 +90,7 @@ export class PointCloudOctree extends SceneNode{
 
 				let center = node.boundingBox.center();
 				
-				center.applyMatrix4(this.world);
+				// center.applyMatrix4(this.world);
 
 				let radius = node.boundingBox.min.distanceTo(node.boundingBox.max) / 2;
 

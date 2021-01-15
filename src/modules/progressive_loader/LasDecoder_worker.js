@@ -84,7 +84,7 @@ onmessage = async function(e){
 
 		batches.push(batch);
 	}
-	shuffle(batches);
+	// shuffle(batches);
 
 	// for(let absolute_i = 0; absolute_i < numPoints; absolute_i += batchSize){
 	// 	let n = Math.min(numPoints - absolute_i, batchSize);

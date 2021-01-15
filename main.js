@@ -38,14 +38,15 @@ let guiContent = {
 	"duration(update)": "0",
 	"camera": "",
 
-	"show bounding box": false,
-	// "mode": "points/dilate",
+	"show bounding box": true,
+	"mode": "points/quads",
 	//"mode": "points/atomic",
-	"mode": "points/atomic/dilate",
+	// "mode": "points/atomic/dilate",
 	"point budget (M)": 3,
 	"point size": 1,
 	"update": true,
 };
+window.guiContent = guiContent;
 
 
 function initGUI(){
@@ -66,7 +67,12 @@ function initGUI(){
 		let input = gui.addFolder("input");
 		input.open();
 
-		input.add(guiContent, "mode", ["points/quads", "points/dilate", "points/atomic", "points/atomic/dilate"]);
+		input.add(guiContent, "mode", [
+			"points/quads", 
+			"points/dilate", 
+			// "points/atomic", 
+			// "points/atomic/dilate"
+			]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
 
@@ -94,30 +100,8 @@ function update(){
 	framesSinceLastCount++;
 
 	controls.update();
-	// mat4.copy(camera.world, controls.world);
-	// mat4.set(camera.world, ...controls.world.elements);
 	camera.world.copy(controls.world);
 
-	{
-		// let flip = mat4.create();
-		// mat4.set(flip,
-		// 	1, 0, 0, 0,
-		// 	0, 0, 1, 0,
-		// 	0, -1, 0, 0,
-		// 	0, 0, 0, 1,
-		// );
-
-		// let flip = new Matrix4().set(
-		// 	1, 0, 0, 0,
-		// 	0, 0, -1, 0,
-		// 	0, 1, 0, 0,
-		// 	0, 0, 0, 1,
-		// );
-
-		// camera.world.multiplyMatrices(flip, camera.world);
-
-		// mat4.multiply(camera.world, flip, camera.world);
-	}
 	camera.updateView();
 	guiContent["camera"] = camera.getWorldPosition().toString(1);
 
@@ -217,12 +201,6 @@ function render(){
 	renderer.renderDrawCommands(pass, camera);
 	renderer.finish(pass);
 
-	// if(target){
-	// 	let source = {texture: target};
-	// 	let destination = {texture: renderer.swapChain.getCurrentTexture()};
-	// 	let copySize = {width: 800, height: 800, depth: 1};
-	// 	pass.commandEncoder.copyTextureToTexture(source, destination, copySize);
-	// }
 }
 
 function loop(){
@@ -302,33 +280,33 @@ async function run(){
 	// 	controls.radius = 700;
 	// 	controls.yaw = -0.2;
 	// 	controls.pitch = 0.8;
+	// 	camera.near = 1;
+	// 	camera.far = 10_000;
 	// 	camera.updateProj();
 	
 	// 	pointcloud.updateVisibility(camera);
 	// 	// pointcloud.position.set(400, -300, -6)
-	// 	pointcloud.updateWorld();
+	// 	// pointcloud.position.copy(pointcloud.boundingBox.min);
+	// 	// pointcloud.updateWorld();
 	// 	window.pointcloud = pointcloud;
 	// });
 
 
-	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	// 	camera.near = 0.5;
-	// 	camera.far = 20_000;
-	// 	// controls.radius = 1000;
-	// 	// controls.yaw = -0.2;
-	// 	// controls.pitch = Math.PI / 5;
+	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+		camera.near = 0.5;
+		camera.far = 100_000;
 
-	// 	controls.radius = 1000;
-	// 	controls.yaw = -0.2;
-	// 	controls.pitch = 0;
-	// 	// controls.pivot.set(643431, 3889087, -2.7);
-	// 	camera.updateProj();
+		controls.radius = 2_400;
+		controls.yaw = 0.03437500000000017;
+		controls.pitch = 0.6291441788743247;
+		controls.pivot.set(694698.4629456067, 3916428.1845130883, -15.72393889322449);
+
+		camera.updateProj();
 	
-	// 	pointcloud.updateVisibility(camera);
-	// 	// pointcloud.position.set(-643431, -3889087, 0);
-	// 	pointcloud.updateWorld();
-	// 	window.pointcloud = pointcloud;
-	// });
+		pointcloud.updateVisibility(camera);
+
+		window.pointcloud = pointcloud;
+	});
 
 	requestAnimationFrame(loop);
 

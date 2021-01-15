@@ -179,14 +179,11 @@ async function load(event){
 			// attributeBuffers[pointAttribute.name] = { buffer: buff, attribute: pointAttribute };
 		}else{
 
-			// TODO
-			continue;
-
 			let buff = new ArrayBuffer(numPoints * 4);
 			let f32 = new Float32Array(buff);
 
 			let TypedArray = typedArrayMapping[pointAttribute.type.name];
-			preciseBuffer = new TypedArray(numPoints);
+			let preciseBuffer = new TypedArray(numPoints);
 
 			let [offset, scale] = [0, 1];
 
@@ -220,13 +217,13 @@ async function load(event){
 				preciseBuffer[j] = value;
 			}
 
-			attributeBuffers[pointAttribute.name] = { 
-				buffer: buff,
-				preciseBuffer: preciseBuffer,
-				attribute: pointAttribute,
-				offset: offset,
-				scale: scale,
-			};
+			// attributeBuffers[pointAttribute.name] = { 
+			// 	buffer: f32,
+			// 	preciseBuffer: preciseBuffer,
+			// 	attribute: pointAttribute,
+			// 	offset: offset,
+			// 	scale: scale,
+			// };
 		}
 
 	}
@@ -259,6 +256,7 @@ onmessage = async function (event) {
 
 		postMessage(message, transferables);
 	}catch(e){
+		console.log(e);
 		postMessage("failed");
 	}
 

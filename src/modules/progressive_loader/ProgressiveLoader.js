@@ -104,8 +104,6 @@ function install(element, callback){
 			let promise = blob.arrayBuffer();
 
 			promises.push(promise);
-
-			// load(file);
 		}
 
 
@@ -143,10 +141,6 @@ function install(element, callback){
 		for (let file of files) {
 			load(file);
 		}
-
-		// load(files.item(0));
-		// load(files.item(1));
-		// load(files.item(2));
 
 		callback({boxes, progress});
 

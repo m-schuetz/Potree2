@@ -22,13 +22,9 @@ const vs = `
 
 [[stage(vertex)]]
 fn main() -> void {
-	# out_pos = uniforms.modelViewProjectionMatrix * pos_point;
-	
-	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
-	var far : f32 = 10000.0;
 
+	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
 	out_pos = uniforms.proj * viewPos;
-	out_pos.z = -viewPos.z * out_pos.w / far;
 
 	var fx : f32 = out_pos.x / out_pos.w;
 	fx = fx + uniforms.point_size * pos_quad.x / uniforms.screen_width;
@@ -271,14 +267,14 @@ export function render(renderer, pass, octree, camera){
 		passEncoder.setVertexBuffer(2, nodeState.vbos[1].vbo);
 		passEncoder.setIndexBuffer(vbo_quad[1].vbo, "uint32");
 
-		// if(octree.showBoundingBox === true){
-		// 	let position = node.boundingBox.min.clone();
-		// 	position.add(node.boundingBox.max).multiplyScalar(0.5);
-		// 	position.applyMatrix4(octree.world);
-		// 	let size = node.boundingBox.size();
-		// 	let color = new Vector3(...SPECTRAL.get(node.level / 5));
-		// 	renderer.drawBoundingBox(position, size, color);
-		// }
+		if(octree.showBoundingBox === true){
+			let position = node.boundingBox.min.clone();
+			position.add(node.boundingBox.max).multiplyScalar(0.5);
+			// position.applyMatrix4(octree.world);
+			let size = node.boundingBox.size();
+			let color = new Vector3(...SPECTRAL.get(node.level / 5));
+			renderer.drawBoundingBox(position, size, color);
+		}
 	
 		let numElements = node.geometry.numElements;
 		passEncoder.drawIndexed(6, numElements, 0, 0);

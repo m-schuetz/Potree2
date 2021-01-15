@@ -128,32 +128,32 @@ function getGpuTexture(renderer, image){
 }
 
 
-function getBindGroupLayout(renderer){
+// function getBindGroupLayout(renderer){
 
-	if(!bindGroupLayout){
-		let {device} = renderer;
+// 	if(!bindGroupLayout){
+// 		let {device} = renderer;
 
-		bindGroupLayout = device.createBindGroupLayout({
-			entries: [{
-				binding: 0,
-				visibility: GPUShaderStage.VERTEX,
-				type: "uniform-buffer"
-			},{
-				// Sampler
-				binding: 1,
-				visibility: GPUShaderStage.FRAGMENT,
-				type: "sampler"
-			},{
-				// Texture view
-				binding: 2,
-				visibility: GPUShaderStage.FRAGMENT,
-				type: "sampled-texture"
-			}]
-		});
-	}
+// 		bindGroupLayout = device.createBindGroupLayout({
+// 			entries: [{
+// 				binding: 0,
+// 				visibility: GPUShaderStage.VERTEX,
+// 				type: "uniform-buffer"
+// 			},{
+// 				// Sampler
+// 				binding: 1,
+// 				visibility: GPUShaderStage.FRAGMENT,
+// 				type: "sampler"
+// 			},{
+// 				// Texture view
+// 				binding: 2,
+// 				visibility: GPUShaderStage.FRAGMENT,
+// 				type: "sampled-texture"
+// 			}]
+// 		});
+// 	}
 
-	return bindGroupLayout;
-}
+// 	return bindGroupLayout;
+// }
 
 function getPipeline(renderer, gpuTexture){
 
@@ -163,11 +163,11 @@ function getPipeline(renderer, gpuTexture){
 
 	let {device, swapChainFormat} = renderer;
 
-	let bindGroupLayout = getBindGroupLayout(renderer);
-	let layout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
+	// let bindGroupLayout = getBindGroupLayout(renderer);
+	// let layout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
 
 	pipeline = device.createRenderPipeline({
-		layout: layout, 
+		// layout: layout, 
 		vertexStage: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",

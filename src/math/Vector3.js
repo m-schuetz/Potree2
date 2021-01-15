@@ -105,4 +105,8 @@ export class Vector3{
 		}
 	}
 
+	toArray(){
+		return [this.x, this.y, this.z];
+	}
+
 };
