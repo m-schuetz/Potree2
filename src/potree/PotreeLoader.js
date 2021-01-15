@@ -246,7 +246,7 @@ export class PotreeLoader{
 			};
 
 			let {byteOffset, byteSize} = node;
-			let url = new URL(`./${this.url}/../octree.bin`, document.baseURI).href;
+			let url = new URL(`${this.url}/../octree.bin`, document.baseURI).href;
 			let pointAttributes = this.attributes;
 			let scale = this.scale;
 			let offset = this.offset;

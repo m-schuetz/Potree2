@@ -18,7 +18,7 @@ Generating LOD structures can be slow and time consuming. Using hierarchical cou
 Rendering billions of points in web browsers using an octree acceleration structure. 
 
 
-## others
+## more
 
 * [QSplat](http://graphics.stanford.edu/papers/qsplat/)<br>
 First approach to render large point clouds (or meshes transformed to point clouds) in real-time using a bounding-sphere hierarchy.

@@ -38,11 +38,11 @@ let guiContent = {
 	"duration(update)": "0",
 	"camera": "",
 
-	"show bounding box": true,
-	"mode": "points/quads",
+	"show bounding box": false,
+	// "mode": "points/quads",
 	//"mode": "points/atomic",
-	// "mode": "points/atomic/dilate",
-	"point budget (M)": 3,
+	"mode": "compute/dilate",
+	"point budget (M)": 2,
 	"point size": 1,
 	"update": true,
 };
@@ -70,8 +70,8 @@ function initGUI(){
 		input.add(guiContent, "mode", [
 			"points/quads", 
 			"points/dilate", 
-			// "points/atomic", 
-			// "points/atomic/dilate"
+			"points/atomic",
+			"compute/dilate"
 			]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
@@ -146,7 +146,7 @@ function render(){
 	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
 		target = renderAtomic(renderer, pointcloud, camera);
 		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "points/atomic/dilate"){
+	}else if(pointcloud && guiContent["mode"] === "compute/dilate"){
 		target = renderAtomicDilate(renderer, pointcloud, camera);
 		shouldDrawTarget = true;
 	}
@@ -164,7 +164,7 @@ function render(){
 		}
 	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
-	}else if(pointcloud && guiContent["mode"] === "points/atomic/dilate"){
+	}else if(pointcloud && guiContent["mode"] === "compute/dilate"){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}else if(shouldDrawTarget){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
@@ -266,8 +266,6 @@ async function run(){
 	// 	controls.pitch = Math.PI / 6;
 	
 	// 	pointcloud.updateVisibility(camera);
-	// 	pointcloud.position.set(3, -3, -6)
-	// 	pointcloud.updateWorld();
 	// 	window.pointcloud = pointcloud;
 	// });
 
@@ -293,6 +291,7 @@ async function run(){
 
 
 	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
 		camera.near = 0.5;
 		camera.far = 100_000;
 
