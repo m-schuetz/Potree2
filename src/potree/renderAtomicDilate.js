@@ -15,12 +15,13 @@ if(FRESH_COMPILE){
 }
 
 let depthPrecision = "100.0";
+let rasterizerGroupSize = "128";
 
 let csDepth = `
 
 #version 450
 
-layout(local_size_x = 128, local_size_y = 1) in;
+layout(local_size_x = ${rasterizerGroupSize}, local_size_y = 1) in;
 
 layout(set = 0, binding = 0) uniform Uniforms {
 	mat4 worldView;
@@ -88,7 +89,7 @@ let csColor = `
 
 #version 450
 
-layout(local_size_x = 128, local_size_y = 1) in;
+layout(local_size_x = ${rasterizerGroupSize}, local_size_y = 1) in;
 
 layout(set = 0, binding = 0) uniform Uniforms {
 	mat4 worldView;
@@ -820,7 +821,7 @@ function depthPass(renderer, octree, camera){
 		
 		passEncoder.setBindGroup(0, bindGroup);
 
-		let groups = Math.ceil(node.geometry.numElements / 128);
+		let groups = Math.ceil(node.geometry.numElements / rasterizerGroupSize);
 		passEncoder.dispatch(groups);
 		
 	}
@@ -876,7 +877,7 @@ function colorPass(renderer, octree, camera){
 
 		passEncoder.setBindGroup(0, bindGroup);
 
-		let groups = Math.ceil(node.geometry.numElements / 128);
+		let groups = Math.ceil(node.geometry.numElements / rasterizerGroupSize);
 		passEncoder.dispatch(groups, 1, 1);
 	}
 
