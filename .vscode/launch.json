@@ -8,7 +8,7 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Launch Program",
-			"program": "${workspaceFolder}\\test.js"
+			"program": "${workspaceFolder}\\tools\\ply2potree2.mjs"
 		}
 	]
 }

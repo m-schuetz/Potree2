@@ -11,7 +11,7 @@ import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
 import {renderDilate}  from "./src/potree/renderDilate.js";
 import {renderAtomic}  from "./src/potree/renderAtomic.js";
-import {renderAtomicDilate}  from "./src/potree/renderAtomicDilate.js";
+import {renderAtomicDilate}  from "./src/potree/render_compute_dilate/render_compute_dilate.js";
 import {drawTexture} from "./src/prototyping/textures.js";
 
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
@@ -247,18 +247,28 @@ async function run(){
 		});
 	}
 
-	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	controls.radius = 20;
+	controls.yaw = -0.2;
+	controls.pitch = 0.8;
+	camera.updateProj();
 
-	// 	controls.radius = 10;
-	// 	controls.yaw = -Math.PI / 6;
-	// 	controls.pitch = Math.PI / 5;
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
-	// 	pointcloud.updateVisibility(camera);
-	// 	pointcloud.position.set(-0.9, 0.1, -5);
-	// 	pointcloud.updateWorld();
-	// 	window.pointcloud = pointcloud;
+		controls.radius = 10;
+		controls.yaw = -Math.PI / 6;
+		controls.pitch = Math.PI / 5;
+		//controls.pivot.copy(pointcloud.boundingBox.center());
 
-	// });
+		controls.pivot.set(0.46849801014552056, -0.5089652605462774, 4.694897729016537);
+		controls.pitch = 0.3601621061369527;
+		controls.yaw = -0.610317525598302;
+		controls.radius = 6.3;
+
+		//pointcloud.updateVisibility(camera);
+		//pointcloud.updateWorld();
+		window.pointcloud = pointcloud;
+
+	});
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	controls.radius = 20;
@@ -269,10 +279,7 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	controls.radius = 20;
-	controls.yaw = -0.2;
-	controls.pitch = 0.8;
-	camera.updateProj();
+	
 
 	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
 	// 	controls.radius = 700;
@@ -290,22 +297,22 @@ async function run(){
 	// });
 
 
-	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	// Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
-		camera.near = 0.5;
-		camera.far = 100_000;
+	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// // Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
+	// 	camera.near = 0.5;
+	// 	camera.far = 100_000;
 
-		controls.radius = 2_400;
-		controls.yaw = 0.03437500000000017;
-		controls.pitch = 0.6291441788743247;
-		controls.pivot.set(694698.4629456067, 3916428.1845130883, -15.72393889322449);
+	// 	controls.radius = 2_400;
+	// 	controls.yaw = 0.03437500000000017;
+	// 	controls.pitch = 0.6291441788743247;
+	// 	controls.pivot.set(694698.4629456067, 3916428.1845130883, -15.72393889322449);
 
-		camera.updateProj();
+	// 	camera.updateProj();
 	
-		pointcloud.updateVisibility(camera);
+	// 	pointcloud.updateVisibility(camera);
 
-		window.pointcloud = pointcloud;
-	});
+	// 	window.pointcloud = pointcloud;
+	// });
 
 	requestAnimationFrame(loop);
 

@@ -38,6 +38,8 @@ fn main() -> void {
 	var c : vec4<f32> = color;
 	fragColor = c;
 
+	//fragColor.r = f32(instanceIdx) / 256.0;
+
 	return;
 }
 `;
@@ -231,6 +233,7 @@ export function render(renderer, pass, octree, camera){
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, uniformBindGroup);
 
+	let i = 0;
 	for(let node of nodes){
 		let nodeState = getNodeState(renderer, node);
 
@@ -247,7 +250,9 @@ export function render(renderer, pass, octree, camera){
 		}
 
 		let numElements = node.geometry.numElements;
-		passEncoder.draw(numElements, 1, 0, 0);
+		passEncoder.draw(numElements, 1, 0, i);
+
+		i++;
 	}
 
 };
