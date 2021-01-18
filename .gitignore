@@ -11,3 +11,6 @@ resources/pointclouds/CA13/metadata.json
 resources/pointclouds/CA13/octree.bin
 src/prototyping/laslaz/bunny_small.laz
 src/prototyping/laslaz/ot_35120B4310A_1.laz
+test/dragon_vrip.obj
+test/dragon_vrip.ply
+test/vr_controller_vive_1_5.obj
