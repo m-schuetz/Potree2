@@ -22,8 +22,8 @@ export let fsQuad = `
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[binding(1), set(0)]] var<storage_buffer> ssbo_colors : Colors;
-	[[binding(2), set(0)]] var<storage_buffer> ssbo_depth : U32s;
+	[[binding(1), set(0)]] var<storage_buffer> ssbo_colors : [[access(read)]]Colors;
+	[[binding(2), set(0)]] var<storage_buffer> ssbo_depth : [[access(read)]]U32s;
 
 	[[location(0)]] var<out> outColor : vec4<f32>;
 
@@ -35,7 +35,7 @@ export let fsQuad = `
 	fn main() -> void {
 
 		var avg : vec4<f32>;
-		var window : i32 = 1;
+		var window : i32 = 0;
 
 		var width : i32 = i32(uniforms.screenWidth);
 		var height : i32 = i32(uniforms.screenHeight);

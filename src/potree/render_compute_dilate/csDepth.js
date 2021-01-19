@@ -65,7 +65,14 @@ void main(){
 
 	uint depth = uint(-viewPos.z * ${depthPrecision});
 
-	atomicMin(framebuffer[pixelID], depth);
+	// checking current depth before attempting atomicMin frequently results in 10% better performance.
+	uint referenceDepth = framebuffer[pixelID];
+	if(depth < referenceDepth){
+
+		// set new depth
+		atomicMin(framebuffer[pixelID], depth);
+	}
+
 }
 
 `;

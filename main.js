@@ -11,7 +11,8 @@ import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
 import {renderDilate}  from "./src/potree/renderDilate.js";
 import {renderAtomic}  from "./src/potree/renderAtomic.js";
-import {renderAtomicDilate}  from "./src/potree/render_compute_dilate/render_compute_dilate.js";
+import {renderAtomicDilate} from "./src/potree/render_compute_dilate/render_compute_dilate.js";
+import {renderComputeNoDepth} from "./src/potree/render_compute_no_depth/render_compute_no_depth.js";
 import {drawTexture} from "./src/prototyping/textures.js";
 
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
@@ -42,6 +43,7 @@ let guiContent = {
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	"mode": "compute/dilate",
+	// "mode": "compute/no_depth",
 	"point budget (M)": 2,
 	"point size": 1,
 	"update": true,
@@ -71,7 +73,8 @@ function initGUI(){
 			"points/quads", 
 			"points/dilate", 
 			"points/atomic",
-			"compute/dilate"
+			"compute/dilate",
+			"compute/no_depth",
 			]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
@@ -149,6 +152,9 @@ function render(){
 	}else if(pointcloud && guiContent["mode"] === "compute/dilate"){
 		target = renderAtomicDilate(renderer, pointcloud, camera);
 		shouldDrawTarget = true;
+	}else if(pointcloud && guiContent["mode"] === "compute/no_depth"){
+		target = renderComputeNoDepth(renderer, pointcloud, camera);
+		shouldDrawTarget = true;
 	}
 
 
@@ -166,9 +172,13 @@ function render(){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}else if(pointcloud && guiContent["mode"] === "compute/dilate"){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
+	}else if(pointcloud && guiContent["mode"] === "compute/no_depth"){
+		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}else if(shouldDrawTarget){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}
+
+	
 
 	{ // draw xyz axes
 		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(2, 0, 0), new Vector3(255, 0, 0));
@@ -252,23 +262,23 @@ async function run(){
 	controls.pitch = 0.8;
 	camera.updateProj();
 
-	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
-		controls.radius = 10;
-		controls.yaw = -Math.PI / 6;
-		controls.pitch = Math.PI / 5;
-		//controls.pivot.copy(pointcloud.boundingBox.center());
+	// 	controls.radius = 10;
+	// 	controls.yaw = -Math.PI / 6;
+	// 	controls.pitch = Math.PI / 5;
+	// 	//controls.pivot.copy(pointcloud.boundingBox.center());
 
-		controls.pivot.set(0.46849801014552056, -0.5089652605462774, 4.694897729016537);
-		controls.pitch = 0.3601621061369527;
-		controls.yaw = -0.610317525598302;
-		controls.radius = 6.3;
+	// 	controls.pivot.set(0.46849801014552056, -0.5089652605462774, 4.694897729016537);
+	// 	controls.pitch = 0.3601621061369527;
+	// 	controls.yaw = -0.610317525598302;
+	// 	controls.radius = 6.3;
 
-		//pointcloud.updateVisibility(camera);
-		//pointcloud.updateWorld();
-		window.pointcloud = pointcloud;
+	// 	//pointcloud.updateVisibility(camera);
+	// 	//pointcloud.updateWorld();
+	// 	window.pointcloud = pointcloud;
 
-	});
+	// });
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	controls.radius = 20;
