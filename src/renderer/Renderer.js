@@ -39,8 +39,9 @@ export class Renderer{
 
 	async init(){
 		this.adapter = await navigator.gpu.requestAdapter();
-		this.device = await this.adapter.requestDevice();
-
+		this.device = await this.adapter.requestDevice({
+			extensions: ["timestamp-query"],
+		});
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("gpupresent");
 

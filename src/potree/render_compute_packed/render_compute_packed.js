@@ -383,6 +383,8 @@ function getGpuBuffers(renderer, geometry){
 	return buffers;
 }
 
+let depthQueryBuffer = null;
+
 function depthPass(renderer, octree, camera){
 	let {device} = renderer;
 	let nodes = octree.visibleNodes;
@@ -390,8 +392,26 @@ function depthPass(renderer, octree, camera){
 	let {pipeline, uniformBuffer} = getDepthState(renderer);
 	let ssbo_depth = getDepthState(renderer).ssbo;
 
+	let querySet = renderer.device.createQuerySet({
+		type: "timestamp",
+		count: 2,
+	});
+
+	if(!depthQueryBuffer){
+		depthQueryBuffer = device.createBuffer({
+			size: 16,
+			usage: GPUBufferUsage.QUERY_RESOLVE 
+				| GPUBufferUsage.STORAGE
+				| GPUBufferUsage.COPY_SRC
+				| GPUBufferUsage.COPY_DST,
+		});
+	}
+
 	const commandEncoder = device.createCommandEncoder();
+
 	let passEncoder = commandEncoder.beginComputePass();
+
+	passEncoder.writeTimestamp(querySet, 0);
 
 	passEncoder.setPipeline(pipeline);
 
@@ -416,8 +436,22 @@ function depthPass(renderer, octree, camera){
 		passEncoder.dispatch(groups);
 	}
 
+	passEncoder.writeTimestamp(querySet, 1);
+
 	passEncoder.endPass();
+
+	commandEncoder.resolveQuerySet(querySet, 0, 2, depthQueryBuffer, 0);
+
 	device.defaultQueue.submit([commandEncoder.finish()]);
+
+	renderer.readBuffer(depthQueryBuffer, 0, 16).then( buffer => {
+		let u64 = new BigInt64Array(buffer);
+		
+		let nanos = u64[1] - u64[0];
+		let duration = Number(nanos) / 1_000_000;
+
+		console.log(duration + "ms");
+	});
 
 }
 
