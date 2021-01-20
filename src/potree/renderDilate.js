@@ -1,6 +1,7 @@
 
 import {render as renderPoints}  from "./renderPoints.js";
 import {RenderTarget} from "../core/RenderTarget.js";
+import * as Timer from "../renderer/Timer.js";
 
 
 
@@ -227,42 +228,10 @@ function getTarget2(renderer){
 
 function init(renderer){
 
-	let target1 = getTarget1(renderer);
-	let target2 = getTarget2(renderer);
-
 	if(pipeline === null){
 		let {device, swapChainFormat} = renderer;
 
-		// bindGroupLayout = device.createBindGroupLayout({
-		// 	entries: [{
-		// 		binding: 0,
-		// 		visibility: GPUShaderStage.VERTEX,
-		// 		type: "uniform-buffer"
-		// 	},{
-		// 		// Sampler
-		// 		binding: 1,
-		// 		visibility: GPUShaderStage.FRAGMENT,
-		// 		type: "sampler"
-		// 	},{
-		// 		// Texture view
-		// 		binding: 2,
-		// 		visibility: GPUShaderStage.FRAGMENT,
-		// 		type: "sampled-texture"
-		// 	}
-		// 	,{
-		// 		// Texture view
-		// 		binding: 3,
-		// 		visibility: GPUShaderStage.FRAGMENT,
-		// 		type: "sampled-texture"
-		// 	}
-		// 	]
-		// });
-
-
-		// let layout = device.createPipelineLayout({ bindGroupLayouts: [bindGroupLayout] });
-
 		pipeline = device.createRenderPipeline({
-			// layout: layout, 
 			vertexStage: {
 				module: device.createShaderModule({code: vs}),
 				entryPoint: "main",
@@ -312,22 +281,11 @@ export function renderDilate(renderer, pointcloud, camera){
 		// doing that because the render target attachments may change after resize
 		uniformBindGroup = renderer.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
-			entries: [{
-					binding: 0,
-					resource: {
-						buffer: uniformBuffer,
-					}
-				},{
-					binding: 1,
-					resource: sampler,
-				},{
-					binding: 2,
-					resource: target.colorAttachments[0].texture.createView(),
-				}
-				,{
-					binding: 3,
-					resource: target.depth.texture.createView({aspect: "depth-only"}),
-				}
+			entries: [
+				{binding: 0, resource: {buffer: uniformBuffer}},
+				{binding: 1, resource: sampler},
+				{binding: 2, resource: target.colorAttachments[0].texture.createView()},
+				{binding: 3, resource: target.depth.texture.createView({aspect: "depth-only"})}
 			],
 		});
 
@@ -351,11 +309,18 @@ export function renderDilate(renderer, pointcloud, camera){
 		const commandEncoder = renderer.device.createCommandEncoder();
 		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
+		Timer.timestamp(passEncoder,"dilate-pass1-start");
+
 		let pass = {commandEncoder, passEncoder, renderPassDescriptor};
 
 		renderPoints(renderer, pass, pointcloud, camera);
 
+		Timer.timestamp(passEncoder,"dilate-pass1-end");
+
 		pass.passEncoder.endPass();
+		
+		Timer.resolve(renderer, commandEncoder);
+
 		let commandBuffer = pass.commandEncoder.finish();
 		renderer.device.defaultQueue.submit([commandBuffer]);
 	}
@@ -385,6 +350,8 @@ export function renderDilate(renderer, pointcloud, camera){
 		const commandEncoder = renderer.device.createCommandEncoder();
 		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
+		Timer.timestamp(passEncoder,"dilate-pass2-start");
+
 		let pass = {commandEncoder, passEncoder, renderPassDescriptor};
 
 		passEncoder.setPipeline(pipeline);
@@ -409,10 +376,12 @@ export function renderDilate(renderer, pointcloud, camera){
 
 		passEncoder.draw(6, 1, 0, 0);
 
-
-		// renderPoints(renderer, pass, pointcloud, camera);
+		Timer.timestamp(passEncoder,"dilate-pass2-end");
 
 		pass.passEncoder.endPass();
+
+		Timer.resolve(renderer, commandEncoder);
+
 		let commandBuffer = pass.commandEncoder.finish();
 		renderer.device.defaultQueue.submit([commandBuffer]);
 

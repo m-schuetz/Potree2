@@ -7,6 +7,7 @@ import {csColor, color_precompiled, group_size as group_size_color} from "./csCo
 import {csReset} from "./csReset.js";
 import {vsQuad} from "./vsQuad.js";
 import {fsQuad} from "./fsQuad.js";
+import * as Timer from "../../renderer/Timer.js";
 
 const FRESH_COMPILE = true;
 
@@ -353,6 +354,8 @@ function depthPass(renderer, octree, camera){
 	const commandEncoder = device.createCommandEncoder();
 	let passEncoder = commandEncoder.beginComputePass();
 
+	Timer.timestamp(passEncoder,"depth-start");
+
 	passEncoder.setPipeline(pipeline);
 
 	let i = 0;
@@ -388,7 +391,12 @@ function depthPass(renderer, octree, camera){
 		
 	}
 
+	Timer.timestamp(passEncoder,"depth-end");
+
 	passEncoder.endPass();
+
+	Timer.resolve(renderer, commandEncoder);
+
 	device.defaultQueue.submit([commandEncoder.finish()]);
 
 }
@@ -403,6 +411,8 @@ function colorPass(renderer, octree, camera){
 
 	const commandEncoder = device.createCommandEncoder();
 	let passEncoder = commandEncoder.beginComputePass();
+
+	Timer.timestamp(passEncoder,"color-start");
 
 	passEncoder.setPipeline(pipeline);
 
@@ -439,7 +449,12 @@ function colorPass(renderer, octree, camera){
 		passEncoder.dispatch(groups, 1, 1);
 	}
 
+	Timer.timestamp(passEncoder,"color-end");
+
 	passEncoder.endPass();
+
+	Timer.resolve(renderer, commandEncoder);
+
 	device.defaultQueue.submit([commandEncoder.finish()]);
 
 }
@@ -480,6 +495,8 @@ function resolve(renderer, octree, camera){
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
+	Timer.timestamp(passEncoder,"resolve-start");
+
 	passEncoder.setPipeline(pipeline);
 
 	{
@@ -511,7 +528,11 @@ function resolve(renderer, octree, camera){
 
 	passEncoder.draw(6, 1, 0, 0);
 
+	Timer.timestamp(passEncoder,"resolve-end");
+
 	passEncoder.endPass();
+
+	Timer.resolve(renderer, commandEncoder);
 
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.defaultQueue.submit([commandBuffer]);

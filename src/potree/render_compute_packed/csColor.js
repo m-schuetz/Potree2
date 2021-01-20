@@ -39,9 +39,9 @@ void main(){
 
 	uint index = gl_GlobalInvocationID.x;
 
-	// if(index >= numPoints){
-	// 	return;
-	// }
+	if(index >= uniforms.numPoints){
+		return;
+	}
 
 	vec4 pos_point = vec4(
 		positions[3 * index + 0],
@@ -76,7 +76,8 @@ void main(){
 	uint depth = uint(-viewPos.z * ${depthPrecision});
 	uint bufferedDepth = ssbo_depth[pixelID];
 
-	if(depth < 1.01 * bufferedDepth){
+	float blendFactor = 1.001;
+	if(depth <= blendFactor * bufferedDepth){
 		atomicAdd(ssbo_colors[4 * pixelID + 0], r);
 		atomicAdd(ssbo_colors[4 * pixelID + 1], g);
 		atomicAdd(ssbo_colors[4 * pixelID + 2], b);

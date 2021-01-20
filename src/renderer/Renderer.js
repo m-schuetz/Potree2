@@ -4,6 +4,7 @@
 import * as shaders from "../prototyping/shaders.js";
 import {renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
 import {renderLines} from "../modules/drawCommands/renderLines.js";
+import * as Timer from "./Timer.js";
 
 
 class Draws{
@@ -242,6 +243,8 @@ export class Renderer{
 	finish(pass){
 
 		pass.passEncoder.endPass();
+
+		Timer.resolve(renderer, pass.commandEncoder);
 
 		let commandBuffer = pass.commandEncoder.finish();
 		this.device.defaultQueue.submit([commandBuffer]);

@@ -16,6 +16,7 @@ import {renderComputeLoop} from "./src/potree/render_compute_loop/render_compute
 import {renderComputeNoDepth} from "./src/potree/render_compute_no_depth/render_compute_no_depth.js";
 import {render as renderComputePacked} from "./src/potree/render_compute_packed/render_compute_packed.js";
 import {drawTexture} from "./src/prototyping/textures.js";
+import * as Timer from "./src/renderer/Timer.js";
 
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
 
@@ -39,13 +40,14 @@ let guiContent = {
 	"#nodes": "0",
 	"fps": "0",
 	"duration(update)": "0",
+	// "timings": "",
 	"camera": "",
 
 	"show bounding box": false,
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
-	"mode": "compute/dilate",
-	// "mode": "compute/packed",
+	// "mode": "compute/dilate",
+	"mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
 	"point budget (M)": 2,
@@ -66,6 +68,7 @@ function initGUI(){
 		stats.add(guiContent, "#nodes").listen();
 		stats.add(guiContent, "fps").listen();
 		stats.add(guiContent, "duration(update)").listen();
+		// stats.add(guiContent, "timings").listen();
 		stats.add(guiContent, "camera").listen();
 	}
 
@@ -145,6 +148,9 @@ function render(){
 	let pointcloud = window.pointcloud;
 	let target = null;
 	let texture = null;
+
+	Timer.frameStart(renderer);
+	// Timer.timestampSep(renderer, "start");
 
 	let shouldDrawTarget = false;
 	if(pointcloud && guiContent["mode"] === "points/dilate"){
@@ -226,6 +232,10 @@ function render(){
 	
 	renderer.renderDrawCommands(pass, camera);
 	renderer.finish(pass);
+
+	// Timer.timestampSep(renderer, "end");
+
+	Timer.frameEnd(renderer);
 
 }
 

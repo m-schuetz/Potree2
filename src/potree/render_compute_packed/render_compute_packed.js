@@ -7,8 +7,9 @@ import {csColor, precompiled as precompiled_color, group_size as group_size_colo
 import {csReset, precompiled as precompiled_reset} from "./csReset.js";
 import {vsQuad} from "./vsQuad.js";
 import {fsQuad} from "./fsQuad.js";
+import * as Timer from "../../renderer/Timer.js";
 
-const FRESH_COMPILE = false;
+const FRESH_COMPILE = true;
 
 import glslangModule from "../../../libs/glslang/glslang.js";
 
@@ -208,7 +209,7 @@ function getScreenPassState(renderer){
 			}],
 		});
 
-		let uniformBufferSize = 32;
+		let uniformBufferSize = 36;
 		let uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -304,6 +305,11 @@ function updateUniforms(renderer, octree, camera){
 		view.setUint32(132, size.height, true);
 	}
 
+	{ // misc
+		let numPoints = octree.visibleNodes.reduce( (a, i) => a + i.geometry.numElements, 0);
+		view.setUint32(136, numPoints, true);
+	}
+
 	{ // set depth pass uniforms
 		let {uniformBuffer} = getDepthState(renderer);
 		device.defaultQueue.writeBuffer(
@@ -383,7 +389,7 @@ function getGpuBuffers(renderer, geometry){
 	return buffers;
 }
 
-let depthQueryBuffer = null;
+
 
 function depthPass(renderer, octree, camera){
 	let {device} = renderer;
@@ -392,26 +398,11 @@ function depthPass(renderer, octree, camera){
 	let {pipeline, uniformBuffer} = getDepthState(renderer);
 	let ssbo_depth = getDepthState(renderer).ssbo;
 
-	let querySet = renderer.device.createQuerySet({
-		type: "timestamp",
-		count: 2,
-	});
-
-	if(!depthQueryBuffer){
-		depthQueryBuffer = device.createBuffer({
-			size: 16,
-			usage: GPUBufferUsage.QUERY_RESOLVE 
-				| GPUBufferUsage.STORAGE
-				| GPUBufferUsage.COPY_SRC
-				| GPUBufferUsage.COPY_DST,
-		});
-	}
-
 	const commandEncoder = device.createCommandEncoder();
 
 	let passEncoder = commandEncoder.beginComputePass();
 
-	passEncoder.writeTimestamp(querySet, 0);
+	Timer.timestamp(passEncoder,"depth-start");
 
 	passEncoder.setPipeline(pipeline);
 
@@ -436,22 +427,13 @@ function depthPass(renderer, octree, camera){
 		passEncoder.dispatch(groups);
 	}
 
-	passEncoder.writeTimestamp(querySet, 1);
+	Timer.timestamp(passEncoder,"depth-end");
 
 	passEncoder.endPass();
 
-	commandEncoder.resolveQuerySet(querySet, 0, 2, depthQueryBuffer, 0);
+	Timer.resolve(renderer, commandEncoder);
 
 	device.defaultQueue.submit([commandEncoder.finish()]);
-
-	renderer.readBuffer(depthQueryBuffer, 0, 16).then( buffer => {
-		let u64 = new BigInt64Array(buffer);
-		
-		let nanos = u64[1] - u64[0];
-		let duration = Number(nanos) / 1_000_000;
-
-		console.log(duration + "ms");
-	});
 
 }
 
@@ -465,6 +447,8 @@ function colorPass(renderer, octree, camera){
 
 	const commandEncoder = device.createCommandEncoder();
 	let passEncoder = commandEncoder.beginComputePass();
+
+	Timer.timestamp(passEncoder,"color-start");
 
 	passEncoder.setPipeline(pipeline);
 
@@ -490,7 +474,10 @@ function colorPass(renderer, octree, camera){
 		passEncoder.dispatch(groups, 1, 1);
 	}
 
+	Timer.timestamp(passEncoder,"color-end");
+
 	passEncoder.endPass();
+	Timer.resolve(renderer, commandEncoder);
 	device.defaultQueue.submit([commandEncoder.finish()]);
 
 }
@@ -531,6 +518,8 @@ function resolve(renderer, octree, camera){
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
+	Timer.timestamp(passEncoder,"resolve-start");
+
 	passEncoder.setPipeline(pipeline);
 
 	{
@@ -543,6 +532,7 @@ function resolve(renderer, octree, camera){
 		let height = 1;
 		let screenWidth = size.width;
 		let screenHeight = size.height;
+		let pixelWindow = Math.floor(guiContent["point size"] / 2);
 
 		view.setUint32(0, 5, true);
 		view.setFloat32(4, x, true);
@@ -551,6 +541,7 @@ function resolve(renderer, octree, camera){
 		view.setFloat32(16, height, true);
 		view.setFloat32(20, screenWidth, true);
 		view.setFloat32(24, screenHeight, true);
+		view.setUint32(28, pixelWindow, true);
 		
 		device.defaultQueue.writeBuffer(
 			uniformBuffer, 0,
@@ -562,7 +553,11 @@ function resolve(renderer, octree, camera){
 
 	passEncoder.draw(6, 1, 0, 0);
 
+	Timer.timestamp(passEncoder,"resolve-end");
+
 	passEncoder.endPass();
+
+	Timer.resolve(renderer, commandEncoder);
 
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.defaultQueue.submit([commandBuffer]);

@@ -1,6 +1,7 @@
 
 import {Vector3, Matrix4} from "../math/math.js";
 import {SPECTRAL} from "../misc/Gradients.js";
+import * as Timer from "../renderer/Timer.js";
 
 const vs = `
 [[block]] struct Uniforms {
@@ -254,6 +255,8 @@ export function render(renderer, pass, octree, camera){
 	let {passEncoder} = pass;
 	let {pipeline, uniformBindGroup} = octreeState;
 
+	Timer.timestamp(passEncoder,"quads-start");
+
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, uniformBindGroup);
 
@@ -279,5 +282,7 @@ export function render(renderer, pass, octree, camera){
 		let numElements = node.geometry.numElements;
 		passEncoder.drawIndexed(6, numElements, 0, 0);
 	}
+
+	Timer.timestamp(passEncoder,"quads-end");
 
 };
