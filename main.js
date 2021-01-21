@@ -16,6 +16,7 @@ import {renderComputeLoop} from "./src/potree/render_compute_loop/render_compute
 import {renderComputeNoDepth} from "./src/potree/render_compute_no_depth/render_compute_no_depth.js";
 import {render as renderComputePacked} from "./src/potree/render_compute_packed/render_compute_packed.js";
 import {render as renderComputeXRay} from "./src/potree/render_compute_xray/render_compute_xray.js";
+import {render as renderProgressive} from "./src/potree/render_progressive/render_progressive.js";
 import {drawTexture} from "./src/prototyping/textures.js";
 import * as Timer from "./src/renderer/Timer.js";
 
@@ -45,13 +46,14 @@ let guiContent = {
 	"camera": "",
 
 	"show bounding box": false,
-	"mode": "points/quads",
+	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
 	// "mode": "compute/xray",
-	// "mode": "compute/packed",
+	"mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
+	// "mode": "progressive",
 	"point budget (M)": 2,
 	"point size": 3,
 	"update": true,
@@ -88,6 +90,7 @@ function initGUI(){
 			"compute/no_depth",
 			"compute/packed",
 			"compute/xray",
+			"progressive",
 			]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
@@ -180,6 +183,9 @@ function render(){
 	}else if(pointcloud && guiContent["mode"] === "compute/xray"){
 		target = renderComputeXRay(renderer, pointcloud, camera);
 		shouldDrawTarget = true;
+	}else if(pointcloud && guiContent["mode"] === "progressive"){
+		target = renderProgressive(renderer, pointcloud, camera);
+		shouldDrawTarget = true;
 	}
 
 
@@ -195,18 +201,6 @@ function render(){
 		}else{
 			renderQuads(renderer, pass, pointcloud, camera);
 		}
-	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
-		drawTexture(renderer, pass, target, 0, 0, 1, 1);
-	}else if(pointcloud && guiContent["mode"] === "compute/dilate"){
-		drawTexture(renderer, pass, target, 0, 0, 1, 1);
-	}else if(pointcloud && guiContent["mode"] === "compute/no_depth"){
-		drawTexture(renderer, pass, target, 0, 0, 1, 1);
-	}else if(pointcloud && guiContent["mode"] === "compute/loop"){
-		drawTexture(renderer, pass, target, 0, 0, 1, 1);
-	}else if(pointcloud && guiContent["mode"] === "compute/packed"){
-		drawTexture(renderer, pass, target, 0, 0, 1, 1);
-	}else if(pointcloud && guiContent["mode"] === "compute/xray"){
-		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}else if(shouldDrawTarget){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}
@@ -344,22 +338,22 @@ async function run(){
 	// });
 
 
-	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	// Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
-		camera.near = 0.5;
-		camera.far = 100_000;
+	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// // Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
+	// 	camera.near = 0.5;
+	// 	camera.far = 100_000;
 
-		controls.radius = 2_400;
-		controls.yaw = 0.03437500000000017;
-		controls.pitch = 0.6291441788743247;
-		controls.pivot.set(694698.4629456067, 3916428.1845130883, -15.72393889322449);
+	// 	controls.radius = 2_400;
+	// 	controls.yaw = 0.03437500000000017;
+	// 	controls.pitch = 0.6291441788743247;
+	// 	controls.pivot.set(694698.4629456067, 3916428.1845130883, -15.72393889322449);
 
-		camera.updateProj();
+	// 	camera.updateProj();
 	
-		pointcloud.updateVisibility(camera);
+	// 	pointcloud.updateVisibility(camera);
 
-		window.pointcloud = pointcloud;
-	});
+	// 	window.pointcloud = pointcloud;
+	// });
 
 	requestAnimationFrame(loop);
 
