@@ -339,6 +339,7 @@ function getGpuAttributeBuffer(renderer, name){
 		let bpp = {
 			position: 12,
 			color: 4,
+			rgba: 4,
 		}[name];
 
 		let size = 150_000_000 * bpp;
@@ -408,7 +409,7 @@ function depthPass(renderer, octree, camera){
 
 	{
 		let vbo_position = gpuAttributeBuffers.get("position").vbo;
-		let vbo_color = gpuAttributeBuffers.get("color").vbo;
+		let vbo_color = (gpuAttributeBuffers.get("color") ?? gpuAttributeBuffers.get("rgba")).vbo;
 
 		let bindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
@@ -454,7 +455,7 @@ function colorPass(renderer, octree, camera){
 
 	{
 		let vbo_position = gpuAttributeBuffers.get("position").vbo;
-		let vbo_color = gpuAttributeBuffers.get("color").vbo;
+		let vbo_color = (gpuAttributeBuffers.get("color") ?? gpuAttributeBuffers.get("rgba")).vbo;
 
 		let bindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),

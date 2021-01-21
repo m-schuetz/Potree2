@@ -1,7 +1,5 @@
 
-import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
 import {BrotliDecode} from "../../libs/brotli/decode.js";
-
 
 const typedArrayMapping = {
 	"int8":   Int8Array,
@@ -134,7 +132,7 @@ async function load(event){
 
 			}
 
-			attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute };
+			attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute, name: pointAttribute.name };
 		}
 		else if(["RGBA", "rgba"].includes(pointAttribute.name)){
 
@@ -175,7 +173,7 @@ async function load(event){
 			// let duration = performance.now() - tStart;
 			// console.log(`rgb: ${duration.toFixed(1)}ms`);
 
-			attributeBuffers[pointAttribute.name] = { buffer: colors, attribute: pointAttribute };
+			attributeBuffers[pointAttribute.name] = { buffer: colors, attribute: pointAttribute, name: pointAttribute.name };
 			// attributeBuffers[pointAttribute.name] = { buffer: buff, attribute: pointAttribute };
 		}else{
 

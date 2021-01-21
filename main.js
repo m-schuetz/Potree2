@@ -45,11 +45,11 @@ let guiContent = {
 	"camera": "",
 
 	"show bounding box": false,
-	// "mode": "points/quads",
+	"mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
 	// "mode": "compute/xray",
-	"mode": "compute/packed",
+	// "mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
 	"point budget (M)": 2,
@@ -344,22 +344,22 @@ async function run(){
 	// });
 
 
-	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	// // Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
-	// 	camera.near = 0.5;
-	// 	camera.far = 100_000;
+	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
+		camera.near = 0.5;
+		camera.far = 100_000;
 
-	// 	controls.radius = 2_400;
-	// 	controls.yaw = 0.03437500000000017;
-	// 	controls.pitch = 0.6291441788743247;
-	// 	controls.pivot.set(694698.4629456067, 3916428.1845130883, -15.72393889322449);
+		controls.radius = 2_400;
+		controls.yaw = 0.03437500000000017;
+		controls.pitch = 0.6291441788743247;
+		controls.pivot.set(694698.4629456067, 3916428.1845130883, -15.72393889322449);
 
-	// 	camera.updateProj();
+		camera.updateProj();
 	
-	// 	pointcloud.updateVisibility(camera);
+		pointcloud.updateVisibility(camera);
 
-	// 	window.pointcloud = pointcloud;
-	// });
+		window.pointcloud = pointcloud;
+	});
 
 	requestAnimationFrame(loop);
 
