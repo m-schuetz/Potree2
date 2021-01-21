@@ -15,6 +15,7 @@ import {renderAtomicDilate} from "./src/potree/render_compute_dilate/render_comp
 import {renderComputeLoop} from "./src/potree/render_compute_loop/render_compute_loop.js";
 import {renderComputeNoDepth} from "./src/potree/render_compute_no_depth/render_compute_no_depth.js";
 import {render as renderComputePacked} from "./src/potree/render_compute_packed/render_compute_packed.js";
+import {render as renderComputeXRay} from "./src/potree/render_compute_xray/render_compute_xray.js";
 import {drawTexture} from "./src/prototyping/textures.js";
 import * as Timer from "./src/renderer/Timer.js";
 
@@ -47,6 +48,7 @@ let guiContent = {
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
+	// "mode": "compute/xray",
 	"mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
@@ -84,6 +86,7 @@ function initGUI(){
 			"compute/loop",
 			"compute/no_depth",
 			"compute/packed",
+			"compute/xray",
 			]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
@@ -173,6 +176,9 @@ function render(){
 	}else if(pointcloud && guiContent["mode"] === "compute/no_depth"){
 		target = renderComputeNoDepth(renderer, pointcloud, camera);
 		shouldDrawTarget = true;
+	}else if(pointcloud && guiContent["mode"] === "compute/xray"){
+		target = renderComputeXRay(renderer, pointcloud, camera);
+		shouldDrawTarget = true;
 	}
 
 
@@ -195,6 +201,8 @@ function render(){
 	}else if(pointcloud && guiContent["mode"] === "compute/loop"){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}else if(pointcloud && guiContent["mode"] === "compute/packed"){
+		drawTexture(renderer, pass, target, 0, 0, 1, 1);
+	}else if(pointcloud && guiContent["mode"] === "compute/xray"){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}else if(shouldDrawTarget){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);

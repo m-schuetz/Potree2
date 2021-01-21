@@ -1,6 +1,5 @@
 
 export let group_size = "128";
-let depthPrecision = "1000.0";
 
 export let csColor = `
 
@@ -21,15 +20,12 @@ layout(std430, set = 0, binding = 1) buffer SSBO_COLORS {
 	uint ssbo_colors[];
 };
 
-layout(std430, set = 0, binding = 2) buffer SSBO_DEPTH {
-	uint ssbo_depth[];
-};
 
-layout(std430, set = 0, binding = 3) buffer SSBO_position {
+layout(std430, set = 0, binding = 2) buffer SSBO_position {
 	float positions[];
 };
 
-layout(std430, set = 0, binding = 4) buffer SSBO_color {
+layout(std430, set = 0, binding = 3) buffer SSBO_color {
 	uint colors[];
 };
 
@@ -73,61 +69,17 @@ void main(){
 	uint g = (color >> 8) & 0xFFu;
 	uint b = (color >> 16) & 0xFFu;
 
-	uint depth = uint(-viewPos.z * ${depthPrecision});
-	uint bufferedDepth = ssbo_depth[pixelID];
+	atomicAdd(ssbo_colors[4 * pixelID + 0], r);
+	atomicAdd(ssbo_colors[4 * pixelID + 1], g);
+	atomicAdd(ssbo_colors[4 * pixelID + 2], b);
+	atomicAdd(ssbo_colors[4 * pixelID + 3], 1);
 
-	float blendFactor = 1.001;
-	if(depth <= blendFactor * bufferedDepth){
-		// atomicAdd(ssbo_colors[4 * pixelID + 0], r);
-		// atomicAdd(ssbo_colors[4 * pixelID + 1], g);
-		// atomicAdd(ssbo_colors[4 * pixelID + 2], b);
-		// atomicAdd(ssbo_colors[4 * pixelID + 3], 1);
 
-		uint rg = (r << 16) | g;
-		uint bc = (b << 16) | 1;
-		uint old_rg = atomicAdd(ssbo_colors[2 * pixelID + 0], rg);
-		uint old_bc = atomicAdd(ssbo_colors[2 * pixelID + 1], bc);
+	// uint rg = (r << 16) | g;
+	// uint bc = (b << 16) | 1;
 
-		// uint new_rg = old_rg + rg;
-		// uint new_bc = old_bc + bc;
-
-		// if(new_rg < old_rg){
-		// 	// overflow
-
-		// 	uint old_r = old_rg >> 16;
-		// 	uint old_g = old_rg & 0xFFFF;
-
-		// 	if(old_r + r >= 65536){
-		// 		//atomicAdd(ssbo_colors[0], 1);
-		// 		uint value = 1 << 15;
-		// 		atomicOr(ssbo_colors[2 * pixelID + 1], value);
-		// 	}
-
-		// 	if(old_g + g >= 65536){
-		// 		//atomicAdd(ssbo_colors[1], 1);
-		// 		uint value = 1 << 14;
-		// 		atomicOr(ssbo_colors[2 * pixelID + 1], value);
-		// 	}
-		// }
-
-		// if(new_bc < old_bc){
-		// 	uint old_b = old_bc >> 16;
-		// 	uint old_c = old_bc & 0xFFFF;
-
-		// 	uint correction = old_c - (new_bc & 0xFFFF);
-		// 	atomicAdd(ssbo_colors[2 * pixelID + 1], correction);
-
-		// 	if(old_b + b >= 65536){
-		// 		//atomicAdd(ssbo_colors[2], 1);
-		// 		uint value = 1 << 13;
-		// 		atomicOr(ssbo_colors[2 * pixelID + 1], value);
-		// 	}
-
-			
-
-		// }
-
-	}
+	// atomicAdd(ssbo_colors[2 * pixelID + 0], rg);
+	// atomicAdd(ssbo_colors[2 * pixelID + 1], bc);
 }
 
 `;
