@@ -19,6 +19,19 @@ td{
 	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
 }
 
+#msg_dbg{
+	position: absolute; 
+	left: 10px; 
+	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 1em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
 </style>
 </head>
 <body style="padding: 0; margin: 0">
@@ -33,37 +46,40 @@ td{
 <span style="position: absolute; left: 10px; top: 10px; 
 	background-color: white; opacity: 0.7; padding: 10px;">
 	
-	<h><b>WebGPU LAS file viewer. (no LAZ, yet)</b></h>
+	<span style="font-weight: bold">WebGPU based Las & LAZ viewer prototype:</span>
+
 	<ul>
 		<li>Highly experimental and crashy.</li>
-		<li>Requires the <a href="https://www.google.com/intl/de/chrome/canary/">Chrome Canary 89</a> browser.</li>
+		<li>Requires <a href="https://www.google.com/intl/de/chrome/canary/">Chrome Canary 89</a></li>
 		<li>To enable WebGPU, open this URL: <pre>chrome://flags/#enable-unsafe-webgpu</pre></li>
-		<li>Drag & Drop one or more las files into the browser window.</li>
-		<li>I recommend to load at most 10M to 100M points, depending on your hardware.</li>
-		<ul>
-			<li>119 M points, 40fps on an RTX 2080</li>
-			<li>145 M points, 56fps on an RTX 2080<br>
-				(Viewpoint and order matter. Sometimes more points are rendered faster.)
-			</li>
-			<li>25 M points, 144fps on an RTX 2080</li>
-		</ul>
-		<li>Reload page (F5) before loading another point cloud.</li>
 		<li>Github: <a href="https://github.com/m-schuetz/Potree2">https://github.com/m-schuetz/Potree2</a></li>
 	</ul>
 
-	Rendering modes:
+	<span style="font-weight: bold;">Instructions:</span>
 	<ul>
-		<li>atomic: <a href="https://github.com/m-schuetz/compute_rasterizer">Render with compute shader</a></li>
-		<li>atomic/dilate: Like atomic, but increase size in post-process.</li>
-		<li>points/quads: Render as "point-list" or instanced quads, depending on size.</li>
-		<li>points/dilate: Render as "point-list", increase size in post-process.</li>
+		<li>Drag & Drop LAS or LAZ files into the browser.</li>
+		<li>After 1-2 seconds, you should start seeing your point cloud in 3D<br> while it's beeing loaded.</li>
+		<li>Check the "#points" field on the top right to see if it's still loading.</li>
+		<li>Try different rendering modes. The default, "compute/packed" is <br>fastest on RTX 2080,
+		but on older GPUs, "points" might be faster.</li>
 	</ul>
+
+	<span style="font-weight: bold; color: red">Current Limitations:</span>
+	<ul>
+		<li>Limited to 150 million points!</li>
+		<li>No LOD! On low-end GPUs, try to stay below 50M points!</li>
+		<li>LAZ files limited to around 150MB!</li>
+		<li>Reload page before drag&dropping a new data set!</li>
+	</ul>
+
+	
 
 </span>
 
 <span id="big_message"></span>
+<span id="msg_dbg"></span>
 
-<script type="module" src="lasviewer_main.js"></script>
+<script type="module" src="main.js"></script>
 
 </body>
 </html>

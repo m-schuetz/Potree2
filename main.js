@@ -53,7 +53,7 @@ let guiContent = {
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
 	"point budget (M)": 2,
-	"point size": 1,
+	"point size": 3,
 	"update": true,
 };
 window.guiContent = guiContent;
@@ -79,6 +79,7 @@ function initGUI(){
 		input.open();
 
 		input.add(guiContent, "mode", [
+			"points", 
 			"points/quads", 
 			"points/dilate", 
 			"points/atomic",
@@ -185,7 +186,9 @@ function render(){
 	let pass = renderer.start();
 
 	// draw point cloud
-	if(pointcloud && guiContent["mode"] === "points/quads"){
+	if(pointcloud && guiContent["mode"] === "points"){
+		renderPoints(renderer, pass, pointcloud, camera);
+	}else if(pointcloud && guiContent["mode"] === "points/quads"){
 
 		if(pointcloud.pointSize === 1){
 			renderPoints(renderer, pass, pointcloud, camera);

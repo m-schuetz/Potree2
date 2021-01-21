@@ -22,13 +22,75 @@ function shuffle(array) {
 	return array;
 }
 
-onmessage = async function(e){
+function parsePoints(args){
 
-	console.log("test");
+	let {buffer, header, octree_min, batchsize} = args;
+	let {pointFormat, recordLength, min, max, scale} = header;
 
-	let {file, octree_min} = e.data;
+	let view = new DataView(buffer);
 
-	let buffer = await file.slice(0, 375).arrayBuffer()
+	let offsetRGB = {
+		"0": 0,
+		"1": 0,
+		"2": 20,
+		"3": 28,
+		"4": 0,
+		"5": 28,
+		"6": 0,
+		"7": 0,
+	}[pointFormat];
+
+	let geometry = new Geometry();
+	geometry.numElements = batchsize;
+	let position = new Float32Array(3 * batchsize);
+	let color = new Uint8Array(4 * batchsize);
+	for(let i = 0; i < batchsize; i++){
+
+		let pointOffset = i * recordLength;
+		let X = view.getInt32(pointOffset + 0, true);
+		let Y = view.getInt32(pointOffset + 4, true);
+		let Z = view.getInt32(pointOffset + 8, true);
+
+		let x = X * scale.x + header.offset.x - octree_min.x;
+		let y = Y * scale.y + header.offset.y - octree_min.y;
+		let z = Z * scale.z + header.offset.z - octree_min.z;
+
+		position[3 * i + 0] = x;
+		position[3 * i + 1] = y;
+		position[3 * i + 2] = z;
+
+		color[4 * i + 0] = view.getUint16(pointOffset + offsetRGB + 0);
+		color[4 * i + 1] = view.getUint16(pointOffset + offsetRGB + 2);
+		color[4 * i + 2] = view.getUint16(pointOffset + offsetRGB + 4);
+		color[4 * i + 3] = 255;
+	}
+
+	let message = {
+		numPoints: batchsize,
+		buffers: {
+			position: position,
+			color: color,
+		},
+		min, max,
+	};
+
+	let transferables = [];
+	for (let property in message.buffers) {
+
+		let buffer = message.buffers[property];
+
+		if(buffer instanceof ArrayBuffer){
+			transferables.push(buffer);
+		}else{
+			transferables.push(buffer.buffer);
+		}
+	}
+
+	postMessage(message, transferables);
+}
+
+async function readHeader(file){
+	let buffer = await file.slice(0, 375).arrayBuffer();
 
 	let view = new DataView(buffer);
 	let versionMajor = view.getUint8(24);
@@ -73,95 +135,151 @@ onmessage = async function(e){
 		min, max, scale, offset,
 	};
 
+	return header;
+}
 
+async function loadLAS(file, header, octree_min){
+	// break work down into batches
 	let batchSize = 1_000_000;
 	let batches = [];
-	for(let i = 0; i < numPoints; i += batchSize){
+	for(let i = 0; i < header.numPoints; i += batchSize){
 		let batch = {
 			start: i,
-			count: Math.min(numPoints - i, batchSize),
+			count: Math.min(header.numPoints - i, batchSize),
 		};
 
 		batches.push(batch);
 	}
-	// shuffle(batches);
 
-	// for(let absolute_i = 0; absolute_i < numPoints; absolute_i += batchSize){
-	// 	let n = Math.min(numPoints - absolute_i, batchSize);
+	// process batches
 	for(let batch of batches){
 
 		let absolute_i = batch.start;
-		let n = batch.count;
 
-		let buffer = await file.slice(
-			offsetToPointData + absolute_i * recordLength, 
-			offsetToPointData + (absolute_i + n) * recordLength,
-		).arrayBuffer()
-		let view = new DataView(buffer);
-
-		let offsetRGB = {
-			"0": 0,
-			"1": 0,
-			"2": 20,
-			"3": 28,
-			"4": 0,
-			"5": 28,
-			"6": 0,
-			"7": 0,
-		}[pointFormat];
-
+		let start = header.offsetToPointData + absolute_i * header.recordLength;
+		let end = header.offsetToPointData + (absolute_i + batch.count) * header.recordLength;
+		let buffer = await file.slice(start, end).arrayBuffer()
 		
-		let geometry = new Geometry();
-		geometry.numElements = n;
-		let position = new Float32Array(3 * n);
-		let color = new Uint8Array(4 * n);
-		for(let i = 0; i < n; i++){
-
-			let pointOffset = i * recordLength;
-			let X = view.getInt32(pointOffset + 0, true);
-			let Y = view.getInt32(pointOffset + 4, true);
-			let Z = view.getInt32(pointOffset + 8, true);
-
-			let x = X * header.scale.x + header.offset.x - octree_min.x;
-			let y = Y * header.scale.y + header.offset.y - octree_min.y;
-			let z = Z * header.scale.z + header.offset.z - octree_min.z;
-
-			position[3 * i + 0] = x;
-			position[3 * i + 1] = y;
-			position[3 * i + 2] = z;
-
-			color[4 * i + 0] = view.getUint16(pointOffset + offsetRGB + 0);
-			color[4 * i + 1] = view.getUint16(pointOffset + offsetRGB + 2);
-			color[4 * i + 2] = view.getUint16(pointOffset + offsetRGB + 4);
-			color[4 * i + 3] = 255;
-		}
-
-		let message = {
-			numPoints: n,
-			buffers: {
-				position: position,
-				color: color,
-			},
-			min, max,
-			header,
-		};
-
-		let transferables = [];
-		for (let property in message.buffers) {
-
-			let buffer = message.buffers[property];
-
-			if(buffer instanceof ArrayBuffer){
-				transferables.push(buffer);
-			}else{
-				transferables.push(buffer.buffer);
-			}
-		}
-
-		postMessage(message, transferables);
+		parsePoints({
+			buffer, octree_min, header,
+			batchsize: batch.count,
+		});
 		
 	}
+}
 
-	// postMessage({header});
+async function loadLAZ(file, header, octree_min){
+	let arraybuffer = await file.arrayBuffer();
+
+	let {Module} = await import("../../../libs/laz-perf/workers/laz-perf.js");
+
+	// OPEN
+	let instance = new Module.LASZip();
+	var buf = Module._malloc(arraybuffer.byteLength);
+
+	instance.arraybuffer = arraybuffer;
+	instance.buf = buf;
+	Module.HEAPU8.set(new Uint8Array(arraybuffer), buf);
+
+	instance.open(buf, arraybuffer.byteLength);
+	instance.readOffset = 0;
+
+	console.log("opened!");
+
+	let numExtraBytes = header.recordLength - {
+		0: 20,
+		1: 28,
+		2: 26,
+		3: 34,
+		4: 57,
+		5: 63,
+		6: 30,
+		7: 36,
+	}[header.pointFormat];
+
+	// HANDLE HEADER
+	let laszipHeader = {
+		pointsOffset: header.offsetToPointData,
+		pointsFormatId: header.pointFormat & 0b111_111,
+		pointsStructSize: header.recordLength,
+		extraBytes: numExtraBytes,
+		pointsCount: header.numPoints,
+		scale: new Float64Array(...header.scale.toArray()),
+		offset: new Float64Array(...header.offset.toArray()),
+		maxs: header.max.toArray(),
+		mins: header.min.toArray(),
+	};
+	let h = laszipHeader;
+	instance.header = laszipHeader;
+
+	console.log("headered!");
+
+
+	// READ
+	header.pointFormat = header.pointFormat & 0b111_111;
+	let buf_read = Module._malloc(h.pointsStructSize);
+	let pointsRead = 0;
+
+	let pointsLeft = h.pointsCount;
+	let maxBatchSize = 100_000;
+
+	while(pointsLeft > 0){
+
+		let batchsize = Math.min(pointsLeft, maxBatchSize);
+		let target = new ArrayBuffer(batchsize * h.pointsStructSize);
+		let target_u8 = new Uint8Array(target);
+
+		for (let i = 0 ; i < batchsize; i++) {
+			instance.getPoint(buf_read);
+
+			let a = new Uint8Array(
+					Module.HEAPU8.buffer,
+					buf_read,
+					h.pointsStructSize);
+
+			target_u8.set(
+					a,
+					i * h.pointsStructSize,
+					h.pointsStructSize);
+
+			pointsRead++;
+			pointsLeft--;
+		}
+
+		parsePoints({
+			octree_min, header, batchsize,
+			buffer: target,
+		});
+
+	}
+
+	
+
+	Module._free(buf_read);
+
+
+	// CLOSE 
+
+	Module._free(instance.buf);
+	instance.delete();
+
+	
+
+
+}
+
+onmessage = async function(e){
+
+	let {file, octree_min} = e.data;
+
+	let header = await readHeader(file);
+
+	let compressed = (header.pointFormat & 0b11000000) > 0;
+
+	if(compressed){
+		loadLAZ(file, header, octree_min);
+	}else{
+		loadLAS(file, header, octree_min);
+	}
 
 };

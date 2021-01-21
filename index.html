@@ -46,17 +46,32 @@ td{
 <span style="position: absolute; left: 10px; top: 10px; 
 	background-color: white; opacity: 0.7; padding: 10px;">
 	
-	Early <a href="http://potree.org/">Potree</a> version 2.0 prototype.<br>
+	<span style="font-weight: bold">WebGPU based Las & LAZ viewer prototype:</span>
 
 	<ul>
 		<li>Highly experimental and crashy.</li>
 		<li>Requires <a href="https://www.google.com/intl/de/chrome/canary/">Chrome Canary 89</a></li>
 		<li>To enable WebGPU, open this URL: <pre>chrome://flags/#enable-unsafe-webgpu</pre></li>
 		<li>Github: <a href="https://github.com/m-schuetz/Potree2">https://github.com/m-schuetz/Potree2</a></li>
-		<li>CA13 data set comprises 18 billion points. <br>
-		Point cloud courtesy of <a href="https://portal.opentopography.org/datasetMetadata?otCollectionID=OT.032013.26910.2">PG&E and OpenTopography</a><br>
-		</li>
 	</ul>
+
+	<span style="font-weight: bold;">Instructions:</span>
+	<ul>
+		<li>Drag & Drop LAS or LAZ files into the browser.</li>
+		<li>After 1-2 seconds, you should start seeing your point cloud in 3D<br> while it's beeing loaded.</li>
+		<li>Try different rendering modes. The default, "compute/packed" is <br>fastest on RTX 2080,
+		but on older GPUs, "points" might be faster.</li>
+	</ul>
+
+	<span style="font-weight: bold; color: red">Current Limitations:</span>
+	<ul>
+		<li>Limited to 150 million points!</li>
+		<li>No LOD! On low-end GPUs, try to stay below 50M points!</li>
+		<li>LAZ files limited to around 150MB!</li>
+		<li>No memory management! <br>Reload page before loading a new data set!</li>
+	</ul>
+
+	
 
 </span>
 

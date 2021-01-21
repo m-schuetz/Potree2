@@ -1,5 +1,4 @@
 
-// import {Module} from "../../../libs/laz-perf/workers/laz-perf.js";
 import {Module} from "./laz-perf.js";
 
 let instance = null; // laz-perf instance

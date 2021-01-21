@@ -37,7 +37,7 @@ async function loadHeader(file){
 	let worker = workers.pop();
 
 	worker.onmessage = (e) => {
-		let {buffers, numPoints, header, min, max} = e.data;
+		let {buffers, numPoints, min, max} = e.data;
 
 		let geometry = new Geometry();
 		geometry.numElements = numPoints;

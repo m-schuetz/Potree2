@@ -78,54 +78,15 @@ void main(){
 
 	float blendFactor = 1.001;
 	if(depth <= blendFactor * bufferedDepth){
-		// atomicAdd(ssbo_colors[4 * pixelID + 0], r);
-		// atomicAdd(ssbo_colors[4 * pixelID + 1], g);
-		// atomicAdd(ssbo_colors[4 * pixelID + 2], b);
-		// atomicAdd(ssbo_colors[4 * pixelID + 3], 1);
+		atomicAdd(ssbo_colors[4 * pixelID + 0], r);
+		atomicAdd(ssbo_colors[4 * pixelID + 1], g);
+		atomicAdd(ssbo_colors[4 * pixelID + 2], b);
+		atomicAdd(ssbo_colors[4 * pixelID + 3], 1);
 
-		uint rg = (r << 16) | g;
-		uint bc = (b << 16) | 1;
-		uint old_rg = atomicAdd(ssbo_colors[2 * pixelID + 0], rg);
-		uint old_bc = atomicAdd(ssbo_colors[2 * pixelID + 1], bc);
-
-		// uint new_rg = old_rg + rg;
-		// uint new_bc = old_bc + bc;
-
-		// if(new_rg < old_rg){
-		// 	// overflow
-
-		// 	uint old_r = old_rg >> 16;
-		// 	uint old_g = old_rg & 0xFFFF;
-
-		// 	if(old_r + r >= 65536){
-		// 		//atomicAdd(ssbo_colors[0], 1);
-		// 		uint value = 1 << 15;
-		// 		atomicOr(ssbo_colors[2 * pixelID + 1], value);
-		// 	}
-
-		// 	if(old_g + g >= 65536){
-		// 		//atomicAdd(ssbo_colors[1], 1);
-		// 		uint value = 1 << 14;
-		// 		atomicOr(ssbo_colors[2 * pixelID + 1], value);
-		// 	}
-		// }
-
-		// if(new_bc < old_bc){
-		// 	uint old_b = old_bc >> 16;
-		// 	uint old_c = old_bc & 0xFFFF;
-
-		// 	uint correction = old_c - (new_bc & 0xFFFF);
-		// 	atomicAdd(ssbo_colors[2 * pixelID + 1], correction);
-
-		// 	if(old_b + b >= 65536){
-		// 		//atomicAdd(ssbo_colors[2], 1);
-		// 		uint value = 1 << 13;
-		// 		atomicOr(ssbo_colors[2 * pixelID + 1], value);
-		// 	}
-
-			
-
-		// }
+		// uint rg = (r << 16) | g;
+		// uint bc = (b << 16) | 1;
+		// uint old_rg = atomicAdd(ssbo_colors[2 * pixelID + 0], rg);
+		// uint old_bc = atomicAdd(ssbo_colors[2 * pixelID + 1], bc);
 
 	}
 }
