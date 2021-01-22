@@ -36,6 +36,7 @@ export class Renderer{
 		this.draws = new Draws();
 
 		this.buffers = new Map();
+		this.typedBuffers = new Map();
 	}
 
 	async init(){
@@ -161,6 +162,30 @@ export class Renderer{
 		return buffer;
 	}
 
+	getGpuBuffer(typedArray){
+		let buffer = this.typedBuffers.get(typedArray);
+		
+		if(!buffer){
+			let {device} = renderer;
+			
+			let vbo = device.createBuffer({
+				size: typedArray.byteLength,
+				usage: GPUBufferUsage.VERTEX 
+					| GPUBufferUsage.INDEX 
+					| GPUBufferUsage.STORAGE,
+				mappedAtCreation: true,
+			});
+
+			let type = typedArray.constructor;
+			new type(vbo.getMappedRange()).set(typedArray);
+			vbo.unmap();
+
+			buffer = vbo;
+		}
+
+		return buffer;
+	}
+
 	getGpuBuffers(geometry){
 
 		let buffers = this.buffers.get(geometry);
@@ -258,5 +283,31 @@ export class Renderer{
 		this.draws.reset();
 
 	}
+
+
+	// render(scene, camera){
+	// 	let nodes = new Map();
+
+	// 	let stack = [scene.root];
+	// 	while(stack.length > 0){
+	// 		let node = stack.pop();
+
+	// 		let nodeType = node.constructor.name;
+	// 		if(!nodes.has(nodeType)){
+	// 			nodes.set(nodeType, []);
+	// 		}
+	// 		nodes.get(nodeType).push(node);
+
+	// 		for(let child of node.children){
+	// 			stack.push(child);
+	// 		}
+	// 	}
+
+
+
+
+
+
+	// }
 
 };

@@ -2,8 +2,16 @@
 
 import {Renderer} from "./src/renderer/Renderer.js";
 import {Camera} from "./src/scene/Camera.js";
+import {Scene} from "./src/scene/Scene.js";
+import {PointLight} from "./src/scene/PointLight.js";
+import {Mesh} from "./src/modules/mesh/Mesh.js";
+import {PhongMaterial} from "./src/modules/mesh/PhongMaterial.js";
+import {NormalMaterial} from "./src/modules/mesh/NormalMaterial.js";
+import {render as renderMesh} from "./src/modules/mesh/renderMesh.js";
 import {OrbitControls} from "./src/navigation/OrbitControls.js";
 import {Vector3, Matrix4} from "./src/math/math.js";
+import {Geometry} from "./src/core/Geometry.js";
+import {cube, createWave} from "./src/prototyping/cube.js";
 
 import {Potree} from "./src/Potree.js";
 
@@ -34,6 +42,8 @@ let camera = null;
 let controls = null;
 let progress = null;
 
+let scene = new Scene();
+
 let boxes = [];
 
 let gui = null;
@@ -46,11 +56,11 @@ let guiContent = {
 	"camera": "",
 
 	"show bounding box": false,
-	// "mode": "points/quads",
+	"mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
 	// "mode": "compute/xray",
-	"mode": "compute/packed",
+	// "mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
 	// "mode": "progressive",
@@ -152,12 +162,31 @@ function update(){
 
 function render(){
 
+	// renderer.render(scene, camera);
+
+	let renderables = new Map();
+
+	let stack = [scene.root];
+	while(stack.length > 0){
+		let node = stack.pop();
+
+		let nodeType = node.constructor.name;
+		if(!renderables.has(nodeType)){
+			renderables.set(nodeType, []);
+		}
+		renderables.get(nodeType).push(node);
+
+		for(let child of node.children){
+			stack.push(child);
+		}
+	}
+
+	// console.log(renderables);
+
 	let pointcloud = window.pointcloud;
 	let target = null;
-	let texture = null;
 
 	Timer.frameStart(renderer);
-	// Timer.timestampSep(renderer, "start");
 
 	let shouldDrawTarget = false;
 	if(pointcloud && guiContent["mode"] === "points/dilate"){
@@ -213,7 +242,8 @@ function render(){
 		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, 2), new Vector3(0, 0, 255));
 	}
 
-	if(guiContent["show bounding box"]){ // draw boxes
+	// draw boxes
+	if(guiContent["show bounding box"]){ 
 		for(let box of boxes){
 			let position = box.center();
 			let size = box.size();
@@ -224,21 +254,16 @@ function render(){
 	}
 
 	{
-		if(progress?.octree?.visibleNodes.length > 0){
-			// console.log(progress);
-			// renderPoints(renderer, pass, progress.octree, camera);
+		let meshes = renderables.get("Mesh");
 
-			let numPoints = progress.octree.visibleNodes.reduce( (a, i) => a + i.geometry.numElements, 0);
-			let text = `${(numPoints / 1_000_000).toFixed(1)}M points`;
-			// document.getElementById("big_message").innerText = text;
+		for(let mesh of meshes){
+			renderMesh(renderer, pass, mesh, camera, renderables);
 		}
-		// renderPoints(renderer, pass, pointcloud, camera);
+
 	}
-	
+
 	renderer.renderDrawCommands(pass, camera);
 	renderer.finish(pass);
-
-	// Timer.timestampSep(renderer, "end");
 
 	Timer.frameEnd(renderer);
 
@@ -293,23 +318,14 @@ async function run(){
 	controls.pitch = 0.8;
 	camera.updateProj();
 
-	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+		controls.pivot.set(0.46849801014552056, -0.5089652605462774, 4.694897729016537);
+		controls.pitch = 0.3601621061369527;
+		controls.yaw = -0.610317525598302;
+		controls.radius = 6.3;
 
-	// 	controls.radius = 10;
-	// 	controls.yaw = -Math.PI / 6;
-	// 	controls.pitch = Math.PI / 5;
-	// 	//controls.pivot.copy(pointcloud.boundingBox.center());
-
-	// 	controls.pivot.set(0.46849801014552056, -0.5089652605462774, 4.694897729016537);
-	// 	controls.pitch = 0.3601621061369527;
-	// 	controls.yaw = -0.610317525598302;
-	// 	controls.radius = 6.3;
-
-	// 	//pointcloud.updateVisibility(camera);
-	// 	//pointcloud.updateWorld();
-	// 	window.pointcloud = pointcloud;
-
-	// });
+		window.pointcloud = pointcloud;
+	});
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	controls.radius = 20;
@@ -352,8 +368,31 @@ async function run(){
 	
 	// 	pointcloud.updateVisibility(camera);
 
+	// 	scene.root.children.push(pointcloud);
+
 	// 	window.pointcloud = pointcloud;
 	// });
+
+	{
+		let geometry = new Geometry();
+		let ref = createWave();
+
+		geometry.buffers = ref.buffers;
+		geometry.numElements = ref.vertexCount;
+		geometry.indices = ref.indices;
+
+		let mesh = new Mesh("mesh", geometry);
+		scene.root.children.push(mesh);
+
+		mesh.material = new PhongMaterial();
+	}
+
+	{
+		let light = new PointLight("pointlight");
+		light.position.set(0, 0, 5);
+
+		scene.root.children.push(light);
+	}
 
 	requestAnimationFrame(loop);
 

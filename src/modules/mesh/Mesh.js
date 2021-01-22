@@ -1,15 +1,14 @@
 
 import {SceneNode} from "../../scene/SceneNode.js";
-
-
+import {NormalMaterial} from "./NormalMaterial.js";
 
 export class Mesh extends SceneNode{
 
-	constructor(name, buffers, numVertices){
+	constructor(name, geometry){
 		super(name);
 
-		this.buffers = buffers;
-		this.numVertices = numVertices;
+		this.geometry = geometry;
+		this.material = new NormalMaterial();
 	}
 
 }

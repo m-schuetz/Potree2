@@ -758,22 +758,22 @@ function step(octree){
 	currentFillBudget = Math.min(numPoints - firstPoint, fillBudget);
 }
 
-{
-	let el = document.body;
+// {
+// 	let el = document.body;
 
-	let elButton = document.createElement("input");
-	elButton.value = "step";
-	elButton.type = "button";
-	elButton.style.zIndex = 10000;
-	elButton.style.position = "absolute";
-	elButton.style.left = "10px";
-	elButton.style.top = "300px";
-	elButton.onclick = () => {
-		makeStep = true;
-	};
+// 	let elButton = document.createElement("input");
+// 	elButton.value = "step";
+// 	elButton.type = "button";
+// 	elButton.style.zIndex = 10000;
+// 	elButton.style.position = "absolute";
+// 	elButton.style.left = "10px";
+// 	elButton.style.top = "300px";
+// 	elButton.onclick = () => {
+// 		makeStep = true;
+// 	};
 
-	el.appendChild(elButton);
-}
+// 	el.appendChild(elButton);
+// }
 
 export function render(renderer, octree, camera){
 
