@@ -25,7 +25,7 @@ import {renderComputeNoDepth} from "./src/potree/render_compute_no_depth/render_
 import {render as renderComputePacked} from "./src/potree/render_compute_packed/render_compute_packed.js";
 import {render as renderComputeXRay} from "./src/potree/render_compute_xray/render_compute_xray.js";
 import {render as renderProgressive} from "./src/potree/render_progressive/render_progressive.js";
-import {drawTexture} from "./src/prototyping/textures.js";
+import {loadImage, drawTexture} from "./src/prototyping/textures.js";
 import * as Timer from "./src/renderer/Timer.js";
 
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
@@ -217,8 +217,12 @@ function render(){
 		shouldDrawTarget = true;
 	}
 
+	Timer.timestampSep(renderer, "000");
+
 
 	let pass = renderer.start();
+
+	Timer.timestamp(pass.passEncoder, "010");
 
 	// draw point cloud
 	if(pointcloud && guiContent["mode"] === "points"){
@@ -234,6 +238,7 @@ function render(){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}
 
+	Timer.timestamp(pass.passEncoder, "020");
 	
 
 	{ // draw xyz axes
@@ -373,7 +378,7 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	{
+	(async () => {
 		let geometry = new Geometry();
 		let ref = createWave();
 
@@ -385,11 +390,19 @@ async function run(){
 		scene.root.children.push(mesh);
 
 		mesh.material = new PhongMaterial();
-	}
+		mesh.material.image = await loadImage("./resources/images/background.jpg");
+	})();
 
 	{
 		let light = new PointLight("pointlight");
-		light.position.set(0, 0, 5);
+		light.position.set(5, 5, 1);
+
+		scene.root.children.push(light);
+	}
+
+	{
+		let light = new PointLight("pointlight2");
+		light.position.set(-5, -5, 1);
 
 		scene.root.children.push(light);
 	}

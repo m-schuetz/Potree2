@@ -126,7 +126,7 @@ export function createWave(){
 
 		let x = u;
 		let y = v;
-		let z = Math.sin(u) * Math.cos(v);
+		let z = 0; //Math.sin(u) * Math.cos(v);
 
 		return new Vector3(x, y, z);
 	};

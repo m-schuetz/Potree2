@@ -37,6 +37,7 @@ export class Renderer{
 
 		this.buffers = new Map();
 		this.typedBuffers = new Map();
+		this.textures = new Map();
 	}
 
 	async init(){
@@ -139,10 +140,6 @@ export class Renderer{
 				| GPUTextureUsage.COPY_SRC 
 				| GPUTextureUsage.COPY_DST 
 				| GPUTextureUsage.OUTPUT_ATTACHMENT
-				// | GPUTextureUsage.STORAGE
-				// | GPUTextureUsage.COPY_SRC 
-				// | GPUTextureUsage.COPY_DST 
-				// | GPUTextureUsage.OUTPUT_ATTACHMENT,
 		});
 
 		return texture;
@@ -160,6 +157,36 @@ export class Renderer{
 		});
 
 		return buffer;
+	}
+
+	
+	getGpuTexture(image){
+
+		let gpuTexture = this.textures.get(image);
+
+		if(!gpuTexture){
+			let {device} = this;
+
+			let width = image?.width ?? 128;
+			let height = image?.height ?? 128;
+
+			gpuTexture = device.createTexture({
+				size: [width, height, 1],
+				format: "rgba8unorm",
+				usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST,
+			});
+
+			if(image){
+				device.defaultQueue.copyImageBitmapToTexture(
+					{imageBitmap: image}, {texture: gpuTexture},
+					[image.width, image.height, 1]
+				);
+			}
+
+			this.textures.set(image, gpuTexture);
+		}
+
+		return gpuTexture;
 	}
 
 	getGpuBuffer(typedArray){

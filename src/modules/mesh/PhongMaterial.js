@@ -55,6 +55,8 @@ const fs = `
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 [[binding(1), set(0)]] var<storage_buffer> pointLights : PointLights;
+[[binding(2), group(0)]] var<uniform_constant> mySampler: sampler;
+[[binding(3), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
 
 [[location(0)]] var<in> in_color : vec4<f32>;
 [[location(1)]] var<in> in_uv : vec2<f32>;
@@ -66,18 +68,14 @@ const fs = `
 [[stage(fragment)]]
 fn main() -> void {
 
-	out_color = vec4<f32>(
-		in_normal.x, 
-		in_normal.y, 
-		in_normal.z,
-		1.0
-	);
+	var color : vec4<f32> = textureSample(myTexture, mySampler, in_uv);
 
+	var light : vec3<f32>;
+	
+	for(var i : i32 = 0; i < uniforms.numPointLights; i = i + 1){
 
-	{
+		var lightPos : vec4<f32> = pointLights.values[i].position;
 
-
-		var lightPos : vec4<f32> = pointLights.values[0].position;
 		var L : vec3<f32> = normalize(lightPos.xyz - in_position.xyz);
 		var V : vec3<f32> = vec3<f32>(0, 0, 1.0);
 		var H : vec3<f32> = normalize(V + L);
@@ -94,11 +92,16 @@ fn main() -> void {
 		var spec : f32 = pow(max(dot(N, H), 0.0), shininess);
 		var specular : vec3<f32> = lightColor * spec;
 
-		out_color.r = in_color.r * diffuse.r + specular.r;
-		out_color.g = in_color.g * diffuse.g + specular.g;
-		out_color.b = in_color.b * diffuse.b + specular.b;
+		light.r = light.r + diffuse.r + specular.r;
+		light.g = light.g + diffuse.g + specular.g;
+		light.b = light.b + diffuse.b + specular.b;
 
 	}
+
+	out_color.r = color.r * light.r;
+	out_color.g = color.g * light.g;
+	out_color.b = color.b * light.b;
+	out_color.a = 1.0;
 
 	return;
 }
@@ -107,6 +110,7 @@ let initialized = false;
 let pipeline = null;
 let uniformBuffer = null;
 let ssbo_pointLights = null;
+let sampler = null;
 
 function initialize(renderer){
 
@@ -182,11 +186,21 @@ function initialize(renderer){
 	let maxLights = 100;
 	ssbo_pointLights = renderer.createBuffer(maxLights * 16);
 
+	sampler = device.createSampler({
+		magFilter: 'linear',
+		minFilter: 'linear',
+		mipmapFilter : 'linear',
+		addressModeU: "repeat",
+		addressModeV: "repeat",
+		maxAnisotropy: 1,
+	});
+
 }
 
 export function render(renderer, pass, node, camera, renderables){
 	
 	let {device} = renderer;
+	let {material} = node;
 
 	initialize(renderer);
 
@@ -223,7 +237,6 @@ export function render(renderer, pass, node, camera, renderables){
 		let data = new Float32Array(pointLights.length * 4);
 		for(let i = 0; i < pointLights.length; i++){
 			let light = pointLights[i];
-			// let lightPos = light.position;
 			let lightPos = light.position.clone().applyMatrix4(camera.view);
 
 			data[4 * i + 0] = lightPos.x;
@@ -244,11 +257,15 @@ export function render(renderer, pass, node, camera, renderables){
 
 	passEncoder.setPipeline(pipeline);
 
+	let texture = renderer.getGpuTexture(material.image);
+
 	let bindGroup = device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
 			{binding: 0, resource: {buffer: uniformBuffer}},
 			{binding: 1, resource: {buffer: ssbo_pointLights}},
+			{binding: 2, resource: sampler},
+			{binding: 3, resource: texture.createView()},
 		]
 	});
 
@@ -276,7 +293,7 @@ export function render(renderer, pass, node, camera, renderables){
 export class PhongMaterial{
 
 	constructor(){
-
+		this.image = null;
 	}
 	
 }

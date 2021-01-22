@@ -8,6 +8,8 @@ let index = 0;
 let unresolvedIndex = 0;
 let frame = 0;
 
+export let enabled = true;
+
 function init(renderer){
 	querySet = renderer.device.createQuerySet({
 		type: "timestamp",
