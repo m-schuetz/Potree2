@@ -55,7 +55,7 @@ let guiContent = {
 	// "mode": "compute/no_depth",
 	// "mode": "progressive",
 	"point budget (M)": 2,
-	"point size": 3,
+	"point size": 1,
 	"update": true,
 };
 window.guiContent = guiContent;

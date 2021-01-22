@@ -737,8 +737,43 @@ function reproject(renderer, octree, camera){
 }
 
 let firstPoint = 0;
-let fillBudget = 5_000_000;
+let fillBudget = 10_000_000;
 let currentFillBudget = fillBudget;
+let makeStep = false;
+let frame = 0;
+
+function step(octree){
+
+	// if(!makeStep && frame > 200){
+	// 	return;
+	// }else{
+	// 	makeStep = false;
+	// }
+
+	let numPoints = octree.visibleNodes.reduce( (a, i) => a + i.geometry.numElements, 0);
+	firstPoint = firstPoint + fillBudget;
+	if(firstPoint > numPoints){
+		firstPoint = 0;
+	}
+	currentFillBudget = Math.min(numPoints - firstPoint, fillBudget);
+}
+
+{
+	let el = document.body;
+
+	let elButton = document.createElement("input");
+	elButton.value = "step";
+	elButton.type = "button";
+	elButton.style.zIndex = 10000;
+	elButton.style.position = "absolute";
+	elButton.style.left = "10px";
+	elButton.style.top = "300px";
+	elButton.onclick = () => {
+		makeStep = true;
+	};
+
+	el.appendChild(elButton);
+}
 
 export function render(renderer, octree, camera){
 
@@ -759,12 +794,8 @@ export function render(renderer, octree, camera){
 		target.setSize(size.width, size.height);
 	}
 
-	let numPoints = octree.visibleNodes.reduce( (a, i) => a + i.geometry.numElements, 0);
-	firstPoint = firstPoint + fillBudget;
-	if(firstPoint > numPoints){
-		firstPoint = 0;
-	}
-	currentFillBudget = Math.min(numPoints - firstPoint, fillBudget);
+	step(octree);
+
 
 	resetBuffers(renderer);
 	updateUniforms(renderer, octree, camera);
@@ -773,12 +804,13 @@ export function render(renderer, octree, camera){
 		getGpuBuffers(renderer, node.geometry);
 	}
 
-	reproject(renderer, octree, camera);
 	depthPass(renderer, octree, camera);
 	colorPass(renderer, octree, camera);
+	reproject(renderer, octree, camera);
 	resolve(renderer, octree, camera);
 	prepare(renderer, octree, camera);
 
+	frame++;
 
 	return target.colorAttachments[0].texture;
 }

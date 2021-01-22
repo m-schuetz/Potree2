@@ -79,22 +79,23 @@ void main(){
 
 	if(depth < old_depth){
 
-		uint r = (point.color >> 0) & 0xFFu;
-		uint g = (point.color >> 8) & 0xFFu;
-		uint b = (point.color >> 16) & 0xFFu;
-		// uint a = 1;
+		//uint a = (point.color >> 24) & 0xFFu;
+		uint a = 200;
+		uint r = a * ((point.color >> 0) & 0xFFu);
+		uint g = a * ((point.color >> 8) & 0xFFu);
+		uint b = a * ((point.color >> 16) & 0xFFu);
 
-		atomicAdd(ssbo_color[4 * pixelID + 0], r);
-		atomicAdd(ssbo_color[4 * pixelID + 1], g);
-		atomicAdd(ssbo_color[4 * pixelID + 2], b);
-		atomicAdd(ssbo_color[4 * pixelID + 3], 1);
+		// atomicAdd(ssbo_color[4 * pixelID + 0], r);
+		// atomicAdd(ssbo_color[4 * pixelID + 1], g);
+		// atomicAdd(ssbo_color[4 * pixelID + 2], b);
+		// atomicAdd(ssbo_color[4 * pixelID + 3], a);
+
+		ssbo_color[4 * pixelID + 0] = r;
+		ssbo_color[4 * pixelID + 1] = g;
+		ssbo_color[4 * pixelID + 2] = b;
+		ssbo_color[4 * pixelID + 3] = a;
 
 		ssbo_point_id[pixelID] = point.pointID;
-
-		// color = color & 0xFFFFFF00;
-		// color = color | 1;
-
-		// ssbo_color[pixelID] = color;
 	}
 }
 

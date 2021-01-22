@@ -84,11 +84,10 @@ void main(){
 	uint color = 0 
 		| (r & 0xFF) << 0
 		| (g & 0xFF) << 8
-		| (b & 0xFF) << 16;
+		| (b & 0xFF) << 16
+		| (254 << 24);
 
 	v.color = color;
-
-
 
 	ssbo_prep[prepID] = v;
 
