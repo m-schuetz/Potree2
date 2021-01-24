@@ -12,6 +12,7 @@ import {OrbitControls} from "./src/navigation/OrbitControls.js";
 import {Vector3, Matrix4} from "./src/math/math.js";
 import {Geometry} from "./src/core/Geometry.js";
 import {cube, createWave} from "./src/prototyping/cube.js";
+import {load as loadOBJ} from "./src/misc/OBJLoader.js";
 
 import {Potree} from "./src/Potree.js";
 
@@ -254,7 +255,7 @@ function render(){
 	}
 
 	{
-		let meshes = renderables.get("Mesh");
+		let meshes = renderables.get("Mesh") ?? [];
 
 		for(let mesh of meshes){
 			renderMesh(renderer, pass, mesh, camera, renderables);
@@ -314,8 +315,8 @@ async function run(){
 	}
 
 	controls.set({
-		pitch: 0.8,
 		yaw: -0.2,
+		pitch: 0.8,
 		radius: 20,
 	});
 
@@ -405,6 +406,19 @@ async function run(){
 
 		scene.root.children.push(light);
 	}
+
+	loadOBJ("./resources/models/stanford_bunny_reduced.obj").then(geometry => {
+	// loadOBJ("./resources/models/vr_controller_vive_1_5.obj").then(geometry => {
+		let mesh = new Mesh("obj", geometry);
+		// mesh.scale.set(30, 30, 30);
+		mesh.scale.set(20, 20, 20);
+		mesh.updateWorld();
+
+		scene.root.children.push(mesh);
+
+		mesh.material = new NormalMaterial();
+		// mesh.material.image = await loadImage("./resources/images/background.jpg");
+	});
 
 	requestAnimationFrame(loop);
 
