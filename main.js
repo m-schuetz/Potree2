@@ -82,7 +82,6 @@ function initGUI(){
 		stats.add(guiContent, "#nodes").listen();
 		stats.add(guiContent, "fps").listen();
 		stats.add(guiContent, "duration(update)").listen();
-		// stats.add(guiContent, "timings").listen();
 		stats.add(guiContent, "camera").listen();
 	}
 
@@ -162,8 +161,6 @@ function update(){
 
 function render(){
 
-	// renderer.render(scene, camera);
-
 	let renderables = new Map();
 
 	let stack = [scene.root];
@@ -180,8 +177,6 @@ function render(){
 			stack.push(child);
 		}
 	}
-
-	// console.log(renderables);
 
 	let pointcloud = window.pointcloud;
 	let target = null;
@@ -318,16 +313,20 @@ async function run(){
 		});
 	}
 
-	controls.radius = 20;
-	controls.yaw = -0.2;
-	controls.pitch = 0.8;
-	camera.updateProj();
+	controls.set({
+		pitch: 0.8,
+		yaw: -0.2,
+		radius: 20,
+	});
 
 	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
-		controls.pivot.set(0.46849801014552056, -0.5089652605462774, 4.694897729016537);
-		controls.pitch = 0.3601621061369527;
-		controls.yaw = -0.610317525598302;
-		controls.radius = 6.3;
+
+		controls.set({
+			pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
+			pitch: 0.3601621061369527,
+			yaw: -0.610317525598302,
+			radius: 6.3,
+		});
 
 		window.pointcloud = pointcloud;
 	});

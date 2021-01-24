@@ -61,6 +61,16 @@ export class OrbitControls{
 		});
 	}
 
+	set(args){
+		this.yaw = args.yaw ?? this.yaw;
+		this.pitch = args.pitch ?? this.pitch;
+		this.radius = args.radius ?? this.radius;
+
+		if(args.pivot){
+			this.pivot.set(...args.pivot);
+		}
+	}
+
 	getPosition(){
 		return new Vector3().applyMatrix4(this.world);
 	}
