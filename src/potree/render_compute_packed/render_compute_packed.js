@@ -9,7 +9,7 @@ import {vsQuad} from "./vsQuad.js";
 import {fsQuad} from "./fsQuad.js";
 import * as Timer from "../../renderer/Timer.js";
 
-const FRESH_COMPILE = true;
+const FRESH_COMPILE = false;
 
 import glslangModule from "../../../libs/glslang/glslang.js";
 

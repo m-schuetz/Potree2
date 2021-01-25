@@ -56,8 +56,9 @@ let guiContent = {
 	// "timings": "",
 	"camera": "",
 
-	"show bounding box": false,
-	"mode": "points/quads",
+	"show bounding box": true,
+	"mode": "points",
+	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
 	// "mode": "compute/xray",
@@ -237,11 +238,11 @@ function render(){
 	Timer.timestamp(pass.passEncoder, "020");
 	
 
-	{ // draw xyz axes
-		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(2, 0, 0), new Vector3(255, 0, 0));
-		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 2, 0), new Vector3(0, 255, 0));
-		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, 2), new Vector3(0, 0, 255));
-	}
+	// { // draw xyz axes
+	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(2, 0, 0), new Vector3(255, 0, 0));
+	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 2, 0), new Vector3(0, 255, 0));
+	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, 2), new Vector3(0, 0, 255));
+	// }
 
 	// draw boxes
 	if(guiContent["show bounding box"]){ 
@@ -320,17 +321,17 @@ async function run(){
 		radius: 20,
 	});
 
-	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
-		controls.set({
-			pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
-			pitch: 0.3601621061369527,
-			yaw: -0.610317525598302,
-			radius: 6.3,
-		});
+	// 	controls.set({
+	// 		pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
+	// 		pitch: 0.3601621061369527,
+	// 		yaw: -0.610317525598302,
+	// 		radius: 6.3,
+	// 	});
 
-		window.pointcloud = pointcloud;
-	});
+	// 	window.pointcloud = pointcloud;
+	// });
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	controls.radius = 20;
@@ -378,47 +379,47 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	(async () => {
-		let geometry = new Geometry();
-		let ref = createWave();
+	// (async () => {
+	// 	let geometry = new Geometry();
+	// 	let ref = createWave();
 
-		geometry.buffers = ref.buffers;
-		geometry.numElements = ref.vertexCount;
-		geometry.indices = ref.indices;
+	// 	geometry.buffers = ref.buffers;
+	// 	geometry.numElements = ref.vertexCount;
+	// 	geometry.indices = ref.indices;
 
-		let mesh = new Mesh("mesh", geometry);
-		scene.root.children.push(mesh);
+	// 	let mesh = new Mesh("mesh", geometry);
+	// 	scene.root.children.push(mesh);
 
-		mesh.material = new PhongMaterial();
-		mesh.material.image = await loadImage("./resources/images/background.jpg");
-	})();
+	// 	mesh.material = new PhongMaterial();
+	// 	mesh.material.image = await loadImage("./resources/images/background.jpg");
+	// })();
 
-	{
-		let light = new PointLight("pointlight");
-		light.position.set(5, 5, 1);
+	// {
+	// 	let light = new PointLight("pointlight");
+	// 	light.position.set(5, 5, 1);
 
-		scene.root.children.push(light);
-	}
+	// 	scene.root.children.push(light);
+	// }
 
-	{
-		let light = new PointLight("pointlight2");
-		light.position.set(-5, -5, 1);
+	// {
+	// 	let light = new PointLight("pointlight2");
+	// 	light.position.set(-5, -5, 1);
 
-		scene.root.children.push(light);
-	}
+	// 	scene.root.children.push(light);
+	// }
 
-	loadOBJ("./resources/models/stanford_bunny_reduced.obj").then(geometry => {
-	// loadOBJ("./resources/models/vr_controller_vive_1_5.obj").then(geometry => {
-		let mesh = new Mesh("obj", geometry);
-		// mesh.scale.set(30, 30, 30);
-		mesh.scale.set(20, 20, 20);
-		mesh.updateWorld();
+	// loadOBJ("./resources/models/stanford_bunny_reduced.obj").then(geometry => {
+	// // loadOBJ("./resources/models/vr_controller_vive_1_5.obj").then(geometry => {
+	// 	let mesh = new Mesh("obj", geometry);
+	// 	// mesh.scale.set(30, 30, 30);
+	// 	mesh.scale.set(20, 20, 20);
+	// 	mesh.updateWorld();
 
-		scene.root.children.push(mesh);
+	// 	scene.root.children.push(mesh);
 
-		mesh.material = new NormalMaterial();
-		// mesh.material.image = await loadImage("./resources/images/background.jpg");
-	});
+	// 	mesh.material = new NormalMaterial();
+	// 	// mesh.material.image = await loadImage("./resources/images/background.jpg");
+	// });
 
 	requestAnimationFrame(loop);
 
