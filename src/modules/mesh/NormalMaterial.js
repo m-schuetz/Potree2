@@ -155,8 +155,10 @@ export function render(renderer, pass, node, camera, renderables){
 
 	passEncoder.setBindGroup(0, bindGroup);
 
-	passEncoder.setVertexBuffer(0, vbos[0].vbo);
-	passEncoder.setVertexBuffer(1, vbos[3].vbo);
+	let vboPosition = vbos.find(item => item.name === "position").vbo;
+	let vboNormal = vbos.find(item => item.name === "normal").vbo;
+	passEncoder.setVertexBuffer(0, vboPosition);
+	passEncoder.setVertexBuffer(1, vboNormal);
 
 	if(node.geometry.indices){
 		let indexBuffer = renderer.getGpuBuffer(node.geometry.indices);

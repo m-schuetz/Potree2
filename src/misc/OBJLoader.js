@@ -207,10 +207,10 @@ export async function load(url){
 
 		}
 
-		console.log(obj_vertices);
-		console.log(target_vertices);
-		console.log(target_texcoords);
-		console.log(target_normals);
+		// console.log(obj_vertices);
+		// console.log(target_vertices);
+		// console.log(target_texcoords);
+		// console.log(target_normals);
 
 		let geometry = new Geometry();
 		geometry.numElements = numFaces * 3;

@@ -11,24 +11,20 @@ const vs = `
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
 [[location(0)]] var<in> in_position : vec4<f32>;
-[[location(1)]] var<in> in_color : vec4<f32>;
+[[location(1)]] var<in> in_normal : vec4<f32>;
 [[location(2)]] var<in> in_uv : vec2<f32>;
-[[location(3)]] var<in> in_normal : vec4<f32>;
 
 [[builtin(position)]] var<out> Position : vec4<f32>;
 
-[[location(0)]] var<out> out_color : vec4<f32>;
-[[location(1)]] var<out> out_uv : vec2<f32>;
-[[location(2)]] var<out> out_position : vec4<f32>;
-[[location(3)]] var<out> out_normal : vec4<f32>;
+[[location(0)]] var<out> out_position : vec4<f32>;
+[[location(1)]] var<out> out_normal : vec4<f32>;
+[[location(2)]] var<out> out_uv : vec2<f32>;
 
 [[stage(vertex)]]
 fn main() -> void {
 
 	Position = uniforms.proj * uniforms.worldView * in_position;
 
-	out_color = in_color;
-	// out_color = vec4<f32>(0.5, 0.5, 0.5, 1.0);
 	out_uv = in_uv;
 	out_position = uniforms.worldView * in_position;
 	out_normal = in_normal;
@@ -58,10 +54,9 @@ const fs = `
 [[binding(2), group(0)]] var<uniform_constant> mySampler: sampler;
 [[binding(3), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
 
-[[location(0)]] var<in> in_color : vec4<f32>;
-[[location(1)]] var<in> in_uv : vec2<f32>;
-[[location(2)]] var<in> in_position : vec4<f32>;
-[[location(3)]] var<in> in_normal : vec4<f32>;
+[[location(0)]] var<in> in_position : vec4<f32>;
+[[location(1)]] var<in> in_normal : vec4<f32>;
+[[location(2)]] var<in> in_uv : vec2<f32>;
 
 [[location(0)]] var<out> out_color : vec4<f32>;
 
@@ -144,12 +139,12 @@ function initialize(renderer){
 						offset: 0,
 						format: "float3",
 					}],
-				},{ // color
-					arrayStride: 4 * 4,
+				},{ // normal
+					arrayStride: 3 * 4,
 					attributes: [{ 
 						shaderLocation: 1,
 						offset: 0,
-						format: "float4",
+						format: "float3",
 					}],
 				},{ // uv
 					arrayStride: 2 * 4,
@@ -157,13 +152,6 @@ function initialize(renderer){
 						shaderLocation: 2,
 						offset: 0,
 						format: "float2",
-					}],
-				},{ // normal
-					arrayStride: 3 * 4,
-					attributes: [{ 
-						shaderLocation: 3,
-						offset: 0,
-						format: "float3",
 					}],
 				},
 			],
@@ -271,10 +259,14 @@ export function render(renderer, pass, node, camera, renderables){
 
 	passEncoder.setBindGroup(0, bindGroup);
 
-	passEncoder.setVertexBuffer(0, vbos[0].vbo);
-	passEncoder.setVertexBuffer(1, vbos[1].vbo);
-	passEncoder.setVertexBuffer(2, vbos[2].vbo);
-	passEncoder.setVertexBuffer(3, vbos[3].vbo);
+	let vboPosition = vbos.find(item => item.name === "position").vbo;
+	let vboNormal = vbos.find(item => item.name === "normal").vbo;
+	let vboUV = vbos.find(item => item.name === "uv").vbo;
+
+	passEncoder.setVertexBuffer(0, vboPosition);
+	passEncoder.setVertexBuffer(1, vboNormal);
+	passEncoder.setVertexBuffer(2, vboUV);
+	// passEncoder.setVertexBuffer(3, vbos[3].vbo);
 
 	if(node.geometry.indices){
 		let indexBuffer = renderer.getGpuBuffer(node.geometry.indices);

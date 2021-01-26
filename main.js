@@ -13,6 +13,7 @@ import {Vector3, Matrix4} from "./src/math/math.js";
 import {Geometry} from "./src/core/Geometry.js";
 import {cube, createWave} from "./src/prototyping/cube.js";
 import {load as loadOBJ} from "./src/misc/OBJLoader.js";
+import {load as loadGLB} from "./src/misc/GLBLoader.js";
 
 import {Potree} from "./src/Potree.js";
 
@@ -394,19 +395,19 @@ async function run(){
 	// 	mesh.material.image = await loadImage("./resources/images/background.jpg");
 	// })();
 
-	// {
-	// 	let light = new PointLight("pointlight");
-	// 	light.position.set(5, 5, 1);
+	{
+		let light = new PointLight("pointlight");
+		light.position.set(5, 5, 1);
 
-	// 	scene.root.children.push(light);
-	// }
+		scene.root.children.push(light);
+	}
 
-	// {
-	// 	let light = new PointLight("pointlight2");
-	// 	light.position.set(-5, -5, 1);
+	{
+		let light = new PointLight("pointlight2");
+		light.position.set(-5, -5, 1);
 
-	// 	scene.root.children.push(light);
-	// }
+		scene.root.children.push(light);
+	}
 
 	// loadOBJ("./resources/models/stanford_bunny_reduced.obj").then(geometry => {
 	// // loadOBJ("./resources/models/vr_controller_vive_1_5.obj").then(geometry => {
@@ -420,6 +421,10 @@ async function run(){
 	// 	mesh.material = new NormalMaterial();
 	// 	// mesh.material.image = await loadImage("./resources/images/background.jpg");
 	// });
+
+	loadGLB("./resources/models/ruins.glb").then(node => {
+		scene.root.children.push(node);
+	});
 
 	requestAnimationFrame(loop);
 
