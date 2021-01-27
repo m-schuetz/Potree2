@@ -138,4 +138,10 @@ export class Vector3{
 		return [this.x, this.y, this.z];
 	}
 
+	isFinite(){
+		let {x, y, z} = this;
+		
+		return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z);
+	}
+
 };

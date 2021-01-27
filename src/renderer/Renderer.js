@@ -208,6 +208,8 @@ export class Renderer{
 			vbo.unmap();
 
 			buffer = vbo;
+
+			this.typedBuffers.set(typedArray, buffer);
 		}
 
 		return buffer;

@@ -32,5 +32,15 @@ export class SceneNode{
 	getWorldPosition(){
 		return new Vector3().applyMatrix4(this.world);
 	}
+	
+	traverse(callback){
+
+		callback(this);
+
+		for(let child of this.children){
+			child.traverse(callback);
+		}
+
+	}
 
 };

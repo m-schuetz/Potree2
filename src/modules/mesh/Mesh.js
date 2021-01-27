@@ -9,6 +9,10 @@ export class Mesh extends SceneNode{
 
 		this.geometry = geometry;
 		this.material = new NormalMaterial();
+
+		if(geometry.boundingBox){
+			this.boundingBox.copy(geometry.boundingBox);
+		}
 	}
 
 }

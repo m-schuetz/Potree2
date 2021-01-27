@@ -3,6 +3,7 @@ import {Geometry} from "../core/Geometry.js";
 import {SceneNode} from "../scene/SceneNode.js";
 import {Mesh} from "../modules/mesh/Mesh.js";
 import {PhongMaterial} from "../modules/mesh/PhongMaterial.js";
+import {Box3, Vector3} from "../math/math.js";
 
 
 
@@ -20,8 +21,6 @@ export async function load(url){
 	let length = view.getUint32(8, true);
 	let chunkSize = view.getUint32(12, true);
 	let chunkType = view.getUint32(16, true);
-
-	console.log(magic, version, length, chunkSize, chunkType);
 
 	let jsonBuffer = buffer.slice(20, 20 + chunkSize);
 	let decoder = new TextDecoder();
@@ -46,7 +45,6 @@ export async function load(url){
 
 
 	let geometry = new Geometry();
-
 
 	let glbMesh = json.meshes[0];
 	let glbPrimitive = glbMesh.primitives[0];
@@ -75,7 +73,23 @@ export async function load(url){
 
 	console.log(geometry);
 
+	
+	// BOUNDING BOX
+	let boundingBox = new Box3(); {
 
+		let buffer = geometry.buffers.find(b => b.name === "position").buffer;
+		let f32 = new Float32Array(buffer.buffer);
+
+		let tmp = new Vector3();
+		for(let i = 0; i < f32.length / 3; i++){
+			tmp.x = f32[3 * i + 0];
+			tmp.y = f32[3 * i + 1];
+			tmp.z = f32[3 * i + 2];
+			boundingBox.expandByPoint(tmp);
+		}
+	}
+
+	geometry.boundingBox = boundingBox;
 
 	let mesh = new Mesh("glb mesh", geometry);
 	let node = new SceneNode("glb node");

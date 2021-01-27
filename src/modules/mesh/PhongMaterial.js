@@ -183,6 +183,7 @@ function initialize(renderer){
 		maxAnisotropy: 1,
 	});
 
+	initialized = true;
 }
 
 export function render(renderer, pass, node, camera, renderables){

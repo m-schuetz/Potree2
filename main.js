@@ -380,6 +380,9 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
+
+
+
 	// (async () => {
 	// 	let geometry = new Geometry();
 	// 	let ref = createWave();
@@ -424,11 +427,11 @@ async function run(){
 
 	loadGLB("./resources/models/ruins.glb").then(node => {
 		scene.root.children.push(node);
+		controls.zoomTo(node);
 	});
 
 	requestAnimationFrame(loop);
 
 }
-
 
 run();

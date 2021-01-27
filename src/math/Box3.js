@@ -20,6 +20,11 @@ export class Box3{
 		);
 	}
 
+	copy(box){
+		this.min.copy(box.min);
+		this.max.copy(box.max);
+	}
+
 	size(){
 		return this.max.clone().sub(this.min);
 	}
@@ -36,6 +41,42 @@ export class Box3{
 		this.max.x = Math.max(this.max.x, point.x);
 		this.max.y = Math.max(this.max.y, point.y);
 		this.max.z = Math.max(this.max.z, point.z);
+	}
+
+	expandByBox(box){
+		this.expandByPoint(box.min);
+		this.expandByPoint(box.max);
+	}
+
+	applyMatrix4(matrix){
+
+		let {min, max} = this;
+
+		let points = [
+			new Vector3(min.x, min.y, min.z),
+			new Vector3(min.x, min.y, max.z),
+			new Vector3(min.x, max.y, min.z),
+			new Vector3(min.x, max.y, max.z),
+			new Vector3(max.x, min.y, min.z),
+			new Vector3(max.x, min.y, max.z),
+			new Vector3(max.x, max.y, min.z),
+			new Vector3(max.x, max.y, max.z),
+		];
+
+		let newBox = new Box3();
+
+		for(let point of points){
+			let projected = point.applyMatrix4(matrix);
+			newBox.expandByPoint(projected);
+		}
+
+		this.min.copy(newBox.min);
+		this.max.copy(newBox.max);
+
+	}
+
+	isFinite(){
+		return this.min.isFinite() && this.max.isFinite();
 	}
 
 };

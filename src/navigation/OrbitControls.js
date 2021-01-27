@@ -1,5 +1,5 @@
 
-import {Vector3, Matrix4} from "../math/math.js";
+import {Vector3, Matrix4, Box3} from "../math/math.js";
 
 export class OrbitControls{
 
@@ -11,8 +11,6 @@ export class OrbitControls{
 		this.pitch = 0;
 		this.pivot = new Vector3();
 		this.world = new Matrix4();
-
-		// this.world = mat4.create();
 
 		element.addEventListener('contextmenu', e => {
 			e.preventDefault();
@@ -61,14 +59,43 @@ export class OrbitControls{
 		});
 	}
 
-	set(args){
-		this.yaw = args.yaw ?? this.yaw;
-		this.pitch = args.pitch ?? this.pitch;
-		this.radius = args.radius ?? this.radius;
+	set({yaw, pitch, radius, pivot}){
+		this.yaw = yaw ?? this.yaw;
+		this.pitch = pitch ?? this.pitch;
+		this.radius = radius ?? this.radius;
 
-		if(args.pivot){
-			this.pivot.set(...args.pivot);
+		if(pivot){
+			if(pivot.x){
+				this.pivot.copy(pivot);
+			}else{
+				this.pivot.set(...pivot);
+			}
 		}
+	}
+
+	zoomTo(node){
+
+		let box = new Box3();
+		let tmp = new Box3();
+		node.traverse((node) => {
+
+			let childBox = node.boundingBox;
+
+			if(!childBox.isFinite()){
+				return;
+			}
+
+			tmp.copy(childBox);
+			tmp.applyMatrix4(node.world);
+			
+			box.expandByBox(tmp);
+		});
+
+		let pivot = box.center();
+		let radius = box.size().length() * 0.8;
+
+		this.set({pivot, radius});
+
 	}
 
 	getPosition(){

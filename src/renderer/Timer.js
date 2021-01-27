@@ -8,7 +8,11 @@ let index = 0;
 let unresolvedIndex = 0;
 let frame = 0;
 
-export let enabled = true;
+let enabled = true;
+
+export function setEnabled(value){
+	enabled = value;
+}
 
 function init(renderer){
 	querySet = renderer.device.createQuerySet({
@@ -28,6 +32,11 @@ function init(renderer){
 }
 
 function frameStart(renderer){
+
+	if(!enabled){
+		return;
+	}
+
 	stamps = [];
 	index = 0;
 	unresolvedIndex = 0;
@@ -41,6 +50,10 @@ function frameStart(renderer){
 }
 
 function frameEnd(renderer){
+
+	if(!enabled){
+		return;
+	}
 
 	timestampSep(renderer, "frame-end");
 
@@ -86,6 +99,11 @@ function frameEnd(renderer){
 }
 
 function timestamp(encoder, label){
+
+	if(!enabled){
+		return;
+	}
+
 	encoder.writeTimestamp(querySet, index);
 	stamps.push({label, index});
 
@@ -93,6 +111,10 @@ function timestamp(encoder, label){
 };
 
 function timestampSep(renderer, label){
+
+	if(!enabled){
+		return;
+	}
 
 	let commandEncoder = renderer.device.createCommandEncoder();
 
@@ -104,6 +126,11 @@ function timestampSep(renderer, label){
 };
 
 function resolve(renderer, commandEncoder){
+
+	if(!enabled){
+		return;
+	}
+
 	let first = unresolvedIndex;
 	let count = index - unresolvedIndex;
 	commandEncoder.resolveQuerySet(querySet, first, count, queryBuffer, 8 * first);

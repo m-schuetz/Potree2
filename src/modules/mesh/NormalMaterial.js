@@ -113,6 +113,7 @@ function initialize(renderer){
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	});
 
+	initialized = true;
 }
 
 export function render(renderer, pass, node, camera, renderables){
