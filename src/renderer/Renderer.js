@@ -113,7 +113,7 @@ export class Renderer{
 
 		// Submit copy commands.
 		const copyCommands = copyEncoder.finish();
-		this.device.defaultQueue.submit([copyCommands]);
+		this.device.queue.submit([copyCommands]);
 
 		await target.mapAsync(GPUMapMode.READ);
 
@@ -177,7 +177,7 @@ export class Renderer{
 			});
 
 			if(image){
-				device.defaultQueue.copyImageBitmapToTexture(
+				device.queue.copyImageBitmapToTexture(
 					{imageBitmap: image}, {texture: gpuTexture},
 					[image.width, image.height, 1]
 				);
@@ -301,7 +301,7 @@ export class Renderer{
 		Timer.resolve(renderer, pass.commandEncoder);
 
 		let commandBuffer = pass.commandEncoder.finish();
-		this.device.defaultQueue.submit([commandBuffer]);
+		this.device.queue.submit([commandBuffer]);
 
 		// not yet available?
 		// https://github.com/gpuweb/gpuweb/issues/1325

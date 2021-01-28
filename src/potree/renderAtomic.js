@@ -503,7 +503,7 @@ function reset(renderer, ssbo, numUints, value){
 
 	{ // uniform buffer
 		let data = new Uint32Array([value]);
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer,
 			0,
 			data.buffer,
@@ -524,7 +524,7 @@ function reset(renderer, ssbo, numUints, value){
 	passEncoder.dispatch(groups, 1, 1);
 	passEncoder.endPass();
 
-	device.defaultQueue.submit([commandEncoder.finish()]);
+	device.queue.submit([commandEncoder.finish()]);
 }
 
 export function renderAtomic(renderer, octree, camera){
@@ -560,13 +560,13 @@ export function renderAtomic(renderer, octree, camera){
 			let tmp = new Float32Array(16);
 
 			tmp.set(worldView.elements);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer, 0,
 				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
 
 			tmp.set(camera.proj.elements);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer, 64,
 				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
@@ -575,7 +575,7 @@ export function renderAtomic(renderer, octree, camera){
 		{ // screen size
 			let size = renderer.getSize();
 			let data = new Uint32Array([size.width, size.height]);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer,
 				128,
 				data.buffer,
@@ -596,13 +596,13 @@ export function renderAtomic(renderer, octree, camera){
 			let tmp = new Float32Array(16);
 
 			tmp.set(worldView.elements);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer, 0,
 				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
 
 			tmp.set(camera.proj.elements);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer, 64,
 				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
@@ -611,7 +611,7 @@ export function renderAtomic(renderer, octree, camera){
 		{ // screen size
 			let size = renderer.getSize();
 			let data = new Uint32Array([size.width, size.height]);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer,
 				128,
 				data.buffer,
@@ -671,7 +671,7 @@ export function renderAtomic(renderer, octree, camera){
 
 		Timer.resolve(renderer, commandEncoder);
 
-		device.defaultQueue.submit([commandEncoder.finish()]);
+		device.queue.submit([commandEncoder.finish()]);
 
 	}
 
@@ -717,7 +717,7 @@ export function renderAtomic(renderer, octree, camera){
 
 		Timer.resolve(renderer, commandEncoder);
 
-		device.defaultQueue.submit([commandEncoder.finish()]);
+		device.queue.submit([commandEncoder.finish()]);
 
 	}
 
@@ -777,7 +777,7 @@ export function renderAtomic(renderer, octree, camera){
 			view.setFloat32(20, screenWidth, true);
 			view.setFloat32(24, screenHeight, true);
 			
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer, 0,
 				source, 0, source.byteLength
 			);
@@ -795,7 +795,7 @@ export function renderAtomic(renderer, octree, camera){
 		Timer.resolve(renderer, commandEncoder);
 
 		let commandBuffer = commandEncoder.finish();
-		renderer.device.defaultQueue.submit([commandBuffer]);
+		renderer.device.queue.submit([commandBuffer]);
 
 	}
 

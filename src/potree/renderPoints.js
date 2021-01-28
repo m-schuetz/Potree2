@@ -187,13 +187,13 @@ export function render(renderer, pass, octree, camera){
 			let tmp = new Float32Array(16);
 
 			tmp.set(worldView.elements);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer, 0,
 				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
 
 			tmp.set(camera.proj.elements);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer, 64,
 				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
@@ -202,7 +202,7 @@ export function render(renderer, pass, octree, camera){
 		{ // screen size
 			let size = renderer.getSize();
 			let data = new Float32Array([size.width, size.height]);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer,
 				128,
 				data.buffer,
@@ -220,7 +220,7 @@ export function render(renderer, pass, octree, camera){
 				buffer[4 * i + 3] = 1;
 			}
 
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				octreeState.uNodesBuffer, 0,
 				buffer.buffer, buffer.byteOffset, buffer.byteLength
 			);

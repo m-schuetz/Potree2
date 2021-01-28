@@ -122,7 +122,7 @@ function timestampSep(renderer, label){
 	resolve(renderer, commandEncoder);
 
 	let commandBuffer = commandEncoder.finish();
-	renderer.device.defaultQueue.submit([commandBuffer]);
+	renderer.device.queue.submit([commandBuffer]);
 };
 
 function resolve(renderer, commandEncoder){

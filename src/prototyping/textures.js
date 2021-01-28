@@ -115,7 +115,7 @@ function getGpuTexture(renderer, image){
 			usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST,
 		});
 
-		device.defaultQueue.copyImageBitmapToTexture(
+		device.queue.copyImageBitmapToTexture(
 			{imageBitmap: image}, {texture: gpuTexture},
 			[image.width, image.height, 1]
 		);
@@ -233,7 +233,7 @@ export function drawTexture(renderer, pass, texture, x, y, width, height){
 		view.setFloat32(12, width, true);
 		view.setFloat32(16, height, true);
 		
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			state.uniformBuffer, 0,
 			source, 0, source.byteLength
 		);

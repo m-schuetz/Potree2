@@ -167,7 +167,7 @@ export function drawRect(renderer, pass, x, y, width, height){
 	view.setFloat32(8, y, true);
 	view.setFloat32(12, width, true);
 	view.setFloat32(16, height, true);
-	device.defaultQueue.writeBuffer(
+	device.queue.writeBuffer(
 		uniformBuffer, 0,
 		source, 0, source.byteLength
 	);

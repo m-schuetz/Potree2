@@ -246,7 +246,7 @@ function reset(renderer, ssbo, numUints, value){
 
 	{ // uniform buffer
 		let data = new Uint32Array([value]);
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer,
 			0,
 			data.buffer,
@@ -267,7 +267,7 @@ function reset(renderer, ssbo, numUints, value){
 	passEncoder.dispatch(groups, 1, 1);
 	passEncoder.endPass();
 
-	device.defaultQueue.submit([commandEncoder.finish()]);
+	device.queue.submit([commandEncoder.finish()]);
 }
 
 function resetBuffers(renderer){ 
@@ -312,7 +312,7 @@ function updateUniforms(renderer, octree, camera){
 
 	{ // set depth pass uniforms
 		let {uniformBuffer} = getDepthState(renderer);
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer, 0,
 			data, data.byteOffset, data.byteLength
 		);
@@ -320,7 +320,7 @@ function updateUniforms(renderer, octree, camera){
 
 	{ // set color pass uniforms
 		let {uniformBuffer} = getColorState(renderer);
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer, 0,
 			data, data.byteOffset, data.byteLength
 		);
@@ -375,7 +375,7 @@ function getGpuBuffers(renderer, geometry){
 
 			let gpuAttributeBuffer = getGpuAttributeBuffer(renderer, name);
 
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				gpuAttributeBuffer.vbo, gpuAttributeBuffer.offset,
 				buffer.buffer, 0, buffer.byteLength
 			);
@@ -434,7 +434,7 @@ function depthPass(renderer, octree, camera){
 
 	Timer.resolve(renderer, commandEncoder);
 
-	device.defaultQueue.submit([commandEncoder.finish()]);
+	device.queue.submit([commandEncoder.finish()]);
 
 }
 
@@ -479,7 +479,7 @@ function colorPass(renderer, octree, camera){
 
 	passEncoder.endPass();
 	Timer.resolve(renderer, commandEncoder);
-	device.defaultQueue.submit([commandEncoder.finish()]);
+	device.queue.submit([commandEncoder.finish()]);
 
 }
 
@@ -544,7 +544,7 @@ function resolve(renderer, octree, camera){
 		view.setFloat32(24, screenHeight, true);
 		view.setUint32(28, pixelWindow, true);
 		
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer, 0,
 			source, 0, source.byteLength
 		);
@@ -561,7 +561,7 @@ function resolve(renderer, octree, camera){
 	Timer.resolve(renderer, commandEncoder);
 
 	let commandBuffer = commandEncoder.finish();
-	renderer.device.defaultQueue.submit([commandBuffer]);
+	renderer.device.queue.submit([commandBuffer]);
 
 }
 

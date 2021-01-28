@@ -322,7 +322,7 @@ export function renderDilate(renderer, pointcloud, camera){
 		Timer.resolve(renderer, commandEncoder);
 
 		let commandBuffer = pass.commandEncoder.finish();
-		renderer.device.defaultQueue.submit([commandBuffer]);
+		renderer.device.queue.submit([commandBuffer]);
 	}
 
 	{ // PASS 2
@@ -366,7 +366,7 @@ export function renderDilate(renderer, pointcloud, camera){
 			view.setFloat32(12, 1, true);
 			view.setFloat32(16, 1, true);
 			
-			renderer.device.defaultQueue.writeBuffer(
+			renderer.device.queue.writeBuffer(
 				uniformBuffer, 0,
 				source, 0, source.byteLength
 			);
@@ -383,7 +383,7 @@ export function renderDilate(renderer, pointcloud, camera){
 		Timer.resolve(renderer, commandEncoder);
 
 		let commandBuffer = pass.commandEncoder.finish();
-		renderer.device.defaultQueue.submit([commandBuffer]);
+		renderer.device.queue.submit([commandBuffer]);
 
 	}
 

@@ -130,13 +130,13 @@ export function render(renderer, pass, node, camera, renderables){
 		let tmp = new Float32Array(16);
 
 		tmp.set(worldView.elements);
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer, 0,
 			tmp.buffer, tmp.byteOffset, tmp.byteLength
 		);
 
 		tmp.set(camera.proj.elements);
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer, 64,
 			tmp.buffer, tmp.byteOffset, tmp.byteLength
 		);

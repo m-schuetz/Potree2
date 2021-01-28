@@ -86,12 +86,16 @@ fn main() -> void {
 		var shininess : f32 = 100.0;
 		var spec : f32 = pow(max(dot(N, H), 0.0), shininess);
 		var specular : vec3<f32> = lightColor * spec;
+		specular = vec3<f32>(0.0, 0.0, 0.0);
 
 		light.r = light.r + diffuse.r + specular.r;
 		light.g = light.g + diffuse.g + specular.g;
 		light.b = light.b + diffuse.b + specular.b;
-
 	}
+
+	light.r = light.r + 0.3;
+	light.g = light.g + 0.3;
+	light.b = light.b + 0.3;
 
 	out_color.r = color.r * light.r;
 	out_color.g = color.g * light.g;
@@ -202,19 +206,19 @@ export function render(renderer, pass, node, camera, renderables){
 		let tmp = new Float32Array(16);
 
 		tmp.set(worldView.elements);
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer, 0,
 			tmp.buffer, tmp.byteOffset, tmp.byteLength
 		);
 
 		tmp.set(camera.proj.elements);
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer, 64,
 			tmp.buffer, tmp.byteOffset, tmp.byteLength
 		);
 
 		tmp = new Uint32Array([pointLights.length]);
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer, 128,
 			tmp.buffer, tmp.byteOffset, tmp.byteLength
 		);
@@ -234,7 +238,7 @@ export function render(renderer, pass, node, camera, renderables){
 			data[4 * i + 3] = 0.0;
 		}
 		
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			ssbo_pointLights, 0,
 			data.buffer, 0, data.byteLength
 		);

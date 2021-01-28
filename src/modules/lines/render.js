@@ -160,7 +160,7 @@ export function render(renderer, pass, node, camera){
 		mat4.multiply(transform, proj, transform);
 
 		let {uniformBuffer} = state;
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			uniformBuffer, 0,
 			transform.buffer, transform.byteOffset, transform.byteLength
 		);

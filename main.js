@@ -57,7 +57,7 @@ let guiContent = {
 	// "timings": "",
 	"camera": "",
 
-	"show bounding box": true,
+	"show bounding box": false,
 	"mode": "points",
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
@@ -361,74 +361,39 @@ async function run(){
 	// });
 
 
-	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	// // Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
-	// 	camera.near = 0.5;
-	// 	camera.far = 100_000;
+	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
+		camera.near = 0.5;
+		camera.far = 100_000;
 
-	// 	controls.radius = 2_400;
-	// 	controls.yaw = 0.03437500000000017;
-	// 	controls.pitch = 0.6291441788743247;
-	// 	controls.pivot.set(694698.4629456067, 3916428.1845130883, -15.72393889322449);
+		controls.set({
+			radius: 2_400,
+			yaw: 0.034,
+			pitch: 0.629,
+			pivot: [694698.4629456067, 3916428.1845130883, -15.72393889322449],
+		});
 
-	// 	camera.updateProj();
-	
-	// 	pointcloud.updateVisibility(camera);
+		scene.root.children.push(pointcloud);
 
-	// 	scene.root.children.push(pointcloud);
-
-	// 	window.pointcloud = pointcloud;
-	// });
-
-
-
-
-	// (async () => {
-	// 	let geometry = new Geometry();
-	// 	let ref = createWave();
-
-	// 	geometry.buffers = ref.buffers;
-	// 	geometry.numElements = ref.vertexCount;
-	// 	geometry.indices = ref.indices;
-
-	// 	let mesh = new Mesh("mesh", geometry);
-	// 	scene.root.children.push(mesh);
-
-	// 	mesh.material = new PhongMaterial();
-	// 	mesh.material.image = await loadImage("./resources/images/background.jpg");
-	// })();
-
-	{
-		let light = new PointLight("pointlight");
-		light.position.set(5, 5, 1);
-
-		scene.root.children.push(light);
-	}
-
-	{
-		let light = new PointLight("pointlight2");
-		light.position.set(-5, -5, 1);
-
-		scene.root.children.push(light);
-	}
-
-	// loadOBJ("./resources/models/stanford_bunny_reduced.obj").then(geometry => {
-	// // loadOBJ("./resources/models/vr_controller_vive_1_5.obj").then(geometry => {
-	// 	let mesh = new Mesh("obj", geometry);
-	// 	// mesh.scale.set(30, 30, 30);
-	// 	mesh.scale.set(20, 20, 20);
-	// 	mesh.updateWorld();
-
-	// 	scene.root.children.push(mesh);
-
-	// 	mesh.material = new NormalMaterial();
-	// 	// mesh.material.image = await loadImage("./resources/images/background.jpg");
-	// });
-
-	loadGLB("./resources/models/ruins.glb").then(node => {
-		scene.root.children.push(node);
-		controls.zoomTo(node);
+		window.pointcloud = pointcloud;
 	});
+
+	{
+		let light1 = new PointLight("pointlight");
+		light1.position.set(5, 5, 1);
+
+		let light2 = new PointLight("pointlight2");
+		light2.position.set(-5, -5, 1);
+
+		scene.root.children.push(light1);
+		scene.root.children.push(light2);
+	}
+
+
+	// loadGLB("./resources/models/lion.glb").then(node => {
+	// 	scene.root.children.push(node);
+	// 	controls.zoomTo(node);
+	// });
 
 	requestAnimationFrame(loop);
 

@@ -188,13 +188,13 @@ export function renderLines(renderer, pass, lines, camera){
 			let tmp = new Float32Array(16);
 
 			tmp.set(worldView.elements);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer, 0,
 				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
 
 			tmp.set(camera.proj.elements);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer, 64,
 				tmp.buffer, tmp.byteOffset, tmp.byteLength
 			);
@@ -203,7 +203,7 @@ export function renderLines(renderer, pass, lines, camera){
 		{ // screen size
 			let size = renderer.getSize();
 			let data = new Float32Array([size.width, size.height]);
-			device.defaultQueue.writeBuffer(
+			device.queue.writeBuffer(
 				uniformBuffer,
 				128,
 				data.buffer,
@@ -244,12 +244,12 @@ export function renderLines(renderer, pass, lines, camera){
 			color[8 * i + 7] = 255;
 		}
 
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			vbo_lines[0].vbo, 0,
 			position.buffer, position.byteOffset, position.byteLength
 		);
 
-		device.defaultQueue.writeBuffer(
+		device.queue.writeBuffer(
 			vbo_lines[1].vbo, 0,
 			color.buffer, color.byteOffset, color.byteLength
 		);
