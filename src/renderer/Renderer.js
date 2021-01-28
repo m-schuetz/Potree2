@@ -198,7 +198,7 @@ export class Renderer{
 			let vbo = device.createBuffer({
 				size: typedArray.byteLength,
 				usage: GPUBufferUsage.VERTEX 
-					| GPUBufferUsage.INDEX 
+					| GPUBufferUsage.INDEX  
 					| GPUBufferUsage.STORAGE,
 				mappedAtCreation: true,
 			});

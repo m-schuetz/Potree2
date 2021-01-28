@@ -19,6 +19,7 @@ import {Potree} from "./src/Potree.js";
 
 import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
+import {render as renderPointsArbitraryAttributes}  from "./src/potree/renderPoints_arbitrary_attributes.js";
 import {renderDilate}  from "./src/potree/renderDilate.js";
 import {renderAtomic}  from "./src/potree/renderAtomic.js";
 import {renderAtomicDilate} from "./src/potree/render_compute_dilate/render_compute_dilate.js";
@@ -224,7 +225,8 @@ function render(){
 
 	// draw point cloud
 	if(pointcloud && guiContent["mode"] === "points"){
-		renderPoints(renderer, pass, pointcloud, camera);
+		renderPointsArbitraryAttributes(renderer, pass, pointcloud, camera);
+		// renderPoints(renderer, pass, pointcloud, camera);
 	}else if(pointcloud && guiContent["mode"] === "points/quads"){
 
 		if(pointcloud.pointSize === 1){

@@ -20,15 +20,35 @@ struct NodeBuffer{
 	[[offset(0)]] values : [[stride(16)]] array<NodeBuffer, 1000>;
 };
 
+[[block]] struct U32s {
+	[[offset(0)]] values : [[stride(4)]] array<u32>;
+};
+
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 [[binding(1), set(0)]] var<uniform> nodes : Nodes;
+[[binding(2), set(0)]] var<storage_buffer> ssbo_attribute : [[access(read)]]U32s;
+
 
 [[location(0)]] var<in> pos_point : vec4<f32>;
 [[location(1)]] var<in> color : vec4<f32>;
 
 [[builtin(instance_index)]] var<in> instanceIdx : i32;
+[[builtin(vertex_index)]] var<in> vertexID : u32;
 [[builtin(position)]] var<out> out_pos : vec4<f32>;
 [[location(0)]] var<out> fragColor : vec4<f32>;
+
+fn readU16(offset : u32) -> u32{
+	var ipos : u32 = offset / 2u;
+	var value : u32 = ssbo_attribute.values[ipos];
+
+	if((offset & 1u) == 0u){
+		value = value & 0xFFFFu;
+	}else{
+		value = (value >> 16) & 0xFFFFu;
+	}
+
+	return value;
+}
 
 [[stage(vertex)]]
 fn main() -> void {
@@ -38,6 +58,10 @@ fn main() -> void {
 
 	var c : vec4<f32> = color;
 	fragColor = c;
+
+	fragColor.r = f32(readU16(vertexID)) / 500.0;
+	fragColor.g = f32(readU16(vertexID)) / 500.0;
+	fragColor.b = f32(readU16(vertexID)) / 500.0;
 
 	//fragColor.r = f32(instanceIdx) / 256.0;
 	//fragColor.g = 0.0;
@@ -132,18 +156,9 @@ function getOctreeState(renderer, node){
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
-		const uniformBindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [
-				{binding: 0, resource: {buffer: uniformBuffer}},
-				{binding: 1, resource: {buffer: uNodesBuffer}}
-			],
-		});
-
 		state = {
 			pipeline: pipeline,
 			uniformBuffer: uniformBuffer,
-			uniformBindGroup: uniformBindGroup,
 			uNodesBuffer: uNodesBuffer,
 		};
 
@@ -215,15 +230,30 @@ export function render(renderer, pass, octree, camera){
 	}
 
 	let {passEncoder} = pass;
-	let {pipeline, uniformBindGroup} = octreeState;
+	let {pipeline} = octreeState;
 
 	Timer.timestamp(passEncoder, "points-start");
 
+	
+
 	passEncoder.setPipeline(pipeline);
-	passEncoder.setBindGroup(0, uniformBindGroup);
+
+	
 
 	let i = 0;
 	for(let node of nodes){
+
+		let ssboAttribute = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "intensity").buffer);
+
+		let uniformBindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [
+				{binding: 0, resource: {buffer: octreeState.uniformBuffer}},
+				{binding: 1, resource: {buffer: octreeState.uNodesBuffer}},
+				{binding: 2, resource: {buffer: ssboAttribute}},
+			],
+		});
+		passEncoder.setBindGroup(0, uniformBindGroup);
 
 		let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "position").buffer);
 		let vboColor = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "rgba").buffer);

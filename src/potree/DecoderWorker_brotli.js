@@ -106,11 +106,9 @@ async function load(event){
 				let Y = dealign24b((mc_3 & 0x00FFFFFF) >>> 1) 
 						| (dealign24b(((mc_3 >>> 24) | (mc_2 << 8)) >>> 1) << 8)
 						
-
 				let Z = dealign24b((mc_3 & 0x00FFFFFF) >>> 2) 
 						| (dealign24b(((mc_3 >>> 24) | (mc_2 << 8)) >>> 2) << 8)
 						
-
 				if(mc_1 != 0 || mc_2 != 0){
 					X = X | (dealign24b((mc_1 & 0x00FFFFFF) >>> 0) << 16)
 						| (dealign24b(((mc_1 >>> 24) | (mc_0 << 8)) >>> 0) << 24);
@@ -133,8 +131,7 @@ async function load(event){
 			}
 
 			attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute, name: pointAttribute.name };
-		}
-		else if(["RGBA", "rgba"].includes(pointAttribute.name)){
+		}else if(["RGBA", "rgba"].includes(pointAttribute.name)){
 
 			let buff = new ArrayBuffer(numPoints * 4);
 			let colors = new Uint8Array(buff);
@@ -154,74 +151,35 @@ async function load(event){
 				let b = dealign24b((mc_1 & 0x00FFFFFF) >>> 2) 
 						| (dealign24b(((mc_1 >>> 24) | (mc_0 << 8)) >>> 2) << 8);
 
-				// let bits = mask_b0[mc_1 >>> 24];
-				
-				// if(((r >> 8) & 0b11) !== bits){
-				// 	debugger;	
-				// }
-
-				// let r = dealign24b(mc0 >> 0) | (dealign24b(mc1 >> 0) << 8);
-				// let g = dealign24b(mc0 >> 1) | (dealign24b(mc1 >> 1) << 8);
-				// let b = dealign24b(mc0 >> 2) | (dealign24b(mc1 >> 2) << 8);
-
-
 				colors[4 * j + 0] = r > 255 ? r / 256 : r;
 				colors[4 * j + 1] = g > 255 ? g / 256 : g;
 				colors[4 * j + 2] = b > 255 ? b / 256 : b;
 				colors[4 * j + 3] = 255;
 			}
-			// let duration = performance.now() - tStart;
-			// console.log(`rgb: ${duration.toFixed(1)}ms`);
 
-			attributeBuffers[pointAttribute.name] = { buffer: colors, attribute: pointAttribute, name: pointAttribute.name };
-			// attributeBuffers[pointAttribute.name] = { buffer: buff, attribute: pointAttribute };
+			attributeBuffers[pointAttribute.name] = { 
+				buffer: colors, 
+				attribute: pointAttribute, 
+				name: pointAttribute.name 
+			};
 		}else{
 
-			let buff = new ArrayBuffer(numPoints * 4);
-			let f32 = new Float32Array(buff);
+			let start = byteOffset;
+			let length = numPoints * pointAttribute.byteSize;
+			let src = new Uint8Array(decoded.buffer, start, length);
 
-			let TypedArray = typedArrayMapping[pointAttribute.type.name];
-			let preciseBuffer = new TypedArray(numPoints);
+			byteOffset += length;
 
-			let [offset, scale] = [0, 1];
+			let length4 = length + (4 - (length % 4));
+			let target = new Uint8Array(new ArrayBuffer(length4));
+			target.set(src);
 
-			const getterMap = {
-				"int8":   view.getInt8,
-				"int16":  view.getInt16,
-				"int32":  view.getInt32,
-				// "int64":  view.getInt64,
-				"uint8":  view.getUint8,
-				"uint16": view.getUint16,
-				"uint32": view.getUint32,
-				// "uint64": view.getUint64,
-				"float":  view.getFloat32,
-				"double": view.getFloat64,
+			attributeBuffers[pointAttribute.name] = { 
+				buffer: target, 
+				attribute: pointAttribute, 
+				name: pointAttribute.name 
 			};
-			const getter = getterMap[pointAttribute.type.name].bind(view);
 
-			// compute offset and scale to pack larger types into 32 bit floats
-			if(pointAttribute.type.size > 4){
-				let [amin, amax] = pointAttribute.range;
-				offset = amin;
-				scale = 1 / (amax - amin);
-			}
-
-			for(let j = 0; j < numPoints; j++){
-				// let pointOffset = j * bytesPerPoint;
-				let value = getter(byteOffset, true);
-				byteOffset += pointAttribute.byteSize;
-
-				f32[j] = (value - offset) * scale;
-				preciseBuffer[j] = value;
-			}
-
-			// attributeBuffers[pointAttribute.name] = { 
-			// 	buffer: f32,
-			// 	preciseBuffer: preciseBuffer,
-			// 	attribute: pointAttribute,
-			// 	offset: offset,
-			// 	scale: scale,
-			// };
 		}
 
 	}
