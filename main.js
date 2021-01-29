@@ -1,39 +1,28 @@
 
 
-import {Renderer} from "./src/renderer/Renderer.js";
-import {Camera} from "./src/scene/Camera.js";
-import {Scene} from "./src/scene/Scene.js";
-import {PointLight} from "./src/scene/PointLight.js";
-import {Mesh} from "./src/modules/mesh/Mesh.js";
-import {PhongMaterial} from "./src/modules/mesh/PhongMaterial.js";
-import {NormalMaterial} from "./src/modules/mesh/NormalMaterial.js";
-import {render as renderMesh} from "./src/modules/mesh/renderMesh.js";
-import {OrbitControls} from "./src/navigation/OrbitControls.js";
-import {Vector3, Matrix4} from "./src/math/math.js";
-import {Geometry} from "./src/core/Geometry.js";
-import {cube, createWave} from "./src/prototyping/cube.js";
-import {load as loadOBJ} from "./src/misc/OBJLoader.js";
-import {load as loadGLB} from "./src/misc/GLBLoader.js";
-
-import {Potree} from "./src/Potree.js";
-
-import {render as renderQuads}  from "./src/potree/renderQuads.js";
-import {render as renderPoints}  from "./src/potree/renderPoints.js";
-import {render as renderPointsArbitraryAttributes}  from "./src/potree/arbitrary_attributes/renderPoints_arbitrary_attributes.js";
-import {renderDilate}  from "./src/potree/renderDilate.js";
-import {renderAtomic}  from "./src/potree/renderAtomic.js";
-import {renderAtomicDilate} from "./src/potree/render_compute_dilate/render_compute_dilate.js";
-import {renderComputeLoop} from "./src/potree/render_compute_loop/render_compute_loop.js";
-import {renderComputeNoDepth} from "./src/potree/render_compute_no_depth/render_compute_no_depth.js";
-import {render as renderComputePacked} from "./src/potree/render_compute_packed/render_compute_packed.js";
-import {render as renderComputeXRay} from "./src/potree/render_compute_xray/render_compute_xray.js";
-import {render as renderProgressive} from "./src/potree/render_progressive/render_progressive.js";
-import {loadImage, drawTexture} from "./src/prototyping/textures.js";
-import * as Timer from "./src/renderer/Timer.js";
-
-import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
-
 import * as dat from "./libs/dat.gui/dat.gui.module.js";
+import { Vector3 } from "./src/math/math.js";
+import { render as renderMesh } from "./src/modules/mesh/renderMesh.js";
+import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
+import { OrbitControls } from "./src/navigation/OrbitControls.js";
+import { Potree } from "./src/Potree.js";
+import { render as renderPointsArbitraryAttributes } from "./src/potree/arbitrary_attributes/renderPoints_arbitrary_attributes.js";
+import { renderAtomic } from "./src/potree/renderAtomic.js";
+import { renderDilate } from "./src/potree/renderDilate.js";
+import { render as renderPoints } from "./src/potree/renderPoints.js";
+import { render as renderQuads } from "./src/potree/renderQuads.js";
+import { renderAtomicDilate } from "./src/potree/render_compute_dilate/render_compute_dilate.js";
+import { renderComputeLoop } from "./src/potree/render_compute_loop/render_compute_loop.js";
+import { renderComputeNoDepth } from "./src/potree/render_compute_no_depth/render_compute_no_depth.js";
+import { render as renderComputePacked } from "./src/potree/render_compute_packed/render_compute_packed.js";
+import { render as renderComputeXRay } from "./src/potree/render_compute_xray/render_compute_xray.js";
+import { render as renderProgressive } from "./src/potree/render_progressive/render_progressive.js";
+import { drawTexture } from "./src/prototyping/textures.js";
+import { Renderer } from "./src/renderer/Renderer.js";
+import * as Timer from "./src/renderer/Timer.js";
+import { Camera } from "./src/scene/Camera.js";
+import { PointLight } from "./src/scene/PointLight.js";
+import { Scene } from "./src/scene/Scene.js";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -63,17 +52,17 @@ let guiContent = {
 
 	// INPUT
 	"show bounding box": false,
-	// "mode": "points",
+	"mode": "points",
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
 	// "mode": "compute/xray",
-	"mode": "compute/packed",
+	// "mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
 	// "mode": "progressive",
-	"attribute": "intensity",
-	"point budget (M)": 3,
+	"attribute": "rgba",
+	"point budget (M)": 2,
 	"point size": 3,
 	"update": true,
 
@@ -123,11 +112,11 @@ function initGUI(){
 			]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
-		guiAttributes = input.add(guiContent, "attribute", ["intensity"]).listen();
+		guiAttributes = input.add(guiContent, "attribute", ["rgba"]).listen();
 		window.guiAttributes = guiAttributes;
 
 		// slider
-		input.add(guiContent, 'point budget (M)', 0.1, 5);
+		input.add(guiContent, 'point budget (M)', 0.01, 5);
 		input.add(guiContent, 'point size', 1, 5);
 	}
 
@@ -376,85 +365,85 @@ async function run(){
 
 	
 
-	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
-	// 	controls.radius = 700;
-	// 	controls.yaw = -0.2;
-	// 	controls.pitch = 0.8;
-	// 	camera.near = 1;
-	// 	camera.far = 10_000;
-	// 	camera.updateProj();
-	
-	// 	pointcloud.updateVisibility(camera);
-	// 	// pointcloud.position.set(400, -300, -6)
-	// 	// pointcloud.position.copy(pointcloud.boundingBox.min);
-	// 	// pointcloud.updateWorld();
-	// 	window.pointcloud = pointcloud;
-	// });
-
-
-	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	// Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
-		camera.near = 0.5;
-		camera.far = 100_000;
+	Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
 
 		controls.set({
-			radius: 2_400,
-			yaw: 0.034,
-			pitch: 0.629,
-			pivot: [694698.4629456067, 3916428.1845130883, -15.72393889322449],
+			radius: 700,
+			yaw: -0.2,
+			pitch: 0.8,
 		});
-
-		let attributes = pointcloud.loader.attributes.attributes.map(b => b.name).filter(n => n !== "position");
-
-		guiAttributes = guiAttributes.options(attributes).setValue("rgba").onChange(() => {
-			let attributeName = guiContent.attribute;
-			let attribute = pointcloud.loader.attributes.attributes.find(a => a.name === attributeName);
-			let range = attribute.range;
-
-			let getRangeVal = (val) => {
-				if(typeof val === "number"){
-					return val;
-				}else{
-					return Math.max(...val);
-				}
-			};
-
-			let low = getRangeVal(range[0]);
-			let high = getRangeVal(range[1]);
-
-			if(attributeName === "rgba"){
-				low = 0;
-				high = high > 255 ? (2 ** 16 - 1) : 255;
-			}
-
-			if(attributeName === "intensity"){
-				guiContent["gamma"] = 0.5;
-				guiContent["brightness"] = 0;
-				guiContent["contrast"] = 0;
-			}else{
-
-				guiContent["gamma"] = 1;
-				guiContent["brightness"] = 0;
-				guiContent["contrast"] = 0;
-			}
-
-			guiContent["scalar min"] = low;
-			guiContent["scalar max"] = high;
-
-			guiScalarMin = guiScalarMin.min(low);
-			guiScalarMin = guiScalarMin.max(high);
-
-			guiScalarMax = guiScalarMax.min(low);
-			guiScalarMax = guiScalarMax.max(high);
-			
-			console.log(attribute);
-
-		});
-
-		scene.root.children.push(pointcloud);
-
+		
+		camera.near = 1;
+		camera.far = 10_000;
+		camera.updateProj();
+	
 		window.pointcloud = pointcloud;
 	});
+
+
+	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// // Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
+	// 	camera.near = 0.5;
+	// 	camera.far = 100_000;
+
+	// 	controls.set({
+	// 		radius: 2_400,
+	// 		yaw: 0.034,
+	// 		pitch: 0.629,
+	// 		pivot: [694698.4629456067, 3916428.1845130883, -15.72393889322449],
+	// 	});
+
+	// 	let attributes = pointcloud.loader.attributes.attributes.map(b => b.name).filter(n => n !== "position");
+
+	// 	guiAttributes = guiAttributes.options(attributes).setValue("rgba").onChange(() => {
+	// 		let attributeName = guiContent.attribute;
+	// 		let attribute = pointcloud.loader.attributes.attributes.find(a => a.name === attributeName);
+	// 		let range = attribute.range;
+
+	// 		let getRangeVal = (val) => {
+	// 			if(typeof val === "number"){
+	// 				return val;
+	// 			}else{
+	// 				return Math.max(...val);
+	// 			}
+	// 		};
+
+	// 		let low = getRangeVal(range[0]);
+	// 		let high = getRangeVal(range[1]);
+
+	// 		if(attributeName === "rgba"){
+	// 			low = 0;
+	// 			high = high > 255 ? (2 ** 16 - 1) : 255;
+	// 		}
+
+	// 		if(attributeName === "intensity"){
+	// 			guiContent["gamma"] = 0.5;
+	// 			guiContent["brightness"] = 0;
+	// 			guiContent["contrast"] = 0;
+	// 		}else{
+
+	// 			guiContent["gamma"] = 1;
+	// 			guiContent["brightness"] = 0;
+	// 			guiContent["contrast"] = 0;
+	// 		}
+
+	// 		guiContent["scalar min"] = low;
+	// 		guiContent["scalar max"] = high;
+
+	// 		guiScalarMin = guiScalarMin.min(low);
+	// 		guiScalarMin = guiScalarMin.max(high);
+
+	// 		guiScalarMax = guiScalarMax.min(low);
+	// 		guiScalarMax = guiScalarMax.max(high);
+			
+	// 		console.log(attribute);
+
+	// 	});
+
+	// 	scene.root.children.push(pointcloud);
+
+	// 	window.pointcloud = pointcloud;
+	// });
 
 	{
 		let light1 = new PointLight("pointlight");

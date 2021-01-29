@@ -29,13 +29,13 @@ fn readU8(offset : u32) -> u32{
 fn main() -> void {
 
 	var index : u32 = GlobalInvocationID.x;
+	var shift : u32 = uniforms.offset % 4u;
 
-	var sourceIndex : u32 = index;
+	var sourceIndex : u32 = u32(max((4 * index - shift) / 4, 0));
 	var targetIndex : u32 = (4u * index + uniforms.offset) / 4u;
 
 	var old : u32 = ssbo_target.values[index];
 	var newValue : u32 = 0u;
-	var shift : u32 = uniforms.offset % 4u;
 
 	if(targetIndex == 0u){
 		// first
