@@ -19,7 +19,7 @@ import {Potree} from "./src/Potree.js";
 
 import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
-import {render as renderPointsArbitraryAttributes}  from "./src/potree/renderPoints_arbitrary_attributes.js";
+import {render as renderPointsArbitraryAttributes}  from "./src/potree/arbitrary_attributes/renderPoints_arbitrary_attributes.js";
 import {renderDilate}  from "./src/potree/renderDilate.js";
 import {renderAtomic}  from "./src/potree/renderAtomic.js";
 import {renderAtomicDilate} from "./src/potree/render_compute_dilate/render_compute_dilate.js";
@@ -51,6 +51,8 @@ let boxes = [];
 
 let gui = null;
 let guiContent = {
+
+	// INFOS
 	"#points": "0",
 	"#nodes": "0",
 	"fps": "0",
@@ -58,6 +60,8 @@ let guiContent = {
 	// "timings": "",
 	"camera": "",
 
+
+	// INPUT
 	"show bounding box": false,
 	"mode": "points",
 	// "mode": "points/quads",
@@ -68,16 +72,28 @@ let guiContent = {
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
 	// "mode": "progressive",
-	"point budget (M)": 2,
+	"attribute": "intensity",
+	"point budget (M)": 3,
 	"point size": 1,
 	"update": true,
+
+	// COLOR ADJUSTMENT
+	"scalar min": 0,
+	"scalar max": 2 ** 16,
+	"gamma": 1,
+	"brightness": 0,
+	"contrast": 0,
 };
 window.guiContent = guiContent;
+let guiAttributes = null;
+let guiScalarMin = null;
+let guiScalarMax = null;
 
 
 function initGUI(){
 
 	gui = new dat.GUI();
+	window.gui = gui;
 	
 	{
 		let stats = gui.addFolder("stats");
@@ -107,10 +123,23 @@ function initGUI(){
 			]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
+		guiAttributes = input.add(guiContent, "attribute", ["intensity"]).listen();
+		window.guiAttributes = guiAttributes;
 
 		// slider
 		input.add(guiContent, 'point budget (M)', 0.1, 5);
 		input.add(guiContent, 'point size', 1, 5);
+	}
+
+	{
+		let input = gui.addFolder("Color Adjustments");
+		input.open();
+
+		guiScalarMin = input.add(guiContent, 'scalar min', 0, 2 ** 16).listen();
+		guiScalarMax = input.add(guiContent, 'scalar max', 0, 2 ** 16).listen();
+		input.add(guiContent, 'gamma', 0, 2).listen();
+		input.add(guiContent, 'brightness', -1, 1).listen();
+		input.add(guiContent, 'contrast', -1, 1).listen();
 	}
 
 }
@@ -373,6 +402,53 @@ async function run(){
 			yaw: 0.034,
 			pitch: 0.629,
 			pivot: [694698.4629456067, 3916428.1845130883, -15.72393889322449],
+		});
+
+		let attributes = pointcloud.loader.attributes.attributes.map(b => b.name).filter(n => n !== "position");
+
+		guiAttributes = guiAttributes.options(attributes).setValue("rgba").onChange(() => {
+			let attributeName = guiContent.attribute;
+			let attribute = pointcloud.loader.attributes.attributes.find(a => a.name === attributeName);
+			let range = attribute.range;
+
+			let getRangeVal = (val) => {
+				if(typeof val === "number"){
+					return val;
+				}else{
+					return Math.max(...val);
+				}
+			};
+
+			let low = getRangeVal(range[0]);
+			let high = getRangeVal(range[1]);
+
+			if(attributeName === "rgba"){
+				low = 0;
+				high = high > 255 ? (2 ** 16 - 1) : 255;
+			}
+
+			if(attributeName === "intensity"){
+				guiContent["gamma"] = 0.5;
+				guiContent["brightness"] = 0;
+				guiContent["contrast"] = 0;
+			}else{
+
+				guiContent["gamma"] = 1;
+				guiContent["brightness"] = 0;
+				guiContent["contrast"] = 0;
+			}
+
+			guiContent["scalar min"] = low;
+			guiContent["scalar max"] = high;
+
+			guiScalarMin = guiScalarMin.min(low);
+			guiScalarMin = guiScalarMin.max(high);
+
+			guiScalarMax = guiScalarMax.min(low);
+			guiScalarMax = guiScalarMax.max(high);
+			
+			console.log(attribute);
+
 		});
 
 		scene.root.children.push(pointcloud);

@@ -1,5 +1,6 @@
 
-import {render as renderPoints}  from "./renderPoints.js";
+// import {render as renderPoints}  from "./renderPoints.js";
+import {render as renderPoints}  from "./arbitrary_attributes/renderPoints_arbitrary_attributes.js";
 import {RenderTarget} from "../core/RenderTarget.js";
 import * as Timer from "../renderer/Timer.js";
 
@@ -143,7 +144,7 @@ let fs = `
 			}
 		}
 
-		if(avg.x + avg.y + avg.z == 0.0){
+		if(avg.w == 0.0){
 			outColor = vec4<f32>(0.1, 0.2, 0.3, 1.0);
 		}else{
 			avg.x = avg.x / avg.w;
@@ -334,7 +335,7 @@ export function renderDilate(renderer, pointcloud, camera){
 			colorAttachments: [
 				{
 					attachment: target.colorAttachments[0].texture.createView(),
-					loadValue: { r: 0.4, g: 0.2, b: 0.3, a: 1.0 },
+					loadValue: { r: 0.4, g: 0.2, b: 0.3, a: 0.0 },
 				},
 			],
 			depthStencilAttachment: {

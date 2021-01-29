@@ -133,8 +133,13 @@ async function load(event){
 			attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute, name: pointAttribute.name };
 		}else if(["RGBA", "rgba"].includes(pointAttribute.name)){
 
-			let buff = new ArrayBuffer(numPoints * 4);
-			let colors = new Uint8Array(buff);
+			// let buff = new ArrayBuffer(numPoints * 4);
+			// let colors = new Uint8Array(buff);
+
+			let length = numPoints * 6;
+			let length4 = length + (4 - (length % 4));
+			let buff = new ArrayBuffer(length4);
+			let colors = new Uint16Array(buff);
 
 			for (let j = 0; j < numPoints; j++) {
 
@@ -151,10 +156,9 @@ async function load(event){
 				let b = dealign24b((mc_1 & 0x00FFFFFF) >>> 2) 
 						| (dealign24b(((mc_1 >>> 24) | (mc_0 << 8)) >>> 2) << 8);
 
-				colors[4 * j + 0] = r > 255 ? r / 256 : r;
-				colors[4 * j + 1] = g > 255 ? g / 256 : g;
-				colors[4 * j + 2] = b > 255 ? b / 256 : b;
-				colors[4 * j + 3] = 255;
+				colors[3 * j + 0] = r;
+				colors[3 * j + 1] = g;
+				colors[3 * j + 2] = b;
 			}
 
 			attributeBuffers[pointAttribute.name] = { 
