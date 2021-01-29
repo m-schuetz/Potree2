@@ -39,6 +39,8 @@ function getOctreeState(renderer, node){
 }
 
 let cache = new Map();
+let sampler = null;
+let gradientTexture = null;
 
 function getBindGroup(renderer, octree, node, attributeName, pipeline){
 
@@ -48,16 +50,32 @@ function getBindGroup(renderer, octree, node, attributeName, pipeline){
 		return group.handle;
 	}else{
 		
+		let {device} = renderer;
 		let octreeState = getOctreeState(renderer, octree);
 		let ssboAttribute = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === attributeName).buffer);
+
+		if(!sampler){
+			sampler = device.createSampler({
+				magFilter: 'linear',
+				minFilter: 'linear',
+				mipmapFilter : 'linear',
+				addressModeU: "repeat",
+				addressModeV: "repeat",
+				maxAnisotropy: 1,
+			});
+
+			gradientTexture = renderer.createTextureFromArray(SPECTRAL.steps.flat(), SPECTRAL.steps.length, 1);
+		}
 		
-		let handle = renderer.device.createBindGroup({
+		let handle = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
 				{binding: 0, resource: {buffer: octreeState.uniformBuffer}},
 				{binding: 1, resource: {buffer: octreeState.uColorAdjustmentBuffer}},
 				{binding: 2, resource: {buffer: octreeState.uNodesBuffer}},
 				{binding: 3, resource: {buffer: ssboAttribute}},
+				{binding: 10, resource: sampler},
+				{binding: 11, resource: gradientTexture.createView()},
 			],
 		});
 

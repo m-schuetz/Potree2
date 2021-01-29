@@ -33,6 +33,19 @@ layout(std430, set = 0, binding = 4) buffer SSBO_color {
 	uint colors[];
 };
 
+uint readU16(uint offset){
+	uint ipos = offset / 4u;
+	uint value = colors[ipos];
+
+	if((offset & 2u) > 0u){
+		value = (value >> 16) & 0xFFFFu;
+	}else{
+		value = value & 0xFFFFu;
+	}
+
+	return value;
+}
+
 
 
 void main(){
@@ -67,26 +80,34 @@ void main(){
 	ivec2 pixelCoords = ivec2(imgPos);
 	int pixelID = pixelCoords.x + pixelCoords.y * imageSize.x;
 
-	uint color = colors[index];
+	//uint color = colors[index];
 
-	uint r = (color >> 0) & 0xFFu;
-	uint g = (color >> 8) & 0xFFu;
-	uint b = (color >> 16) & 0xFFu;
+	//uint r = (color >> 0) & 0xFFu;
+	//uint g = (color >> 8) & 0xFFu;
+	//uint b = (color >> 16) & 0xFFu;
+
+	uint r = readU16(6 * index + 0) / 256;
+	uint g = readU16(6 * index + 2) / 256;
+	uint b = readU16(6 * index + 4) / 256;
+
+	// uint r = 0;
+	// uint g = 255;
+	// uint b = 0;
 
 	uint depth = uint(-viewPos.z * ${depthPrecision});
 	uint bufferedDepth = ssbo_depth[pixelID];
 
 	float blendFactor = 1.001;
 	if(depth <= blendFactor * bufferedDepth){
-		atomicAdd(ssbo_colors[4 * pixelID + 0], r);
-		atomicAdd(ssbo_colors[4 * pixelID + 1], g);
-		atomicAdd(ssbo_colors[4 * pixelID + 2], b);
-		atomicAdd(ssbo_colors[4 * pixelID + 3], 1);
+		// atomicAdd(ssbo_colors[4 * pixelID + 0], r);
+		// atomicAdd(ssbo_colors[4 * pixelID + 1], g);
+		// atomicAdd(ssbo_colors[4 * pixelID + 2], b);
+		// atomicAdd(ssbo_colors[4 * pixelID + 3], 1);
 
-		// uint rg = (r << 16) | g;
-		// uint bc = (b << 16) | 1;
-		// uint old_rg = atomicAdd(ssbo_colors[2 * pixelID + 0], rg);
-		// uint old_bc = atomicAdd(ssbo_colors[2 * pixelID + 1], bc);
+		uint rg = (r << 16) | g;
+		uint bc = (b << 16) | 1;
+		uint old_rg = atomicAdd(ssbo_colors[2 * pixelID + 0], rg);
+		uint old_bc = atomicAdd(ssbo_colors[2 * pixelID + 1], bc);
 
 	}
 }

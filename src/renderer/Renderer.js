@@ -5,6 +5,7 @@ import * as shaders from "../prototyping/shaders.js";
 import {renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
 import {renderLines} from "../modules/drawCommands/renderLines.js";
 import * as Timer from "./Timer.js";
+import {writeBuffer} from "./writeBuffer.js";
 
 
 class Draws{
@@ -124,7 +125,22 @@ export class Renderer{
 		target.unmap();
 
 		return cloned;
-		
+	}
+
+	createTextureFromArray(array, width, height){
+		let texture = this.createTexture(width, height, {format: "rgba8unorm"});
+
+		let raw = new Uint8ClampedArray(array);
+		let imageData = new ImageData(raw, width, height);
+
+		createImageBitmap(imageData).then(bitmap => {
+			this.device.queue.copyImageBitmapToTexture(
+				{imageBitmap: bitmap}, {texture: texture},
+				[bitmap.width, bitmap.height, 1]
+			);
+		});
+
+		return texture;
 	}
 
 	createTexture(width, height, params = {}){
@@ -159,6 +175,9 @@ export class Renderer{
 		return buffer;
 	}
 
+	writeBuffer(args){
+		writeBuffer(this, args);
+	}
 	
 	getGpuTexture(image){
 

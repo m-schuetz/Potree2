@@ -32,6 +32,9 @@ struct NodeBuffer{
 [[binding(2), set(0)]] var<uniform> nodes : Nodes;
 [[binding(3), set(0)]] var<storage_buffer> ssbo_attribute : [[access(read)]]U32s;
 
+[[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
+[[binding(11), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
+
 [[location(0)]] var<in> in_position : vec4<f32>;
 
 [[builtin(instance_index)]] var<in> instanceIdx : i32;
@@ -91,6 +94,9 @@ const fs = `
 [[location(0)]] var<in> fragColor : vec4<f32>;
 [[location(0)]] var<out> outColor : vec4<f32>;
 
+[[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
+[[binding(11), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
+
 [[stage(fragment)]]
 fn main() -> void {
 	outColor = fragColor;
@@ -130,11 +136,14 @@ function createColorSampler(size, numElements, type){
 				value_f32 = value_f32 + brightness;
 				value_f32 = (value_f32 - 0.5) * getContrastFactor(contrast) + 0.5;
 
-				var color : vec4<f32>;
-				color.r = value_f32;
-				color.g = value_f32;
-				color.b = value_f32;
-				color.a = 1.0;
+				// var color : vec4<f32>;
+				// color.r = value_f32;
+				// color.g = value_f32;
+				// color.b = value_f32;
+				// color.a = 1.0;
+
+				var uv : vec2<f32> = vec2<f32>(value_f32, 0.0);
+				var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
 
 				return color;
 			}

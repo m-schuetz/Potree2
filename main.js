@@ -63,18 +63,18 @@ let guiContent = {
 
 	// INPUT
 	"show bounding box": false,
-	"mode": "points",
+	// "mode": "points",
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
 	// "mode": "compute/xray",
-	// "mode": "compute/packed",
+	"mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
 	// "mode": "progressive",
 	"attribute": "intensity",
 	"point budget (M)": 3,
-	"point size": 1,
+	"point size": 3,
 	"update": true,
 
 	// COLOR ADJUSTMENT

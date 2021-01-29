@@ -85,17 +85,17 @@ export let fsQuad = `
 				#edlCount = edlCount + 1.0;
 				#edlResponse = edlResponse + max(0.0, edlRef - log2(f32(depth) / ${depthPrecision}));
 
-				var r : u32 = ssbo_colors.values[4 * index + 0];
-				var g : u32 = ssbo_colors.values[4 * index + 1];
-				var b : u32 = ssbo_colors.values[4 * index + 2];
-				var c : u32 = ssbo_colors.values[4 * index + 3];
+				// var r : u32 = ssbo_colors.values[4 * index + 0];
+				// var g : u32 = ssbo_colors.values[4 * index + 1];
+				// var b : u32 = ssbo_colors.values[4 * index + 2];
+				// var c : u32 = ssbo_colors.values[4 * index + 3];
 
-				// var rg : u32 = ssbo_colors.values[2 * index + 0];
-				// var bc : u32 = ssbo_colors.values[2 * index + 1];
-				// var r : u32 = rg >> 16;
-				// var g : u32 = rg & 0xFFFF;
-				// var b : u32 = bc >> 16;
-				// var c : u32 = bc & 0xFFFF;
+				var rg : u32 = ssbo_colors.values[2 * index + 0];
+				var bc : u32 = ssbo_colors.values[2 * index + 1];
+				var r : u32 = rg >> 16;
+				var g : u32 = rg & 0xFFFF;
+				var b : u32 = bc >> 16;
+				var c : u32 = bc & 0xFFFF;
 
 				var denom : f32 = f32(abs(i) + abs(j)) + 1.0;
 

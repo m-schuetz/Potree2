@@ -9,7 +9,7 @@ import {vsQuad} from "./vsQuad.js";
 import {fsQuad} from "./fsQuad.js";
 import * as Timer from "../../renderer/Timer.js";
 
-const FRESH_COMPILE = false;
+const FRESH_COMPILE = true;
 
 import glslangModule from "../../../libs/glslang/glslang.js";
 
@@ -34,16 +34,12 @@ function getTarget1(renderer){
 				size: size,
 				format: renderer.swapChainFormat,
 				usage: GPUTextureUsage.SAMPLED 
-					// | GPUTextureUsage.COPY_SRC 
-					// | GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.OUTPUT_ATTACHMENT,
 			}],
 			depthDescriptor: {
 				size: size,
 				format: "depth24plus-stencil8",
 				usage: GPUTextureUsage.SAMPLED 
-					// | GPUTextureUsage.COPY_SRC 
-					// | GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.OUTPUT_ATTACHMENT,
 			}
 		});
@@ -257,7 +253,6 @@ function reset(renderer, ssbo, numUints, value){
 
 
 	const commandEncoder = device.createCommandEncoder();
-
 	let passEncoder = commandEncoder.beginComputePass();
 
 	passEncoder.setPipeline(pipeline);
@@ -330,32 +325,28 @@ function updateUniforms(renderer, octree, camera){
 let gpuBuffers = new Map();
 let gpuAttributeBuffers = new Map();
 
-function getGpuAttributeBuffer(renderer, name){
+function getGpuAttributeBuffer(renderer, entry){
 
-	let buffer = gpuAttributeBuffers.get(name);
+	let buffer = gpuAttributeBuffers.get(entry.name);
 
 	if(!buffer){
 
-		let bpp = {
-			position: 12,
-			color: 4,
-			rgba: 4,
-		}[name];
-
-		let size = 150_000_000 * bpp;
+		let size = 20_000_000 * entry.byteSize;
+		let size4 = size + (4 - (size % 4));
 		let offset = 0;
 
 		let vbo = renderer.device.createBuffer({
-			size: size,
+			size: size4,
 			usage: GPUBufferUsage.VERTEX 
 			| GPUBufferUsage.INDEX 
 			| GPUBufferUsage.STORAGE
-			| GPUBufferUsage.COPY_DST,
+			| GPUBufferUsage.COPY_DST
+			| GPUBufferUsage.COPY_SRC,
 		});
 
-		buffer = {vbo, size, offset};
+		buffer = {vbo, size4, offset};
 
-		gpuAttributeBuffers.set(name, buffer);
+		gpuAttributeBuffers.set(entry.name, buffer);
 	}
 
 	return buffer;
@@ -371,15 +362,41 @@ function getGpuBuffers(renderer, geometry){
 		let buffers = [];
 
 		for(let entry of geometry.buffers){
-			let {name, buffer} = entry;
+			let {name, buffer, attribute} = entry;
 
-			let gpuAttributeBuffer = getGpuAttributeBuffer(renderer, name);
+			let gpuAttributeBuffer = getGpuAttributeBuffer(renderer, attribute);
 
-			device.queue.writeBuffer(
-				gpuAttributeBuffer.vbo, gpuAttributeBuffer.offset,
-				buffer.buffer, 0, buffer.byteLength
-			);
-			gpuAttributeBuffer.offset += buffer.byteLength;
+			// if(geometry.numElements * attribute.byteSize !== buffer.byteLength){
+
+			// 	let front = gpuAttributeBuffer.offset % 4;
+			// 	let tmp = buffer;
+			// 	buffer = new Uint8Array(buffer.byteLength + 4);
+			// 	buffer.set(tmp, front);
+			// 	debugger;
+			// }
+
+			renderer.writeBuffer({
+				target: gpuAttributeBuffer.vbo, 
+				targetOffset: gpuAttributeBuffer.offset,
+				source: buffer.buffer, 
+				sourceOffset: 0, 
+				size: geometry.numElements * attribute.byteSize});
+
+			if(name === "rgba"){
+				// 6464
+				// renderer.readBuffer(gpuAttributeBuffer.vbo, 6464 - 6, 12).then(result => {
+				// 	console.log(new Uint16Array(result));
+				// });
+
+				window.rgba = gpuAttributeBuffer.vbo;
+			}
+
+			// device.queue.writeBuffer(
+			// 	gpuAttributeBuffer.vbo, gpuAttributeBuffer.offset,
+			// 	buffer.buffer, 0, buffer.byteLength
+			// );
+			gpuAttributeBuffer.offset += geometry.numElements * attribute.byteSize;
+			// gpuAttributeBuffer.offset += buffer.byteLength;
 
 			buffers.push(gpuAttributeBuffer);
 		}

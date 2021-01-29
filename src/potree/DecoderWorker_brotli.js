@@ -133,9 +133,6 @@ async function load(event){
 			attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute, name: pointAttribute.name };
 		}else if(["RGBA", "rgba"].includes(pointAttribute.name)){
 
-			// let buff = new ArrayBuffer(numPoints * 4);
-			// let colors = new Uint8Array(buff);
-
 			let length = numPoints * 6;
 			let length4 = length + (4 - (length % 4));
 			let buff = new ArrayBuffer(length4);
