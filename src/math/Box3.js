@@ -73,6 +73,7 @@ export class Box3{
 		this.min.copy(newBox.min);
 		this.max.copy(newBox.max);
 
+		return this;
 	}
 
 	isFinite(){

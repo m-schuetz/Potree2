@@ -251,7 +251,7 @@ export class PotreeLoader{
 			let scale = this.scale;
 			let offset = this.offset;
 			// let min = [0, 0, 0];
-			let min = this.octree.boundingBox.min.toArray();
+			let min = this.octree.loader.metadata.boundingBox.min;
 			let numPoints = node.numPoints;
 			let name = node.name;
 
@@ -299,6 +299,8 @@ export class PotreeLoader{
 			new Vector3(...metadata.boundingBox.max),
 		);
 		octree.position.copy(octree.boundingBox.min);
+		octree.boundingBox.max.sub(octree.boundingBox.min);
+		octree.boundingBox.min.set(0, 0, 0);
 		octree.updateWorld();
 		// octree.world = new Matrix4();
 		// octree.world.translate(...metadata.boundingBox.min);

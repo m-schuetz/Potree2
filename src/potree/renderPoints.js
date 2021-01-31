@@ -232,10 +232,11 @@ export function render(renderer, pass, octree, camera){
 		passEncoder.setVertexBuffer(1, vboColor);
 
 		if(octree.showBoundingBox === true){
-			let position = node.boundingBox.min.clone();
-			position.add(node.boundingBox.max).multiplyScalar(0.5);
+			let box = node.boundingBox.clone().applyMatrix4(octree.world);
+			let position = box.min.clone();
+			position.add(box.max).multiplyScalar(0.5);
 			// position.applyMatrix4(octree.world);
-			let size = node.boundingBox.size();
+			let size = box.size();
 			// let color = new Vector3(...SPECTRAL.get(node.level / 5));
 			let color = new Vector3(255, 255, 0);
 			renderer.drawBoundingBox(position, size, color);

@@ -363,14 +363,80 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
+	function setPointcloud(pointcloud){
+		let attributes = pointcloud.loader.attributes.attributes.map(b => b.name).filter(n => n !== "position");
+
+		let onChange = () => {
+			let attributeName = guiContent.attribute;
+			let attribute = pointcloud.loader.attributes.attributes.find(a => a.name === attributeName);
+			let range = attribute.range;
+
+			let getRangeVal = (val) => {
+				if(typeof val === "number"){
+					return val;
+				}else{
+					return Math.max(...val);
+				}
+			};
+
+			let low = getRangeVal(range[0]);
+			let high = getRangeVal(range[1]);
+
+			if(attributeName === "rgba"){
+				low = 0;
+				high = high > 255 ? (2 ** 16 - 1) : 255;
+			}
+
+			if(attributeName === "intensity"){
+				guiContent["gamma"] = 0.5;
+				guiContent["brightness"] = 0;
+				guiContent["contrast"] = 0;
+			}else{
+
+				guiContent["gamma"] = 1;
+				guiContent["brightness"] = 0;
+				guiContent["contrast"] = 0;
+			}
+
+			guiContent["scalar min"] = low;
+			guiContent["scalar max"] = high;
+
+			guiScalarMin = guiScalarMin.min(low);
+			guiScalarMin = guiScalarMin.max(high);
+
+			guiScalarMax = guiScalarMax.min(low);
+			guiScalarMax = guiScalarMax.max(high);
+		};
+
+		guiAttributes = guiAttributes.options(attributes).setValue("classification").onChange(onChange);
+		onChange();
+	}
+
+	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
+
+	// 	controls.set({
+	// 		radius: 700,
+	// 		yaw: -0.2,
+	// 		pitch: 0.8,
+	// 	});
+		
+	// 	camera.near = 1;
+	// 	camera.far = 10_000;
+	// 	camera.updateProj();
 	
+	// 	window.pointcloud = pointcloud;
 
-	Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
+	// 	setPointcloud(pointcloud);
+	// });
 
+	Potree.load("./resources/pointclouds/ca13_sample/metadata.json").then(pointcloud => {
+
+		// controls.zoomTo(pointcloud);
 		controls.set({
-			radius: 700,
-			yaw: -0.2,
-			pitch: 0.8,
+			yaw: -1.1,
+			pitch: 0.37,
+			radius: 406,
+			pivot: [696743.7622505882, 3919073.5328196282, 37.6882116012673],
 		});
 		
 		camera.near = 1;
@@ -378,6 +444,8 @@ async function run(){
 		camera.updateProj();
 	
 		window.pointcloud = pointcloud;
+
+		setPointcloud(pointcloud);
 	});
 
 

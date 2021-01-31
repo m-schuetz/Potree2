@@ -10,6 +10,8 @@ let frame = 0;
 
 let enabled = true;
 
+let counters = new Map();
+
 export function setEnabled(value){
 	enabled = value;
 }
