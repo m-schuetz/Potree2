@@ -1,4 +1,6 @@
 
+let far = "10000.0";
+
 export let vs = `
 [[block]] struct Uniforms {
 	[[offset(0)]] worldView : mat4x4<f32>;
@@ -71,6 +73,13 @@ fn main() -> void {
 	var viewPos : vec4<f32> = uniforms.worldView * in_position;
 	out_pos = uniforms.proj * viewPos;
 	out_vpos = in_position;
+
+	// out_pos = out_pos / out_pos.w;
+	
+	out_pos.x = out_pos.x / out_pos.w;
+	out_pos.y = out_pos.y / out_pos.w;
+	out_pos.z = (-viewPos.z) / ${far};
+	out_pos.w = 1.0;
 
 	out_color = getColor();
 

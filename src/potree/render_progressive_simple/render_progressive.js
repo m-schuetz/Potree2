@@ -3,6 +3,7 @@ import {Vector3, Matrix4} from "../../math/math.js";
 import {RenderTarget} from "../../core/RenderTarget.js";
 import {vs, fs} from "./sh_fill.js";
 import * as sh_reproject from "./sh_reproject.js";
+import * as sh_dilate from "./sh_dilate.js";
 
 import * as Timer from "../../renderer/Timer.js";
 
@@ -32,7 +33,8 @@ function step(octree){
 
 let initialized = false;
 let pipeline = null;
-let pipeline_reproject;
+let pipeline_reproject = null;
+let pipeline_dilate = null;
 let bindGroup = null;
 let uniformBuffer = null;
 let sampler = null;
@@ -121,7 +123,7 @@ function init(renderer){
 			module: device.createShaderModule({code: sh_dilate.fs}),
 			entryPoint: "main",
 		},
-		primitiveTopology: "point-list",
+		primitiveTopology: "triangle-list",
 		depthStencilState: {
 			depthWriteEnabled: true,
 			depthCompare: "less",
@@ -259,7 +261,7 @@ function reproject(renderer, octree, camera){
 		colorAttachments: [
 			{
 				attachment: target_curr.colorAttachments[0].texture.createView(),
-				loadValue: {r: 0.4, g: 0.1, b: 0.2, a: 1.0},
+				loadValue: {r: 0.0, g: 0.0, b: 0.0, a: 0.0},
 			},{
 				attachment: target_curr.colorAttachments[1].texture.createView(),
 				loadValue: {r: 0, g: 0, b: 0, a: 1},
@@ -305,10 +307,32 @@ function reproject(renderer, octree, camera){
 
 let bindGroupCache = new Map();
 
-function fill(renderer, passEncoder, octree, camera){
+function fill(renderer, octree, camera){
 
 	let {device} = renderer;
 	let nodes = octree.visibleNodes;
+	let target = targets[frame % 2];
+
+	let renderPassDescriptor = {
+		colorAttachments: [
+			{
+				attachment: target.colorAttachments[0].texture.createView(),
+				loadValue: "load",
+			},{
+				attachment: target.colorAttachments[1].texture.createView(),
+				loadValue: "load",
+			},
+		],
+		depthStencilAttachment: {
+			attachment: target.depth.texture.createView(),
+
+			depthLoadValue: "load",
+			depthStoreOp: "store",
+			stencilLoadValue: 0,
+			stencilStoreOp: "store",
+		},
+		sampleCount: 1,
+	};
 
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
@@ -356,11 +380,91 @@ function fill(renderer, passEncoder, octree, camera){
 		passEncoder.draw(numVertices, 1, firstVertex, 0);
 	}
 
+
+	for(let node of nodes){
+
+		let bufPosition = node.geometry.buffers.find(b => b.name === "position").buffer;
+		let bufColor = node.geometry.buffers.find(b => b.name === "rgba").buffer;
+		let vboPosition = renderer.getGpuBuffer(bufPosition);
+		let vboColor = renderer.getGpuBuffer(bufColor);
+
+		let bindGroup = bindGroupCache.get(node);
+		if(!bindGroup){
+			bindGroup = device.createBindGroup({
+				layout: pipeline.getBindGroupLayout(0),
+				entries: [
+					{binding: 0, resource: {buffer: uniformBuffer}},
+					{binding: 1, resource: {buffer: vboColor}}
+				],
+			});
+
+			bindGroupCache.set(node, bindGroup);
+		}
+		
+
+		passEncoder.setBindGroup(0, bindGroup);
+		passEncoder.setVertexBuffer(0, vboPosition);
+
+		let firstVertex = 0;
+		let numVertices = Math.floor(node.geometry.numElements / 10);
+
+		passEncoder.draw(numVertices, 1, firstVertex, 0);
+	}
+
 	passEncoder.endPass();
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.queue.submit([commandBuffer]);
 }
 
+function dilate(renderer, octree, camera){
+
+	let {device} = renderer;
+	let source = targets[frame % 2];
+	let target = target_dilate;
+	let pipeline = pipeline_dilate;
+
+	let renderPassDescriptor = {
+		colorAttachments: [
+			{
+				attachment: target.colorAttachments[0].texture.createView(),
+				loadValue: {r: 0.1, g: 0.1, b: 0.8, a: 1.0},
+			}
+		],
+		depthStencilAttachment: {
+			attachment: target.depth.texture.createView(),
+
+			depthLoadValue: 1.0,
+			depthStoreOp: "store",
+			stencilLoadValue: 0,
+			stencilStoreOp: "store",
+		},
+		sampleCount: 1,
+	};
+
+	
+	let bindGroup = device.createBindGroup({
+		layout: pipeline.getBindGroupLayout(0),
+		entries: [
+			{binding: 0, resource: {buffer: uniformBuffer}},
+			{binding: 1, resource: sampler},
+			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
+			{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
+		],
+	});
+
+
+	const commandEncoder = renderer.device.createCommandEncoder();
+	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+	passEncoder.setPipeline(pipeline);
+	passEncoder.setBindGroup(0, bindGroup);
+
+	passEncoder.draw(6, 1, 0, 0);
+
+	passEncoder.endPass();
+	let commandBuffer = commandEncoder.finish();
+	renderer.device.queue.submit([commandBuffer]);
+}
 
 export function render(renderer, octree, camera){
 
@@ -374,32 +478,13 @@ export function render(renderer, octree, camera){
 
 	{ // RESIZE RENDER TARGET
 		let size = renderer.getSize();
-		target.setSize(size.width, size.height);
+		targets[0].setSize(size.width, size.height);
+		targets[1].setSize(size.width, size.height);
+		target_dilate.setSize(size.width, size.height);
 	}
 
 	step(octree);
 
-
-	let renderPassDescriptor = {
-		colorAttachments: [
-			{
-				attachment: target.colorAttachments[0].texture.createView(),
-				loadValue: "load",
-			},{
-				attachment: target.colorAttachments[1].texture.createView(),
-				loadValue: "load",
-			},
-		],
-		depthStencilAttachment: {
-			attachment: target.depth.texture.createView(),
-
-			depthLoadValue: "load",
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
 	Timer.timestampSep(renderer, "progressive-start");
 
 
@@ -412,5 +497,5 @@ export function render(renderer, octree, camera){
 	Timer.timestampSep(renderer, "progressive-end");
 	frame++;
 
-	return target.colorAttachments[0].texture;
+	return target_dilate.colorAttachments[0].texture;
 }
