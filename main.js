@@ -24,6 +24,7 @@ import * as Timer from "./src/renderer/Timer.js";
 import { Camera } from "./src/scene/Camera.js";
 import { PointLight } from "./src/scene/PointLight.js";
 import { Scene } from "./src/scene/Scene.js";
+import {createWave} from "./src/prototyping/cube.js";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -413,26 +414,26 @@ async function run(){
 			guiScalarMax = guiScalarMax.max(high);
 		};
 
-		guiAttributes = guiAttributes.options(attributes).setValue("classification").onChange(onChange);
+		guiAttributes = guiAttributes.options(attributes).setValue("rgba").onChange(onChange);
 		onChange();
 	}
 
-	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
 
-	// 	controls.set({
-	// 		radius: 700,
-	// 		yaw: -0.2,
-	// 		pitch: 0.8,
-	// 	});
+		controls.set({
+			radius: 700,
+			yaw: -0.2,
+			pitch: 0.8,
+		});
 		
-	// 	camera.near = 1;
-	// 	camera.far = 10_000;
-	// 	camera.updateProj();
+		camera.near = 1;
+		camera.far = 10_000;
+		camera.updateProj();
 	
-	// 	window.pointcloud = pointcloud;
+		window.pointcloud = pointcloud;
 
-	// 	setPointcloud(pointcloud);
-	// });
+		setPointcloud(pointcloud);
+	});
 
 	// Potree.load("./resources/pointclouds/ca13_sample/metadata.json").then(pointcloud => {
 
@@ -528,6 +529,7 @@ async function run(){
 		scene.root.children.push(light1);
 		scene.root.children.push(light2);
 	}
+
 
 
 	// loadGLB("./resources/models/lion.glb").then(node => {

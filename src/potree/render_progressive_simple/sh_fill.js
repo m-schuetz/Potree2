@@ -19,7 +19,9 @@ export let vs = `
 [[builtin(instance_index)]] var<in> instanceIdx : i32;
 [[builtin(vertex_index)]] var<in> vertexID : u32;
 [[builtin(position)]] var<out> out_pos : vec4<f32>;
+
 [[location(0)]] var<out> out_color : vec4<f32>;
+[[location(1)]] var<out> out_vpos : vec4<f32>;
 
 fn readU8(offset : u32) -> u32{
 	var ipos : u32 = offset / 4u;
@@ -46,13 +48,17 @@ fn readU16(offset : u32) -> u32{
 
 fn getColor() -> vec4<f32>{
 
-	var R : u32 = readU8(4u * vertexID + 1u);
-	var G : u32 = readU8(4u * vertexID + 2u);
-	var B : u32 = readU8(4u * vertexID + 3u);
+	// var R : u32 = readU8(4u * vertexID + 1u);
+	// var G : u32 = readU8(4u * vertexID + 2u);
+	// var B : u32 = readU8(4u * vertexID + 3u);
 
-	var r : f32 = f32(R) / (256.0);
-	var g : f32 = f32(G) / (256.0);
-	var b : f32 = f32(B) / (256.0);
+	var R : u32 = readU16(6u * vertexID + 0u);
+	var G : u32 = readU16(6u * vertexID + 2u);
+	var B : u32 = readU16(6u * vertexID + 4u);
+
+	var r : f32 = f32(R) / (256.0 * 256.0);
+	var g : f32 = f32(G) / (256.0 * 256.0);
+	var b : f32 = f32(B) / (256.0 * 256.0);
 
 	var color : vec4<f32> = vec4<f32>(r, g, b, 1.0);
 
@@ -64,6 +70,7 @@ fn main() -> void {
 
 	var viewPos : vec4<f32> = uniforms.worldView * in_position;
 	out_pos = uniforms.proj * viewPos;
+	out_vpos = in_position;
 
 	out_color = getColor();
 
@@ -73,12 +80,15 @@ fn main() -> void {
 
 export let fs = `
 [[location(0)]] var<in> in_color : vec4<f32>;
+[[location(1)]] var<in> in_pos : vec4<f32>;
+
 [[location(0)]] var<out> out_color : vec4<f32>;
-// [[location(1)]] var<out> out_index : u32;
+[[location(1)]] var<out> out_pos : vec4<f32>;
 
 [[stage(fragment)]]
 fn main() -> void {
 	out_color = in_color;
+	out_pos = in_pos;
 
 	return;
 }
