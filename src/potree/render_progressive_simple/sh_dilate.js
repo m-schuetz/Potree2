@@ -1,5 +1,5 @@
 
-let far = "10000.0";
+let far = "20000.0";
 
 export let vs = `
 const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
@@ -61,6 +61,7 @@ fn main() -> void {
 
 	var sum : vec4<f32>;
 	var window : f32 = 1.0;
+	var window_radius : f32 = sqrt(2.0 * window * window);
 
 	for(var i : f32 = -window; i <= window; i = i + 1.0){
 		for(var j : f32 = -window; j <= window; j = j + 1.0){
@@ -79,6 +80,8 @@ fn main() -> void {
 		}
 	}
 
+	reference_depth = reference_depth * 1.01;
+
 
 	for(var i : f32 = -window; i <= window; i = i + 1.0){
 		for(var j : f32 = -window; j <= window; j = j + 1.0){
@@ -94,7 +97,17 @@ fn main() -> void {
 			var depth : f32 = textureSampleLevel(tex_depth, mySampler, uv, 0).r;
 
 			if(depth <= reference_depth){
+
+				var dist : f32 = length(vec2<f32>(i, j)) / window_radius;
+				var weight : f32 = max(0.0, 1.0 - dist);
+				weight = pow(weight, 1.5);
+
 				var color : vec4<f32> = textureSampleLevel(tex_color, mySampler, uv, 0);
+
+				color.r = color.r * weight;
+				color.g = color.g * weight;
+				color.b = color.b * weight;
+				color.a = color.a * weight;
 
 				sum = sum + color;
 			}

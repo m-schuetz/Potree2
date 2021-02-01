@@ -7,29 +7,7 @@ import * as sh_dilate from "./sh_dilate.js";
 
 import * as Timer from "../../renderer/Timer.js";
 
-
-let firstPoint = 0;
-let fillBudget = 1_000_000;
-let currentFillBudget = fillBudget;
-let makeStep = false;
 let frame = 0;
-
-function step(octree){
-
-	// if(!makeStep && frame > 200){
-	// 	return;
-	// }else{
-	// 	makeStep = false;
-	// }
-
-	let numPoints = octree.visibleNodes.reduce( (a, i) => a + i.geometry.numElements, 0);
-	firstPoint = firstPoint + fillBudget;
-	if(firstPoint > numPoints){
-		firstPoint = 0;
-	}
-	currentFillBudget = Math.min(numPoints - firstPoint, fillBudget);
-}
-
 
 let initialized = false;
 let pipeline = null;
@@ -380,8 +358,9 @@ function fill(renderer, octree, camera){
 		passEncoder.draw(numVertices, 1, firstVertex, 0);
 	}
 
-
-	for(let node of nodes){
+	// allways render first X nodes
+	for(let i = 0; i < Math.min(50, nodes.length); i++){
+		let node = nodes[i];
 
 		let bufPosition = node.geometry.buffers.find(b => b.name === "position").buffer;
 		let bufColor = node.geometry.buffers.find(b => b.name === "rgba").buffer;
@@ -406,10 +385,42 @@ function fill(renderer, octree, camera){
 		passEncoder.setVertexBuffer(0, vboPosition);
 
 		let firstVertex = 0;
-		let numVertices = Math.floor(node.geometry.numElements / 10);
+		let numVertices = node.geometry.numElements;
 
 		passEncoder.draw(numVertices, 1, firstVertex, 0);
 	}
+
+
+	// render parts of all nodes
+	// for(let node of nodes){
+
+	// 	let bufPosition = node.geometry.buffers.find(b => b.name === "position").buffer;
+	// 	let bufColor = node.geometry.buffers.find(b => b.name === "rgba").buffer;
+	// 	let vboPosition = renderer.getGpuBuffer(bufPosition);
+	// 	let vboColor = renderer.getGpuBuffer(bufColor);
+
+	// 	let bindGroup = bindGroupCache.get(node);
+	// 	if(!bindGroup){
+	// 		bindGroup = device.createBindGroup({
+	// 			layout: pipeline.getBindGroupLayout(0),
+	// 			entries: [
+	// 				{binding: 0, resource: {buffer: uniformBuffer}},
+	// 				{binding: 1, resource: {buffer: vboColor}}
+	// 			],
+	// 		});
+
+	// 		bindGroupCache.set(node, bindGroup);
+	// 	}
+		
+
+	// 	passEncoder.setBindGroup(0, bindGroup);
+	// 	passEncoder.setVertexBuffer(0, vboPosition);
+
+	// 	let firstVertex = 0;
+	// 	let numVertices = Math.floor(node.geometry.numElements / 10);
+
+	// 	passEncoder.draw(numVertices, 1, firstVertex, 0);
+	// }
 
 	passEncoder.endPass();
 	let commandBuffer = commandEncoder.finish();
@@ -482,8 +493,6 @@ export function render(renderer, octree, camera){
 		targets[1].setSize(size.width, size.height);
 		target_dilate.setSize(size.width, size.height);
 	}
-
-	step(octree);
 
 	Timer.timestampSep(renderer, "progressive-start");
 

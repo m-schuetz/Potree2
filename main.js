@@ -435,18 +435,32 @@ async function run(){
 	// 	setPointcloud(pointcloud);
 	// });
 
-	Potree.load("./resources/pointclouds/ca13/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/ca13/metadata.json").then(pointcloud => {
 
-		// controls.zoomTo(pointcloud);
-		controls.set({
-			yaw: -1.1,
-			pitch: 0.37,
-			radius: 406,
-			pivot: [696743.7622505882, 3919073.5328196282, 37.6882116012673],
-		});
+	// 	// controls.zoomTo(pointcloud);
+	// 	controls.set({
+	// 		yaw: -1.1,
+	// 		pitch: 0.37,
+	// 		radius: 406,
+	// 		pivot: [696743.7622505882, 3919073.5328196282, 37.6882116012673],
+	// 	});
 		
-		camera.near = 1;
-		camera.far = 10_000;
+	// 	camera.near = 1;
+	// 	camera.far = 10_000;
+	// 	camera.updateProj();
+	
+	// 	window.pointcloud = pointcloud;
+
+	// 	setPointcloud(pointcloud);
+	// });
+
+	let url = "./resources/pointclouds/66_73/metadata.json";
+	Potree.load(url).then(pointcloud => {
+
+		controls.zoomTo(pointcloud);
+		
+		camera.near = 0.1;
+		camera.far = 20_000;
 		camera.updateProj();
 	
 		window.pointcloud = pointcloud;

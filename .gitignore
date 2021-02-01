@@ -24,3 +24,6 @@ resources/models/xyzrgb_dragon.ply
 resources/pointclouds/ca13_sample/hierarchy.bin
 resources/pointclouds/ca13_sample/metadata.json
 resources/pointclouds/ca13_sample/octree.bin
+resources/pointclouds/66_73/hierarchy.bin
+resources/pointclouds/66_73/metadata.json
+resources/pointclouds/66_73/octree.bin

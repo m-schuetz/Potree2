@@ -1,5 +1,5 @@
 
-let far = "10000.0";
+let far = "20000.0";
 
 export let vs = `
 [[block]] struct Uniforms {
