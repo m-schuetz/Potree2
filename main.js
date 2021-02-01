@@ -25,6 +25,7 @@ import { Camera } from "./src/scene/Camera.js";
 import { PointLight } from "./src/scene/PointLight.js";
 import { Scene } from "./src/scene/Scene.js";
 import {createWave} from "./src/prototyping/cube.js";
+import {load as loadGLB} from "./src/misc/GLBLoader.js";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -54,7 +55,7 @@ let guiContent = {
 
 	// INPUT
 	"show bounding box": false,
-	// "mode": "points",
+	"mode": "points",
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
@@ -62,7 +63,7 @@ let guiContent = {
 	// "mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
-	"mode": "progressive/simple",
+	// "mode": "progressive/simple",
 	"attribute": "rgba",
 	"point budget (M)": 2,
 	"point size": 3,
@@ -199,6 +200,10 @@ function render(){
 		renderables.get(nodeType).push(node);
 
 		for(let child of node.children){
+
+			child.updateWorld();
+			child.world.multiplyMatrices(node.world, child.world);
+
 			stack.push(child);
 		}
 	}
@@ -454,19 +459,19 @@ async function run(){
 	// 	setPointcloud(pointcloud);
 	// });
 
-	let url = "./resources/pointclouds/66_73/metadata.json";
-	Potree.load(url).then(pointcloud => {
+	// let url = "./resources/pointclouds/66_73/metadata.json";
+	// Potree.load(url).then(pointcloud => {
 
-		controls.zoomTo(pointcloud);
+	// 	controls.zoomTo(pointcloud);
 		
-		camera.near = 0.1;
-		camera.far = 20_000;
-		camera.updateProj();
+	// 	camera.near = 0.1;
+	// 	camera.far = 20_000;
+	// 	camera.updateProj();
 	
-		window.pointcloud = pointcloud;
+	// 	window.pointcloud = pointcloud;
 
-		setPointcloud(pointcloud);
-	});
+	// 	setPointcloud(pointcloud);
+	// });
 
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
@@ -546,10 +551,25 @@ async function run(){
 
 
 
+	loadGLB("./resources/models/anita_mui.glb").then(node => {
 	// loadGLB("./resources/models/lion.glb").then(node => {
-	// 	scene.root.children.push(node);
-	// 	controls.zoomTo(node);
-	// });
+		scene.root.children.push(node);
+
+		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+		node.position.set(5, 0, -5);
+		node.updateWorld();
+
+		controls.set({
+			yaw: -9.2375,
+			pitch: 0.2911333847340012,
+			radius: 3.649930853878021,
+			pivot:  [0.3169157776176301, -0.055293688684424885, -5.812217162637825],
+		});
+
+		window.glb = node;
+
+		// controls.zoomTo(node);
+	});
 
 	requestAnimationFrame(loop);
 
