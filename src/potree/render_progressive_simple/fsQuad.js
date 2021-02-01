@@ -23,8 +23,8 @@ export let fsQuad = `
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[binding(1), set(0)]] var<storage_buffer> ssbo_colors : Colors;
-	[[binding(2), set(0)]] var<storage_buffer> ssbo_depth : U32s;
+	[[binding(1), set(0)]] var<storage_buffer> ssbo_colors : [[access(read)]]Colors;
+	[[binding(2), set(0)]] var<storage_buffer> ssbo_depth : [[access(read)]]U32s;
 
 	[[location(0)]] var<out> outColor : vec4<f32>;
 
@@ -85,17 +85,17 @@ export let fsQuad = `
 				#edlCount = edlCount + 1.0;
 				#edlResponse = edlResponse + max(0.0, edlRef - log2(f32(depth) / ${depthPrecision}));
 
-				// var r : u32 = ssbo_colors.values[4 * index + 0];
-				// var g : u32 = ssbo_colors.values[4 * index + 1];
-				// var b : u32 = ssbo_colors.values[4 * index + 2];
-				// var c : u32 = ssbo_colors.values[4 * index + 3];
+				var r : u32 = ssbo_colors.values[4 * index + 0];
+				var g : u32 = ssbo_colors.values[4 * index + 1];
+				var b : u32 = ssbo_colors.values[4 * index + 2];
+				var c : u32 = ssbo_colors.values[4 * index + 3];
 
-				var rg : u32 = ssbo_colors.values[2 * index + 0];
-				var bc : u32 = ssbo_colors.values[2 * index + 1];
-				var r : u32 = rg >> 16;
-				var g : u32 = rg & 0xFFFF;
-				var b : u32 = bc >> 16;
-				var c : u32 = bc & 0xFFFF;
+				// var rg : u32 = ssbo_colors.values[2 * index + 0];
+				// var bc : u32 = ssbo_colors.values[2 * index + 1];
+				// var r : u32 = rg >> 16;
+				// var g : u32 = rg & 0xFFFF;
+				// var b : u32 = bc >> 16;
+				// var c : u32 = bc & 0xFFFF;
 
 				var denom : f32 = f32(abs(i) + abs(j)) + 1.0;
 
@@ -105,16 +105,6 @@ export let fsQuad = `
 				avg.w = avg.w + f32(c) / pow(denom, 4.0);
 
 			}
-		}
-
-		{
-			var x : i32 = clamp(frag_x, 0, width - 1);
-			var y : i32 = clamp(height - frag_y - 1, 0, height - 1);
-			var index : u32 = u32(x + y * width);
-
-			ssbo_depth.values[index] = 0xFFFFFFFFu;
-			ssbo_colors.values[2 * index + 0] = 0u;
-			ssbo_colors.values[2 * index + 1] = 0u;
 		}
 
 		#edlResponse = edlResponse / edlCount;

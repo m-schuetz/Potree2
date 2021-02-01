@@ -1,4 +1,6 @@
 
+import * as Timer from "../renderer/Timer.js";
+
 let vs = `
 	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 		vec2<f32>(0.0, 0.0),
@@ -221,6 +223,8 @@ export function drawTexture(renderer, pass, texture, x, y, width, height){
 	let {passEncoder} = pass;
 	passEncoder.setPipeline(pipeline);
 
+	Timer.timestamp(passEncoder, "texture-start");
+
 	{
 		let state = getState(renderer, texture);
 
@@ -244,4 +248,5 @@ export function drawTexture(renderer, pass, texture, x, y, width, height){
 
 	passEncoder.draw(6, 1, 0, 0);
 
+	Timer.timestamp(passEncoder, "texture-end");
 }

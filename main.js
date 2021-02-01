@@ -17,6 +17,7 @@ import { renderComputeNoDepth } from "./src/potree/render_compute_no_depth/rende
 import { render as renderComputePacked } from "./src/potree/render_compute_packed/render_compute_packed.js";
 import { render as renderComputeXRay } from "./src/potree/render_compute_xray/render_compute_xray.js";
 import { render as renderProgressive } from "./src/potree/render_progressive/render_progressive.js";
+import { render as renderProgressiveSimple } from "./src/potree/render_progressive_simple/render_progressive.js";
 import { drawTexture } from "./src/prototyping/textures.js";
 import { Renderer } from "./src/renderer/Renderer.js";
 import * as Timer from "./src/renderer/Timer.js";
@@ -52,7 +53,7 @@ let guiContent = {
 
 	// INPUT
 	"show bounding box": false,
-	"mode": "points",
+	// "mode": "points",
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
@@ -60,7 +61,7 @@ let guiContent = {
 	// "mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
-	// "mode": "progressive",
+	"mode": "progressive/simple",
 	"attribute": "rgba",
 	"point budget (M)": 2,
 	"point size": 3,
@@ -109,6 +110,7 @@ function initGUI(){
 			"compute/packed",
 			"compute/xray",
 			"progressive",
+			"progressive/simple",
 			]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
@@ -232,14 +234,17 @@ function render(){
 	}else if(pointcloud && guiContent["mode"] === "progressive"){
 		target = renderProgressive(renderer, pointcloud, camera);
 		shouldDrawTarget = true;
+	}else if(pointcloud && guiContent["mode"] === "progressive/simple"){
+		target = renderProgressiveSimple(renderer, pointcloud, camera);
+		shouldDrawTarget = true;
 	}
 
-	Timer.timestampSep(renderer, "000");
+	// Timer.timestampSep(renderer, "000");
 
 
 	let pass = renderer.start();
 
-	Timer.timestamp(pass.passEncoder, "010");
+	// Timer.timestamp(pass.passEncoder, "010");
 
 	// draw point cloud
 	if(pointcloud && guiContent["mode"] === "points"){
@@ -256,7 +261,7 @@ function render(){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}
 
-	Timer.timestamp(pass.passEncoder, "020");
+	// Timer.timestamp(pass.passEncoder, "020");
 	
 
 	// { // draw xyz axes
@@ -429,24 +434,24 @@ async function run(){
 	// 	setPointcloud(pointcloud);
 	// });
 
-	Potree.load("./resources/pointclouds/ca13_sample/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/ca13_sample/metadata.json").then(pointcloud => {
 
-		// controls.zoomTo(pointcloud);
-		controls.set({
-			yaw: -1.1,
-			pitch: 0.37,
-			radius: 406,
-			pivot: [696743.7622505882, 3919073.5328196282, 37.6882116012673],
-		});
+	// 	// controls.zoomTo(pointcloud);
+	// 	controls.set({
+	// 		yaw: -1.1,
+	// 		pitch: 0.37,
+	// 		radius: 406,
+	// 		pivot: [696743.7622505882, 3919073.5328196282, 37.6882116012673],
+	// 	});
 		
-		camera.near = 1;
-		camera.far = 10_000;
-		camera.updateProj();
+	// 	camera.near = 1;
+	// 	camera.far = 10_000;
+	// 	camera.updateProj();
 	
-		window.pointcloud = pointcloud;
+	// 	window.pointcloud = pointcloud;
 
-		setPointcloud(pointcloud);
-	});
+	// 	setPointcloud(pointcloud);
+	// });
 
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {

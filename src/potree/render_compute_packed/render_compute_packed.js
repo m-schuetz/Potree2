@@ -217,28 +217,26 @@ function getScreenPassState(renderer){
 	return screenPassState;
 }
 
+let resetCache = new Map();
+
 function reset(renderer, ssbo, numUints, value){
 
 	let {device} = renderer;
 	let {pipeline, uniformBuffer} = getResetState(renderer);
 
-	let bindGroup = device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
-		entries: [
-			{
-				binding: 0,
-				resource: {
-					buffer: ssbo,
-					offset: 0,
-					size: numUints * 4,
-				}
-			},{
-				binding: 1,
-				resource: {buffer: uniformBuffer}
-			}
-		]
-	});
+	if(!resetCache.has(ssbo)){
+		let bindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [
+				{binding: 0, resource: {buffer: ssbo}},
+				{binding: 1, resource: {buffer: uniformBuffer}}
+			]
+		});
 
+		resetCache.set(ssbo, {bindGroup});
+	}
+
+	let {bindGroup} = resetCache.get(ssbo);
 
 	{ // uniform buffer
 		let data = new Uint32Array([value]);
@@ -258,7 +256,7 @@ function reset(renderer, ssbo, numUints, value){
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
 
-	let groups = Math.ceil(numUints / 128);
+	let groups = Math.floor(numUints / 128);
 	passEncoder.dispatch(groups, 1, 1);
 	passEncoder.endPass();
 
@@ -266,14 +264,20 @@ function reset(renderer, ssbo, numUints, value){
 }
 
 function resetBuffers(renderer){ 
-	let size = renderer.getSize();
-	let numUints = size.width * size.height;
+	// let size = renderer.getSize();
+	// let numUints = size.width * size.height;
 
-	let {ssbo} = getDepthState(renderer);
-	let {ssbo_colors} = getColorState(renderer);
 
-	reset(renderer, ssbo, numUints, 0xffffff);
-	reset(renderer, ssbo_colors, 4 * numUints, 0);
+	// let {ssbo} = getDepthState(renderer);
+	// let {ssbo_colors} = getColorState(renderer);
+
+	// Timer.timestampSep(renderer, "reset1-start");
+	// reset(renderer, ssbo, numUints, 0xffffffff);
+	// Timer.timestampSep(renderer, "reset1-end");
+
+	// Timer.timestampSep(renderer, "reset2-start");
+	// reset(renderer, ssbo_colors, 4 * numUints, 0);
+	// Timer.timestampSep(renderer, "reset2-end");
 }
 
 function updateUniforms(renderer, octree, camera){
@@ -331,7 +335,7 @@ function getGpuAttributeBuffer(renderer, entry){
 
 	if(!buffer){
 
-		let size = 20_000_000 * entry.byteSize;
+		let size = 10_000_000 * entry.byteSize;
 		let size4 = size + (4 - (size % 4));
 		let offset = 0;
 
@@ -590,6 +594,8 @@ export function render(renderer, octree, camera){
 		return;
 	}
 
+	Timer.timestampSep(renderer, "packed-start");
+
 	let target = getTarget1(renderer);
 
 	if(octree.visibleNodes.length === 0){
@@ -611,6 +617,8 @@ export function render(renderer, octree, camera){
 	depthPass(renderer, octree, camera);
 	colorPass(renderer, octree, camera);
 	resolve(renderer, octree, camera);
+
+	Timer.timestampSep(renderer, "packed-end");
 
 	return target.colorAttachments[0].texture;
 }

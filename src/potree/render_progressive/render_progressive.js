@@ -420,7 +420,7 @@ function getGpuAttributeBuffer(renderer, name){
 			rgba: 4,
 		}[name];
 
-		let size = 150_000_000 * bpp;
+		let size = 100_000_000 * bpp;
 		let offset = 0;
 
 		let vbo = renderer.device.createBuffer({

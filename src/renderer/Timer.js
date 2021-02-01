@@ -117,9 +117,7 @@ function frameEnd(renderer){
 
 			}
 
-
 			document.getElementById("msg_dbg").innerText = msg;
-			console.log(counters);
 
 			counters = {};
 		}
