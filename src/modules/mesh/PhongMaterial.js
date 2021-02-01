@@ -93,9 +93,9 @@ fn main() -> void {
 		light.b = light.b + diffuse.b + specular.b;
 	}
 
-	light.r = light.r + 0.3;
-	light.g = light.g + 0.3;
-	light.b = light.b + 0.3;
+	light.r = 0.3 * light.r + 1.0;
+	light.g = 0.3 * light.g + 1.0;
+	light.b = 0.3 * light.b + 1.0;
 
 	out_color.r = color.r * light.r;
 	out_color.g = color.g * light.g;

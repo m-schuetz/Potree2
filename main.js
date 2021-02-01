@@ -189,6 +189,9 @@ function render(){
 
 	let renderables = new Map();
 
+	camera.near = Math.max(controls.radius / 100, 0.001);
+	camera.far = Math.max(controls.radius * 2, 10_000);
+
 	let stack = [scene.root];
 	while(stack.length > 0){
 		let node = stack.pop();
@@ -270,11 +273,38 @@ function render(){
 	// Timer.timestamp(pass.passEncoder, "020");
 	
 
-	// { // draw xyz axes
-	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(2, 0, 0), new Vector3(255, 0, 0));
-	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 2, 0), new Vector3(0, 255, 0));
-	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, 2), new Vector3(0, 0, 255));
-	// }
+	{ // draw xyz axes
+		let length = controls.radius / 10.0;
+		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(length, 0, 0), new Vector3(255, 0, 0));
+		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, length, 0), new Vector3(0, 255, 0));
+		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, length), new Vector3(0, 0, 255));
+	}
+
+	{ // draw ground grid
+
+		let size = 10;
+		//let step = Math.floor(controls.radius / 10);
+		let step = 10 ** Math.floor(Math.log10(controls.radius / 5))
+		step = Math.max(1, step);
+
+
+		for(let i = -size / 2; i <= size / 2; i++){
+			for(let j = -size / 2; j <= size / 2; j++){
+
+				renderer.drawLine(
+					new Vector3(step * i, -step * j, 0), 
+					new Vector3(step * i,  step * j, 0), 
+					new Vector3(150, 150, 150));
+
+				renderer.drawLine(
+					new Vector3(-step * j, step * i, 0), 
+					new Vector3( step * j, step * i, 0), 
+					new Vector3(150, 150, 150));
+
+			}
+		}
+
+	}
 
 	// draw boxes
 	if(guiContent["show bounding box"]){ 
@@ -353,26 +383,6 @@ async function run(){
 		radius: 20,
 	});
 
-	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
-
-	// 	controls.set({
-	// 		pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
-	// 		pitch: 0.3601621061369527,
-	// 		yaw: -0.610317525598302,
-	// 		radius: 6.3,
-	// 	});
-
-	// 	window.pointcloud = pointcloud;
-	// });
-
-	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
-	// 	controls.radius = 20;
-	// 	controls.yaw = 2.7 * Math.PI / 4;
-	// 	controls.pitch = Math.PI / 6;
-	
-	// 	pointcloud.updateVisibility(camera);
-	// 	window.pointcloud = pointcloud;
-	// });
 
 	function setPointcloud(pointcloud){
 		let attributes = pointcloud.loader.attributes.attributes.map(b => b.name).filter(n => n !== "position");
@@ -422,6 +432,32 @@ async function run(){
 		guiAttributes = guiAttributes.options(attributes).setValue("rgba").onChange(onChange);
 		onChange();
 	}
+
+	
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+
+		// controls.set({
+		// 	pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
+		// 	pitch: 0.3601621061369527,
+		// 	yaw: -0.610317525598302,
+		// 	radius: 6.3,
+		// });
+
+		pointcloud.scale.set(0.4, 0.4, 0.4)
+		pointcloud.position.set(0, -2, 0);
+		pointcloud.updateWorld()
+
+		window.pointcloud = pointcloud;
+	});
+
+	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+	// 	controls.radius = 20;
+	// 	controls.yaw = 2.7 * Math.PI / 4;
+	// 	controls.pitch = Math.PI / 6;
+	
+	// 	pointcloud.updateVisibility(camera);
+	// 	window.pointcloud = pointcloud;
+	// });
 
 	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
 
@@ -474,79 +510,15 @@ async function run(){
 	// });
 
 
-	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	// // Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
-	// 	camera.near = 0.5;
-	// 	camera.far = 100_000;
-
-	// 	controls.set({
-	// 		radius: 2_400,
-	// 		yaw: 0.034,
-	// 		pitch: 0.629,
-	// 		pivot: [694698.4629456067, 3916428.1845130883, -15.72393889322449],
-	// 	});
-
-	// 	let attributes = pointcloud.loader.attributes.attributes.map(b => b.name).filter(n => n !== "position");
-
-	// 	guiAttributes = guiAttributes.options(attributes).setValue("rgba").onChange(() => {
-	// 		let attributeName = guiContent.attribute;
-	// 		let attribute = pointcloud.loader.attributes.attributes.find(a => a.name === attributeName);
-	// 		let range = attribute.range;
-
-	// 		let getRangeVal = (val) => {
-	// 			if(typeof val === "number"){
-	// 				return val;
-	// 			}else{
-	// 				return Math.max(...val);
-	// 			}
-	// 		};
-
-	// 		let low = getRangeVal(range[0]);
-	// 		let high = getRangeVal(range[1]);
-
-	// 		if(attributeName === "rgba"){
-	// 			low = 0;
-	// 			high = high > 255 ? (2 ** 16 - 1) : 255;
-	// 		}
-
-	// 		if(attributeName === "intensity"){
-	// 			guiContent["gamma"] = 0.5;
-	// 			guiContent["brightness"] = 0;
-	// 			guiContent["contrast"] = 0;
-	// 		}else{
-
-	// 			guiContent["gamma"] = 1;
-	// 			guiContent["brightness"] = 0;
-	// 			guiContent["contrast"] = 0;
-	// 		}
-
-	// 		guiContent["scalar min"] = low;
-	// 		guiContent["scalar max"] = high;
-
-	// 		guiScalarMin = guiScalarMin.min(low);
-	// 		guiScalarMin = guiScalarMin.max(high);
-
-	// 		guiScalarMax = guiScalarMax.min(low);
-	// 		guiScalarMax = guiScalarMax.max(high);
-			
-	// 		console.log(attribute);
-
-	// 	});
-
-	// 	scene.root.children.push(pointcloud);
-
-	// 	window.pointcloud = pointcloud;
-	// });
-
 	{
 		let light1 = new PointLight("pointlight");
-		light1.position.set(5, 5, 1);
+		light1.position.set(15, 15, 1);
 
 		let light2 = new PointLight("pointlight2");
-		light2.position.set(-5, -5, 1);
+		light2.position.set(-15, -15, 1);
 
 		scene.root.children.push(light1);
-		scene.root.children.push(light2);
+		// scene.root.children.push(light2);
 	}
 
 
@@ -556,14 +528,14 @@ async function run(){
 		scene.root.children.push(node);
 
 		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-		node.position.set(5, 0, -5);
+		node.position.set(5, 0, 3);
 		node.updateWorld();
 
 		controls.set({
 			yaw: -9.2375,
 			pitch: 0.2911333847340012,
 			radius: 3.649930853878021,
-			pivot:  [0.3169157776176301, -0.055293688684424885, -5.812217162637825],
+			pivot:  [0.3169157776176301, -0.055293688684424885, 2.2],
 		});
 
 		window.glb = node;
