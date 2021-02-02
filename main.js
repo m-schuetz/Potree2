@@ -1,7 +1,7 @@
 
 
 import * as dat from "./libs/dat.gui/dat.gui.module.js";
-import { Vector3 } from "./src/math/math.js";
+import { Vector3, Box3, Matrix4 } from "./src/math/math.js";
 import { render as renderMesh } from "./src/modules/mesh/renderMesh.js";
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
 import { OrbitControls } from "./src/navigation/OrbitControls.js";
@@ -24,6 +24,7 @@ import * as Timer from "./src/renderer/Timer.js";
 import { Camera } from "./src/scene/Camera.js";
 import { PointLight } from "./src/scene/PointLight.js";
 import { Scene } from "./src/scene/Scene.js";
+import { SceneNode } from "./src/scene/SceneNode.js";
 import {createWave} from "./src/prototyping/cube.js";
 import {load as loadGLB} from "./src/misc/GLBLoader.js";
 
@@ -54,7 +55,7 @@ let guiContent = {
 
 
 	// INPUT
-	"show bounding box": false,
+	"show bounding box": true,
 	"mode": "points",
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
@@ -363,17 +364,27 @@ async function run(){
 			//console.log(e.boxes);
 			boxes = e.boxes;
 
-			progress = e.progress;
-			window.progress = progress;
+			let fullBox = new Box3();
+			for(let box of boxes){
+				fullBox.expandByBox(box);
+			}
 
-			console.log(progress);
+			let node = new SceneNode("tmp");
+			node.boundingBox = fullBox;
 
-			let pivot = progress.boundingBox.center();
-			pivot.z = 0.8 * progress.boundingBox.min.z + 0.2 * progress.boundingBox.max.z;
-			controls.pivot.copy(pivot);
-			controls.radius = progress.boundingBox.size().length() * 0.7;
+			controls.zoomTo(node);
 
-			window.pointcloud = progress.octree;
+			// progress = e.progress;
+			// window.progress = progress;
+
+			// console.log(progress);
+
+			// let pivot = progress.boundingBox.center();
+			// pivot.z = 0.8 * progress.boundingBox.min.z + 0.2 * progress.boundingBox.max.z;
+			// controls.pivot.copy(pivot);
+			// controls.radius = progress.boundingBox.size().length() * 0.7;
+
+			// window.pointcloud = progress.octree;
 		});
 	}
 

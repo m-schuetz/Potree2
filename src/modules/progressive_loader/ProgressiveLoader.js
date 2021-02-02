@@ -138,9 +138,9 @@ function install(element, callback){
 		octree.position.copy(full_aabb.min);
 		octree.updateWorld();
 
-		for (let file of files) {
-			load(file);
-		}
+		// for (let file of files) {
+		// 	load(file);
+		// }
 
 		callback({boxes, progress});
 
