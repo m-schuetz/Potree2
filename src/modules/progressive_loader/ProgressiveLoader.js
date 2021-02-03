@@ -105,21 +105,25 @@ function install(element, args){
 		worker.onmessage = (e) => {
 			let newBoxes = e.data.boxes;
 
-			// deserialize
-			for(let newBox of newBoxes){
+			let newDeserializedBoxes = newBoxes.map(newBox => {
 				let boundingBox = new Box3(
 					new Vector3().copy(newBox.boundingBox.min),
 					new Vector3().copy(newBox.boundingBox.max),
 				);
 				let color = new Vector3().copy(newBox.color);
 
-				boxes.push({boundingBox, color});
-			}
+				return {boundingBox, color};
+			});
 
-			// boxes.push(...newBoxes);
+			boxes.push(...newDeserializedBoxes);
 
 			if(args.progress){
-				args.progress()
+				args.progress({
+					completed: boxes.length,
+					total: files.length,
+					newBoxes: newDeserializedBoxes,
+					allBoxes: boxes,
+				});
 			}
 		};
 

@@ -35,6 +35,7 @@ export class Renderer{
 		this.swapChainFormat = null;
 		this.depthTexture = null;
 		this.draws = new Draws();
+		this.currentBindGroup = -1;
 
 		this.buffers = new Map();
 		this.typedBuffers = new Map();
@@ -308,11 +309,6 @@ export class Renderer{
 		return {commandEncoder, passEncoder, renderPassDescriptor};
 	}
 
-	renderDrawCommands(pass, camera){
-		renderBoundingBoxes(this, pass, this.draws.boxes, camera);
-		renderLines(this, pass, this.draws.lines, camera);
-	}
-
 	finish(pass){
 
 		pass.passEncoder.endPass();
@@ -329,7 +325,18 @@ export class Renderer{
 		// });
 
 		this.draws.reset();
+		this.currentBindGroup = -1;
+	}
 
+	getNextBindGroup(){
+		this.currentBindGroup++;
+
+		return this.currentBindGroup;
+	}
+
+	renderDrawCommands(pass, camera){
+		renderBoundingBoxes(this, pass, this.draws.boxes, camera);
+		renderLines(this, pass, this.draws.lines, camera);
 	}
 
 

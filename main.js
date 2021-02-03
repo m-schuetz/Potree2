@@ -26,6 +26,11 @@ import { Camera } from "./src/scene/Camera.js";
 import { PointLight } from "./src/scene/PointLight.js";
 import { Scene } from "./src/scene/Scene.js";
 import { SceneNode } from "./src/scene/SceneNode.js";
+import {cube, createWave} from "./src/prototyping/cube.js";
+import { NormalMaterial } from "./src/modules/mesh/NormalMaterial.js";
+import { PhongMaterial } from "./src/modules/mesh/PhongMaterial.js";
+import {Geometry} from "./src/core/Geometry.js";
+import {Mesh} from "./src/modules/mesh/Mesh.js";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -190,7 +195,7 @@ function render(){
 	let renderables = new Map();
 
 	camera.near = Math.max(controls.radius / 100, 0.001);
-	camera.far = Math.max(controls.radius * 2, 10_000);
+	camera.far = Math.max(controls.radius * 2, 100_000);
 
 	let stack = [scene.root];
 	while(stack.length > 0){
@@ -359,29 +364,55 @@ async function run(){
 	camera.fov = 60;
 
 	{
+
+		
+		
+		let geometry = new Geometry();
+		geometry.buffers = cube.buffers;
+		geometry.numElements = cube.vertexCount;
+
 		let element = document.getElementById("canvas");
 		ProgressiveLoader.install(element, {
 			init: (e) => {
 				boxes = e.boxes;
 
 				controls.set({
-					pitch: 0.7491133384734001,
-					pivot: [700757.8036982148, 3929117.8309593434, -8764.736945689192],
-					radius: 61202.58495339803,
-					yaw: -12.38984375,
+					pitch: 0.6010794140323822,
+					pivot:  {x: 694417.4634171372, y: 3916280.3929701354, z: 153.10151835027543},
+					radius: 24219.941123255907,
+					yaw: -12.38281250000001,
 				});
 			},
 			progress: (e) => {
-				// let fullBox = new Box3();
 
-				// for(let box of boxes){
-				// 	fullBox.expandByBox(box);
+				// if(e.completed < 10){
+
+				// 	let fullBox = new Box3();
+
+				// 	for(let box of boxes){
+				// 		fullBox.expandByBox(box.boundingBox);
+				// 	}
+
+				// 	let node = new SceneNode("tmp");
+				// 	node.boundingBox = fullBox;
+
+				// 	controls.zoomTo(node);
 				// }
 
-				// let node = new SceneNode("tmp");
-				// node.boundingBox = fullBox;
+				for(let box of e.newBoxes){
+					let mesh = new Mesh("cube", geometry);
+					mesh.material = new PhongMaterial();
+					mesh.material.color = box.color.clone().multiplyScalar(1 / 256);
 
-				// controls.zoomTo(node);
+					let scale = box.boundingBox.size().multiplyScalar(0.5);
+					let position = box.boundingBox.center();
+
+					mesh.scale.copy(scale);
+					mesh.position.copy(position);
+					mesh.updateWorld();
+
+					scene.root.children.push(mesh);
+				}
 			}
 		});
 	}
@@ -530,7 +561,18 @@ async function run(){
 		// scene.root.children.push(light2);
 	}
 
+	{
+		let source = cube;
 
+		let geometry = new Geometry();
+		geometry.buffers = source.buffers;
+		geometry.numElements = source.vertexCount;
+
+		let mesh = new Mesh("cube", geometry);
+		mesh.material = new PhongMaterial();
+
+		scene.root.children.push(mesh);
+	}
 
 	loadGLB("./resources/models/anita_mui.glb").then(node => {
 	// loadGLB("./resources/models/lion.glb").then(node => {
