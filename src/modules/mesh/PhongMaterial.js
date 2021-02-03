@@ -157,6 +157,7 @@ export class PhongMaterial{
 		this.image = null;
 		this.colorMode = ColorMode.DIFFUSE_COLOR;
 		this.color = new Vector3(1.0, 0.0, 0.5);
+		this.uniformBufferData = new ArrayBuffer(256);
 	}
 	
 }
@@ -164,7 +165,6 @@ export class PhongMaterial{
 
 let initialized = false;
 let pipeline = null;
-let uniformBuffer = null;
 let ssbo_pointLights = null;
 let sampler = null;
 let uniformBufferCache = new Map();
@@ -302,9 +302,7 @@ export function render(renderer, pass, node, camera, renderables){
 	let pointLights = renderables.get("PointLight") ?? [];
 
 	{ // update uniforms
-
-
-		let data = new ArrayBuffer(256);
+		let data = material.uniformBufferData
 		let f32 = new Float32Array(data);
 		let view = new DataView(data);
 

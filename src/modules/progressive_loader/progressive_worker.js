@@ -53,7 +53,7 @@ async function loadBox(file){
 
 		let [R, G, B] = [0, 0, 0];
 
-		let n = Math.min(numPoints, 10000);
+		let n = Math.min(numPoints, 1000);
 
 		if(compressed){
 			n = 1;
