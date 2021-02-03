@@ -1,7 +1,8 @@
 
 
 import * as dat from "./libs/dat.gui/dat.gui.module.js";
-import { Vector3, Box3, Matrix4 } from "./src/math/math.js";
+import { Box3, Vector3 } from "./src/math/math.js";
+import { load as loadGLB } from "./src/misc/GLBLoader.js";
 import { render as renderMesh } from "./src/modules/mesh/renderMesh.js";
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
 import { OrbitControls } from "./src/navigation/OrbitControls.js";
@@ -25,8 +26,6 @@ import { Camera } from "./src/scene/Camera.js";
 import { PointLight } from "./src/scene/PointLight.js";
 import { Scene } from "./src/scene/Scene.js";
 import { SceneNode } from "./src/scene/SceneNode.js";
-import {createWave} from "./src/prototyping/cube.js";
-import {load as loadGLB} from "./src/misc/GLBLoader.js";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -310,9 +309,10 @@ function render(){
 	// draw boxes
 	if(guiContent["show bounding box"]){ 
 		for(let box of boxes){
-			let position = box.center();
-			let size = box.size();
-			let color = new Vector3(255, 255, 0);
+			let position = box.boundingBox.center();
+			let size = box.boundingBox.size();
+			let color = box.color;
+			//let color = new Vector3(255, 255, 0);
 
 			renderer.drawBoundingBox(position, size, color);
 		}
@@ -360,31 +360,29 @@ async function run(){
 
 	{
 		let element = document.getElementById("canvas");
-		ProgressiveLoader.install(element, (e) => {
-			//console.log(e.boxes);
-			boxes = e.boxes;
+		ProgressiveLoader.install(element, {
+			init: (e) => {
+				boxes = e.boxes;
 
-			let fullBox = new Box3();
-			for(let box of boxes){
-				fullBox.expandByBox(box);
+				controls.set({
+					pitch: 0.7491133384734001,
+					pivot: [700757.8036982148, 3929117.8309593434, -8764.736945689192],
+					radius: 61202.58495339803,
+					yaw: -12.38984375,
+				});
+			},
+			progress: (e) => {
+				// let fullBox = new Box3();
+
+				// for(let box of boxes){
+				// 	fullBox.expandByBox(box);
+				// }
+
+				// let node = new SceneNode("tmp");
+				// node.boundingBox = fullBox;
+
+				// controls.zoomTo(node);
 			}
-
-			let node = new SceneNode("tmp");
-			node.boundingBox = fullBox;
-
-			controls.zoomTo(node);
-
-			// progress = e.progress;
-			// window.progress = progress;
-
-			// console.log(progress);
-
-			// let pivot = progress.boundingBox.center();
-			// pivot.z = 0.8 * progress.boundingBox.min.z + 0.2 * progress.boundingBox.max.z;
-			// controls.pivot.copy(pivot);
-			// controls.radius = progress.boundingBox.size().length() * 0.7;
-
-			// window.pointcloud = progress.octree;
 		});
 	}
 

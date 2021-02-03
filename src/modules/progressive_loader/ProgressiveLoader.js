@@ -82,7 +82,9 @@ function load(file){
 }
 
 
-function install(element, callback){
+let boxes = [];
+
+function install(element, args){
 
 	element.addEventListener('dragover', function(e) {
 		e.stopPropagation();
@@ -91,58 +93,96 @@ function install(element, callback){
 	});
 
 	element.addEventListener('drop', async function(e) {
+		console.log("abc");
 		e.stopPropagation();
 		e.preventDefault();
 
 		let files = e.dataTransfer.files;
 
-		console.log("start: ", performance.now());
+		let workerPath = `${import.meta.url}/../progressive_worker.js`;
+		let worker = new Worker(workerPath, {type: "module"});
 
-		let promises = [];
-		for (let file of files) {
-			let blob = file.slice(0, 227);
-			let promise = blob.arrayBuffer();
+		worker.onmessage = (e) => {
+			let newBoxes = e.data.boxes;
 
-			promises.push(promise);
+			// deserialize
+			for(let newBox of newBoxes){
+				let boundingBox = new Box3(
+					new Vector3().copy(newBox.boundingBox.min),
+					new Vector3().copy(newBox.boundingBox.max),
+				);
+				let color = new Vector3().copy(newBox.color);
+
+				boxes.push({boundingBox, color});
+			}
+
+			// boxes.push(...newBoxes);
+
+			if(args.progress){
+				args.progress()
+			}
+		};
+
+		worker.postMessage({
+			files
+		});
+
+		boxes = [];
+		let progress = {};
+
+		if(args.init){
+			args.init({boxes, progress});
 		}
 
+		
 
-		let buffers = await Promise.all(promises);
+		// console.log("start: ", performance.now());
 
-		let full_aabb = new Box3();
-
-		let boxes = [];
-		for(let buffer of buffers){
-			let view = new DataView(buffer);
-
-			let min = new Vector3();
-			min.x = view.getFloat64(187, true);
-			min.y = view.getFloat64(203, true);
-			min.z = view.getFloat64(219, true);
-
-			let max = new Vector3();
-			max.x = view.getFloat64(179, true);
-			max.y = view.getFloat64(195, true);
-			max.z = view.getFloat64(211, true);
-
-			let box = new Box3(min, max);
-			boxes.push(box);
-
-			full_aabb.expandByPoint(min);
-			full_aabb.expandByPoint(max);
-		}
-
-		progress.boundingBox = full_aabb;
-
-		octree.boundingBox = full_aabb;
-		octree.position.copy(full_aabb.min);
-		octree.updateWorld();
-
+		// let promises = [];
 		// for (let file of files) {
-		// 	load(file);
+		// 	let blob = file.slice(0, 227);
+		// 	let promise = blob.arrayBuffer();
+
+		// 	promises.push(promise);
 		// }
 
-		callback({boxes, progress});
+
+		// let buffers = await Promise.all(promises);
+
+		// let full_aabb = new Box3();
+
+		// let boxes = [];
+		// for(let buffer of buffers){
+		// 	let view = new DataView(buffer);
+
+		// 	let min = new Vector3();
+		// 	min.x = view.getFloat64(187, true);
+		// 	min.y = view.getFloat64(203, true);
+		// 	min.z = view.getFloat64(219, true);
+
+		// 	let max = new Vector3();
+		// 	max.x = view.getFloat64(179, true);
+		// 	max.y = view.getFloat64(195, true);
+		// 	max.z = view.getFloat64(211, true);
+
+		// 	let box = new Box3(min, max);
+		// 	boxes.push(box);
+
+		// 	full_aabb.expandByPoint(min);
+		// 	full_aabb.expandByPoint(max);
+		// }
+
+		// progress.boundingBox = full_aabb;
+
+		// octree.boundingBox = full_aabb;
+		// octree.position.copy(full_aabb.min);
+		// octree.updateWorld();
+
+		// // for (let file of files) {
+		// // 	load(file);
+		// // }
+
+		// callback({boxes, progress});
 
 
 	});
