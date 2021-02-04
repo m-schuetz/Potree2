@@ -2,7 +2,7 @@
 import {Vector3, Box3} from "../../math/math.js";
 
 
-async function loadBox(file){
+async function loadStage0(file){
 	
 	let blob = file.slice(0, Math.min(file.size, 1_000_000));
 	//let blob = file.slice(0, 227);
@@ -74,13 +74,13 @@ async function loadBox(file){
 		color = new Vector3(R, G, B).multiplyScalar(1 / 256);
 	}
 
+	let boundingBox = new Box3(min, max);
+	// let box = {
+	// 	boundingBox: new Box3(min, max),
+	// 	color: color,
+	// }
 
-	let box = {
-		boundingBox: new Box3(min, max),
-		color: color,
-	}
-
-	return box;
+	return {numPoints, boundingBox, color, file};
 }
 
 
@@ -89,7 +89,6 @@ onmessage = async function(e){
 	let {files} = e.data;
 
 	let tStart = performance.now();
-
 
 	let active = new Set();
 	let promises = [];
@@ -100,16 +99,14 @@ onmessage = async function(e){
 			await Promise.any(active);
 		}
 
-		let promise = loadBox(file);
+		let promise = loadStage0(file);
 		active.add(promise);
 		promises.push(promise);
 
-		promise.then(box => {
+		promise.then(stage0 => {
 			active.delete(promise);
 
-			postMessage({
-				boxes: [box],
-			});
+			postMessage(stage0);
 		});
 
 	}

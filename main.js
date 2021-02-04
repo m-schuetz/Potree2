@@ -1,7 +1,7 @@
 
 
 import * as dat from "./libs/dat.gui/dat.gui.module.js";
-import { Box3, Vector3 } from "./src/math/math.js";
+import { Box3, Vector3, Frustum, Matrix4, Ray } from "./src/math/math.js";
 import { load as loadGLB } from "./src/misc/GLBLoader.js";
 import { render as renderMesh } from "./src/modules/mesh/renderMesh.js";
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
@@ -31,6 +31,8 @@ import { NormalMaterial } from "./src/modules/mesh/NormalMaterial.js";
 import { PhongMaterial } from "./src/modules/mesh/PhongMaterial.js";
 import {Geometry} from "./src/core/Geometry.js";
 import {Mesh} from "./src/modules/mesh/Mesh.js";
+
+window.math = {Vector3, Frustum, Matrix4, Ray, Box3};
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -322,7 +324,11 @@ function render(){
 		let progressives = renderables.get("ProgressivePointCloud") ?? [];
 
 		for(let progressive of progressives){
+
+			progressive.update(renderer, camera);
+
 			let boxes = progressive?.renderables?.boxes ?? [];
+			let boundingBoxes = progressive?.renderables?.boundingBoxes ?? [];
 
 			for(let box of boxes){
 				let position = box.boundingBox.center();
@@ -330,6 +336,14 @@ function render(){
 				let color = box.color;
 				
 				renderer.drawBox(position, size, color);
+			}
+
+			for(let box of boundingBoxes){
+				let position = box.boundingBox.center();
+				let size = box.boundingBox.size();
+				let color = box.color;
+				
+				renderer.drawBoundingBox(position, size, color);
 			}
 		}
 

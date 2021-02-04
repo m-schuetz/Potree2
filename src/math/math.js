@@ -1,11 +1,13 @@
 import { Vector3 } from "./Vector3.js";
 
 
-export * from "./Vector3.js";
-export * from "./Matrix4.js";
 export * from "./Box3.js";
 export * from "./Frustum.js";
-
+export * from "./Line3.js";
+export * from "./Matrix4.js";
+export * from "./Plane.js";
+export * from "./Ray.js";
+export * from "./Vector3.js";
 
 const _v0 = new Vector3();
 
