@@ -43,8 +43,7 @@ let controls = null;
 let progress = null;
 
 let scene = new Scene();
-
-let boxes = [];
+window.scene = scene;
 
 let gui = null;
 let guiContent = {
@@ -311,23 +310,27 @@ function render(){
 
 	}
 
-	// draw boxes
-	if(guiContent["show bounding box"]){ 
-		for(let box of boxes){
-			let position = box.boundingBox.center();
-			let size = box.boundingBox.size();
-			let color = box.color;
-			//let color = new Vector3(255, 255, 0);
-
-			renderer.drawBoundingBox(position, size, color);
-		}
-	}
-
-	{
+	{ // MESHES
 		let meshes = renderables.get("Mesh") ?? [];
 
 		for(let mesh of meshes){
 			renderMesh(renderer, pass, mesh, camera, renderables);
+		}
+	}
+
+	{ // PROGRESSIVE POINT CLOUDS
+		let progressives = renderables.get("ProgressivePointCloud") ?? [];
+
+		for(let progressive of progressives){
+			let boxes = progressive?.renderables?.boxes ?? [];
+
+			for(let box of boxes){
+				let position = box.boundingBox.center();
+				let size = box.boundingBox.size();
+				let color = box.color;
+				
+				renderer.drawBox(position, size, color);
+			}
 		}
 
 	}
@@ -364,17 +367,11 @@ async function run(){
 	camera.fov = 60;
 
 	{
-
-		
-		
-		let geometry = new Geometry();
-		geometry.buffers = cube.buffers;
-		geometry.numElements = cube.vertexCount;
-
 		let element = document.getElementById("canvas");
 		ProgressiveLoader.install(element, {
-			init: (e) => {
-				boxes = e.boxes;
+			progressivePointcloudAdded: (e) => {
+				
+				scene.root.children.push(e.node);
 
 				controls.set({
 					pitch: 0.6010794140323822,
@@ -382,37 +379,6 @@ async function run(){
 					radius: 24219.941123255907,
 					yaw: -12.38281250000001,
 				});
-			},
-			progress: (e) => {
-
-				// if(e.completed < 10){
-
-				// 	let fullBox = new Box3();
-
-				// 	for(let box of boxes){
-				// 		fullBox.expandByBox(box.boundingBox);
-				// 	}
-
-				// 	let node = new SceneNode("tmp");
-				// 	node.boundingBox = fullBox;
-
-				// 	controls.zoomTo(node);
-				// }
-
-				for(let box of e.newBoxes){
-					let mesh = new Mesh("cube", geometry);
-					mesh.material = new PhongMaterial();
-					mesh.material.color = box.color.clone().multiplyScalar(1 / 256);
-
-					let scale = box.boundingBox.size().multiplyScalar(0.5);
-					let position = box.boundingBox.center();
-
-					mesh.scale.copy(scale);
-					mesh.position.copy(position);
-					mesh.updateWorld();
-
-					scene.root.children.push(mesh);
-				}
 			}
 		});
 	}

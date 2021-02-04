@@ -2,7 +2,8 @@
 // after https://github.com/austinEng/webgpu-samples/blob/master/src/examples/rotatingCube.ts
 
 import * as shaders from "../prototyping/shaders.js";
-import {renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
+import {render as renderBoxes} from "../modules/drawCommands/renderBoxes.js";
+import {render as renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
 import {renderLines} from "../modules/drawCommands/renderLines.js";
 import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
@@ -11,12 +12,14 @@ import {writeBuffer} from "./writeBuffer.js";
 class Draws{
 
 	constructor(){
+		this.boundingBoxes = [];
 		this.boxes = [];
 		this.spheres = [];
 		this.lines = [];
 	}
 
 	reset(){
+		this.boundingBoxes = [];
 		this.boxes = [];
 		this.spheres = [];
 		this.lines = [];
@@ -219,6 +222,7 @@ export class Renderer{
 				size: typedArray.byteLength,
 				usage: GPUBufferUsage.VERTEX 
 					| GPUBufferUsage.INDEX  
+					| GPUBufferUsage.COPY_DST 
 					| GPUBufferUsage.STORAGE,
 				mappedAtCreation: true,
 			});
@@ -273,6 +277,10 @@ export class Renderer{
 	}
 
 	drawBoundingBox(position, size, color){
+		this.draws.boundingBoxes.push([position, size, color]);
+	}
+
+	drawBox(position, size, color){
 		this.draws.boxes.push([position, size, color]);
 	}
 
@@ -335,7 +343,8 @@ export class Renderer{
 	}
 
 	renderDrawCommands(pass, camera){
-		renderBoundingBoxes(this, pass, this.draws.boxes, camera);
+		renderBoxes(this, pass, this.draws.boxes, camera);
+		renderBoundingBoxes(this, pass, this.draws.boundingBoxes, camera);
 		renderLines(this, pass, this.draws.lines, camera);
 	}
 

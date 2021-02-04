@@ -88,15 +88,37 @@ onmessage = async function(e){
 
 	let {files} = e.data;
 
+	let tStart = performance.now();
+
+
+	let active = new Set();
+	let promises = [];
+
 	for(let file of files){
 
-		let box = await loadBox(file);
+		if(active.size >= 8){
+			await Promise.any(active);
+		}
 
-		postMessage({
-			boxes: [box],
+		let promise = loadBox(file);
+		active.add(promise);
+		promises.push(promise);
+
+		promise.then(box => {
+			active.delete(promise);
+
+			postMessage({
+				boxes: [box],
+			});
 		});
 
 	}
+
+	await Promise.all(promises);
+
+	let duration = performance.now() - tStart;
+	let seconds = duration / 1000;
+	console.log(`[load]: ${seconds.toFixed(1)}`);
 
 }
 

@@ -240,7 +240,7 @@ function init(renderer){
 
 }
 
-export function renderBoundingBoxes(renderer, pass, boxes, camera){
+export function render(renderer, pass, boxes, camera){
 
 	let {device} = renderer;
 
