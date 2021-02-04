@@ -71,7 +71,7 @@ let guiContent = {
 	// "mode": "compute/no_depth",
 	// "mode": "progressive/simple",
 	"attribute": "rgba",
-	"point budget (M)": 2,
+	"point budget (M)": 0.02,
 	"point size": 3,
 	"update": true,
 
@@ -285,6 +285,12 @@ function render(){
 		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, length, 0), new Vector3(0, 255, 0));
 		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, length), new Vector3(0, 0, 255));
 	}
+
+	renderer.drawBoundingBox(
+		new Vector3(0, 0, 0),
+		new Vector3(10, 10, 10),
+		new Vector3(255, 0, 0),
+	);
 
 	{ // draw ground grid
 
@@ -554,25 +560,25 @@ async function run(){
 		scene.root.children.push(mesh);
 	}
 
-	loadGLB("./resources/models/anita_mui.glb").then(node => {
-	// loadGLB("./resources/models/lion.glb").then(node => {
-		scene.root.children.push(node);
+	// loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// // loadGLB("./resources/models/lion.glb").then(node => {
+	// 	scene.root.children.push(node);
 
-		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-		node.position.set(5, 0, 3);
-		node.updateWorld();
+	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	// 	node.position.set(5, 0, 3);
+	// 	node.updateWorld();
 
-		controls.set({
-			yaw: -9.2375,
-			pitch: 0.2911333847340012,
-			radius: 3.649930853878021,
-			pivot:  [0.3169157776176301, -0.055293688684424885, 2.2],
-		});
+	// 	controls.set({
+	// 		yaw: -9.2375,
+	// 		pitch: 0.2911333847340012,
+	// 		radius: 3.649930853878021,
+	// 		pivot:  [0.3169157776176301, -0.055293688684424885, 2.2],
+	// 	});
 
-		window.glb = node;
+	// 	window.glb = node;
 
-		// controls.zoomTo(node);
-	});
+	// 	// controls.zoomTo(node);
+	// });
 
 	requestAnimationFrame(loop);
 
