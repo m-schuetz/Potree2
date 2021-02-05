@@ -4,7 +4,7 @@ import {Vector3, Box3} from "../../math/math.js";
 
 async function loadStage0(file){
 	
-	let blob = file.slice(0, Math.min(file.size, 1_000_000));
+	let blob = file.slice(0, Math.min(file.size, 120_000));
 	//let blob = file.slice(0, 227);
 
 	let buffer = await blob.arrayBuffer();

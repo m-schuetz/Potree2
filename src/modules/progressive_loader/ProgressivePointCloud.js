@@ -124,7 +124,8 @@ export class ProgressivePointCloud extends SceneNode{
 			}
 		}
 
-		this.renderables.boundingBoxes = boundingBoxes;
+		// this.renderables.boundingBoxes = boundingBoxes;
+		// this.renderables.boundingBoxes = [];
 
 		{ // dbg
 			let msg = `
@@ -133,7 +134,7 @@ export class ProgressivePointCloud extends SceneNode{
 			priority 2: ${numPoints_priority2.toLocaleString()}
 			`;
 
-			document.getElementById("big_message").innerText = msg;
+			// document.getElementById("big_message").innerText = msg;
 		}
 
 	}

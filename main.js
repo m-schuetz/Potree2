@@ -60,12 +60,12 @@ let guiContent = {
 
 	// INPUT
 	"show bounding box": false,
-	// "mode": "points",
+	"mode": "points",
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
 	// "mode": "compute/xray",
-	"mode": "compute/packed",
+	// "mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
 	// "mode": "progressive/simple",
@@ -385,11 +385,17 @@ async function run(){
 				
 				scene.root.children.push(e.node);
 
+				// controls.set({
+				// 	pitch: 0.6010794140323822,
+				// 	pivot:  {x: 694417.4634171372, y: 3916280.3929701354, z: 153.10151835027543},
+				// 	radius: 24219.941123255907,
+				// 	yaw: -12.38281250000001,
+				// });
 				controls.set({
-					pitch: 0.6010794140323822,
-					pivot:  {x: 694417.4634171372, y: 3916280.3929701354, z: 153.10151835027543},
-					radius: 24219.941123255907,
-					yaw: -12.38281250000001,
+					pitch: 0.696849565668457,
+					pivot: {x: 694417.4634171372, y: 3916280.3929701354, z: 153.10151835027543},
+					radius: 67475.84991112133,
+					yaw: -12.35468750000004,
 				});
 			}
 		});
@@ -484,24 +490,24 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
 
-		// controls.set({
-		// 	radius: 700,
-		// 	yaw: -0.2,
-		// 	pitch: 0.8,
-		// });
+	// 	// controls.set({
+	// 	// 	radius: 700,
+	// 	// 	yaw: -0.2,
+	// 	// 	pitch: 0.8,
+	// 	// });
 
-		controls.zoomTo(pointcloud, {zoom: 5.0});
+	// 	controls.zoomTo(pointcloud, {zoom: 5.0});
 		
-		camera.near = 1;
-		camera.far = 10_000;
-		camera.updateProj();
+	// 	camera.near = 1;
+	// 	camera.far = 10_000;
+	// 	camera.updateProj();
 	
-		window.pointcloud = pointcloud;
+	// 	window.pointcloud = pointcloud;
 
-		setPointcloud(pointcloud);
-	});
+	// 	setPointcloud(pointcloud);
+	// });
 
 	// Potree.load("./resources/pointclouds/ca13/metadata.json").then(pointcloud => {
 
