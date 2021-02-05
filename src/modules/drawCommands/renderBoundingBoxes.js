@@ -54,7 +54,7 @@ fn main() -> void {
 	);
 	screenDir = 5.0 * normalize(screenDir);
 
-	var lineWidth : f32 = 5.0;
+	var lineWidth : f32 = 2.0;
 	var lineWidthH : f32 = lineWidth / 2.0;
 
 	projPos.x = projPos.x - lineWidthH * projDiff.y;

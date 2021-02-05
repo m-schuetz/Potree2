@@ -96,6 +96,8 @@ void main(){
 
 	uint depth = uint(-viewPos.z * ${depthPrecision});
 	uint bufferedDepth = ssbo_depth[pixelID];
+	uint wip_pixel = ssbo_colors[2 * pixelID + 1];
+	uint wip_fragcount = wip_pixel & 0xFFFF;
 
 	float blendFactor = 1.001;
 	if(depth <= blendFactor * bufferedDepth){

@@ -63,10 +63,6 @@ export let fsQuad = `
 		}
 		referenceDepth = u32(f32(referenceDepth) * 1.01);
 
-		#var edlRef : f32 = log2(f32(referenceDepth) / ${depthPrecision});
-		#var edlResponse : f32 = 0.0;
-		#var edlCount : f32 = 0.0;
-
 		for(var i : i32 = -window; i <= window; i = i + 1){
 			for(var j : i32 = -window; j <= window; j = j + 1){
 
@@ -74,16 +70,11 @@ export let fsQuad = `
 				var y : i32 = clamp(height - frag_y - 1 + j, 0, height - 1);
 				var index : u32 = u32(x + y * width);
 
-				#index = clamp(index, 0u, 2560u * 1440u);
-
 				var depth : u32 = ssbo_depth.values[index];
 
 				if(depth > referenceDepth){
 					continue;
 				}
-
-				#edlCount = edlCount + 1.0;
-				#edlResponse = edlResponse + max(0.0, edlRef - log2(f32(depth) / ${depthPrecision}));
 
 				// var r : u32 = ssbo_colors.values[4 * index + 0];
 				// var g : u32 = ssbo_colors.values[4 * index + 1];
@@ -117,16 +108,9 @@ export let fsQuad = `
 			ssbo_colors.values[2 * index + 1] = 0u;
 		}
 
-		#edlResponse = edlResponse / edlCount;
-		#var shade : f32 = 1.0 - exp(-edlResponse * 300.0 * 0.5);
-
 		avg.r = avg.r / avg.a;
 		avg.g = avg.g / avg.a;
 		avg.b = avg.b / avg.a;
-
-		#avg.r = 256.0 * shade;
-		#avg.g = 256.0 * shade;
-		#avg.b = 256.0 * shade;
 
 		if(avg.a == 0.0){
 			discard;
@@ -136,28 +120,6 @@ export let fsQuad = `
 			outColor.b = avg.b / 256.0;
 			outColor.a = 1.0;
 		}
-
-		// if(avg.a <= 1.0){
-		// 	outColor.r = 1.0;
-		// 	outColor.g = 0.0;
-		// 	outColor.b = 0.0;
-		// }elseif(avg.a <= 10.0){
-		// 	outColor.r = 1.0;
-		// 	outColor.g = 1.0;
-		// 	outColor.b = 0.0;
-		// }elseif(avg.a <= 100.0){
-		// 	outColor.r = 1.0;
-		// 	outColor.g = 0.0;
-		// 	outColor.b = 1.0;
-		// }elseif(avg.a <= 500.0){
-		// 	outColor.r = 0.0;
-		// 	outColor.g = 1.0;
-		// 	outColor.b = 1.0;
-		// }elseif(avg.a <= 1000.0){
-		// 	outColor.r = 1.0;
-		// 	outColor.g = 1.0;
-		// 	outColor.b = 1.0;
-		// }
 
 		outColor.a = 1.0;
 

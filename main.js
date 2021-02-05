@@ -26,7 +26,7 @@ import { Camera } from "./src/scene/Camera.js";
 import { PointLight } from "./src/scene/PointLight.js";
 import { Scene } from "./src/scene/Scene.js";
 import { SceneNode } from "./src/scene/SceneNode.js";
-import {cube, createWave} from "./src/prototyping/cube.js";
+import {cube} from "./src/modules/geometries/cube.js";
 import { NormalMaterial } from "./src/modules/mesh/NormalMaterial.js";
 import { PhongMaterial } from "./src/modules/mesh/PhongMaterial.js";
 import {Geometry} from "./src/core/Geometry.js";
@@ -42,7 +42,6 @@ let fps = 0;
 let renderer = null;
 let camera = null;
 let controls = null;
-let progress = null;
 
 let scene = new Scene();
 window.scene = scene;
@@ -60,18 +59,18 @@ let guiContent = {
 
 
 	// INPUT
-	"show bounding box": true,
-	"mode": "points",
+	"show bounding box": false,
+	// "mode": "points",
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
 	// "mode": "compute/dilate",
 	// "mode": "compute/xray",
-	// "mode": "compute/packed",
+	"mode": "compute/packed",
 	// "mode": "compute/loop",
 	// "mode": "compute/no_depth",
 	// "mode": "progressive/simple",
 	"attribute": "rgba",
-	"point budget (M)": 0.02,
+	"point budget (M)": 10,
 	"point size": 3,
 	"update": true,
 
@@ -286,37 +285,30 @@ function render(){
 		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, length), new Vector3(0, 0, 255));
 	}
 
-	renderer.drawBoundingBox(
-		new Vector3(0, 0, 0),
-		new Vector3(10, 10, 10),
-		new Vector3(255, 0, 0),
-	);
+	// { // draw ground grid
 
-	{ // draw ground grid
-
-		let size = 10;
-		//let step = Math.floor(controls.radius / 10);
-		let step = 10 ** Math.floor(Math.log10(controls.radius / 5))
-		step = Math.max(1, step);
+	// 	let size = 10;
+	// 	//let step = Math.floor(controls.radius / 10);
+	// 	let step = 10 ** Math.floor(Math.log10(controls.radius / 5))
+	// 	step = Math.max(1, step);
 
 
-		for(let i = -size / 2; i <= size / 2; i++){
-			for(let j = -size / 2; j <= size / 2; j++){
+	// 	for(let i = -size / 2; i <= size / 2; i++){
+	// 		for(let j = -size / 2; j <= size / 2; j++){
 
-				renderer.drawLine(
-					new Vector3(step * i, -step * j, 0), 
-					new Vector3(step * i,  step * j, 0), 
-					new Vector3(150, 150, 150));
+	// 			renderer.drawLine(
+	// 				new Vector3(step * i, -step * j, 0), 
+	// 				new Vector3(step * i,  step * j, 0), 
+	// 				new Vector3(150, 150, 150));
 
-				renderer.drawLine(
-					new Vector3(-step * j, step * i, 0), 
-					new Vector3( step * j, step * i, 0), 
-					new Vector3(150, 150, 150));
+	// 			renderer.drawLine(
+	// 				new Vector3(-step * j, step * i, 0), 
+	// 				new Vector3( step * j, step * i, 0), 
+	// 				new Vector3(150, 150, 150));
 
-			}
-		}
-
-	}
+	// 		}
+	// 	}
+	// }
 
 	{ // MESHES
 		let meshes = renderables.get("Mesh") ?? [];
@@ -460,21 +452,28 @@ async function run(){
 	}
 
 	
-	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
-		// controls.set({
-		// 	pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
-		// 	pitch: 0.3601621061369527,
-		// 	yaw: -0.610317525598302,
-		// 	radius: 6.3,
-		// });
+	// 	// controls.set({
+	// 	// 	pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
+	// 	// 	pitch: 0.3601621061369527,
+	// 	// 	yaw: -0.610317525598302,
+	// 	// 	radius: 6.3,
+	// 	// });
 
-		pointcloud.scale.set(0.4, 0.4, 0.4)
-		pointcloud.position.set(0, -2, 0);
-		pointcloud.updateWorld()
+	// 	controls.set({
+	// 		pitch: 0.44635524260941817,
+	// 		pivot: {x: 0.5546404301815215, y: -1.1738194865078735, z: 0.902966295867063},
+	// 		radius: 2.2613368972380035,
+	// 		yaw: -0.7954737755983013,
+	// 	});
 
-		window.pointcloud = pointcloud;
-	});
+	// 	pointcloud.scale.set(0.4, 0.4, 0.4)
+	// 	pointcloud.position.set(0, -2, 0);
+	// 	pointcloud.updateWorld()
+
+	// 	window.pointcloud = pointcloud;
+	// });
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	controls.radius = 20;
@@ -485,22 +484,24 @@ async function run(){
 	// 	window.pointcloud = pointcloud;
 	// });
 
-	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
 
-	// 	controls.set({
-	// 		radius: 700,
-	// 		yaw: -0.2,
-	// 		pitch: 0.8,
-	// 	});
+		// controls.set({
+		// 	radius: 700,
+		// 	yaw: -0.2,
+		// 	pitch: 0.8,
+		// });
+
+		controls.zoomTo(pointcloud, {zoom: 5.0});
 		
-	// 	camera.near = 1;
-	// 	camera.far = 10_000;
-	// 	camera.updateProj();
+		camera.near = 1;
+		camera.far = 10_000;
+		camera.updateProj();
 	
-	// 	window.pointcloud = pointcloud;
+		window.pointcloud = pointcloud;
 
-	// 	setPointcloud(pointcloud);
-	// });
+		setPointcloud(pointcloud);
+	});
 
 	// Potree.load("./resources/pointclouds/ca13/metadata.json").then(pointcloud => {
 
@@ -521,19 +522,6 @@ async function run(){
 	// 	setPointcloud(pointcloud);
 	// });
 
-	// let url = "./resources/pointclouds/66_73/metadata.json";
-	// Potree.load(url).then(pointcloud => {
-
-	// 	controls.zoomTo(pointcloud);
-		
-	// 	camera.near = 0.1;
-	// 	camera.far = 20_000;
-	// 	camera.updateProj();
-	
-	// 	window.pointcloud = pointcloud;
-
-	// 	setPointcloud(pointcloud);
-	// });
 
 
 	{
@@ -545,19 +533,6 @@ async function run(){
 
 		scene.root.children.push(light1);
 		// scene.root.children.push(light2);
-	}
-
-	{
-		let source = cube;
-
-		let geometry = new Geometry();
-		geometry.buffers = source.buffers;
-		geometry.numElements = source.vertexCount;
-
-		let mesh = new Mesh("cube", geometry);
-		mesh.material = new PhongMaterial();
-
-		scene.root.children.push(mesh);
 	}
 
 	// loadGLB("./resources/models/anita_mui.glb").then(node => {

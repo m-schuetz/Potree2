@@ -77,6 +77,10 @@ export class ProgressivePointCloud extends SceneNode{
 		let numPoints_priority1 = 0;
 		let numPoints_priority2 = 0;
 
+		let stage0 = [];
+		let stage1 = [];
+		let stage2 = [];
+
 		for(let item of this.items){
 
 			let box = item.boundingBox;
@@ -99,6 +103,7 @@ export class ProgressivePointCloud extends SceneNode{
 					color: new Vector3(0, 255, 0),
 				});
 
+				stage0.push(item);
 				numPoints_priority0 += item.numPoints;
 			}else if(weight < 0.5){
 				boundingBoxes.push({
@@ -106,6 +111,7 @@ export class ProgressivePointCloud extends SceneNode{
 					color: new Vector3(255, 255, 0),
 				});
 
+				stage1.push(item);
 				numPoints_priority1 += item.numPoints;
 			}else{
 				boundingBoxes.push({
@@ -113,6 +119,7 @@ export class ProgressivePointCloud extends SceneNode{
 					color: new Vector3(255, 0, 0),
 				});
 
+				stage2.push(item);
 				numPoints_priority2 += item.numPoints;
 			}
 		}

@@ -71,7 +71,7 @@ let vs = `
 let fs = `
 
 	[[binding(1), set(0)]] var<uniform_constant> mySampler: sampler;
-	[[binding(2), set(0)]] var<uniform_constant> myTexture: texture_sampled_2d<f32>;
+	[[binding(2), set(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
 
 	[[location(0)]] var<out> outColor : vec4<f32>;
 
