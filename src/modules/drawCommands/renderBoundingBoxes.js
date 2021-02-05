@@ -46,34 +46,24 @@ fn main() -> void {
 	projTar.x = uniforms.screen_width * (1.0 + projTar.x / projTar.w) / 2.0;
 	projTar.y = uniforms.screen_height * (1.0 + projTar.y / projTar.w) / 2.0;
 
+	var projDiff : vec3<f32> = normalize((projTar - projPos).xyz);
+
 	var screenDir : vec2<f32> = vec2<f32>(
-		projTar.x - projPojs.x,
-		projTar.y - projPojs.y,
+		projTar.x - projPos.x,
+		projTar.y - projPos.y
 	);
 	screenDir = 5.0 * normalize(screenDir);
 
-	if((vertexID % 6) == 0){
-		projPos.x = projPos.x + projTar.y;
-		projPos.y = projPos.y + projTar.x;
-	}elseif((vertexID % 6) == 1){
-		projPos.x = projPos.x + projTar.y;
-		projPos.y = projPos.y + projTar.x;
-	}elseif((vertexID % 6) == 2){
-		projPos.x = projPos.x - projTar.y;
-		projPos.y = projPos.y + projTar.x;
-	}
+	var lineWidth : f32 = 5.0;
+	var lineWidthH : f32 = lineWidth / 2.0;
 
-	projPos.x = (projPos.x / uniforms.screen_width) * 2.0 - 1.0;
-	projPos.y = (projPos.y / uniforms.screen_height) * 2.0 - 1.0;
-	projPos.z = projPos.z / projPos.w;
-	projPos.w = 1.0;
+	projPos.x = projPos.x - lineWidthH * projDiff.y;
+	projPos.y = projPos.y + lineWidthH * projDiff.x;
+
+	projPos.x = ((projPos.x / uniforms.screen_width) * 2.0 - 1.0) * projPos.w;
+	projPos.y = ((projPos.y / uniforms.screen_height) * 2.0 - 1.0) * projPos.w;
 
 	out_pos = projPos;
-
-
-
-
-
 
 	fragColor = box_color;
 
@@ -112,7 +102,7 @@ function createPipeline(renderer){
 			module: device.createShaderModule({code: fs}),
 			entryPoint: "main",
 		},
-		primitiveTopology: "line-list",
+		primitiveTopology: "triangle-list",
 		depthStencilState: {
 			depthWriteEnabled: true,
 			depthCompare: "less",
@@ -233,8 +223,8 @@ function updateUniforms(renderer){
 	{ // misc
 		let size = renderer.getSize();
 
-		view.setUint32(128, size.width, true);
-		view.setUint32(132, size.height, true);
+		view.setFloat32(128, size.width, true);
+		view.setFloat32(132, size.height, true);
 	}
 
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
