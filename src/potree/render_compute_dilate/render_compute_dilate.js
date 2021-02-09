@@ -85,7 +85,7 @@ function getDepthState(renderer){
 		};
 		let csModule = device.createShaderModule(csDescriptor);
 
-		let uniformBufferSize = 2 * 64 + 12;
+		let uniformBufferSize = 256;
 		let uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -128,7 +128,7 @@ function getColorState(renderer){
 		};
 		let csModule = device.createShaderModule(csDescriptor);
 
-		let uniformBufferSize = 2 * 64 + 12;
+		let uniformBufferSize = 256;
 		let uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -222,7 +222,7 @@ function getScreenPassState(renderer){
 			}],
 		});
 
-		let uniformBufferSize = 32;
+		let uniformBufferSize = 256;
 		let uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -500,7 +500,7 @@ function resolve(renderer, octree, camera){
 	passEncoder.setPipeline(pipeline);
 
 	{
-		let source = new ArrayBuffer(32);
+		let source = new ArrayBuffer(36);
 		let view = new DataView(source);
 
 		let x = 0;
@@ -509,6 +509,7 @@ function resolve(renderer, octree, camera){
 		let height = 1;
 		let screenWidth = size.width;
 		let screenHeight = size.height;
+		let pixelWindow = Math.floor(guiContent["point size"] / 2);
 
 		view.setUint32(0, 5, true);
 		view.setFloat32(4, x, true);
@@ -517,6 +518,7 @@ function resolve(renderer, octree, camera){
 		view.setFloat32(16, height, true);
 		view.setFloat32(20, screenWidth, true);
 		view.setFloat32(24, screenHeight, true);
+		view.setInt32(28, pixelWindow, true);
 		
 		device.queue.writeBuffer(
 			uniformBuffer, 0,

@@ -60,10 +60,10 @@ let guiContent = {
 
 	// INPUT
 	"show bounding box": false,
-	"mode": "points",
+	// "mode": "points",
 	// "mode": "points/quads",
 	//"mode": "points/atomic",
-	// "mode": "compute/dilate",
+	"mode": "compute/dilate",
 	// "mode": "compute/xray",
 	// "mode": "compute/packed",
 	// "mode": "compute/loop",
@@ -458,28 +458,28 @@ async function run(){
 	}
 
 	
-	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 
-	// 	// controls.set({
-	// 	// 	pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
-	// 	// 	pitch: 0.3601621061369527,
-	// 	// 	yaw: -0.610317525598302,
-	// 	// 	radius: 6.3,
-	// 	// });
+		// controls.set({
+		// 	pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
+		// 	pitch: 0.3601621061369527,
+		// 	yaw: -0.610317525598302,
+		// 	radius: 6.3,
+		// });
 
-	// 	controls.set({
-	// 		pitch: 0.44635524260941817,
-	// 		pivot: {x: 0.5546404301815215, y: -1.1738194865078735, z: 0.902966295867063},
-	// 		radius: 2.2613368972380035,
-	// 		yaw: -0.7954737755983013,
-	// 	});
+		controls.set({
+			pitch: 0.44635524260941817,
+			pivot: {x: 0.5546404301815215, y: -1.1738194865078735, z: 0.902966295867063},
+			radius: 2.2613368972380035,
+			yaw: -0.7954737755983013,
+		});
 
-	// 	pointcloud.scale.set(0.4, 0.4, 0.4)
-	// 	pointcloud.position.set(0, -2, 0);
-	// 	pointcloud.updateWorld()
+		pointcloud.scale.set(0.4, 0.4, 0.4)
+		pointcloud.position.set(0, -2, 0);
+		pointcloud.updateWorld()
 
-	// 	window.pointcloud = pointcloud;
-	// });
+		window.pointcloud = pointcloud;
+	});
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	controls.radius = 20;

@@ -19,6 +19,7 @@ export let fsQuad = `
 		[[offset(16)]] height : f32;
 		[[offset(20)]] screenWidth : f32;
 		[[offset(24)]] screenHeight : f32;
+		[[offset(28)]] window : i32;
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
@@ -35,7 +36,7 @@ export let fsQuad = `
 	fn main() -> void {
 
 		var avg : vec4<f32>;
-		var window : i32 = 0;
+		var window : i32 = uniforms.window;
 
 		var width : i32 = i32(uniforms.screenWidth);
 		var height : i32 = i32(uniforms.screenHeight);
@@ -50,17 +51,11 @@ export let fsQuad = `
 				var y : i32 = clamp(height - frag_y - 1 + j, 0, height - 1);
 				var index : u32 = u32(x + y * width);
 
-				//#endregionindex = clamp(index, 0u, 2560u * 1440u);
-
 				var depth : u32 = ssbo_depth.values[index];
 				referenceDepth = min(referenceDepth, depth);
 			}
 		}
 		referenceDepth = u32(f32(referenceDepth) * 1.01);
-
-		#var edlRef : f32 = log2(f32(referenceDepth) / ${depthPrecision});
-		#var edlResponse : f32 = 0.0;
-		#var edlCount : f32 = 0.0;
 
 		for(var i : i32 = -window; i <= window; i = i + 1){
 			for(var j : i32 = -window; j <= window; j = j + 1){
@@ -69,16 +64,11 @@ export let fsQuad = `
 				var y : i32 = clamp(height - frag_y - 1 + j, 0, height - 1);
 				var index : u32 = u32(x + y * width);
 
-				#index = clamp(index, 0u, 2560u * 1440u);
-
 				var depth : u32 = ssbo_depth.values[index];
 
 				if(depth > referenceDepth){
 					continue;
 				}
-
-				#edlCount = edlCount + 1.0;
-				#edlResponse = edlResponse + max(0.0, edlRef - log2(f32(depth) / ${depthPrecision}));
 
 				var r : u32 = ssbo_colors.values[4 * index + 0];
 				var g : u32 = ssbo_colors.values[4 * index + 1];
@@ -94,16 +84,9 @@ export let fsQuad = `
 			}
 		}
 
-		#edlResponse = edlResponse / edlCount;
-		#var shade : f32 = 1.0 - exp(-edlResponse * 300.0 * 0.5);
-
 		avg.r = avg.r / avg.a;
 		avg.g = avg.g / avg.a;
 		avg.b = avg.b / avg.a;
-
-		#avg.r = 256.0 * shade;
-		#avg.g = 256.0 * shade;
-		#avg.b = 256.0 * shade;
 
 		if(avg.a == 0.0){
 			discard;

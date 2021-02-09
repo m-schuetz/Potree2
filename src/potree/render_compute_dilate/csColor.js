@@ -33,7 +33,18 @@ layout(std430, set = 0, binding = 4) buffer SSBO_color {
 	uint colors[];
 };
 
+uint readU16(uint offset){
+	uint ipos = offset / 4u;
+	uint value = colors[ipos];
 
+	if((offset & 2u) > 0u){
+		value = (value >> 16) & 0xFFFFu;
+	}else{
+		value = value & 0xFFFFu;
+	}
+
+	return value;
+}
 
 void main(){
 
@@ -67,11 +78,9 @@ void main(){
 	ivec2 pixelCoords = ivec2(imgPos);
 	int pixelID = pixelCoords.x + pixelCoords.y * imageSize.x;
 
-	uint color = colors[index];
-
-	uint r = (color >> 0) & 0xFFu;
-	uint g = (color >> 8) & 0xFFu;
-	uint b = (color >> 16) & 0xFFu;
+	uint r = readU16(6 * index + 0) / 256;
+	uint g = readU16(6 * index + 2) / 256;
+	uint b = readU16(6 * index + 4) / 256;
 
 	uint depth = uint(-viewPos.z * ${depthPrecision});
 	uint bufferedDepth = ssbo_depth[pixelID];
