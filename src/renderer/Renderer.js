@@ -48,7 +48,7 @@ export class Renderer{
 	async init(){
 		this.adapter = await navigator.gpu.requestAdapter();
 		this.device = await this.adapter.requestDevice({
-			extensions: ["timestamp-query"],
+			nonGuaranteedFeatures: ["timestamp-query"],
 		});
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("gpupresent");
@@ -64,7 +64,6 @@ export class Renderer{
 			size: {
 				width: this.canvas.width,
 				height: this.canvas.height,
-				depth: 1,
 			},
 			format: "depth24plus-stencil8",
 			usage: GPUTextureUsage.RENDER_ATTACHMENT,
@@ -93,7 +92,6 @@ export class Renderer{
 				size: {
 					width: this.canvas.width,
 					height: this.canvas.height,
-					depth: 1,
 				},
 				format: "depth24plus-stencil8",
 				usage: GPUTextureUsage.RENDER_ATTACHMENT,

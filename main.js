@@ -2,6 +2,7 @@
 
 import * as dat from "./libs/dat.gui/dat.gui.module.js";
 import { Box3, Vector3, Frustum, Matrix4, Ray } from "potree";
+import { Potree } from "potree";
 import { load as loadGLB } from "./src/misc/GLBLoader.js";
 import { render as renderMesh } from "./src/modules/mesh/renderMesh.js";
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
@@ -30,6 +31,8 @@ import { NormalMaterial } from "./src/modules/mesh/NormalMaterial.js";
 import { PhongMaterial } from "./src/modules/mesh/PhongMaterial.js";
 import {Geometry} from "./src/core/Geometry.js";
 import {Mesh} from "./src/modules/mesh/Mesh.js";
+
+import {Points, render as renderPointsTest} from "./src/prototyping/renderPoints.js";
 
 window.math = {Vector3, Frustum, Matrix4, Ray, Box3};
 
@@ -317,6 +320,14 @@ function render(){
 		}
 	}
 
+	{
+		let points = renderables.get("Points") ?? [];
+
+		for(let point of points){
+			renderPointsTest(renderer, pass, point, camera);
+		}
+	}
+
 	{ // PROGRESSIVE POINT CLOUDS
 		let progressives = renderables.get("ProgressivePointCloud") ?? [];
 
@@ -403,7 +414,7 @@ async function run(){
 	controls.set({
 		yaw: -0.2,
 		pitch: 0.8,
-		radius: 20,
+		radius: 10,
 	});
 
 
@@ -479,6 +490,72 @@ async function run(){
 
 	// 	window.pointcloud = pointcloud;
 	// });
+
+	{
+		// let n = 10_000_000;
+		// let position = new Float32Array(3 * n);
+		// let color = new Uint8Array(4 * n);
+		// for(let i = 0; i < n; i++){
+		// 	let x = 2.0 * Math.random() - 1.0;
+		// 	let y = 2.0 * Math.random() - 1.0;
+		// 	let z = 2.0 * Math.random() - 1.0;
+
+		// 	position[3 * i + 0] = x;
+		// 	position[3 * i + 1] = y;
+		// 	position[3 * i + 2] = z;
+
+		// 	color[4 * i + 0] = 255 * Math.random();
+		// 	color[4 * i + 1] = 255 * Math.random();
+		// 	color[4 * i + 2] = 255 * Math.random();
+		// 	color[4 * i + 3] = 255;
+		// }
+
+		let cells = 10_000;
+		let n = cells * cells;
+		let position = new Float32Array(3 * n);
+		let color = new Uint8Array(4 * n);
+		let k = 0;
+		for(let i = 0; i < cells; i++){
+		for(let j = 0; j < cells; j++){
+
+			let u = 2.0 * (i / cells) - 1.0;
+			let v = 2.0 * (j / cells) - 1.0;
+
+			let x = 2 * u;
+			let y = 2 * v;
+			let z = 0;
+
+			position[3 * k + 0] = x;
+			position[3 * k + 1] = y;
+			position[3 * k + 2] = z;
+
+			color[4 * k + 0] = 255 * u;
+			color[4 * k + 1] = 255 * v;
+			color[4 * k + 2] = 0;
+			color[4 * k + 3] = 255;
+
+			k++;
+		}
+		}
+
+
+		let numElements = n;
+		let buffers = [
+			{
+				name: "position",
+				buffer: position,
+			},{
+				name: "rgba",
+				buffer: color,
+			}
+		];
+		let geometry = new Geometry({numElements, buffers});
+		let points = new Points();
+		points.geometry = geometry;
+		
+		scene.root.children.push(points);
+
+	}
 
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	controls.radius = 20;

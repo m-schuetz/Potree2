@@ -17,3 +17,4 @@ export let Potree = {
 
 export * from "./math/math.js";
 export * from "./core/Geometry.js";
+export * from "./scene/SceneNode.js";
