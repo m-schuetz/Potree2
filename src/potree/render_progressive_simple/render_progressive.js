@@ -140,18 +140,18 @@ function init(renderer){
 			size: size,
 			format: renderer.swapChainFormat,
 			usage: GPUTextureUsage.SAMPLED 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT,
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		},{
 			size: size,
 			format: "rgba32float",
 			usage: GPUTextureUsage.SAMPLED 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT,
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		}],
 		depthDescriptor: {
 			size: size,
 			format: "depth24plus-stencil8",
 			usage: GPUTextureUsage.SAMPLED 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT,
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		}
 	});
 
@@ -161,18 +161,18 @@ function init(renderer){
 			size: size,
 			format: renderer.swapChainFormat,
 			usage: GPUTextureUsage.SAMPLED 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT,
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		},{
 			size: size,
 			format: "rgba32float",
 			usage: GPUTextureUsage.SAMPLED 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT,
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		}],
 		depthDescriptor: {
 			size: size,
 			format: "depth24plus-stencil8",
 			usage: GPUTextureUsage.SAMPLED 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT,
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		}
 	});
 
@@ -182,13 +182,13 @@ function init(renderer){
 			size: size,
 			format: renderer.swapChainFormat,
 			usage: GPUTextureUsage.SAMPLED 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT,
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		}],
 		depthDescriptor: {
 			size: size,
 			format: "depth24plus-stencil8",
 			usage: GPUTextureUsage.SAMPLED 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT,
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		}
 	});
 

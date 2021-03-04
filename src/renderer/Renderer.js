@@ -57,7 +57,7 @@ export class Renderer{
 		this.swapChain = this.context.configureSwapChain({
 			device: this.device,
 			format: this.swapChainFormat,
-			usage: GPUTextureUsage.OUTPUT_ATTACHMENT | GPUTextureUsage.COPY_DST,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST,
 		});
 
 		this.depthTexture = this.device.createTexture({
@@ -67,7 +67,7 @@ export class Renderer{
 				depth: 1,
 			},
 			format: "depth24plus-stencil8",
-			usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 	}
 
@@ -96,7 +96,7 @@ export class Renderer{
 					depth: 1,
 				},
 				format: "depth24plus-stencil8",
-				usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
+				usage: GPUTextureUsage.RENDER_ATTACHMENT,
 			});
 		}
 	}
@@ -159,7 +159,7 @@ export class Renderer{
 				| GPUTextureUsage.SAMPLED 
 				| GPUTextureUsage.COPY_SRC 
 				| GPUTextureUsage.COPY_DST 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT
+				| GPUTextureUsage.RENDER_ATTACHMENT
 		});
 
 		return texture;

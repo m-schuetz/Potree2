@@ -34,13 +34,13 @@ function getTarget1(renderer){
 				size: size,
 				format: renderer.swapChainFormat,
 				usage: GPUTextureUsage.SAMPLED 
-					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			}],
 			depthDescriptor: {
 				size: size,
 				format: "depth24plus-stencil8",
 				usage: GPUTextureUsage.SAMPLED 
-					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			}
 		});
 	}

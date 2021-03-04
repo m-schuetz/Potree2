@@ -38,7 +38,7 @@ function getTarget1(renderer){
 				usage: GPUTextureUsage.SAMPLED 
 					// | GPUTextureUsage.COPY_SRC 
 					// | GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			}],
 			depthDescriptor: {
 				size: size,
@@ -46,7 +46,7 @@ function getTarget1(renderer){
 				usage: GPUTextureUsage.SAMPLED 
 					// | GPUTextureUsage.COPY_SRC 
 					// | GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			}
 		});
 	}
