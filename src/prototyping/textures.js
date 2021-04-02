@@ -70,8 +70,8 @@ let vs = `
 
 let fs = `
 
-	[[binding(1), set(0)]] var<uniform_constant> mySampler: sampler;
-	[[binding(2), set(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
+	[[binding(1), set(0)]] var mySampler: sampler;
+	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
 
 	[[location(0)]] var<out> outColor : vec4<f32>;
 
@@ -80,7 +80,9 @@ let fs = `
 	[[stage(fragment)]]
 	fn main() -> void {
 
-		outColor =  textureSample(myTexture, mySampler, fragUV);
+		var uv : vec2<f32> = fragUV;
+		uv.y = 1.0 - uv.y;
+		outColor =  textureSample(myTexture, mySampler, uv);
 
 		return;
 	}

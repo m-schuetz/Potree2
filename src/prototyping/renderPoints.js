@@ -159,11 +159,3 @@ export function render(renderer, pass, node, camera){
 	Timer.timestamp(passEncoder, "points-end");
 
 }
-
-export class Points extends SceneNode{
-
-	constructor(){
-		super();
-	}
-
-}
