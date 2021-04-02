@@ -78,30 +78,18 @@ function createPipeline(renderer){
 
 	let {device} = renderer;
 
-	const pipeline = device.createRenderPipeline({
-		vertexStage: {
+	pipeline = device.createRenderPipeline({
+		vertex: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",
-		},
-		fragmentStage: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-		},
-		primitiveTopology: "line-list",
-		depthStencilState: {
-			depthWriteEnabled: true,
-			depthCompare: "less",
-			format: "depth24plus-stencil8",
-		},
-		vertexState: {
-			vertexBuffers: [
+			buffers: [
 				{ // position
 					arrayStride: 3 * 4,
 					stepMode: "vertex",
 					attributes: [{ 
 						shaderLocation: 0,
 						offset: 0,
-						format: "float3",
+						format: "float32x3",
 					}],
 				},{ // color
 					arrayStride: 4,
@@ -109,17 +97,25 @@ function createPipeline(renderer){
 					attributes: [{ 
 						shaderLocation: 1,
 						offset: 0,
-						format:  "uchar4norm",
+						format:  "unorm8x4",
 					}],
 				}
-			],
+			]
 		},
-		rasterizationState: {
-			cullMode: "none",
+		fragment: {
+			module: device.createShaderModule({code: fs}),
+			entryPoint: "main",
+			targets: [{format: "bgra8unorm"}],
 		},
-		colorStates: [{
-			format: "bgra8unorm",
-		}],
+		primitive: {
+			topology: 'line-list',
+			cullMode: 'none',
+		},
+		depthStencil: {
+			depthWriteEnabled: true,
+			depthCompare: 'less',
+			format: "depth24plus-stencil8",
+		},
 	});
 
 	return pipeline;

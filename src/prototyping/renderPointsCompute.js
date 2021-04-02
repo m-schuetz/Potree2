@@ -160,10 +160,3 @@ export function render(renderer, pass, node, camera){
 
 }
 
-export class Points extends SceneNode{
-
-	constructor(){
-		super();
-	}
-
-}

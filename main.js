@@ -33,6 +33,7 @@ import {Geometry} from "./src/core/Geometry.js";
 import {Mesh} from "./src/modules/mesh/Mesh.js";
 
 import {Points, render as renderPointsTest} from "./src/prototyping/renderPoints.js";
+import {render as renderPointsCompute} from "./src/prototyping/renderPointsCompute.js";
 
 window.math = {Vector3, Frustum, Matrix4, Ray, Box3};
 
@@ -194,6 +195,8 @@ function update(){
 
 function render(){
 
+	Timer.setEnabled(true);
+
 	let renderables = new Map();
 
 	camera.near = Math.max(controls.radius / 100, 0.001);
@@ -218,74 +221,67 @@ function render(){
 		}
 	}
 
-	let pointcloud = window.pointcloud;
-	let target = null;
+	// let pointcloud = window.pointcloud;
+	// let target = null;
 
+	// Timer.setEnabled(false);
 	Timer.frameStart(renderer);
 
-	let shouldDrawTarget = false;
-	if(pointcloud && guiContent["mode"] === "points/dilate"){
-		target = renderDilate(renderer, pointcloud, camera);
-		target = target.colorAttachments[0].texture;
+	// let shouldDrawTarget = false;
+	// if(pointcloud && guiContent["mode"] === "points/dilate"){
+	// 	target = renderDilate(renderer, pointcloud, camera);
+	// 	target = target.colorAttachments[0].texture;
 
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
-		target = renderAtomic(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/dilate"){
-		target = renderAtomicDilate(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/loop"){
-		target = renderComputeLoop(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/packed"){
-		target = renderComputePacked(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/no_depth"){
-		target = renderComputeNoDepth(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/xray"){
-		target = renderComputeXRay(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "progressive"){
-		target = renderProgressive(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "progressive/simple"){
-		target = renderProgressiveSimple(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}
-
-	// Timer.timestampSep(renderer, "000");
-
+	// 	shouldDrawTarget = true;
+	// }else if(pointcloud && guiContent["mode"] === "points/atomic"){
+	// 	target = renderAtomic(renderer, pointcloud, camera);
+	// 	shouldDrawTarget = true;
+	// }else if(pointcloud && guiContent["mode"] === "compute/dilate"){
+	// 	target = renderAtomicDilate(renderer, pointcloud, camera);
+	// 	shouldDrawTarget = true;
+	// }else if(pointcloud && guiContent["mode"] === "compute/loop"){
+	// 	target = renderComputeLoop(renderer, pointcloud, camera);
+	// 	shouldDrawTarget = true;
+	// }else if(pointcloud && guiContent["mode"] === "compute/packed"){
+	// 	target = renderComputePacked(renderer, pointcloud, camera);
+	// 	shouldDrawTarget = true;
+	// }else if(pointcloud && guiContent["mode"] === "compute/no_depth"){
+	// 	target = renderComputeNoDepth(renderer, pointcloud, camera);
+	// 	shouldDrawTarget = true;
+	// }else if(pointcloud && guiContent["mode"] === "compute/xray"){
+	// 	target = renderComputeXRay(renderer, pointcloud, camera);
+	// 	shouldDrawTarget = true;
+	// }else if(pointcloud && guiContent["mode"] === "progressive"){
+	// 	target = renderProgressive(renderer, pointcloud, camera);
+	// 	shouldDrawTarget = true;
+	// }else if(pointcloud && guiContent["mode"] === "progressive/simple"){
+	// 	target = renderProgressiveSimple(renderer, pointcloud, camera);
+	// 	shouldDrawTarget = true;
+	// }
 
 	let pass = renderer.start();
 
-	// Timer.timestamp(pass.passEncoder, "010");
+	// // draw point cloud
+	// if(pointcloud && guiContent["mode"] === "points"){
+	// 	renderPointsArbitraryAttributes(renderer, pass, pointcloud, camera);
+	// 	// renderPoints(renderer, pass, pointcloud, camera);
+	// }else if(pointcloud && guiContent["mode"] === "points/quads"){
 
-	// draw point cloud
-	if(pointcloud && guiContent["mode"] === "points"){
-		renderPointsArbitraryAttributes(renderer, pass, pointcloud, camera);
-		// renderPoints(renderer, pass, pointcloud, camera);
-	}else if(pointcloud && guiContent["mode"] === "points/quads"){
+	// 	if(pointcloud.pointSize === 1){
+	// 		renderPoints(renderer, pass, pointcloud, camera);
+	// 	}else{
+	// 		renderQuads(renderer, pass, pointcloud, camera);
+	// 	}
+	// }else if(shouldDrawTarget){
+	// 	drawTexture(renderer, pass, target, 0, 0, 1, 1);
+	// }
 
-		if(pointcloud.pointSize === 1){
-			renderPoints(renderer, pass, pointcloud, camera);
-		}else{
-			renderQuads(renderer, pass, pointcloud, camera);
-		}
-	}else if(shouldDrawTarget){
-		drawTexture(renderer, pass, target, 0, 0, 1, 1);
-	}
-
-	// Timer.timestamp(pass.passEncoder, "020");
-	
-
-	{ // draw xyz axes
-		let length = controls.radius / 10.0;
-		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(length, 0, 0), new Vector3(255, 0, 0));
-		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, length, 0), new Vector3(0, 255, 0));
-		renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, length), new Vector3(0, 0, 255));
-	}
+	// { // draw xyz axes
+	// 	let length = controls.radius / 10.0;
+	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(length, 0, 0), new Vector3(255, 0, 0));
+	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, length, 0), new Vector3(0, 255, 0));
+	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, length), new Vector3(0, 0, 255));
+	// }
 
 	// { // draw ground grid
 
@@ -312,50 +308,51 @@ function render(){
 	// 	}
 	// }
 
-	{ // MESHES
-		let meshes = renderables.get("Mesh") ?? [];
+	// { // MESHES
+	// 	let meshes = renderables.get("Mesh") ?? [];
 
-		for(let mesh of meshes){
-			renderMesh(renderer, pass, mesh, camera, renderables);
-		}
-	}
+	// 	for(let mesh of meshes){
+	// 		renderMesh(renderer, pass, mesh, camera, renderables);
+	// 	}
+	// }
 
 	{
 		let points = renderables.get("Points") ?? [];
 
 		for(let point of points){
-			renderPointsTest(renderer, pass, point, camera);
+			// renderPointsTest(renderer, pass, point, camera);
+			renderPointsCompute(renderer, pass, point, camera);
 		}
 	}
 
-	{ // PROGRESSIVE POINT CLOUDS
-		let progressives = renderables.get("ProgressivePointCloud") ?? [];
+	// { // PROGRESSIVE POINT CLOUDS
+	// 	let progressives = renderables.get("ProgressivePointCloud") ?? [];
 
-		for(let progressive of progressives){
+	// 	for(let progressive of progressives){
 
-			progressive.update(renderer, camera);
+	// 		progressive.update(renderer, camera);
 
-			let boxes = progressive?.renderables?.boxes ?? [];
-			let boundingBoxes = progressive?.renderables?.boundingBoxes ?? [];
+	// 		let boxes = progressive?.renderables?.boxes ?? [];
+	// 		let boundingBoxes = progressive?.renderables?.boundingBoxes ?? [];
 
-			for(let box of boxes){
-				let position = box.boundingBox.center();
-				let size = box.boundingBox.size();
-				let color = box.color;
+	// 		for(let box of boxes){
+	// 			let position = box.boundingBox.center();
+	// 			let size = box.boundingBox.size();
+	// 			let color = box.color;
 				
-				renderer.drawBox(position, size, color);
-			}
+	// 			renderer.drawBox(position, size, color);
+	// 		}
 
-			for(let box of boundingBoxes){
-				let position = box.boundingBox.center();
-				let size = box.boundingBox.size();
-				let color = box.color;
+	// 		for(let box of boundingBoxes){
+	// 			let position = box.boundingBox.center();
+	// 			let size = box.boundingBox.size();
+	// 			let color = box.color;
 				
-				renderer.drawBoundingBox(position, size, color);
-			}
-		}
+	// 			renderer.drawBoundingBox(position, size, color);
+	// 		}
+	// 	}
 
-	}
+	// }
 
 	renderer.renderDrawCommands(pass, camera);
 	renderer.finish(pass);
@@ -418,54 +415,54 @@ async function run(){
 	});
 
 
-	function setPointcloud(pointcloud){
-		let attributes = pointcloud.loader.attributes.attributes.map(b => b.name).filter(n => n !== "position");
+	// function setPointcloud(pointcloud){
+	// 	let attributes = pointcloud.loader.attributes.attributes.map(b => b.name).filter(n => n !== "position");
 
-		let onChange = () => {
-			let attributeName = guiContent.attribute;
-			let attribute = pointcloud.loader.attributes.attributes.find(a => a.name === attributeName);
-			let range = attribute.range;
+	// 	let onChange = () => {
+	// 		let attributeName = guiContent.attribute;
+	// 		let attribute = pointcloud.loader.attributes.attributes.find(a => a.name === attributeName);
+	// 		let range = attribute.range;
 
-			let getRangeVal = (val) => {
-				if(typeof val === "number"){
-					return val;
-				}else{
-					return Math.max(...val);
-				}
-			};
+	// 		let getRangeVal = (val) => {
+	// 			if(typeof val === "number"){
+	// 				return val;
+	// 			}else{
+	// 				return Math.max(...val);
+	// 			}
+	// 		};
 
-			let low = getRangeVal(range[0]);
-			let high = getRangeVal(range[1]);
+	// 		let low = getRangeVal(range[0]);
+	// 		let high = getRangeVal(range[1]);
 
-			if(attributeName === "rgba"){
-				low = 0;
-				high = high > 255 ? (2 ** 16 - 1) : 255;
-			}
+	// 		if(attributeName === "rgba"){
+	// 			low = 0;
+	// 			high = high > 255 ? (2 ** 16 - 1) : 255;
+	// 		}
 
-			if(attributeName === "intensity"){
-				guiContent["gamma"] = 0.5;
-				guiContent["brightness"] = 0;
-				guiContent["contrast"] = 0;
-			}else{
+	// 		if(attributeName === "intensity"){
+	// 			guiContent["gamma"] = 0.5;
+	// 			guiContent["brightness"] = 0;
+	// 			guiContent["contrast"] = 0;
+	// 		}else{
 
-				guiContent["gamma"] = 1;
-				guiContent["brightness"] = 0;
-				guiContent["contrast"] = 0;
-			}
+	// 			guiContent["gamma"] = 1;
+	// 			guiContent["brightness"] = 0;
+	// 			guiContent["contrast"] = 0;
+	// 		}
 
-			guiContent["scalar min"] = low;
-			guiContent["scalar max"] = high;
+	// 		guiContent["scalar min"] = low;
+	// 		guiContent["scalar max"] = high;
 
-			guiScalarMin = guiScalarMin.min(low);
-			guiScalarMin = guiScalarMin.max(high);
+	// 		guiScalarMin = guiScalarMin.min(low);
+	// 		guiScalarMin = guiScalarMin.max(high);
 
-			guiScalarMax = guiScalarMax.min(low);
-			guiScalarMax = guiScalarMax.max(high);
-		};
+	// 		guiScalarMax = guiScalarMax.min(low);
+	// 		guiScalarMax = guiScalarMax.max(high);
+	// 	};
 
-		guiAttributes = guiAttributes.options(attributes).setValue("rgba").onChange(onChange);
-		onChange();
-	}
+	// 	guiAttributes = guiAttributes.options(attributes).setValue("rgba").onChange(onChange);
+	// 	onChange();
+	// }
 
 	
 	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
@@ -510,7 +507,7 @@ async function run(){
 		// 	color[4 * i + 3] = 255;
 		// }
 
-		let cells = 10_000;
+		let cells = 1_000;
 		let n = cells * cells;
 		let position = new Float32Array(3 * n);
 		let color = new Uint8Array(4 * n);
@@ -552,6 +549,8 @@ async function run(){
 		let geometry = new Geometry({numElements, buffers});
 		let points = new Points();
 		points.geometry = geometry;
+
+		console.log(`numPoints: ${numElements.toLocaleString()}`);
 		
 		scene.root.children.push(points);
 
@@ -606,16 +605,16 @@ async function run(){
 
 
 
-	{
-		let light1 = new PointLight("pointlight");
-		light1.position.set(15, 15, 1);
+	// {
+	// 	let light1 = new PointLight("pointlight");
+	// 	light1.position.set(15, 15, 1);
 
-		let light2 = new PointLight("pointlight2");
-		light2.position.set(-15, -15, 1);
+	// 	let light2 = new PointLight("pointlight2");
+	// 	light2.position.set(-15, -15, 1);
 
-		scene.root.children.push(light1);
-		// scene.root.children.push(light2);
-	}
+	// 	scene.root.children.push(light1);
+	// 	// scene.root.children.push(light2);
+	// }
 
 	// loadGLB("./resources/models/anita_mui.glb").then(node => {
 	// // loadGLB("./resources/models/lion.glb").then(node => {

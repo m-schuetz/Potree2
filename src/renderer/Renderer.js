@@ -288,8 +288,9 @@ export class Renderer{
 
 	start(){
 
-		let scale = window.devicePixelRatio
-		this.setSize(scale * this.canvas.clientWidth, scale * this.canvas.clientHeight);
+		// let scale = window.devicePixelRatio;
+		// this.setSize(scale * this.canvas.clientWidth, scale * this.canvas.clientHeight);
+		this.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
 
 		let renderPassDescriptor = {
 			colorAttachments: [

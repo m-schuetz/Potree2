@@ -92,31 +92,19 @@ let capacity = 10_000;
 function createPipeline(renderer){
 
 	let {device} = renderer;
-
-	const pipeline = device.createRenderPipeline({
-		vertexStage: {
+	
+	pipeline = device.createRenderPipeline({
+		vertex: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",
-		},
-		fragmentStage: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-		},
-		primitiveTopology: "triangle-list",
-		depthStencilState: {
-			depthWriteEnabled: true,
-			depthCompare: "less",
-			format: "depth24plus-stencil8",
-		},
-		vertexState: {
-			vertexBuffers: [
+			buffers: [
 				{ // box position
 					arrayStride: 3 * 4,
 					stepMode: "instance",
 					attributes: [{ 
 						shaderLocation: 0,
 						offset: 0,
-						format: "float3",
+						format: "float32x3",
 					}],
 				},{ // box scale
 					arrayStride: 3 * 4,
@@ -124,7 +112,7 @@ function createPipeline(renderer){
 					attributes: [{ 
 						shaderLocation: 1,
 						offset: 0,
-						format: "float3",
+						format: "float32x3",
 					}],
 				},{ // box-vertices position
 					arrayStride: 3 * 4,
@@ -132,7 +120,7 @@ function createPipeline(renderer){
 					attributes: [{ 
 						shaderLocation: 2,
 						offset: 0,
-						format: "float3",
+						format: "float32x3",
 					}],
 				},{ // box color
 					arrayStride: 4,
@@ -140,7 +128,7 @@ function createPipeline(renderer){
 					attributes: [{ 
 						shaderLocation: 3,
 						offset: 0,
-						format: "uchar4norm",
+						format: "unorm8x4",
 					}],
 				},{ // box line directions
 					arrayStride: 3 * 4,
@@ -148,17 +136,25 @@ function createPipeline(renderer){
 					attributes: [{ 
 						shaderLocation: 4,
 						offset: 0,
-						format: "float3",
+						format: "float32x3",
 					}],
 				}
-			],
+			]
 		},
-		rasterizationState: {
-			cullMode: "none",
+		fragment: {
+			module: device.createShaderModule({code: fs}),
+			entryPoint: "main",
+			targets: [{format: "bgra8unorm"}],
 		},
-		colorStates: [{
-			format: "bgra8unorm",
-		}],
+		primitive: {
+			topology: 'triangle-list',
+			cullMode: 'back',
+		},
+		depthStencil: {
+			depthWriteEnabled: true,
+			depthCompare: 'less',
+			format: "depth24plus-stencil8",
+		},
 	});
 
 	return pipeline;

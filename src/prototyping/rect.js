@@ -172,29 +172,9 @@ export function drawRect(renderer, pass, x, y, width, height){
 		source, 0, source.byteLength
 	);
 
-	let descriptor = {
-		colorAttachments: [
-			{
-				attachment: renderer.swapChain.getCurrentTexture().createView(),
-				loadValue: "load",
-			},
-		],
-		depthStencilAttachment: {
-			attachment: renderer.depthTexture.createView(),
-
-			depthLoadValue: "load",
-			depthStoreOp: "store",
-			stencilLoadValue: "load",
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
-
-	//const passEncoder = pass.commandEncoder.beginRenderPass(descriptor);
 	let {passEncoder} = pass;
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, uniformBindGroup);
 	passEncoder.draw(6, 1, 0, 0);
-	// passEncoder.endPass();
 
 }
