@@ -1,15 +1,14 @@
 
-import {Vector3, Matrix4} from "../math/math.js";
-import {SPECTRAL} from "../misc/Gradients.js";
-import * as Timer from "../renderer/Timer.js";
+import {Vector3, Matrix4} from "potree";
+import {Timer} from "potree";
 
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
-	[[offset(128)]] screen_width : f32;
-	[[offset(132)]] screen_height : f32;
+	[[size(64)]] worldView : mat4x4<f32>;
+	[[size(64)]] proj : mat4x4<f32>;
+	[[size(4)]] screen_width : f32;
+	[[size(4)]] screen_height : f32;
 };
 
 struct NodeBuffer{
@@ -39,9 +38,11 @@ fn main() -> void {
 	var c : vec4<f32> = color;
 	fragColor = c;
 
-	//fragColor.r = f32(instanceIdx) / 256.0;
-	//fragColor.g = 0.0;
-	//fragColor.b = 0.0;
+	// fragColor.r = f32(instanceIdx) / 256.0;
+	// fragColor.r = f32(instanceIdx) / 1.0;
+	// fragColor.g = 0.0;
+	// fragColor.b = 0.0;
+	// fragColor.a = 255.0;
 
 	return;
 }
@@ -60,29 +61,16 @@ fn main() -> void {
 `;
 
 let octreeStates = new Map();
-let nodeStates = new Map();
 
 function createPipeline(renderer){
 
 	let {device} = renderer;
 
 	const pipeline = device.createRenderPipeline({
-		vertexStage: {
+		vertex: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",
-		},
-		fragmentStage: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-		},
-		primitiveTopology: "point-list",
-		depthStencilState: {
-			depthWriteEnabled: true,
-			depthCompare: "less",
-			format: "depth24plus-stencil8",
-		},
-		vertexState: {
-			vertexBuffers: [
+			buffers: [
 				{ // point position
 					arrayStride: 3 * 4,
 					stepMode: "vertex",
@@ -102,12 +90,20 @@ function createPipeline(renderer){
 				},
 			],
 		},
-		rasterizationState: {
-			cullMode: "none",
+		fragment: {
+			module: device.createShaderModule({code: fs}),
+			entryPoint: "main",
+			targets: [{format: "bgra8unorm"}],
 		},
-		colorStates: [{
-			format: "bgra8unorm",
-		}],
+		primitive: {
+			topology: 'point-list',
+			cullMode: 'none',
+		},
+		depthStencil: {
+			depthWriteEnabled: true,
+			depthCompare: "less",
+			format: "depth24plus-stencil8",
+		},
 	});
 
 	return pipeline;
@@ -163,39 +159,31 @@ export function render(renderer, pass, octree, camera){
 	let nodes = octree.visibleNodes;
 
 	{ // update uniforms
-		let {uniformBuffer} = octreeState;
+		
 
-		{ // transform
+		{ // uniforms
+
+			let {uniformBuffer} = octreeState;
+
+			let data = new ArrayBuffer(256);
+			let f32 = new Float32Array(data);
+			let view = new DataView(data);
+
 			let world = octree.world;
-			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
+			let camView = camera.view;
+			let worldView = new Matrix4().multiplyMatrices(camView, world);
 
-			let tmp = new Float32Array(16);
+			f32.set(worldView.elements, 0);
+			f32.set(camera.proj.elements, 16);
 
-			tmp.set(worldView.elements);
-			device.queue.writeBuffer(
-				uniformBuffer, 0,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
-
-			tmp.set(camera.proj.elements);
-			device.queue.writeBuffer(
-				uniformBuffer, 64,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
-		}
-
-		{ // screen size
 			let size = renderer.getSize();
-			let data = new Float32Array([size.width, size.height]);
-			device.queue.writeBuffer(
-				uniformBuffer,
-				128,
-				data.buffer,
-				data.byteOffset,
-				data.byteLength
-			);
+
+			view.setFloat32(128, size.width, true);
+			view.setFloat32(132, size.height, true);
+
+			renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 136);
 		}
+
 
 		{ // nodes
 			let buffer = new Float32Array(4 * nodes.length);

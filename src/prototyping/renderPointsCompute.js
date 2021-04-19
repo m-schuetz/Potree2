@@ -4,10 +4,7 @@ import {RenderTarget, Timer} from "potree";
 import glslangModule from "glslang";
 
 
-let glslang = null;
-glslangModule().then( result => {
-	glslang = result;
-});
+let glslang = undefined;
 
 let csDepth = `
 
@@ -532,7 +529,16 @@ function reset(renderer, ssbo, numUints, value){
 
 export function render(renderer, node, camera){
 
-	if(!glslang){
+	
+
+	if(glslang === undefined){
+
+		glslang = null;
+
+		glslangModule().then( result => {
+			glslang = result;
+		});
+
 		console.log("glslang not yet initialized");
 
 		return;

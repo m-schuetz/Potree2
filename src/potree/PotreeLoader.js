@@ -1,10 +1,10 @@
 
-import {PointCloudOctree} from "./PointCloudOctree.js";
+import {PointCloudOctree} from "potree";
 import {PointCloudOctreeNode} from "./PointCloudOctreeNode.js";
 import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
 import {WorkerPool} from "../misc/WorkerPool.js";
-import {Geometry} from "../core/Geometry.js";
-import {Vector3, Box3, Matrix4} from "../math/math.js";
+import {Geometry} from "potree";
+import {Vector3, Box3, Matrix4} from "potree";
 
 let nodesLoading = 0;
 

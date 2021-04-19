@@ -7,6 +7,10 @@ import {render as renderPointsCompute} from "./src/prototyping/renderPointsCompu
 import {drawTexture} from "./src/prototyping/textures.js";
 import {createPointsData} from "./src/modules/geometries/points.js";
 import {initGUI} from "./src/prototyping/gui.js";
+import {Potree} from "potree";
+
+import {render as renderPoints}  from "./src/potree/renderPoints.js";
+// import {render as renderPoints}  from "./src/potree/arbitrary_attributes/renderPoints_arbitrary_attributes.js";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -47,6 +51,7 @@ function update(){
 	camera.updateProj();
 
 	let pointcloud = window.pointcloud;
+
 	if(pointcloud){
 		pointcloud.showBoundingBox = guiContent["show bounding box"];
 		pointcloud.pointBudget = guiContent["point budget (M)"] * 1_000_000;
@@ -120,7 +125,30 @@ function render(){
 		for(let point of points){
 			renderPointsTest(renderer, pass, point, camera);
 		}
+
+		let octrees = renderables.get("PointCloudOctree") ?? [];
+		for(let octree of octrees){
+
+			octree.showBoundingBox = guiContent["show bounding box"];
+			octree.pointBudget = guiContent["point budget (M)"] * 1_000_000;
+			octree.pointSize = guiContent["point size"];
+			octree.updateVisibility(camera);
+
+			let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
+			let numNodes = octree.visibleNodes.length;
+
+			guiContent["#points"] = numPoints.toLocaleString();
+			guiContent["#nodes"] = numNodes.toLocaleString();
+
+			renderPoints(renderer, pass, octree, camera);
+		}
 	}
+
+	// if(pointcloud.pointSize === 1){
+	// 	renderPoints(renderer, pass, pointcloud, camera);
+	// }else{
+	// 	renderQuads(renderer, pass, pointcloud, camera);
+	// }
 
 	renderer.renderDrawCommands(pass, camera);
 	renderer.finish(pass);
@@ -159,11 +187,25 @@ async function main(){
 		radius: 10,
 	});
 
-	{
-		let points = createPointsData(1_000);
-		scene.root.children.push(points);
+	// {
+	// 	let points = createPointsData(1_000);
+	// 	scene.root.children.push(points);
 
-	}
+	// }
+
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+		camera.near = 0.5;
+		camera.far = 10_000;
+
+		controls.set({
+			radius: 7,
+			yaw: -0.86,
+			pitch: 0.51,
+			pivot: [-0.22, -0.01, 3.72],
+		});
+
+		scene.root.children.push(pointcloud);
+	});
 
 	requestAnimationFrame(loop);
 

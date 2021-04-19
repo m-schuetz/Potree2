@@ -295,12 +295,12 @@ export class Renderer{
 		let renderPassDescriptor = {
 			colorAttachments: [
 				{
-					attachment: this.swapChain.getCurrentTexture().createView(),
+					view: this.swapChain.getCurrentTexture().createView(),
 					loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
 				},
 			],
 			depthStencilAttachment: {
-				attachment: this.depthTexture.createView(),
+				view: this.depthTexture.createView(),
 
 				depthLoadValue: 1.0,
 				depthStoreOp: "store",

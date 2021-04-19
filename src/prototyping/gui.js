@@ -18,7 +18,7 @@ let guiContent = {
 	"mode": "points",
 	// "mode": "HQS",
 	"attribute": "rgba",
-	"point budget (M)": 10,
+	"point budget (M)": 1,
 	"point size": 3,
 	"update": true,
 

@@ -2,26 +2,18 @@
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
-	[[offset(128)]] screen_width : f32;
-	[[offset(132)]] screen_height : f32;
+	[[size(64)]] worldView : mat4x4<f32>;
+	[[size(64)]] proj : mat4x4<f32>;
+	[[size(4)]] screen_width : f32;
+	[[size(4)]] screen_height : f32;
 };
 
 [[block]] struct ColorAdjustments {
-	[[offset(0)]] shift : f32;
-	[[offset(4)]] scale : f32;
-	[[offset(8)]] gamma : f32;
-	[[offset(12)]] brightness : f32;
-	[[offset(16)]] contrast : f32;
-};
-
-struct NodeBuffer{
-	[[offset(0)]] color : vec4<f32>;
-};
-
-[[block]] struct Nodes{
-	[[offset(0)]] values : [[stride(16)]] array<NodeBuffer, 1000>;
+	[[size(4)]] shift : f32;
+	[[size(4)]] scale : f32;
+	[[size(4)]] gamma : f32;
+	[[size(4)]] brightness : f32;
+	[[size(4)]] contrast : f32;
 };
 
 [[block]] struct U32s {
@@ -30,7 +22,6 @@ struct NodeBuffer{
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 [[binding(1), set(0)]] var<uniform> in_adjust : ColorAdjustments;
-[[binding(2), set(0)]] var<uniform> nodes : Nodes;
 [[binding(3), set(0)]] var<storage_buffer> ssbo_attribute : [[access(read)]]U32s;
 
 [[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
