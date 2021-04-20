@@ -20,51 +20,52 @@ let vs = `
 		vec2<f32>(0.0, 0.0)
 	);
 
-	[[builtin(position)]] var<out> Position : vec4<f32>;
-	[[builtin(vertex_idx)]] var<in> VertexIndex : i32;
-
 	[[block]] struct Uniforms {
-		[[offset(0)]] uTest : u32;
-		[[offset(4)]] x : f32;
-		[[offset(8)]] y : f32;
-		[[offset(12)]] width : f32;
-		[[offset(16)]] height : f32;
+		[[size(4)]] uTest : u32;
+		[[size(4)]] x : f32;
+		[[size(4)]] y : f32;
+		[[size(4)]] width : f32;
+		[[size(4)]] height : f32;
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[location(0)]] var<out> fragUV : vec2<f32>;
+	struct VertexInput {
+		[[builtin(vertex_idx)]] index : i32;
+	};
+
+	struct VertexOutput {
+		[[builtin(position)]] position : vec4<f32>;
+		[[location(0)]] uv : vec2<f32>;
+	};
 
 	[[stage(vertex)]]
-	fn main() -> void {
-		Position = vec4<f32>(pos[VertexIndex], 0.999, 1.0);
-		fragUV = uv[VertexIndex];
+	fn main(vertex : VertexInput) -> VertexOutput {
+
+		var output : VertexOutput;
+
+		output.position = vec4<f32>(pos[vertex.index], 0.999, 1.0);
+		output.uv = uv[vertex.index];
 
 		var x : f32 = uniforms.x * 2.0 - 1.0;
 		var y : f32 = uniforms.y * 2.0 - 1.0;
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		if(VertexIndex == 0){
-			Position.x = x;
-			Position.y = y;
-		}elseif(VertexIndex == 1){
-			Position.x = x + width;
-			Position.y = y;
-		}elseif(VertexIndex == 2){
-			Position.x = x + width;
-			Position.y = y + height;
-		}elseif(VertexIndex == 3){
-			Position.x = x;
-			Position.y = y;
-		}elseif(VertexIndex == 4){
-			Position.x = x + width;
-			Position.y = y + height;
-		}elseif(VertexIndex == 5){
-			Position.x = x;
-			Position.y = y + height;
+		var vi : i32 = vertex.index;
+
+		if(vi == 0 || vi == 3 || vi == 5){
+			output.position.x = x;
+		}else{
+			output.position.x = x + width;
 		}
 
-		return;
+		if(vi == 0 || vi == 1 || vi == 3){
+			output.position.y = y;
+		}else{
+			output.position.y = y + height;
+		}
+
+		return output;
 	}
 `;
 
@@ -73,18 +74,18 @@ let fs = `
 	[[binding(1), set(0)]] var mySampler: sampler;
 	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
 
-	[[location(0)]] var<out> outColor : vec4<f32>;
-
-	[[location(0)]] var<in> fragUV: vec2<f32>;
+	struct FragmentInput {
+		[[location(0)]] uv: vec2<f32>;
+	};
 
 	[[stage(fragment)]]
-	fn main() -> void {
+	fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
 
-		var uv : vec2<f32> = fragUV;
-		uv.y = 1.0 - uv.y;
-		outColor =  textureSample(myTexture, mySampler, uv);
+		var uv : vec2<f32> = input.uv;
+		
+		var outColor : vec4<f32> =  textureSample(myTexture, mySampler, uv);
 
-		return;
+		return outColor;
 	}
 `;
 
@@ -139,24 +140,24 @@ function getPipeline(renderer, gpuTexture){
 	let {device, swapChainFormat} = renderer;
 
 	pipeline = device.createRenderPipeline({
-		// layout: layout, 
-		vertexStage: {
+		vertex: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",
 		},
-		fragmentStage: {
+		fragment: {
 			module: device.createShaderModule({code: fs}),
 			entryPoint: "main",
+			targets: [{format: "bgra8unorm"}],
 		},
-		primitiveTopology: "triangle-list",
-		depthStencilState: {
+		primitive: {
+			topology: 'triangle-list',
+			cullMode: 'none',
+		},
+		depthStencil: {
 				depthWriteEnabled: true,
 				depthCompare: "less",
 				format: "depth24plus-stencil8",
 		},
-		colorStates: [{
-			format: swapChainFormat,
-		}],
 	});
 
 	let uniformBufferSize = 24;

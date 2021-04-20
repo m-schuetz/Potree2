@@ -11,52 +11,58 @@ const vs = `
 	[[size(4)]] screen_height : f32;
 };
 
-struct NodeBuffer{
-	[[offset(0)]] color : vec4<f32>;
-};
-
-[[block]] struct Nodes{
-	[[offset(0)]] values : [[stride(16)]] array<NodeBuffer, 1000>;
-};
-
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), set(0)]] var<uniform> nodes : Nodes;
 
-[[location(0)]] var<in> pos_point : vec4<f32>;
-[[location(1)]] var<in> color : vec4<f32>;
+struct VertexInput {
+	[[builtin(instance_index)]] instanceIdx : u32;
+	[[location(0)]] position : vec4<f32>;
+	[[location(1)]] color : vec4<f32>;
+};
 
-[[builtin(instance_index)]] var<in> instanceIdx : i32;
-[[builtin(position)]] var<out> out_pos : vec4<f32>;
-[[location(0)]] var<out> fragColor : vec4<f32>;
+struct VertexOutput {
+	[[builtin(position)]] position : vec4<f32>;
+	[[location(0)]] color : vec4<f32>;
+};
+
 
 [[stage(vertex)]]
-fn main() -> void {
+fn main(vertex : VertexInput) -> VertexOutput {
 
-	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
-	out_pos = uniforms.proj * viewPos;
+	var output : VertexOutput;
 
-	var c : vec4<f32> = color;
-	fragColor = c;
+	var viewPos : vec4<f32> = uniforms.worldView * vertex.position;
+	output.position = uniforms.proj * viewPos;
 
-	// fragColor.r = f32(instanceIdx) / 256.0;
-	// fragColor.r = f32(instanceIdx) / 1.0;
-	// fragColor.g = 0.0;
-	// fragColor.b = 0.0;
-	// fragColor.a = 255.0;
+	var c : vec4<f32> = vertex.color;
 
-	return;
+	// check if instance_index works
+	// c.r = f32(vertex.instanceIdx);
+	// c.g = 0.0;
+	// c.b = 0.0;
+	// c.a = 1.0;
+
+	output.color = c;
+
+	return output;
 }
 `;
 
 const fs = `
-[[location(0)]] var<in> fragColor : vec4<f32>;
-[[location(0)]] var<out> outColor : vec4<f32>;
+
+struct FragmentInput {
+	[[location(0)]] color : vec4<f32>;
+};
+
+struct FragmentOutput {
+	[[location(0)]] color : vec4<f32>;
+};
 
 [[stage(fragment)]]
-fn main() -> void {
-	outColor = fragColor;
+fn main(fragment : FragmentInput) -> FragmentOutput {
+	var output : FragmentOutput;
+	output.color = fragment.color;
 
-	return;
+	return output;
 }
 `;
 
@@ -132,7 +138,7 @@ function getOctreeState(renderer, node){
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
 				{binding: 0, resource: {buffer: uniformBuffer}},
-				{binding: 1, resource: {buffer: uNodesBuffer}}
+				// {binding: 1, resource: {buffer: uNodesBuffer}}
 			],
 		});
 
@@ -185,21 +191,20 @@ export function render(renderer, pass, octree, camera){
 		}
 
 
-		{ // nodes
-			let buffer = new Float32Array(4 * nodes.length);
-			for(let i = 0; i < nodes.length; i++){
-				buffer[4 * i + 0] = 0;
-				buffer[4 * i + 1] = i / 200;
-				buffer[4 * i + 2] = 0;
-				buffer[4 * i + 3] = 1;
-			}
+		// { // nodes
+		// 	let buffer = new Float32Array(4 * nodes.length);
+		// 	for(let i = 0; i < nodes.length; i++){
+		// 		buffer[4 * i + 0] = 0;
+		// 		buffer[4 * i + 1] = i / 200;
+		// 		buffer[4 * i + 2] = 0;
+		// 		buffer[4 * i + 3] = 1;
+		// 	}
 
-			device.queue.writeBuffer(
-				octreeState.uNodesBuffer, 0,
-				buffer.buffer, buffer.byteOffset, buffer.byteLength
-			);
-
-		}
+		// 	device.queue.writeBuffer(
+		// 		octreeState.uNodesBuffer, 0,
+		// 		buffer.buffer, buffer.byteOffset, buffer.byteLength
+		// 	);
+		// }
 	}
 
 	let {passEncoder} = pass;

@@ -1,9 +1,7 @@
 
-// import {render as renderPoints}  from "./renderPoints.js";
-import {render as renderPoints}  from "./arbitrary_attributes/renderPoints_arbitrary_attributes.js";
+import {render as renderPoints}  from "./renderPoints.js";
 import {RenderTarget} from "../core/RenderTarget.js";
 import * as Timer from "../renderer/Timer.js";
-
 
 
 let vs = `
@@ -25,100 +23,117 @@ let vs = `
 		vec2<f32>(0.0, 0.0)
 	);
 
-	[[builtin(position)]] var<out> Position : vec4<f32>;
-	[[builtin(vertex_idx)]] var<in> VertexIndex : i32;
-
 	[[block]] struct Uniforms {
-		[[offset(0)]] uTest : u32;
-		[[offset(4)]] x : f32;
-		[[offset(8)]] y : f32;
-		[[offset(12)]] width : f32;
-		[[offset(16)]] height : f32;
+		[[size(4)]] uTest : u32;
+		[[size(4)]] x : f32;
+		[[size(4)]] y : f32;
+		[[size(4)]] width : f32;
+		[[size(4)]] height : f32;
+		[[size(4)]] near : f32;
+		[[size(4)]] far : f32;
 	};
+
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[location(0)]] var<out> fragUV : vec2<f32>;
+	struct VertexInput {
+		[[builtin(vertex_idx)]] index : i32;
+	};
+
+	struct VertexOutput {
+		[[builtin(position)]] position : vec4<f32>;
+		[[location(0)]] uv : vec2<f32>;
+	};
 
 	[[stage(vertex)]]
-	fn main() -> void {
-		Position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
-		fragUV = uv[VertexIndex];
+	fn main(vertex : VertexInput) -> VertexOutput {
+
+		var output : VertexOutput;
+
+		output.position = vec4<f32>(pos[vertex.index], 0.999, 1.0);
+		output.uv = uv[vertex.index];
 
 		var x : f32 = uniforms.x * 2.0 - 1.0;
 		var y : f32 = uniforms.y * 2.0 - 1.0;
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		if(VertexIndex == 0){
-			Position.x = x;
-			Position.y = y;
-		}elseif(VertexIndex == 1){
-			Position.x = x + width;
-			Position.y = y;
-		}elseif(VertexIndex == 2){
-			Position.x = x + width;
-			Position.y = y + height;
-		}elseif(VertexIndex == 3){
-			Position.x = x;
-			Position.y = y;
-		}elseif(VertexIndex == 4){
-			Position.x = x + width;
-			Position.y = y + height;
-		}elseif(VertexIndex == 5){
-			Position.x = x;
-			Position.y = y + height;
+		var vi : i32 = vertex.index;
+		
+		if(vi == 0 || vi == 3 || vi == 5){
+			output.position.x = x;
+		}else{
+			output.position.x = x + width;
 		}
 
-		return;
+		if(vi == 0 || vi == 1 || vi == 3){
+			output.position.y = y;
+		}else{
+			output.position.y = y + height;
+		}
+
+		return output;
 	}
 `;
 
 let fs = `
 
-	[[binding(1), set(0)]] var<uniform_constant> mySampler: sampler;
-	[[binding(2), set(0)]] var<uniform_constant> myTexture: texture_sampled_2d<f32>;
-	[[binding(3), set(0)]] var<uniform_constant> myDepth: texture_sampled_2d<f32>;
+	[[binding(1), set(0)]] var mySampler: sampler;
+	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
+	[[binding(3), set(0)]] var myDepth: texture_2d<f32>;
 
-	[[location(0)]] var<out> outColor : vec4<f32>;
+	[[block]] struct Uniforms {
+		[[size(4)]] uTest : u32;
+		[[size(4)]] x : f32;
+		[[size(4)]] y : f32;
+		[[size(4)]] width : f32;
+		[[size(4)]] height : f32;
+		[[size(4)]] near : f32;
+		[[size(4)]] far : f32;
+	};
+	
+	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[location(0)]] var<in> fragUV: vec2<f32>;
+	struct FragmentInput {
+		[[builtin(frag_coord)]] fragCoord : vec4<f32>;
+		[[location(0)]] uv: vec2<f32>;
+	};
 
-	[[builtin(frag_coord)]] var<in> fragCoord : vec4<f32>;
+	fn toLinear(depth: f32, near: f32, far: f32) -> f32{
+		return near * far / (far + depth * (near - far));
+	}
 
 	[[stage(fragment)]]
-	fn main() -> void {
+	fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
 
 		var avg : vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 
 		var window : i32 = 1;
 		var closest : f32 = 1.0;
-		var far : f32 = 10000.0;
 
 		for(var i : i32 = -window; i <= window; i = i + 1){
 			for(var j : i32 = -window; j <= window; j = j + 1){
 				var coords : vec2<i32>;
-				coords.x = i32(fragCoord.x) + i;
-				coords.y = i32(fragCoord.y) + j;
+				coords.x = i32(input.fragCoord.x) + i;
+				coords.y = i32(input.fragCoord.y) + j;
 
-				var d : f32 = textureLoad(myDepth, coords).x;
-				var linearDistance : f32 = d * far;
+				var d : f32 = textureLoad(myDepth, coords, 0).x;
 
 				closest = min(closest, d);
 			}
 		}
 
+		closest = toLinear(closest, uniforms.near, uniforms.far);
 		
 		for(var i : i32 = -window; i <= window; i = i + 1){
 			for(var j : i32 = -window; j <= window; j = j + 1){
 				var coords : vec2<i32>;
-				coords.x = i32(fragCoord.x) + i;
-				coords.y = i32(fragCoord.y) + j;
+				coords.x = i32(input.fragCoord.x) + i;
+				coords.y = i32(input.fragCoord.y) + j;
 
-				var d : f32 = textureLoad(myDepth, coords).x;
-				var linearDistance : f32 = d * far;
+				var d : f32 = textureLoad(myDepth, coords, 0).x;
+				var linearD : f32 = toLinear(d, uniforms.near, uniforms.far);
 
-
-				if(d <= closest ){
+				if(linearD <= closest * 1.01){
 					var manhattanDistance : f32 = f32(abs(i) + abs(j));
 
 					var weight : f32 = 1.0;
@@ -133,7 +148,7 @@ let fs = `
 						weight = 0.001;
 					}
 					
-					var color : vec4<f32> = textureLoad(myTexture, coords);
+					var color : vec4<f32> = textureLoad(myTexture, coords, 0);
 					color.x = color.x * weight;
 					color.y = color.y * weight;
 					color.z = color.z * weight;
@@ -143,6 +158,8 @@ let fs = `
 				}
 			}
 		}
+
+		var outColor : vec4<f32>;
 
 		if(avg.w == 0.0){
 			outColor = vec4<f32>(0.1, 0.2, 0.3, 1.0);
@@ -154,16 +171,10 @@ let fs = `
 			outColor = avg;
 		}
 
-		#outColor =  textureSample(myTexture, mySampler, fragUV);
-
-		#outColor.x = fragCoord.x / 1200.0;
-		#outColor.y = fragCoord.y / 800.0;
-
-		return;
+		return outColor;
 	}
 `;
 
-let bindGroupLayout = null;
 let pipeline = null;
 let uniformBindGroup = null;
 let uniformBuffer = null;
@@ -233,26 +244,27 @@ function init(renderer){
 		let {device, swapChainFormat} = renderer;
 
 		pipeline = device.createRenderPipeline({
-			vertexStage: {
+			vertex: {
 				module: device.createShaderModule({code: vs}),
 				entryPoint: "main",
 			},
-			fragmentStage: {
+			fragment: {
 				module: device.createShaderModule({code: fs}),
 				entryPoint: "main",
+				targets: [{format: "bgra8unorm"}],
 			},
-			primitiveTopology: "triangle-list",
-			depthStencilState: {
+			primitive: {
+				topology: 'triangle-list',
+				cullMode: 'none',
+			},
+			depthStencil: {
 					depthWriteEnabled: true,
 					depthCompare: "less",
 					format: "depth32float",
 			},
-			colorStates: [{
-				format: swapChainFormat,
-			}],
 		});
 
-		let uniformBufferSize = 24;
+		let uniformBufferSize = 32;
 		uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -293,12 +305,12 @@ export function renderDilate(renderer, pointcloud, camera){
 		let renderPassDescriptor = {
 			colorAttachments: [
 				{
-					attachment: target.colorAttachments[0].texture.createView(),
+					view: target.colorAttachments[0].texture.createView(),
 					loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
 				},
 			],
 			depthStencilAttachment: {
-				attachment: target.depth.texture.createView({aspect: "depth-only"}),
+				view: target.depth.texture.createView({aspect: "depth-only"}),
 				depthLoadValue: 1.0,
 				depthStoreOp: "store",
 				stencilLoadValue: 0,
@@ -334,12 +346,12 @@ export function renderDilate(renderer, pointcloud, camera){
 		let renderPassDescriptor = {
 			colorAttachments: [
 				{
-					attachment: target.colorAttachments[0].texture.createView(),
+					view: target.colorAttachments[0].texture.createView(),
 					loadValue: { r: 0.4, g: 0.2, b: 0.3, a: 0.0 },
 				},
 			],
 			depthStencilAttachment: {
-				attachment: target.depth.texture.createView({aspect: "depth-only"}),
+				view: target.depth.texture.createView({aspect: "depth-only"}),
 				depthLoadValue: 1.0,
 				depthStoreOp: "store",
 				stencilLoadValue: 0,
@@ -358,7 +370,7 @@ export function renderDilate(renderer, pointcloud, camera){
 		passEncoder.setPipeline(pipeline);
 
 		{
-			let source = new ArrayBuffer(24);
+			let source = new ArrayBuffer(32);
 			let view = new DataView(source);
 
 			view.setUint32(0, 5, true);
@@ -366,6 +378,8 @@ export function renderDilate(renderer, pointcloud, camera){
 			view.setFloat32(8, 0, true);
 			view.setFloat32(12, 1, true);
 			view.setFloat32(16, 1, true);
+			view.setFloat32(20, camera.near, true);
+			view.setFloat32(24, camera.far, true);
 			
 			renderer.device.queue.writeBuffer(
 				uniformBuffer, 0,

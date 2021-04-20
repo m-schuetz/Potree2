@@ -4,12 +4,13 @@ import {Renderer, Timer} from "potree";
 
 import {render as renderPointsTest} from "./src/prototyping/renderPoints.js";
 import {render as renderPointsCompute} from "./src/prototyping/renderPointsCompute.js";
-import {drawTexture} from "./src/prototyping/textures.js";
+import {drawTexture, loadImage, drawImage} from "./src/prototyping/textures.js";
 import {createPointsData} from "./src/modules/geometries/points.js";
 import {initGUI} from "./src/prototyping/gui.js";
 import {Potree} from "potree";
 
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
+import {renderDilate}  from "./src/potree/renderDilate.js";
 // import {render as renderPoints}  from "./src/potree/arbitrary_attributes/renderPoints_arbitrary_attributes.js";
 
 let frame = 0;
@@ -23,6 +24,8 @@ let controls = null;
 
 let scene = new Scene();
 window.scene = scene;
+
+let dbgImage = null;
 
 function update(){
 	let now = performance.now();
@@ -101,6 +104,21 @@ function render(){
 		}
 	}
 
+	let octrees = renderables.get("PointCloudOctree") ?? [];
+	for(let octree of octrees){
+
+		octree.showBoundingBox = guiContent["show bounding box"];
+		octree.pointBudget = guiContent["point budget (M)"] * 1_000_000;
+		octree.pointSize = guiContent["point size"];
+		octree.updateVisibility(camera);
+
+		let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
+		let numNodes = octree.visibleNodes.length;
+
+		guiContent["#points"] = numPoints.toLocaleString();
+		guiContent["#nodes"] = numNodes.toLocaleString();
+	}
+
 	let target = null;
 
 	Timer.frameStart(renderer);
@@ -113,13 +131,24 @@ function render(){
 		}
 	}
 
+	if(guiContent["mode"] === "dilate"){
+		let octrees = renderables.get("PointCloudOctree") ?? [];
+		for(let octree of octrees){
+			target = renderDilate(renderer, octree, camera);
+		}
+	}
+
 	let pass = renderer.start();
 
 	if(target){
-		drawTexture(renderer, pass, target, 0, 0, 1, 1);
+		drawTexture(renderer, pass, target.colorAttachments[0].texture, 0, 0, 1, 1);
 	}
 
-	if(guiContent["mode"] === "points"){
+	if(dbgImage){
+		drawImage(renderer, pass, dbgImage, 0.1, 0.1, 0.1, 0.1);
+	}
+
+	if(guiContent["mode"] === "pixels"){
 		let points = renderables.get("Points") ?? [];
 
 		for(let point of points){
@@ -128,18 +157,6 @@ function render(){
 
 		let octrees = renderables.get("PointCloudOctree") ?? [];
 		for(let octree of octrees){
-
-			octree.showBoundingBox = guiContent["show bounding box"];
-			octree.pointBudget = guiContent["point budget (M)"] * 1_000_000;
-			octree.pointSize = guiContent["point size"];
-			octree.updateVisibility(camera);
-
-			let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
-			let numNodes = octree.visibleNodes.length;
-
-			guiContent["#points"] = numPoints.toLocaleString();
-			guiContent["#nodes"] = numNodes.toLocaleString();
-
 			renderPoints(renderer, pass, octree, camera);
 		}
 	}
@@ -205,6 +222,10 @@ async function main(){
 		});
 
 		scene.root.children.push(pointcloud);
+	});
+
+	loadImage("./resources/images/background.jpg").then(image => {
+		dbgImage = image;
 	});
 
 	requestAnimationFrame(loop);

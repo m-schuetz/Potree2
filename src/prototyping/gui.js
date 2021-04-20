@@ -15,7 +15,7 @@ let guiContent = {
 
 	// INPUT
 	"show bounding box": false,
-	"mode": "points",
+	"mode": "dilate",
 	// "mode": "HQS",
 	"attribute": "rgba",
 	"point budget (M)": 1,
@@ -54,7 +54,8 @@ export function initGUI(){
 		input.open();
 
 		input.add(guiContent, "mode", [
-			"points", 
+			"pixels", 
+			"dilate",
 			"HQS",
 		]);
 		input.add(guiContent, "show bounding box");
