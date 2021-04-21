@@ -128,17 +128,17 @@ function render(){
 		}
 	}
 
+	let pass = renderer.start();
+
 	if(guiContent["mode"] === "dilate"){
 		let octrees = renderables.get("PointCloudOctree") ?? [];
 		for(let octree of octrees){
 			target = renderDilate(renderer, octree, camera);
 		}
-	}
 
-	let pass = renderer.start();
-
-	if(target){
-		drawTexture(renderer, pass, target.colorAttachments[0].texture, 0, 0, 1, 1);
+		if(target){
+			drawTexture(renderer, pass, target.colorAttachments[0].texture, 0, 0, 1, 1);
+		}
 	}
 
 	if(dbgImage){

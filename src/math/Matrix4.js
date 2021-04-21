@@ -246,12 +246,19 @@ export class Matrix4{
 			0,  0, -n,  0,
 		]);
 
-		// // directly incorporate reverse-z
+		// directly incorporate reverse-z
 		// te.set([
 		// 	a,  0,  0,  0,
 		// 	0,  f,  0,  0,
 		// 	0,  0,  0,  -1,
 		// 	0,  0,  n,  0,
+		// ]);
+
+		// te.set([
+		// 	f / aspect,     0,       0,     0,
+		// 	         0,     f,       0,     0,
+		// 	         0,     0,       0,    -1,
+		// 	         0,     0,    near,     0,
 		// ]);
 
 		return this;
