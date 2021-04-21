@@ -132,9 +132,8 @@ function render(){
 
 	if(guiContent["mode"] === "dilate"){
 		let octrees = renderables.get("PointCloudOctree") ?? [];
-		for(let octree of octrees){
-			target = renderDilate(renderer, octree, camera);
-		}
+
+		target = renderDilate(renderer, octrees, camera);
 
 		if(target){
 			drawTexture(renderer, pass, target.colorAttachments[0].texture, 0, 0, 1, 1);
@@ -208,14 +207,25 @@ async function main(){
 	// }
 
 	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
-		controls.set({
-			radius: 7,
-			yaw: -0.86,
-			pitch: 0.51,
-			pivot: [-0.22, -0.01, 3.72],
-		});
+		// controls.set({
+		// 	radius: 7,
+		// 	yaw: -0.86,
+		// 	pitch: 0.51,
+		// 	pivot: [-0.22, -0.01, 3.72],
+		// });
 
 		scene.root.children.push(pointcloud);
+	});
+
+	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+		scene.root.children.push(pointcloud);
+	});
+
+	controls.set({
+		radius: 13.8,
+		yaw: -0.66,
+		pitch: 0.37,
+		pivot: [-0.022888880829764084, -0.12292264906406908, 5.322860838969788],
 	});
 
 	// Potree.load("./resources/pointclouds/ca13/metadata.json").then(pointcloud => {

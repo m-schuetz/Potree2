@@ -299,7 +299,7 @@ function init(renderer){
 
 }
 
-export function renderDilate(renderer, pointcloud, camera){
+export function renderDilate(renderer, pointclouds, camera){
 
 	init(renderer);
 
@@ -350,7 +350,9 @@ export function renderDilate(renderer, pointcloud, camera){
 
 		let pass = {commandEncoder, passEncoder, renderPassDescriptor};
 
-		renderPoints(renderer, pass, pointcloud, camera);
+		for(let pointcloud of pointclouds){
+			renderPoints(renderer, pass, pointcloud, camera);
+		}
 
 		Timer.timestamp(passEncoder,"dilate-pass1-end");
 
