@@ -65,7 +65,7 @@ export class Renderer{
 				width: this.canvas.width,
 				height: this.canvas.height,
 			},
-			format: "depth24plus-stencil8",
+			format: "depth32float",
 			usage: GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 	}
@@ -93,7 +93,7 @@ export class Renderer{
 					width: this.canvas.width,
 					height: this.canvas.height,
 				},
-				format: "depth24plus-stencil8",
+				format: "depth32float",
 				usage: GPUTextureUsage.RENDER_ATTACHMENT,
 			});
 		}
@@ -302,7 +302,7 @@ export class Renderer{
 			depthStencilAttachment: {
 				view: this.depthTexture.createView(),
 
-				depthLoadValue: 1.0,
+				depthLoadValue: 0.0,
 				depthStoreOp: "store",
 				stencilLoadValue: 0,
 				stencilStoreOp: "store",

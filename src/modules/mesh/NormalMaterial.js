@@ -76,8 +76,8 @@ function initialize(renderer){
 		primitiveTopology: "triangle-list",
 		depthStencilState: {
 			depthWriteEnabled: true,
-			depthCompare: "less",
-			format: "depth24plus-stencil8",
+			depthCompare: 'greater',
+			format: "depth32float",
 		},
 		vertexState: {
 			vertexBuffers: [

@@ -152,8 +152,8 @@ function createPipeline(renderer){
 		},
 		depthStencil: {
 			depthWriteEnabled: true,
-			depthCompare: 'less',
-			format: "depth24plus-stencil8",
+			depthCompare: 'greater',
+			format: "depth32float",
 		},
 	});
 

@@ -23,7 +23,8 @@ export class Camera extends SceneNode{
 
 	updateProj(){
 
-		let fovy = toRadians(0.5 * this.fov);
+		let fovy = toRadians(this.fov);
+		//let fovy = toRadians(0.5 * this.fov);
 
 		const near = this.near;
 		let top = near * Math.tan(fovy);
@@ -31,7 +32,17 @@ export class Camera extends SceneNode{
 		let width = this.aspect * height;
 		let left = - 0.5 * width;
 
-		this.proj.makePerspective( left, left + width, top, top - height, near, this.far);
+		// this.proj.makePerspective( left, left + width, top, top - height, near, this.far);
+
+		this.proj.perspectiveZO(fovy, this.aspect, near);
+
+		let remap = new Matrix4();
+		remap.elements[10] = -1;
+		remap.elements[14] =  1;
+
+		this.proj = remap.multiply(this.proj);
+
+
 	}
 
 

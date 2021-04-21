@@ -33,6 +33,15 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	var viewPos : vec4<f32> = uniforms.worldView * vertex.position;
 	output.position = uniforms.proj * viewPos;
 
+	// output.position.x = output.position.x / output.position.w;
+	// output.position.y = output.position.y / output.position.w;
+	// output.position.z = output.position.z / output.position.w;
+	// output.position.w = output.position.w / output.position.w;
+	// output.position.z = 1.0 - output.position.z;
+
+	//output.position.z = -output.position.z;
+	// output.position.w = -output.position.w;
+
 	var c : vec4<f32> = vertex.color;
 
 	// check if instance_index works
@@ -107,8 +116,8 @@ function createPipeline(renderer){
 		},
 		depthStencil: {
 			depthWriteEnabled: true,
-			depthCompare: "less",
-			format: "depth24plus-stencil8",
+			depthCompare: "greater",
+			format: "depth32float",
 		},
 	});
 

@@ -82,9 +82,6 @@ function render(){
 
 	let renderables = new Map();
 
-	camera.near = Math.max(controls.radius / 100, 0.001);
-	camera.far = Math.max(controls.radius * 2, 100_000);
-
 	let stack = [scene.root];
 	while(stack.length > 0){
 		let node = stack.pop();
@@ -211,9 +208,6 @@ async function main(){
 	// }
 
 	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
-		camera.near = 0.5;
-		camera.far = 10_000;
-
 		controls.set({
 			radius: 7,
 			yaw: -0.86,
@@ -223,6 +217,19 @@ async function main(){
 
 		scene.root.children.push(pointcloud);
 	});
+
+	// Potree.load("./resources/pointclouds/ca13/metadata.json").then(pointcloud => {
+
+	// 	// controls.zoomTo(pointcloud);
+	// 	controls.set({
+	// 		yaw: -1.1,
+	// 		pitch: 0.37,
+	// 		radius: 406,
+	// 		pivot: [696743.76, 3919073.53, 37.68],
+	// 	});
+
+	// 	scene.root.children.push(pointcloud);
+	// });
 
 	loadImage("./resources/images/background.jpg").then(image => {
 		dbgImage = image;

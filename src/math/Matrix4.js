@@ -226,7 +226,35 @@ export class Matrix4{
 		te[ 3 ] = 0;	te[ 7 ] = 0;	te[ 11 ] = - 1;	te[ 15 ] = 0;
 
 		return this;
+	}
 
+	// function from https://github.com/toji/gl-matrix/blob/e906eb7bb02822a81b1d197c6b5b33563c0403c0/src/mat4.js#L1586
+	// LICENSE: MIT
+	perspectiveZO(fovy, aspect, near){
+
+		let f = 1.0 / Math.tan(fovy / 2);
+
+		const te = this.elements;
+
+		let a = f / aspect;
+		let n = near;
+
+		te.set([
+			a,  0,  0,  0,
+			0,  f,  0,  0,
+			0,  0, -1, -1,
+			0,  0, -n,  0,
+		]);
+
+		// // directly incorporate reverse-z
+		// te.set([
+		// 	a,  0,  0,  0,
+		// 	0,  f,  0,  0,
+		// 	0,  0,  0,  -1,
+		// 	0,  0,  n,  0,
+		// ]);
+
+		return this;
 	}
 	
 

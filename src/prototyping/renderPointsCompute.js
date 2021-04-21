@@ -330,7 +330,7 @@ function getTarget1(renderer){
 			}],
 			depthDescriptor: {
 				size: size,
-				format: "depth24plus-stencil8",
+				format: "depth32float",
 				usage: GPUTextureUsage.SAMPLED 
 					// | GPUTextureUsage.COPY_SRC 
 					// | GPUTextureUsage.COPY_DST 
@@ -465,8 +465,8 @@ function getScreenPassState(renderer){
 			primitiveTopology: "triangle-list",
 			depthStencilState: {
 					depthWriteEnabled: true,
-					depthCompare: "less",
-					format: "depth24plus-stencil8",
+					depthCompare: 'greater',
+					format: "depth32float",
 			},
 			colorStates: [{
 				format: swapChainFormat,
@@ -745,7 +745,7 @@ export function render(renderer, node, camera){
 			}],
 			depthStencilAttachment: {
 				attachment: target.depth.texture.createView(),
-				depthLoadValue: 1.0,
+				depthLoadValue: 0.0,
 				depthStoreOp: "store",
 				stencilLoadValue: 0,
 				stencilStoreOp: "store",

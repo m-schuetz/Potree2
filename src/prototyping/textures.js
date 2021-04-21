@@ -154,9 +154,9 @@ function getPipeline(renderer, gpuTexture){
 			cullMode: 'none',
 		},
 		depthStencil: {
-				depthWriteEnabled: true,
-				depthCompare: "less",
-				format: "depth24plus-stencil8",
+			depthWriteEnabled: true,
+			depthCompare: "greater",
+			format: "depth32float",
 		},
 	});
 

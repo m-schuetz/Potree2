@@ -89,6 +89,7 @@ let fs = `
 		[[size(4)]] height : f32;
 		[[size(4)]] near : f32;
 		[[size(4)]] far : f32;
+		[[size(4)]] window: i32;
 	};
 	
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
@@ -99,7 +100,7 @@ let fs = `
 	};
 
 	fn toLinear(depth: f32, near: f32, far: f32) -> f32{
-		return near * far / (far + depth * (near - far));
+		return near * far / (far + (1.0 - depth) * (near - far));
 	}
 
 	[[stage(fragment)]]
@@ -107,8 +108,9 @@ let fs = `
 
 		var avg : vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 
-		var window : i32 = 1;
-		var closest : f32 = 1.0;
+		// var window : i32 = 1;
+		var window : i32 = uniforms.window;
+		var closest : f32 = 0.0;
 
 		for(var i : i32 = -window; i <= window; i = i + 1){
 			for(var j : i32 = -window; j <= window; j = j + 1){
@@ -118,11 +120,12 @@ let fs = `
 
 				var d : f32 = textureLoad(myDepth, coords, 0).x;
 
-				closest = min(closest, d);
+				closest = max(closest, d);
 			}
 		}
 
-		closest = toLinear(closest, uniforms.near, uniforms.far);
+		// closest = toLinear(closest, uniforms.near, uniforms.far);
+		var closestLinear : f32 = toLinear(closest, uniforms.near, uniforms.far);
 		
 		for(var i : i32 = -window; i <= window; i = i + 1){
 			for(var j : i32 = -window; j <= window; j = j + 1){
@@ -133,7 +136,7 @@ let fs = `
 				var d : f32 = textureLoad(myDepth, coords, 0).x;
 				var linearD : f32 = toLinear(d, uniforms.near, uniforms.far);
 
-				if(linearD <= closest * 1.01){
+				if(linearD <= closestLinear * 1.01){
 					var manhattanDistance : f32 = f32(abs(i) + abs(j));
 
 					var weight : f32 = 1.0;
@@ -161,7 +164,7 @@ let fs = `
 
 		var outColor : vec4<f32>;
 
-		if(avg.w == 0.0){
+		if(closest == 1.0){
 			outColor = vec4<f32>(0.1, 0.2, 0.3, 1.0);
 		}else{
 			avg.x = avg.x / avg.w;
@@ -170,6 +173,11 @@ let fs = `
 			avg.w = 1.0;
 			outColor = avg;
 		}
+
+		// outColor.r = 1.0;
+		// outColor.g = 0.2;
+		// outColor.b = 0.2;
+		// outColor.w = 1.0;
 
 		return outColor;
 	}
@@ -198,7 +206,7 @@ function getTarget1(renderer){
 			}],
 			depthDescriptor: {
 				size: size,
-				format: "depth24plus-stencil8",
+				format: "depth32float",
 				usage: GPUTextureUsage.SAMPLED 
 					| GPUTextureUsage.COPY_SRC 
 					| GPUTextureUsage.COPY_DST 
@@ -259,12 +267,12 @@ function init(renderer){
 			},
 			depthStencil: {
 					depthWriteEnabled: true,
-					depthCompare: "less",
+					depthCompare: "greater",
 					format: "depth32float",
 			},
 		});
 
-		let uniformBufferSize = 32;
+		let uniformBufferSize = 256;
 		uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -311,7 +319,7 @@ export function renderDilate(renderer, pointcloud, camera){
 			],
 			depthStencilAttachment: {
 				view: target.depth.texture.createView({aspect: "depth-only"}),
-				depthLoadValue: 1.0,
+				depthLoadValue: 0.0,
 				depthStoreOp: "store",
 				stencilLoadValue: 0,
 				stencilStoreOp: "store",
@@ -352,7 +360,7 @@ export function renderDilate(renderer, pointcloud, camera){
 			],
 			depthStencilAttachment: {
 				view: target.depth.texture.createView({aspect: "depth-only"}),
-				depthLoadValue: 1.0,
+				depthLoadValue: 0.0,
 				depthStoreOp: "store",
 				stencilLoadValue: 0,
 				stencilStoreOp: "store",
@@ -373,6 +381,9 @@ export function renderDilate(renderer, pointcloud, camera){
 			let source = new ArrayBuffer(32);
 			let view = new DataView(source);
 
+			let size = Number(guiContent["point size"]);
+			let window = Math.round((size - 1) / 2);
+
 			view.setUint32(0, 5, true);
 			view.setFloat32(4, 0, true);
 			view.setFloat32(8, 0, true);
@@ -380,6 +391,7 @@ export function renderDilate(renderer, pointcloud, camera){
 			view.setFloat32(16, 1, true);
 			view.setFloat32(20, camera.near, true);
 			view.setFloat32(24, camera.far, true);
+			view.setInt32(28, window, true);
 			
 			renderer.device.queue.writeBuffer(
 				uniformBuffer, 0,

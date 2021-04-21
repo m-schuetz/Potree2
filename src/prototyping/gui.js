@@ -15,7 +15,8 @@ let guiContent = {
 
 	// INPUT
 	"show bounding box": false,
-	"mode": "dilate",
+	"mode": "pixels",
+	// "mode": "dilate",
 	// "mode": "HQS",
 	"attribute": "rgba",
 	"point budget (M)": 1,

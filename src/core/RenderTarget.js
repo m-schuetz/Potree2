@@ -27,7 +27,7 @@ export class RenderTarget{
 		{ // DEPTH ATTACHMENT
 			let descriptor = params.depthDescriptor ?? {
 				size: size,
-				format: "depth24plus-stencil8",
+				format: "depth32float",
 				usage: GPUTextureUsage.RENDER_ATTACHMENT,
 			};
 
