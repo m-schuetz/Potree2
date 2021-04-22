@@ -3,94 +3,104 @@ import {Vector3, Matrix4} from "../../math/math.js";
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
-	[[offset(128)]] numPointLights : u32;
-	[[offset(132)]] color_source : u32;
-	[[offset(144)]] color : vec4<f32>;
+	worldView : mat4x4<f32>;
+	proj : mat4x4<f32>;
+	numPointLights : u32;
+	color_source : u32;
+	color : vec4<f32>;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> in_position : vec4<f32>;
-[[location(1)]] var<in> in_normal : vec4<f32>;
-[[location(2)]] var<in> in_uv : vec2<f32>;
-[[location(3)]] var<in> in_color : vec4<f32>;
+struct VertexInput {
+	[[location(0)]] position        : vec4<f32>;
+	[[location(1)]] normal          : vec4<f32>;
+	[[location(2)]] uv              : vec2<f32>;
+	[[location(3)]] color           : vec4<f32>;
+};
 
-[[builtin(position)]] var<out> Position : vec4<f32>;
+struct VertexOutput {
+	[[builtin(position)]] position  : vec4<f32>;
+	[[location(0)]] view_position   : vec4<f32>;
+	[[location(1)]] normal          : vec4<f32>;
+	[[location(2)]] uv              : vec2<f32>;
+	[[location(3)]] color           : vec4<f32>;
+};
 
-[[location(0)]] var<out> out_position : vec4<f32>;
-[[location(1)]] var<out> out_normal : vec4<f32>;
-[[location(2)]] var<out> out_uv : vec2<f32>;
-[[location(3)]] var<out> out_color : vec4<f32>;
 
 [[stage(vertex)]]
-fn main() -> void {
+fn main(vertex : VertexInput) -> VertexOutput {
 
-	Position = uniforms.proj * uniforms.worldView * in_position;
+	var output : VertexOutput;
 
-	out_uv = in_uv;
-	out_position = uniforms.worldView * in_position;
-	out_normal = in_normal;
-	out_color = in_color;
+	output.position = uniforms.proj * uniforms.worldView * vertex.position;
 
-	return;
+	output.uv = vertex.uv;
+	output.view_position = uniforms.worldView * vertex.position;
+	output.normal = vertex.normal;
+	output.color = vertex.color;
+
+	return output;
 }
 `;
 
 const fs = `
 
 [[block]] struct PointLight {
-	[[offset(0)]] position : vec4<f32>;
+	position : vec4<f32>;
 };
 
 [[block]] struct PointLights {
-	[[offset(0)]] values : [[stride(16)]] array<PointLight>;
+	values : [[stride(16)]] array<PointLight>;
 };
 
 [[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
-	[[offset(128)]] numPointLights : u32;
-	[[offset(132)]] color_source : u32;
-	[[offset(144)]] color : vec4<f32>;
+	worldView : mat4x4<f32>;
+	proj : mat4x4<f32>;
+	numPointLights : u32;
+	color_source : u32;
+	color : vec4<f32>;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), set(0)]] var<storage_buffer> pointLights : PointLights;
-[[binding(2), group(0)]] var<uniform_constant> mySampler: sampler;
-[[binding(3), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
+[[binding(1), set(0)]] var<storage_buffer> pointLights : [[access(read)]]PointLights;
+[[binding(2), set(0)]] var mySampler: sampler;
+[[binding(3), set(0)]] var myTexture: texture_2d<f32>;
 
-[[location(0)]] var<in> in_position : vec4<f32>;
-[[location(1)]] var<in> in_normal : vec4<f32>;
-[[location(2)]] var<in> in_uv : vec2<f32>;
-[[location(3)]] var<in> in_color : vec4<f32>;
+struct FragmentInput {
+	[[location(0)]] view_position   : vec4<f32>;
+	[[location(1)]] normal          : vec4<f32>;
+	[[location(2)]] uv              : vec2<f32>;
+	[[location(3)]] color           : vec4<f32>;
+};
 
-[[location(0)]] var<out> out_color : vec4<f32>;
+struct FragmentOutput {
+	[[location(0)]] color : vec4<f32>;
+};
 
-fn getColor() -> vec4<f32>{
+fn getColor(fragment : FragmentInput) -> vec4<f32>{
 
 	var color : vec4<f32>;
 
-	if(uniforms.color_source == 0){
+	if(uniforms.color_source == 0u){
 		// VERTEX COLOR
 
-		color = in_color;
+		color = fragment.color;
 
-	}elseif(uniforms.color_source == 1){
+	}elseif(uniforms.color_source == 1u){
 		// NORMALS
 
 		color = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 
-	}elseif(uniforms.color_source == 2){
+	}elseif(uniforms.color_source == 2u){
 		// uniform color
 
 		color = uniforms.color;
 
-	}elseif(uniforms.color_source == 3){
+	}elseif(uniforms.color_source == 3u){
 		// TEXTURE
 
-		color = textureSample(myTexture, mySampler, in_uv);
+		color = textureSample(myTexture, mySampler, fragment.uv);
 
 	}
 
@@ -98,18 +108,18 @@ fn getColor() -> vec4<f32>{
 };
 
 [[stage(fragment)]]
-fn main() -> void {
+fn main(fragment : FragmentInput) -> FragmentOutput {
 
 	var light : vec3<f32>;
 	
-	for(var i : i32 = 0; i < uniforms.numPointLights; i = i + 1){
+	for(var i : u32 = 0u; i < uniforms.numPointLights; i = i + 1u){
 
 		var lightPos : vec4<f32> = pointLights.values[i].position;
 
-		var L : vec3<f32> = normalize(lightPos.xyz - in_position.xyz);
-		var V : vec3<f32> = vec3<f32>(0, 0, 1.0);
+		var L : vec3<f32> = normalize(lightPos.xyz - fragment.view_position.xyz);
+		var V : vec3<f32> = vec3<f32>(0.0, 0.0, 1.0);
 		var H : vec3<f32> = normalize(V + L);
-		var N : vec3<f32> = (uniforms.worldView * vec4<f32>(in_normal.xyz, 0.0)).xyz;
+		var N : vec3<f32> = (uniforms.worldView * vec4<f32>(fragment.normal.xyz, 0.0)).xyz;
 
 		N = normalize(N);
 
@@ -132,14 +142,16 @@ fn main() -> void {
 	light.g = 0.3 * light.g + 1.0;
 	light.b = 0.3 * light.b + 1.0;
 
-	var color : vec4<f32> = getColor();
+	var color : vec4<f32> = getColor(fragment);
 
-	out_color.r = color.r * light.r;
-	out_color.g = color.g * light.g;
-	out_color.b = color.b * light.b;
-	out_color.a = 1.0;
+	var output : FragmentOutput;
 
-	return;
+	output.color.r = color.r * light.r;
+	output.color.g = color.g * light.g;
+	output.color.b = color.b * light.b;
+	output.color.a = 1.0;
+
+	return output;
 }
 `;
 
@@ -213,7 +225,7 @@ function initialize(renderer){
 					attributes: [{ 
 						shaderLocation: 2,
 						offset: 0,
-						format: "float2",
+						format: "float32x2",
 					}],
 				},{ // color
 					arrayStride: 4,

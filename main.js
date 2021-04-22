@@ -1,4 +1,5 @@
 
+import {Vector3} from "potree";
 import {Scene, SceneNode, Camera, OrbitControls} from "potree";
 import {Renderer, Timer} from "potree";
 
@@ -8,6 +9,8 @@ import {drawTexture, loadImage, drawImage} from "./src/prototyping/textures.js";
 import {createPointsData} from "./src/modules/geometries/points.js";
 import {initGUI} from "./src/prototyping/gui.js";
 import {Potree} from "potree";
+import {renderMesh} from "potree";
+import {loadGLB} from "potree";
 
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
 import {renderDilate}  from "./src/potree/renderDilate.js";
@@ -133,11 +136,11 @@ function render(){
 	if(guiContent["mode"] === "dilate"){
 		let octrees = renderables.get("PointCloudOctree") ?? [];
 
-		target = renderDilate(renderer, octrees, camera);
+		target = renderDilate(renderer, pass, octrees, camera);
 
-		if(target){
-			drawTexture(renderer, pass, target.colorAttachments[0].texture, 0, 0, 1, 1);
-		}
+		// if(target){
+		// 	drawTexture(renderer, pass, target.colorAttachments[0].texture, 0, 0, 1, 1);
+		// }
 	}
 
 	if(dbgImage){
@@ -154,6 +157,14 @@ function render(){
 		let octrees = renderables.get("PointCloudOctree") ?? [];
 		for(let octree of octrees){
 			renderPoints(renderer, pass, octree, camera);
+		}
+	}
+
+	{ // MESHES
+		let meshes = renderables.get("Mesh") ?? [];
+
+		for(let mesh of meshes){
+			renderMesh(renderer, pass, mesh, camera, renderables);
 		}
 	}
 
@@ -206,16 +217,16 @@ async function main(){
 
 	// }
 
-	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
-		// controls.set({
-		// 	radius: 7,
-		// 	yaw: -0.86,
-		// 	pitch: 0.51,
-		// 	pivot: [-0.22, -0.01, 3.72],
-		// });
+	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	// 	// controls.set({
+	// 	// 	radius: 7,
+	// 	// 	yaw: -0.86,
+	// 	// 	pitch: 0.51,
+	// 	// 	pivot: [-0.22, -0.01, 3.72],
+	// 	// });
 
-		scene.root.children.push(pointcloud);
-	});
+	// 	scene.root.children.push(pointcloud);
+	// });
 
 	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 		scene.root.children.push(pointcloud);
@@ -243,6 +254,25 @@ async function main(){
 
 	loadImage("./resources/images/background.jpg").then(image => {
 		dbgImage = image;
+	});
+
+	loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// loadGLB("./resources/models/lion.glb").then(node => {
+		scene.root.children.push(node);
+
+		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+		node.position.set(5, 0, 3);
+		node.scale.set(2, 2, 2);
+		node.updateWorld();
+
+		// controls.set({
+		// 	yaw: -9.2375,
+		// 	pitch: 0.2911333847340012,
+		// 	radius: 3.649930853878021,
+		// 	pivot:  [0.3169157776176301, -0.055293688684424885, 2.2],
+		// });
+
+		// controls.zoomTo(node);
 	});
 
 	requestAnimationFrame(loop);

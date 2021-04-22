@@ -39,10 +39,13 @@ export class Renderer{
 		this.depthTexture = null;
 		this.draws = new Draws();
 		this.currentBindGroup = -1;
+		this.frameCounter = 0;
 
 		this.buffers = new Map();
 		this.typedBuffers = new Map();
 		this.textures = new Map();
+
+		this.picks = [];
 	}
 
 	async init(){
@@ -57,7 +60,9 @@ export class Renderer{
 		this.swapChain = this.context.configureSwapChain({
 			device: this.device,
 			format: this.swapChainFormat,
-			usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT 
+				| GPUTextureUsage.COPY_DST 
+				| GPUTextureUsage.COPY_SRC,
 		});
 
 		this.depthTexture = this.device.createTexture({
@@ -125,6 +130,51 @@ export class Renderer{
 		let cloned = copyArrayBuffer.slice();
 
 		target.unmap();
+
+		return cloned;
+	}
+
+	async readPixels(texture, x, y, width, height){
+
+		let bytesPerRow = width * 4; 
+		
+		// "bytesPerRow must be a multiple of 256"
+		bytesPerRow = Math.ceil(bytesPerRow / 256) * 256;
+
+		let size = bytesPerRow * height;
+
+		// copyTextureToBuffer
+		const buffer = this.device.createBuffer({
+			size: size,
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+		});
+
+		let source = {
+			texture: texture,
+			origin: {x, y, z: 0},
+		};
+
+		let destination = {
+			buffer,
+			bytesPerRow: bytesPerRow,
+		};
+
+		let copySize = {width, height, depthOrArrayLayers: 1};
+
+		const copyEncoder = this.device.createCommandEncoder();
+		copyEncoder.copyTextureToBuffer(source, destination, copySize);
+
+		// Submit copy commands.
+		const copyCommands = copyEncoder.finish();
+		this.device.queue.submit([copyCommands]);
+
+		await buffer.mapAsync(GPUMapMode.READ);
+
+		const copyArrayBuffer = buffer.getMappedRange();
+
+		let cloned = copyArrayBuffer.slice();
+
+		buffer.unmap();
 
 		return cloned;
 	}
@@ -318,6 +368,18 @@ export class Renderer{
 
 	finish(pass){
 
+		// resolve picks now
+		// for(let pick of picks){
+
+		// }
+
+		// if((this.frameCounter % 100) == 0){
+		// 	this.readPixels(this.swapChain.getCurrentTexture(), 0, 0, 60, 60).then(result => {
+		// 		console.log(new Uint8Array(result));
+		// 	});
+		// }
+
+
 		pass.passEncoder.endPass();
 
 		Timer.resolve(renderer, pass.commandEncoder);
@@ -333,6 +395,7 @@ export class Renderer{
 
 		this.draws.reset();
 		this.currentBindGroup = -1;
+		this.frameCounter++;
 	}
 
 	getNextBindGroup(){
@@ -345,6 +408,10 @@ export class Renderer{
 		renderBoxes(this, pass, this.draws.boxes, camera);
 		renderBoundingBoxes(this, pass, this.draws.boundingBoxes, camera);
 		renderLines(this, pass, this.draws.lines, camera);
+	}
+
+	pick(x, y, callback){
+		this.picks.push({x, y, callback});
 	}
 
 

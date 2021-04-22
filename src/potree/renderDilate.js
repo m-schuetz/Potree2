@@ -2,6 +2,7 @@
 import {render as renderPoints}  from "./renderPoints.js";
 import {RenderTarget} from "../core/RenderTarget.js";
 import * as Timer from "../renderer/Timer.js";
+import {readPixels} from "../renderer/readPixels.js";
 
 
 let vs = `
@@ -24,12 +25,12 @@ let vs = `
 	);
 
 	[[block]] struct Uniforms {
-		[[size(4)]] uTest : u32;
-		[[size(4)]] x : f32;
-		[[size(4)]] y : f32;
-		[[size(4)]] width : f32;
-		[[size(4)]] height : f32;
-		[[size(4)]] near : f32;
+		uTest : u32;
+		x : f32;
+		y : f32;
+		width : f32;
+		height : f32;
+		near : f32;
 	};
 
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
@@ -81,13 +82,13 @@ let fs = `
 	[[binding(3), set(0)]] var myDepth: texture_2d<f32>;
 
 	[[block]] struct Uniforms {
-		[[size(4)]] uTest : u32;
-		[[size(4)]] x : f32;
-		[[size(4)]] y : f32;
-		[[size(4)]] width : f32;
-		[[size(4)]] height : f32;
-		[[size(4)]] near : f32;
-		[[size(4)]] window: i32;
+		uTest   : u32;
+		x       : f32;
+		y       : f32;
+		width   : f32;
+		height  : f32;
+		near    : f32;
+		window  : i32;
 	};
 	
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
@@ -97,12 +98,19 @@ let fs = `
 		[[location(0)]] uv: vec2<f32>;
 	};
 
+	struct FragmentOutput{
+		[[builtin(frag_depth)]] depth : f32;
+		[[location(0)]] color : vec4<f32>;
+	};
+
 	fn toLinear(depth: f32, near: f32) -> f32{
 		return near / depth;
 	}
 
 	[[stage(fragment)]]
-	fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
+	fn main(input : FragmentInput) -> FragmentOutput {
+
+		var output : FragmentOutput;
 
 		var avg : vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0);
 
@@ -110,92 +118,72 @@ let fs = `
 		var closest : f32 = 0.0;
 
 		for(var i : i32 = -window; i <= window; i = i + 1){
-			for(var j : i32 = -window; j <= window; j = j + 1){
-				var coords : vec2<i32>;
-				coords.x = i32(input.fragCoord.x) + i;
-				coords.y = i32(input.fragCoord.y) + j;
+		for(var j : i32 = -window; j <= window; j = j + 1){
+			var coords : vec2<i32>;
+			coords.x = i32(input.fragCoord.x) + i;
+			coords.y = i32(input.fragCoord.y) + j;
 
-				var d : f32 = textureLoad(myDepth, coords, 0).x;
+			var d : f32 = textureLoad(myDepth, coords, 0).x;
 
-				closest = max(closest, d);
-			}
+			closest = max(closest, d);
+		}
 		}
 
 		var closestLinear : f32 = toLinear(closest, uniforms.near);
 		
 		for(var i : i32 = -window; i <= window; i = i + 1){
-			for(var j : i32 = -window; j <= window; j = j + 1){
-				var coords : vec2<i32>;
-				coords.x = i32(input.fragCoord.x) + i;
-				coords.y = i32(input.fragCoord.y) + j;
+		for(var j : i32 = -window; j <= window; j = j + 1){
+			var coords : vec2<i32>;
+			coords.x = i32(input.fragCoord.x) + i;
+			coords.y = i32(input.fragCoord.y) + j;
 
-				var d : f32 = textureLoad(myDepth, coords, 0).x;
-				var linearD : f32 = toLinear(d, uniforms.near);
+			var d : f32 = textureLoad(myDepth, coords, 0).x;
+			var linearD : f32 = toLinear(d, uniforms.near);
 
-				var isBackground : bool = d == 0.0;
-				var isInRange : bool = linearD <= closestLinear * 1.01;
+			var isBackground : bool = d == 0.0;
+			var isInRange : bool = linearD <= closestLinear * 1.01;
 
-				if(isInRange && !isBackground){
-					var manhattanDistance : f32 = f32(abs(i) + abs(j));
+			if(isInRange && !isBackground){
+				var manhattanDistance : f32 = f32(abs(i) + abs(j));
 
-					var weight : f32 = 1.0;
+				var weight : f32 = 1.0;
 
-					if(manhattanDistance <= 0.0){
-						weight = 10.0;
-					}elseif(manhattanDistance <= 1.0){
-						weight = 0.3;
-					}elseif(manhattanDistance <= 2.0){
-						weight = 0.01;
-					}else{
-						weight = 0.001;
-					}
-					
-					var color : vec4<f32> = textureLoad(myTexture, coords, 0);
-					color.x = color.x * weight;
-					color.y = color.y * weight;
-					color.z = color.z * weight;
-					color.w = color.w * weight;
-
-					avg = avg + color;
+				if(manhattanDistance <= 0.0){
+					weight = 10.0;
+				}elseif(manhattanDistance <= 1.0){
+					weight = 0.3;
+				}elseif(manhattanDistance <= 2.0){
+					weight = 0.01;
+				}else{
+					weight = 0.001;
 				}
+				
+				var color : vec4<f32> = textureLoad(myTexture, coords, 0);
+				color.x = color.x * weight;
+				color.y = color.y * weight;
+				color.z = color.z * weight;
+				color.w = color.w * weight;
+
+				avg = avg + color;
 			}
 		}
-
-		var outColor : vec4<f32>;
+		}
 
 		if(avg.w == 0.0){
-			outColor = vec4<f32>(0.1, 0.2, 0.3, 1.0);
+			output.color = vec4<f32>(0.1, 0.2, 0.3, 1.0);
+			output.depth = 0.0;
 		}else{
+			// avg = avg / avg.w;
 			avg.x = avg.x / avg.w;
 			avg.y = avg.y / avg.w;
 			avg.z = avg.z / avg.w;
 			avg.w = 1.0;
-			outColor = avg;
+
+			output.color = avg;
+			output.depth = closest;
 		}
 
-		// visualize whatever
-		// outColor.r = closestLinear / 10.0;
-		// outColor.g = 0.0;
-		// outColor.b = 0.0;
-		// outColor.w = 1.0;
-
-		// visuallize depth
-		// {
-		// 	var coords : vec2<i32>;
-		// 	coords.x = i32(input.fragCoord.x);
-		// 	coords.y = i32(input.fragCoord.y);
-		// 	var d : f32 = textureLoad(myDepth, coords, 0).x;
-		// 	var ld : f32 = toLinear(d, uniforms.near);
-
-		// 	outColor = vec4<f32>(
-		// 		ld, 
-		// 		0.0, 
-		// 		0.0, 
-		// 		1.0
-		// 	);
-		// }
-
-		return outColor;
+		return output;
 	}
 `;
 
@@ -299,13 +287,13 @@ function init(renderer){
 
 }
 
-export function renderDilate(renderer, pointclouds, camera){
+export function renderDilate(renderer, pass, pointclouds, camera){
 
 	init(renderer);
 
 	let size = renderer.getSize();
 
-	{ // PASS 1
+	{ // PASS 1: Draw points to a texture
 		let target = getTarget1(renderer);
 		target.setSize(size.width, size.height);
 
@@ -362,36 +350,25 @@ export function renderDilate(renderer, pointclouds, camera){
 
 		let commandBuffer = pass.commandEncoder.finish();
 		renderer.device.queue.submit([commandBuffer]);
+
+		// if((renderer.frameCounter % 100) === 0){
+		// 	renderer.readPixels(target.depth.texture, 0, 0, 60, 60).then(result => {
+		// 	// renderer.readPixels(target.colorAttachments[0].texture, 0, 0, 60, 60).then(result => {
+		// 		console.log(new Float32Array(result));
+		// 		// console.log(new Uint8Array(result));
+		// 	});
+		// }
+
+		if((renderer.frameCounter % 100) === 0){
+			readPixels(renderer, target.colorAttachments[0].texture, 0, 0, 4, 4);
+		}
 	}
 
-	{ // PASS 2
+	{ // PASS 2: Dilate and write result to main framebuffer
 
-		let target = getTarget2(renderer);
-		target.setSize(size.width, size.height);
-
-		let renderPassDescriptor = {
-			colorAttachments: [
-				{
-					view: target.colorAttachments[0].texture.createView(),
-					loadValue: { r: 0.4, g: 0.2, b: 0.3, a: 0.0 },
-				},
-			],
-			depthStencilAttachment: {
-				view: target.depth.texture.createView({aspect: "depth-only"}),
-				depthLoadValue: 0.0,
-				depthStoreOp: "store",
-				stencilLoadValue: 0,
-				stencilStoreOp: "store",
-			},
-			sampleCount: 1,
-		};
-
-		const commandEncoder = renderer.device.createCommandEncoder();
-		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+		let {passEncoder} = pass;
 
 		Timer.timestamp(passEncoder,"dilate-pass2-start");
-
-		let pass = {commandEncoder, passEncoder, renderPassDescriptor};
 
 		passEncoder.setPipeline(pipeline);
 
@@ -421,14 +398,6 @@ export function renderDilate(renderer, pointclouds, camera){
 		passEncoder.draw(6, 1, 0, 0);
 
 		Timer.timestamp(passEncoder,"dilate-pass2-end");
-
-		pass.passEncoder.endPass();
-
-		Timer.resolve(renderer, commandEncoder);
-
-		let commandBuffer = pass.commandEncoder.finish();
-		renderer.device.queue.submit([commandBuffer]);
-
 	}
 
 	return getTarget2(renderer);

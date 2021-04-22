@@ -26,3 +26,5 @@ export * from "./modules/points/Points.js";
 export * as Timer from "./renderer/Timer.js";
 export * from "./potree/PointCloudOctree.js";
 export * from "./potree/PointCloudOctreeNode.js";
+export {render as renderMesh} from "./modules/mesh/renderMesh.js";
+export {load as loadGLB} from "./misc/GLBLoader.js";

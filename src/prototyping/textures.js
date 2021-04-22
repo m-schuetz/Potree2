@@ -43,7 +43,7 @@ let vs = `
 
 		var output : VertexOutput;
 
-		output.position = vec4<f32>(pos[vertex.index], 0.999, 1.0);
+		output.position = vec4<f32>(pos[vertex.index], 0.01, 1.0);
 		output.uv = uv[vertex.index];
 
 		var x : f32 = uniforms.x * 2.0 - 1.0;
