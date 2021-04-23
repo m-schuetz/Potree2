@@ -16,8 +16,11 @@ export class MeasureTool{
 
 			if(node){
 				Potree.pick(x, y, (result) => {
-					node.position.copy(result.position);
-					node.updateWorld();
+
+					if(result.depth !== Infinity){
+						node.position.copy(result.position);
+						node.updateWorld();
+					}
 				});
 			}
 

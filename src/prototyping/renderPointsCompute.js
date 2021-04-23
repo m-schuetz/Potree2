@@ -214,11 +214,11 @@ let vs = `
 	[[builtin(vertex_idx)]] var<in> VertexIndex : i32;
 
 	[[block]] struct Uniforms {
-		[[offset(0)]] uTest : u32;
-		[[offset(4)]] x : f32;
-		[[offset(8)]] y : f32;
-		[[offset(12)]] width : f32;
-		[[offset(16)]] height : f32;
+		uTest : u32;
+		x : f32;
+		y : f32;
+		width : f32;
+		height : f32;
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
@@ -261,21 +261,21 @@ let vs = `
 let fs = `
 
 	[[block]] struct Colors {
-		[[offset(0)]] values : [[stride(4)]] array<u32>;
+		values : [[stride(4)]] array<u32>;
 	};
 
 	[[block]] struct Uniforms {
-		[[offset(0)]] uTest : u32;
-		[[offset(4)]] x : f32;
-		[[offset(8)]] y : f32;
-		[[offset(12)]] width : f32;
-		[[offset(16)]] height : f32;
-		[[offset(20)]] screenWidth : f32;
-		[[offset(24)]] screenHeight : f32;
+		uTest : u32;
+		x : f32;
+		y : f32;
+		width : f32;
+		height : f32;
+		screenWidth : f32;
+		screenHeight : f32;
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[binding(1), set(0)]] var<storage_buffer> ssbo_colors : Colors;
+	[[binding(1), set(0)]] var<storage_buffer> ssbo_colors : [[access(read)]]Colors;
 
 	[[location(0)]] var<out> outColor : vec4<f32>;
 
@@ -371,7 +371,7 @@ function getDepthState(renderer){
 		});
 
 		let pipeline = device.createComputePipeline({
-			computeStage: {
+			compute: {
 				module: csModule,
 				entryPoint: "main",
 			}
@@ -405,7 +405,7 @@ function getColorState(renderer){
 		});
 
 		let pipeline = device.createComputePipeline({
-			computeStage: {
+			compute: {
 				module: csModule,
 				entryPoint: "main",
 			}
@@ -436,7 +436,7 @@ function getResetState(renderer){
 		let csModule = device.createShaderModule(csDescriptor);
 
 		let pipeline = device.createComputePipeline({
-			computeStage: {
+			compute: {
 				module: csModule,
 				entryPoint: "main",
 			}
@@ -454,23 +454,24 @@ function getScreenPassState(renderer){
 		let {device, swapChainFormat} = renderer;
 
 		let pipeline = device.createRenderPipeline({
-			vertexStage: {
+			vertex: {
 				module: device.createShaderModule({code: vs}),
 				entryPoint: "main",
 			},
-			fragmentStage: {
+			fragment: {
 				module: device.createShaderModule({code: fs}),
 				entryPoint: "main",
+				targets: [{format: "bgra8unorm"}],
 			},
-			primitiveTopology: "triangle-list",
-			depthStencilState: {
+			primitive: {
+				topology: 'triangle-list',
+				cullMode: 'none',
+			},
+			depthStencil: {
 					depthWriteEnabled: true,
 					depthCompare: 'greater',
 					format: "depth32float",
 			},
-			colorStates: [{
-				format: swapChainFormat,
-			}],
 		});
 
 		let uniformBufferSize = 32;
@@ -539,8 +540,8 @@ export function render(renderer, node, camera){
 			glslang = result;
 		});
 
-		console.log("glslang not yet initialized");
-
+		return;
+	}else if(glslang === null){
 		return;
 	}
 
@@ -740,11 +741,11 @@ export function render(renderer, node, camera){
 
 		let renderPassDescriptor = {
 			colorAttachments: [{
-				attachment: target.colorAttachments[0].texture.createView(),
+				view: target.colorAttachments[0].texture.createView(),
 				loadValue: { r: 0.4, g: 0.2, b: 0.3, a: 1.0 },
 			}],
 			depthStencilAttachment: {
-				attachment: target.depth.texture.createView(),
+				view: target.depth.texture.createView(),
 				depthLoadValue: 0.0,
 				depthStoreOp: "store",
 				stencilLoadValue: 0,

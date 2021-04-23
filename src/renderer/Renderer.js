@@ -44,8 +44,6 @@ export class Renderer{
 		this.buffers = new Map();
 		this.typedBuffers = new Map();
 		this.textures = new Map();
-
-		this.picks = [];
 	}
 
 	async init(){
@@ -73,9 +71,9 @@ export class Renderer{
 			},
 			format: "depth32float",
 			usage: GPUTextureUsage.SAMPLED 
-					| GPUTextureUsage.COPY_SRC 
-					| GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.RENDER_ATTACHMENT,
+				| GPUTextureUsage.COPY_SRC 
+				| GPUTextureUsage.COPY_DST 
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 	}
 
@@ -103,7 +101,10 @@ export class Renderer{
 					height: this.canvas.height,
 				},
 				format: "depth32float",
-				usage: GPUTextureUsage.RENDER_ATTACHMENT,
+				usage: GPUTextureUsage.SAMPLED 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			});
 		}
 	}
@@ -372,14 +373,13 @@ export class Renderer{
 
 	finish(pass){
 
-		// resolve picks now
-		// for(let pick of picks){
-
-		// }
-
 		// if((this.frameCounter % 100) === 0){
 		// 	readDepth(this, this.depthTexture, 0, 0, 4, 4);
 		// }
+
+		// readDepth(renderer, this.depthTexture, 500, 500, 8, 8, ({d}) => {
+		// 	console.log("yeah: ", d);
+		// });
 
 
 		pass.passEncoder.endPass();
@@ -411,35 +411,5 @@ export class Renderer{
 		renderBoundingBoxes(this, pass, this.draws.boundingBoxes, camera);
 		renderLines(this, pass, this.draws.lines, camera);
 	}
-
-	pick(x, y, callback){
-		this.picks.push({x, y, callback});
-	}
-
-
-	// render(scene, camera){
-	// 	let nodes = new Map();
-
-	// 	let stack = [scene.root];
-	// 	while(stack.length > 0){
-	// 		let node = stack.pop();
-
-	// 		let nodeType = node.constructor.name;
-	// 		if(!nodes.has(nodeType)){
-	// 			nodes.set(nodeType, []);
-	// 		}
-	// 		nodes.get(nodeType).push(node);
-
-	// 		for(let child of node.children){
-	// 			stack.push(child);
-	// 		}
-	// 	}
-
-
-
-
-
-
-	// }
 
 };

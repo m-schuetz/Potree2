@@ -351,39 +351,6 @@ export function renderDilate(renderer, pass, pointclouds, camera){
 
 		let commandBuffer = pass.commandEncoder.finish();
 		renderer.device.queue.submit([commandBuffer]);
-
-		// if((renderer.frameCounter % 100) === 0){
-		// 	renderer.readPixels(target.depth.texture, 0, 0, 60, 60).then(result => {
-		// 	// renderer.readPixels(target.colorAttachments[0].texture, 0, 0, 60, 60).then(result => {
-		// 		console.log(new Float32Array(result));
-		// 		// console.log(new Uint8Array(result));
-		// 	});
-		// }
-
-		// if((renderer.frameCounter % 10) === 0){
-			
-			for(let {x, y, callback} of Potree.pickQueue){
-
-				let u = x / renderer.canvas.clientWidth;
-				let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
-				let pos = camera.getWorldPosition();
-				let dir = camera.mouseToDirection(u, v);
-				let near = camera.near;
-
-				let window = 9;
-				let wh = 4;
-				readDepth(renderer, target.depth.texture, x - wh, y - wh, window, window, ({d}) => {
-					
-					let depth = near / d;
-					
-					dir.multiplyScalar(depth);
-					let position = pos.add(dir);
-
-					callback({depth, position});
-				});
-			}
-			Potree.pickQueue.length = 0;
-		// }
 	}
 
 	{ // PASS 2: Dilate and write result to main framebuffer

@@ -13,6 +13,7 @@ import {Potree} from "potree";
 import {renderMesh} from "potree";
 import {loadGLB} from "potree";
 import {MeasureTool} from "./src/interaction/measure.js";
+import {readPixels, readDepth} from "./src/renderer/readPixels.js";
 
 
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
@@ -176,6 +177,10 @@ function render(){
 		drawImage(renderer, pass, dbgImage, 0.1, 0.1, 0.1, 0.1);
 	}
 
+	if(target){
+		drawTexture(renderer, pass, target, 0, 0, 0.5, 0.5);
+	}
+
 	if(guiContent["mode"] === "pixels"){
 		let points = renderables.get("Points") ?? [];
 
@@ -189,6 +194,36 @@ function render(){
 		}
 	}
 
+	// if(pointcloud.pointSize === 1){
+	// 	renderPoints(renderer, pass, pointcloud, camera);
+	// }else{
+	// 	renderQuads(renderer, pass, pointcloud, camera);
+	// }
+
+	{
+		for(let {x, y, callback} of Potree.pickQueue){
+
+			let u = x / renderer.canvas.clientWidth;
+			let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
+			let pos = camera.getWorldPosition();
+			let dir = camera.mouseToDirection(u, v);
+			let near = camera.near;
+
+			let window = 2;
+			let wh = 1;
+			readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
+				
+				let depth = near / d;
+				
+				dir.multiplyScalar(depth);
+				let position = pos.add(dir);
+
+				callback({depth, position});
+			});
+		}
+		Potree.pickQueue.length = 0;
+	}
+
 	{ // MESHES
 		let meshes = renderables.get("Mesh") ?? [];
 
@@ -196,12 +231,6 @@ function render(){
 			renderMesh(renderer, pass, mesh, camera, renderables);
 		}
 	}
-
-	// if(pointcloud.pointSize === 1){
-	// 	renderPoints(renderer, pass, pointcloud, camera);
-	// }else{
-	// 	renderQuads(renderer, pass, pointcloud, camera);
-	// }
 
 	renderer.renderDrawCommands(pass, camera);
 	renderer.finish(pass);
@@ -241,11 +270,11 @@ async function main(){
 		radius: 10,
 	});
 
-	// {
-	// 	let points = createPointsData(1_000);
-	// 	scene.root.children.push(points);
+	{
+		let points = createPointsData(1_000);
+		scene.root.children.push(points);
 
-	// }
+	}
 
 	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 	// 	// controls.set({
@@ -307,6 +336,7 @@ async function main(){
 
 	{
 		let mesh = new Mesh("cube", cube);
+		mesh.scale.set(0.5, 0.5, 0.5);
 
 		scene.root.children.push(mesh);
 	}

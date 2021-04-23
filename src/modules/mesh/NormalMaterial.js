@@ -3,52 +3,66 @@ import {Vector3, Matrix4} from "../../math/math.js";
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
+	worldView : mat4x4<f32>;
+	proj : mat4x4<f32>;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> in_position : vec4<f32>;
-[[location(1)]] var<in> in_normal : vec4<f32>;
+[[location(0)]] var<in> position : vec4<f32>;
+[[location(1)]] var<in> normal : vec4<f32>;
 
-[[builtin(position)]] var<out> Position : vec4<f32>;
+struct VertexInput {
+	[[location(0)]] position        : vec4<f32>;
+	[[location(1)]] normal          : vec4<f32>;
+};
 
-[[location(0)]] var<out> out_color : vec4<f32>;
+struct VertexOutput {
+	[[builtin(position)]] position  : vec4<f32>;
+	[[location(3)]] color           : vec4<f32>;
+};
 
 [[stage(vertex)]]
-fn main() -> void {
+fn main(vertex : VertexInput) -> VertexOutput {
 
-	Position = uniforms.proj * uniforms.worldView * in_position;
+	var output : VertexOutput;
 
-	out_color = vec4<f32>(in_normal.xyz, 1.0);
+	output.position = uniforms.proj * uniforms.worldView * vertex.position;
 
-	return;
+	output.color = vec4<f32>(vertex.normal.xyz, 1.0);
+
+	return output;
 }
 `;
 
 const fs = `
 
 [[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
+	worldView : mat4x4<f32>;
+	proj : mat4x4<f32>;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> in_color : vec4<f32>;
+struct FragmentInput {
+	[[builtin(position)]] position  : vec4<f32>;
+	[[location(3)]] color           : vec4<f32>;
+};
 
-[[location(0)]] var<out> out_color : vec4<f32>;
+struct FragmentOutput {
+	[[location(0)]] color : vec4<f32>;
+};
 
 [[stage(fragment)]]
-fn main() -> void {
+fn main(fragment : FragmentInput) -> FragmentOutput {
 
 	// var N : vec3<f32> = (uniforms.worldView * vec4<f32>(in_normal.xyz, 0.0)).xyz;
 	// N = normalize(N);
 
-	out_color = in_color;
+	var output : FragmentOutput;
+	output.color = fragment.color;
 
-	return;
+	return output;
 }
 `;
 
@@ -65,22 +79,10 @@ function initialize(renderer){
 	let {device} = renderer;
 
 	pipeline = device.createRenderPipeline({
-		vertexStage: {
+		vertex: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",
-		},
-		fragmentStage: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-		},
-		primitiveTopology: "triangle-list",
-		depthStencilState: {
-			depthWriteEnabled: true,
-			depthCompare: 'greater',
-			format: "depth32float",
-		},
-		vertexState: {
-			vertexBuffers: [
+			buffers: [
 				{ // position
 					arrayStride: 3 * 4,
 					attributes: [{ 
@@ -98,12 +100,20 @@ function initialize(renderer){
 				},
 			],
 		},
-		rasterizationState: {
-			cullMode: "none",
+		fragment: {
+			module: device.createShaderModule({code: fs}),
+			entryPoint: "main",
+			targets: [{format: "bgra8unorm"}],
 		},
-		colorStates: [{
-				format: "bgra8unorm",
-		}],
+		primitive: {
+			topology: 'triangle-list',
+			cullMode: 'none',
+		},
+		depthStencil: {
+			depthWriteEnabled: false,
+			depthCompare: 'greater',
+			format: "depth32float",
+		},
 	});
 
 	const uniformBufferSize = 256; 
