@@ -43,7 +43,7 @@ td{
 		grid-column: 1; grid-row: 1">
 </canvas>
 
-<span style="position: absolute; left: 10px; top: 10px; 
+<!-- <span style="position: absolute; left: 10px; top: 10px; 
 	background-color: white; opacity: 0.7; padding: 10px;">
 	
 	<span style="font-weight: bold">WebGPU based Las & LAZ viewer prototype:</span>
@@ -55,28 +55,20 @@ td{
 		<li>Github: <a href="https://github.com/m-schuetz/Potree2">https://github.com/m-schuetz/Potree2</a></li>
 	</ul>
 
-	<!-- <span style="font-weight: bold;">Instructions:</span>
-	<ul>
-		<li>Drag & Drop LAS or LAZ files into the browser.</li>
-		<li>After 1-2 seconds, you should start seeing your point cloud in 3D<br> while it's beeing loaded.</li>
-		<li>Try different rendering modes. The default, "compute/packed" is <br>fastest on RTX 2080,
-		but on older GPUs, "points" might be faster.</li>
-	</ul>
-
-	<span style="font-weight: bold; color: red">Current Limitations:</span>
-	<ul>
-		<li>Limited to 150 million points!</li>
-		<li>No LOD! On low-end GPUs, try to stay below 50M points!</li>
-		<li>LAZ files limited to around 150MB!</li>
-		<li>No memory management! <br>Reload page before loading a new data set!</li>
-	</ul> -->
-
-	
-
-</span>
+</span> -->
 
 <span id="big_message"></span>
 <span id="msg_dbg"></span>
+
+<script type="importmap">
+{
+	"imports": {
+		"potree": "./src/Potree.js",
+		"dat.gui": "./libs/dat.gui/dat.gui.module.js",
+		"glslang": "./libs/glslang/glslang.js"
+	}
+}
+</script>
 
 <script type="module" src="main.js"></script>
 

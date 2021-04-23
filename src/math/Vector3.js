@@ -81,14 +81,14 @@ export class Vector3{
 		return this.x * v.x + this.y * v.y + this.z * v.z;
 	}
 
-	distanceTo(b){
-		let a = this;
+	distanceTo( v ) {
+		return Math.sqrt( this.distanceToSquared( v ) );
+	}
 
-		let dd = (a.x - b.x) ** 2 
-		       + (a.y - b.y) ** 2 
-		       + (a.z - b.z) ** 2;
+	distanceToSquared( v ) {
+		const dx = this.x - v.x, dy = this.y - v.y, dz = this.z - v.z;
 
-		return Math.sqrt(dd);
+		return dx * dx + dy * dy + dz * dz;
 	}
 
 	clone(){

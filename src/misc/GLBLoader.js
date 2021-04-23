@@ -2,7 +2,7 @@
 import {Geometry} from "../core/Geometry.js";
 import {SceneNode} from "../scene/SceneNode.js";
 import {Mesh} from "../modules/mesh/Mesh.js";
-import {PhongMaterial} from "../modules/mesh/PhongMaterial.js";
+import {PhongMaterial, ColorMode} from "../modules/mesh/PhongMaterial.js";
 import {Box3, Vector3} from "../math/math.js";
 
 
@@ -112,42 +112,8 @@ export async function load(url){
 
 		mesh.material = new PhongMaterial();
 		mesh.material.image = imageBitmap;
+		mesh.material.colorMode = ColorMode.TEXTURE;
 	}
-
-
-
-	// let n = 100;
-	// let position = new Float32Array(3 * n);
-	// let color = new Float32Array(4 * n);
-	// let uv = new Float32Array(2 * n);
-	// let normal = new Float32Array(4 * n);
-
-	// for(let i = 0; i < n; i++){
-	// 	position[3 * i + 0] = Math.random();
-	// 	position[3 * i + 1] = Math.random();
-	// 	position[3 * i + 2] = Math.random();
-
-	// 	color[4 * i + 0] = Math.random();
-	// 	color[4 * i + 1] = Math.random();
-	// 	color[4 * i + 2] = Math.random();
-	// 	color[4 * i + 3] = 1;
-
-	// 	uv[2 * i + 0] = Math.random();
-	// 	uv[2 * i + 1] = Math.random();
-
-	// 	normal[3 * i + 0] = Math.random();
-	// 	normal[3 * i + 1] = Math.random();
-	// 	normal[3 * i + 2] = Math.random();
-	// }
-
-	// let geometry = new Geometry();
-	// geometry.numElements = n * 3;
-	// geometry.buffers = [
-	// 	{name: "position", buffer: position},
-	// 	{name: "color", buffer: color},
-	// 	{name: "uv", buffer: uv},
-	// 	{name: "normal", buffer: normal},
-	// ];
 
 	let duration = performance.now() - tStart;
 	console.log("duration: " + duration  + "ms");

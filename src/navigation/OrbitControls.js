@@ -73,7 +73,7 @@ export class OrbitControls{
 		}
 	}
 
-	zoomTo(node){
+	zoomTo(node, args){
 
 		let box = new Box3();
 		let tmp = new Box3();
@@ -92,7 +92,8 @@ export class OrbitControls{
 		});
 
 		let pivot = box.center();
-		let radius = box.size().length() * 0.8;
+		let multiplier = args.zoom ?? 1.0;
+		let radius = box.size().length() * 0.8 * multiplier;
 
 		this.set({pivot, radius});
 

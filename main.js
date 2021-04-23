@@ -1,39 +1,24 @@
 
+import {Vector3} from "potree";
+import {Scene, SceneNode, Camera, OrbitControls, Mesh} from "potree";
+import {Renderer, Timer} from "potree";
 
-import {Renderer} from "./src/renderer/Renderer.js";
-import {Camera} from "./src/scene/Camera.js";
-import {Scene} from "./src/scene/Scene.js";
-import {PointLight} from "./src/scene/PointLight.js";
-import {Mesh} from "./src/modules/mesh/Mesh.js";
-import {PhongMaterial} from "./src/modules/mesh/PhongMaterial.js";
-import {NormalMaterial} from "./src/modules/mesh/NormalMaterial.js";
-import {render as renderMesh} from "./src/modules/mesh/renderMesh.js";
-import {OrbitControls} from "./src/navigation/OrbitControls.js";
-import {Vector3, Matrix4} from "./src/math/math.js";
-import {Geometry} from "./src/core/Geometry.js";
-import {cube, createWave} from "./src/prototyping/cube.js";
-import {load as loadOBJ} from "./src/misc/OBJLoader.js";
-import {load as loadGLB} from "./src/misc/GLBLoader.js";
+import {render as renderPointsTest} from "./src/prototyping/renderPoints.js";
+import {render as renderPointsCompute} from "./src/prototyping/renderPointsCompute.js";
+import {drawTexture, loadImage, drawImage} from "./src/prototyping/textures.js";
+import {createPointsData} from "./src/modules/geometries/points.js";
+import {cube} from "./src/modules/geometries/cube.js";
+import {initGUI} from "./src/prototyping/gui.js";
+import {Potree} from "potree";
+import {renderMesh} from "potree";
+import {loadGLB} from "potree";
+import {MeasureTool} from "./src/interaction/measure.js";
+import {readPixels, readDepth} from "./src/renderer/readPixels.js";
 
-import {Potree} from "./src/Potree.js";
 
-import {render as renderQuads}  from "./src/potree/renderQuads.js";
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
-import {render as renderPointsArbitraryAttributes}  from "./src/potree/renderPoints_arbitrary_attributes.js";
 import {renderDilate}  from "./src/potree/renderDilate.js";
-import {renderAtomic}  from "./src/potree/renderAtomic.js";
-import {renderAtomicDilate} from "./src/potree/render_compute_dilate/render_compute_dilate.js";
-import {renderComputeLoop} from "./src/potree/render_compute_loop/render_compute_loop.js";
-import {renderComputeNoDepth} from "./src/potree/render_compute_no_depth/render_compute_no_depth.js";
-import {render as renderComputePacked} from "./src/potree/render_compute_packed/render_compute_packed.js";
-import {render as renderComputeXRay} from "./src/potree/render_compute_xray/render_compute_xray.js";
-import {render as renderProgressive} from "./src/potree/render_progressive/render_progressive.js";
-import {loadImage, drawTexture} from "./src/prototyping/textures.js";
-import * as Timer from "./src/renderer/Timer.js";
-
-import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
-
-import * as dat from "./libs/dat.gui/dat.gui.module.js";
+// import {render as renderPoints}  from "./src/potree/arbitrary_attributes/renderPoints_arbitrary_attributes.js";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -43,77 +28,12 @@ let fps = 0;
 let renderer = null;
 let camera = null;
 let controls = null;
-let progress = null;
+let measure = null;
 
 let scene = new Scene();
+window.scene = scene;
 
-let boxes = [];
-
-let gui = null;
-let guiContent = {
-	"#points": "0",
-	"#nodes": "0",
-	"fps": "0",
-	"duration(update)": "0",
-	// "timings": "",
-	"camera": "",
-
-	"show bounding box": false,
-	"mode": "points",
-	// "mode": "points/quads",
-	//"mode": "points/atomic",
-	// "mode": "compute/dilate",
-	// "mode": "compute/xray",
-	// "mode": "compute/packed",
-	// "mode": "compute/loop",
-	// "mode": "compute/no_depth",
-	// "mode": "progressive",
-	"point budget (M)": 2,
-	"point size": 1,
-	"update": true,
-};
-window.guiContent = guiContent;
-
-
-function initGUI(){
-
-	gui = new dat.GUI();
-	
-	{
-		let stats = gui.addFolder("stats");
-		stats.open();
-		stats.add(guiContent, "#points").listen();
-		stats.add(guiContent, "#nodes").listen();
-		stats.add(guiContent, "fps").listen();
-		stats.add(guiContent, "duration(update)").listen();
-		stats.add(guiContent, "camera").listen();
-	}
-
-	{
-		let input = gui.addFolder("input");
-		input.open();
-
-		input.add(guiContent, "mode", [
-			"points", 
-			"points/quads", 
-			"points/dilate", 
-			"points/atomic",
-			"compute/dilate",
-			"compute/loop",
-			"compute/no_depth",
-			"compute/packed",
-			"compute/xray",
-			"progressive",
-			]);
-		input.add(guiContent, "show bounding box");
-		input.add(guiContent, "update");
-
-		// slider
-		input.add(guiContent, 'point budget (M)', 0.1, 5);
-		input.add(guiContent, 'point size', 1, 5);
-	}
-
-}
+let dbgImage = null;
 
 function update(){
 	let now = performance.now();
@@ -135,13 +55,15 @@ function update(){
 	camera.world.copy(controls.world);
 
 	camera.updateView();
-	guiContent["camera"] = camera.getWorldPosition().toString(1);
+	guiContent["cam.pos"] = camera.getWorldPosition().toString(1);
+	guiContent["cam.dir"] = camera.getWorldDirection().toString(1);
 
 	let size = renderer.getSize();
 	camera.aspect = size.width / size.height;
 	camera.updateProj();
 
 	let pointcloud = window.pointcloud;
+
 	if(pointcloud){
 		pointcloud.showBoundingBox = guiContent["show bounding box"];
 		pointcloud.pointBudget = guiContent["point budget (M)"] * 1_000_000;
@@ -161,9 +83,39 @@ function update(){
 		guiContent["#points"] = numPoints.toLocaleString();
 		guiContent["#nodes"] = numNodes.toLocaleString();
 	}
+
+
+	// {
+	// 	let node = scene.root.children.find(c => c.constructor.name === "Mesh");
+
+	// 	if(node){
+	// 		// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	// 		// node.position.set(5, 0, 3);
+	// 		// node.scale.set(2, 2, 2);
+
+	// 		// let dir = camera.mouseToDirection(u, v);
+	// 		let dir = camera.getWorldDirection();
+
+	// 		// if(dbgDepth !== Infinity){
+	// 			// dir.multiplyScalar(dbgDepth);
+	// 			dir.multiplyScalar(10.0);
+
+	// 			let pos = camera.getWorldPosition().add(dir);
+
+	// 			node.position.copy(pos);
+	// 			node.rotation.makeIdentity();
+	// 			node.updateWorld();
+
+	// 		// }
+
+
+	// 	}
+	// }
 }
 
 function render(){
+
+	Timer.setEnabled(true);
 
 	let renderables = new Map();
 
@@ -178,93 +130,106 @@ function render(){
 		renderables.get(nodeType).push(node);
 
 		for(let child of node.children){
+
+			child.updateWorld();
+			child.world.multiplyMatrices(node.world, child.world);
+
 			stack.push(child);
 		}
 	}
 
-	let pointcloud = window.pointcloud;
+	let octrees = renderables.get("PointCloudOctree") ?? [];
+	for(let octree of octrees){
+
+		octree.showBoundingBox = guiContent["show bounding box"];
+		octree.pointBudget = guiContent["point budget (M)"] * 1_000_000;
+		octree.pointSize = guiContent["point size"];
+		octree.updateVisibility(camera);
+
+		let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
+		let numNodes = octree.visibleNodes.length;
+
+		guiContent["#points"] = numPoints.toLocaleString();
+		guiContent["#nodes"] = numNodes.toLocaleString();
+	}
+
 	let target = null;
 
 	Timer.frameStart(renderer);
+	
+	if(guiContent["mode"] === "HQS"){
+		let points = renderables.get("Points") ?? [];
 
-	let shouldDrawTarget = false;
-	if(pointcloud && guiContent["mode"] === "points/dilate"){
-		target = renderDilate(renderer, pointcloud, camera);
-		target = target.colorAttachments[0].texture;
-
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "points/atomic"){
-		target = renderAtomic(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/dilate"){
-		target = renderAtomicDilate(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/loop"){
-		target = renderComputeLoop(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/packed"){
-		target = renderComputePacked(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/no_depth"){
-		target = renderComputeNoDepth(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "compute/xray"){
-		target = renderComputeXRay(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
-	}else if(pointcloud && guiContent["mode"] === "progressive"){
-		target = renderProgressive(renderer, pointcloud, camera);
-		shouldDrawTarget = true;
+		for(let point of points){
+			target = renderPointsCompute(renderer, point, camera);
+		}
 	}
-
-	Timer.timestampSep(renderer, "000");
-
 
 	let pass = renderer.start();
 
-	Timer.timestamp(pass.passEncoder, "010");
+	if(guiContent["mode"] === "dilate"){
+		let octrees = renderables.get("PointCloudOctree") ?? [];
 
-	// draw point cloud
-	if(pointcloud && guiContent["mode"] === "points"){
-		renderPointsArbitraryAttributes(renderer, pass, pointcloud, camera);
-		// renderPoints(renderer, pass, pointcloud, camera);
-	}else if(pointcloud && guiContent["mode"] === "points/quads"){
+		renderDilate(renderer, pass, octrees, camera);
+	}
 
-		if(pointcloud.pointSize === 1){
-			renderPoints(renderer, pass, pointcloud, camera);
-		}else{
-			renderQuads(renderer, pass, pointcloud, camera);
-		}
-	}else if(shouldDrawTarget){
+	if(dbgImage){
+		drawImage(renderer, pass, dbgImage, 0.1, 0.1, 0.1, 0.1);
+	}
+
+	if(target){
 		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}
 
-	Timer.timestamp(pass.passEncoder, "020");
-	
+	if(guiContent["mode"] === "pixels"){
+		let points = renderables.get("Points") ?? [];
 
-	// { // draw xyz axes
-	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(2, 0, 0), new Vector3(255, 0, 0));
-	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 2, 0), new Vector3(0, 255, 0));
-	// 	renderer.drawLine(new Vector3(0, 0, 0), new Vector3(0, 0, 2), new Vector3(0, 0, 255));
-	// }
+		for(let point of points){
+			renderPointsTest(renderer, pass, point, camera);
+		}
 
-	// draw boxes
-	if(guiContent["show bounding box"]){ 
-		for(let box of boxes){
-			let position = box.center();
-			let size = box.size();
-			let color = new Vector3(255, 255, 0);
-
-			renderer.drawBoundingBox(position, size, color);
+		let octrees = renderables.get("PointCloudOctree") ?? [];
+		for(let octree of octrees){
+			renderPoints(renderer, pass, octree, camera);
 		}
 	}
 
+	// if(pointcloud.pointSize === 1){
+	// 	renderPoints(renderer, pass, pointcloud, camera);
+	// }else{
+	// 	renderQuads(renderer, pass, pointcloud, camera);
+	// }
+
 	{
+		for(let {x, y, callback} of Potree.pickQueue){
+
+			let u = x / renderer.canvas.clientWidth;
+			let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
+			let pos = camera.getWorldPosition();
+			let dir = camera.mouseToDirection(u, v);
+			let near = camera.near;
+
+			let window = 2;
+			let wh = 1;
+			readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
+				
+				let depth = near / d;
+				
+				dir.multiplyScalar(depth);
+				let position = pos.add(dir);
+
+				callback({depth, position});
+			});
+		}
+		Potree.pickQueue.length = 0;
+	}
+
+	{ // MESHES
 		let meshes = renderables.get("Mesh") ?? [];
 
 		for(let mesh of meshes){
 			renderMesh(renderer, pass, mesh, camera, renderables);
 		}
-
 	}
 
 	renderer.renderDrawCommands(pass, camera);
@@ -281,7 +246,7 @@ function loop(){
 	requestAnimationFrame(loop);
 }
 
-async function run(){
+async function main(){
 
 	initGUI();
 
@@ -292,113 +257,92 @@ async function run(){
 
 	camera = new Camera();
 	controls = new OrbitControls(renderer.canvas);
+	measure = new MeasureTool(renderer);
 
 	window.camera = camera;
 	window.controls = controls;
 
 	camera.fov = 60;
 
-	{
-		let element = document.getElementById("canvas");
-		ProgressiveLoader.install(element, (e) => {
-			//console.log(e.boxes);
-			boxes = e.boxes;
-
-			progress = e.progress;
-			window.progress = progress;
-
-			console.log(progress);
-
-			let pivot = progress.boundingBox.center();
-			pivot.z = 0.8 * progress.boundingBox.min.z + 0.2 * progress.boundingBox.max.z;
-			controls.pivot.copy(pivot);
-			controls.radius = progress.boundingBox.size().length() * 0.7;
-
-			window.pointcloud = progress.octree;
-		});
-	}
-
 	controls.set({
 		yaw: -0.2,
 		pitch: 0.8,
-		radius: 20,
+		radius: 10,
 	});
+
+	// {
+	// 	let points = createPointsData(1_000);
+	// 	scene.root.children.push(points);
+
+	// }
 
 	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	// 	// controls.set({
+	// 	// 	radius: 7,
+	// 	// 	yaw: -0.86,
+	// 	// 	pitch: 0.51,
+	// 	// 	pivot: [-0.22, -0.01, 3.72],
+	// 	// });
 
-	// 	controls.set({
-	// 		pivot: [0.46849801014552056, -0.5089652605462774, 4.694897729016537],
-	// 		pitch: 0.3601621061369527,
-	// 		yaw: -0.610317525598302,
-	// 		radius: 6.3,
-	// 	});
-
-	// 	window.pointcloud = pointcloud;
+	// 	scene.root.children.push(pointcloud);
 	// });
 
-	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
-	// 	controls.radius = 20;
-	// 	controls.yaw = 2.7 * Math.PI / 4;
-	// 	controls.pitch = Math.PI / 6;
-	
-	// 	pointcloud.updateVisibility(camera);
-	// 	window.pointcloud = pointcloud;
-	// });
-
-	
-
-	// Potree.load("./resources/pointclouds/eclepens/metadata.json").then(pointcloud => {
-	// 	controls.radius = 700;
-	// 	controls.yaw = -0.2;
-	// 	controls.pitch = 0.8;
-	// 	camera.near = 1;
-	// 	camera.far = 10_000;
-	// 	camera.updateProj();
-	
-	// 	pointcloud.updateVisibility(camera);
-	// 	// pointcloud.position.set(400, -300, -6)
-	// 	// pointcloud.position.copy(pointcloud.boundingBox.min);
-	// 	// pointcloud.updateWorld();
-	// 	window.pointcloud = pointcloud;
-	// });
-
-
-	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	// Potree.load("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_2.0.2_brotli/metadata.json").then(pointcloud => {
-		camera.near = 0.5;
-		camera.far = 100_000;
-
-		controls.set({
-			radius: 2_400,
-			yaw: 0.034,
-			pitch: 0.629,
-			pivot: [694698.4629456067, 3916428.1845130883, -15.72393889322449],
-		});
-
+	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 		scene.root.children.push(pointcloud);
-
-		window.pointcloud = pointcloud;
 	});
 
-	{
-		let light1 = new PointLight("pointlight");
-		light1.position.set(5, 5, 1);
+	controls.set({
+		radius: 13.8,
+		yaw: -0.66,
+		pitch: 0.37,
+		pivot: [-0.022888880829764084, -0.12292264906406908, 5.322860838969788],
+	});
 
-		let light2 = new PointLight("pointlight2");
-		light2.position.set(-5, -5, 1);
+	// Potree.load("./resources/pointclouds/ca13/metadata.json").then(pointcloud => {
 
-		scene.root.children.push(light1);
-		scene.root.children.push(light2);
-	}
+	// 	// controls.zoomTo(pointcloud);
+	// 	controls.set({
+	// 		yaw: -1.1,
+	// 		pitch: 0.37,
+	// 		radius: 406,
+	// 		pivot: [696743.76, 3919073.53, 37.68],
+	// 	});
 
-
-	// loadGLB("./resources/models/lion.glb").then(node => {
-	// 	scene.root.children.push(node);
-	// 	controls.zoomTo(node);
+	// 	scene.root.children.push(pointcloud);
 	// });
+
+	loadImage("./resources/images/background.jpg").then(image => {
+		dbgImage = image;
+	});
+
+	// loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// // loadGLB("./resources/models/lion.glb").then(node => {
+	// 	scene.root.children.push(node);
+
+	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	// 	node.position.set(5, 0, 3);
+	// 	node.scale.set(2, 2, 2);
+	// 	node.updateWorld();
+
+	// 	// controls.set({
+	// 	// 	yaw: -9.2375,
+	// 	// 	pitch: 0.2911333847340012,
+	// 	// 	radius: 3.649930853878021,
+	// 	// 	pivot:  [0.3169157776176301, -0.055293688684424885, 2.2],
+	// 	// });
+
+	// 	// controls.zoomTo(node);
+	// });
+
+	{
+		let mesh = new Mesh("cube", cube);
+		mesh.scale.set(0.5, 0.5, 0.5);
+
+		scene.root.children.push(mesh);
+	}
 
 	requestAnimationFrame(loop);
 
 }
 
-run();
+main();

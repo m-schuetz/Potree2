@@ -1,10 +1,10 @@
 
 export class Geometry{
 
-	constructor(){
-		this.buffers = [];
-		this.indices = null;
-		this.numElements = 0;
+	constructor({buffers, indices, numElements} = {}){
+		this.buffers = buffers ?? [];
+		this.indices = indices ?? null;
+		this.numElements = numElements ?? 0;
 	}
 
 }

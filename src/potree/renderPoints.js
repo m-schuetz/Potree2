@@ -1,95 +1,98 @@
 
-import {Vector3, Matrix4} from "../math/math.js";
-import {SPECTRAL} from "../misc/Gradients.js";
-import * as Timer from "../renderer/Timer.js";
+import {Vector3, Matrix4} from "potree";
+import {Timer} from "potree";
 
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
-	[[offset(128)]] screen_width : f32;
-	[[offset(132)]] screen_height : f32;
-};
-
-struct NodeBuffer{
-	[[offset(0)]] color : vec4<f32>;
-};
-
-[[block]] struct Nodes{
-	[[offset(0)]] values : [[stride(16)]] array<NodeBuffer, 1000>;
+	[[size(64)]] worldView : mat4x4<f32>;
+	[[size(64)]] proj : mat4x4<f32>;
+	[[size(4)]] screen_width : f32;
+	[[size(4)]] screen_height : f32;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), set(0)]] var<uniform> nodes : Nodes;
 
-[[location(0)]] var<in> pos_point : vec4<f32>;
-[[location(1)]] var<in> color : vec4<f32>;
+struct VertexInput {
+	[[builtin(instance_index)]] instanceIdx : u32;
+	[[location(0)]] position : vec4<f32>;
+	[[location(1)]] color : vec4<f32>;
+};
 
-[[builtin(instance_index)]] var<in> instanceIdx : i32;
-[[builtin(position)]] var<out> out_pos : vec4<f32>;
-[[location(0)]] var<out> fragColor : vec4<f32>;
+struct VertexOutput {
+	[[builtin(position)]] position : vec4<f32>;
+	[[location(0)]] color : vec4<f32>;
+};
+
 
 [[stage(vertex)]]
-fn main() -> void {
+fn main(vertex : VertexInput) -> VertexOutput {
 
-	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
-	out_pos = uniforms.proj * viewPos;
+	var output : VertexOutput;
 
-	var c : vec4<f32> = color;
-	fragColor = c;
+	var viewPos : vec4<f32> = uniforms.worldView * vertex.position;
+	output.position = uniforms.proj * viewPos;
 
-	//fragColor.r = f32(instanceIdx) / 256.0;
-	//fragColor.g = 0.0;
-	//fragColor.b = 0.0;
+	// output.position.x = output.position.x / output.position.w;
+	// output.position.y = output.position.y / output.position.w;
+	// output.position.z = output.position.z / output.position.w;
+	// output.position.w = output.position.w / output.position.w;
+	// output.position.z = 1.0 - output.position.z;
 
-	return;
+	//output.position.z = -output.position.z;
+	// output.position.w = -output.position.w;
+
+	var c : vec4<f32> = vertex.color;
+
+	// check if instance_index works
+	// c.r = f32(vertex.instanceIdx);
+	// c.g = 0.0;
+	// c.b = 0.0;
+	// c.a = 1.0;
+
+	output.color = c;
+
+	return output;
 }
 `;
 
 const fs = `
-[[location(0)]] var<in> fragColor : vec4<f32>;
-[[location(0)]] var<out> outColor : vec4<f32>;
+
+struct FragmentInput {
+	[[location(0)]] color : vec4<f32>;
+};
+
+struct FragmentOutput {
+	[[location(0)]] color : vec4<f32>;
+};
 
 [[stage(fragment)]]
-fn main() -> void {
-	outColor = fragColor;
+fn main(fragment : FragmentInput) -> FragmentOutput {
+	var output : FragmentOutput;
+	output.color = fragment.color;
 
-	return;
+	return output;
 }
 `;
 
 let octreeStates = new Map();
-let nodeStates = new Map();
 
 function createPipeline(renderer){
 
 	let {device} = renderer;
 
 	const pipeline = device.createRenderPipeline({
-		vertexStage: {
+		vertex: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",
-		},
-		fragmentStage: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-		},
-		primitiveTopology: "point-list",
-		depthStencilState: {
-			depthWriteEnabled: true,
-			depthCompare: "less",
-			format: "depth24plus-stencil8",
-		},
-		vertexState: {
-			vertexBuffers: [
+			buffers: [
 				{ // point position
 					arrayStride: 3 * 4,
 					stepMode: "vertex",
 					attributes: [{ 
 						shaderLocation: 0,
 						offset: 0,
-						format: "float3",
+						format: "float32x3",
 					}],
 				},{ // color
 					arrayStride: 4,
@@ -97,17 +100,25 @@ function createPipeline(renderer){
 					attributes: [{ 
 						shaderLocation: 1,
 						offset: 0,
-						format: "uchar4norm",
+						format: "unorm8x4",
 					}],
 				},
 			],
 		},
-		rasterizationState: {
-			cullMode: "none",
+		fragment: {
+			module: device.createShaderModule({code: fs}),
+			entryPoint: "main",
+			targets: [{format: "bgra8unorm"}],
 		},
-		colorStates: [{
-			format: "bgra8unorm",
-		}],
+		primitive: {
+			topology: 'point-list',
+			cullMode: 'none',
+		},
+		depthStencil: {
+			depthWriteEnabled: true,
+			depthCompare: "greater",
+			format: "depth32float",
+		},
 	});
 
 	return pipeline;
@@ -136,7 +147,7 @@ function getOctreeState(renderer, node){
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
 				{binding: 0, resource: {buffer: uniformBuffer}},
-				{binding: 1, resource: {buffer: uNodesBuffer}}
+				// {binding: 1, resource: {buffer: uNodesBuffer}}
 			],
 		});
 
@@ -163,55 +174,46 @@ export function render(renderer, pass, octree, camera){
 	let nodes = octree.visibleNodes;
 
 	{ // update uniforms
-		let {uniformBuffer} = octreeState;
+		
 
-		{ // transform
+		{ // uniforms
+
+			let {uniformBuffer} = octreeState;
+
+			let data = new ArrayBuffer(256);
+			let f32 = new Float32Array(data);
+			let view = new DataView(data);
+
 			let world = octree.world;
-			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
+			let camView = camera.view;
+			let worldView = new Matrix4().multiplyMatrices(camView, world);
 
-			let tmp = new Float32Array(16);
+			f32.set(worldView.elements, 0);
+			f32.set(camera.proj.elements, 16);
 
-			tmp.set(worldView.elements);
-			device.queue.writeBuffer(
-				uniformBuffer, 0,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
-
-			tmp.set(camera.proj.elements);
-			device.queue.writeBuffer(
-				uniformBuffer, 64,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
-		}
-
-		{ // screen size
 			let size = renderer.getSize();
-			let data = new Float32Array([size.width, size.height]);
-			device.queue.writeBuffer(
-				uniformBuffer,
-				128,
-				data.buffer,
-				data.byteOffset,
-				data.byteLength
-			);
+
+			view.setFloat32(128, size.width, true);
+			view.setFloat32(132, size.height, true);
+
+			renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 136);
 		}
 
-		{ // nodes
-			let buffer = new Float32Array(4 * nodes.length);
-			for(let i = 0; i < nodes.length; i++){
-				buffer[4 * i + 0] = 0;
-				buffer[4 * i + 1] = i / 200;
-				buffer[4 * i + 2] = 0;
-				buffer[4 * i + 3] = 1;
-			}
 
-			device.queue.writeBuffer(
-				octreeState.uNodesBuffer, 0,
-				buffer.buffer, buffer.byteOffset, buffer.byteLength
-			);
+		// { // nodes
+		// 	let buffer = new Float32Array(4 * nodes.length);
+		// 	for(let i = 0; i < nodes.length; i++){
+		// 		buffer[4 * i + 0] = 0;
+		// 		buffer[4 * i + 1] = i / 200;
+		// 		buffer[4 * i + 2] = 0;
+		// 		buffer[4 * i + 3] = 1;
+		// 	}
 
-		}
+		// 	device.queue.writeBuffer(
+		// 		octreeState.uNodesBuffer, 0,
+		// 		buffer.buffer, buffer.byteOffset, buffer.byteLength
+		// 	);
+		// }
 	}
 
 	let {passEncoder} = pass;
@@ -232,10 +234,11 @@ export function render(renderer, pass, octree, camera){
 		passEncoder.setVertexBuffer(1, vboColor);
 
 		if(octree.showBoundingBox === true){
-			let position = node.boundingBox.min.clone();
-			position.add(node.boundingBox.max).multiplyScalar(0.5);
+			let box = node.boundingBox.clone().applyMatrix4(octree.world);
+			let position = box.min.clone();
+			position.add(box.max).multiplyScalar(0.5);
 			// position.applyMatrix4(octree.world);
-			let size = node.boundingBox.size();
+			let size = box.size();
 			// let color = new Vector3(...SPECTRAL.get(node.level / 5));
 			let color = new Vector3(255, 255, 0);
 			renderer.drawBoundingBox(position, size, color);

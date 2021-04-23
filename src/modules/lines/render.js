@@ -78,8 +78,8 @@ function createPipeline(renderer, vbos){
 		primitiveTopology: "line-list",
 		depthStencilState: {
 			depthWriteEnabled: true,
-			depthCompare: "less",
-			format: "depth24plus-stencil8",
+			depthCompare: 'greater',
+			format: "depth32float",
 		},
 		vertexState: {
 			vertexBuffers: [
@@ -88,7 +88,7 @@ function createPipeline(renderer, vbos){
 					attributes: [{ 
 						shaderLocation: 0,
 						offset: 0,
-						format: "float3",
+						format: "float32x3",
 					}],
 				}
 			],

@@ -69,7 +69,8 @@ export class PointCloudOctree extends SceneNode{
 				break;
 			}
 
-			let box = node.boundingBox;
+			let box = node.boundingBox.clone();
+			box.applyMatrix4(this.world);
 			let insideFrustum = frustum.intersectsBox(box);
 
 			let visible = insideFrustum;
@@ -88,11 +89,9 @@ export class PointCloudOctree extends SceneNode{
 					continue;
 				}
 
-				let center = node.boundingBox.center();
+				let center = box.center();
 				
-				// center.applyMatrix4(this.world);
-
-				let radius = node.boundingBox.min.distanceTo(node.boundingBox.max) / 2;
+				let radius = box.min.distanceTo(box.max) / 2;
 
 				let dx = camPos.x - center.x;
 				let dy = camPos.y - center.y;

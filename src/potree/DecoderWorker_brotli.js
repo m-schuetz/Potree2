@@ -46,6 +46,31 @@ function dealign24b(mortoncode){
 	return x;
 }
 
+function randomInt(min, max){
+
+	let width = max - min;
+
+	let r = Math.floor(Math.random() * width + min);
+	r = Math.min(r, max - 1);
+
+	return r;
+}
+
+function getShuffleOrder(n){
+
+	let order = new Uint32Array(n).map( (a, i) => i);
+
+	for(let i = 0; i < n; i++){
+		let source_index = randomInt(i + 1, n);
+
+		let tmp = order[i];
+		order[i] = order[source_index];
+		order[source_index] = tmp;
+	}
+
+	return order;
+}
+
 async function load(event){
 
 	let {name, pointAttributes, numPoints, scale, offset, min} = event.data;
@@ -81,6 +106,7 @@ async function load(event){
 		bytesPerPoint += pointAttribute.byteSize;
 	}
 
+	let order = getShuffleOrder(numPoints);
 
 	let byteOffset = 0;
 	for (let pointAttribute of pointAttributes.attributes) {
@@ -92,13 +118,13 @@ async function load(event){
 
 			for (let j = 0; j < numPoints; j++) {
 
+				let src_index = order[j];
+				let pointOffset = byteOffset + src_index * 16;
 
-				let mc_0 = view.getUint32(byteOffset +  4, true);
-				let mc_1 = view.getUint32(byteOffset +  0, true);
-				let mc_2 = view.getUint32(byteOffset + 12, true);
-				let mc_3 = view.getUint32(byteOffset +  8, true);
-
-				byteOffset += 16;
+				let mc_0 = view.getUint32(pointOffset +  4, true);
+				let mc_1 = view.getUint32(pointOffset +  0, true);
+				let mc_2 = view.getUint32(pointOffset + 12, true);
+				let mc_3 = view.getUint32(pointOffset +  8, true);
 
 				let X = dealign24b((mc_3 & 0x00FFFFFF) >>> 0) 
 						| (dealign24b(((mc_3 >>> 24) | (mc_2 << 8)) >>> 0) << 8);
@@ -130,17 +156,27 @@ async function load(event){
 
 			}
 
+			byteOffset += 16 * numPoints;
+
 			attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute, name: pointAttribute.name };
 		}else if(["RGBA", "rgba"].includes(pointAttribute.name)){
 
-			let buff = new ArrayBuffer(numPoints * 4);
+			// let length = numPoints * 6;
+			// let length4 = length + (4 - (length % 4));
+			// let buff = new ArrayBuffer(length4);
+			// let colors = new Uint16Array(buff);
+
+			let length = numPoints * 4;
+			let buff = new ArrayBuffer(length);
 			let colors = new Uint8Array(buff);
 
 			for (let j = 0; j < numPoints; j++) {
 
-				let mc_0 = view.getUint32(byteOffset +  4, true);
-				let mc_1 = view.getUint32(byteOffset +  0, true);
-				byteOffset += 8;
+				let src_index = order[j];
+				let pointOffset = byteOffset + src_index * 8;
+
+				let mc_0 = view.getUint32(pointOffset +  4, true);
+				let mc_1 = view.getUint32(pointOffset +  0, true);
 
 				let r = dealign24b((mc_1 & 0x00FFFFFF) >>> 0) 
 						| (dealign24b(((mc_1 >>> 24) | (mc_0 << 8)) >>> 0) << 8);
@@ -151,11 +187,17 @@ async function load(event){
 				let b = dealign24b((mc_1 & 0x00FFFFFF) >>> 2) 
 						| (dealign24b(((mc_1 >>> 24) | (mc_0 << 8)) >>> 2) << 8);
 
-				colors[4 * j + 0] = r > 255 ? r / 256 : r;
-				colors[4 * j + 1] = g > 255 ? g / 256 : g;
-				colors[4 * j + 2] = b > 255 ? b / 256 : b;
+				// colors[3 * j + 0] = r;
+				// colors[3 * j + 1] = g;
+				// colors[3 * j + 2] = b;
+
+				colors[4 * j + 0] = r | 255 ? r / 256 : r;
+				colors[4 * j + 1] = g | 255 ? g / 256 : g;
+				colors[4 * j + 2] = b | 255 ? b / 256 : b;
 				colors[4 * j + 3] = 255;
 			}
+
+			byteOffset += 4 * numPoints;
 
 			attributeBuffers[pointAttribute.name] = { 
 				buffer: colors, 

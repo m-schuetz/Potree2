@@ -1,6 +1,6 @@
 
 import {Vector3, Matrix4} from "../../math/math.js";
-import {cube, cube_wireframe_thick} from "../geometries/cube.js";
+import {cube, cube_wireframe} from "../geometries/cube.js";
 import {Geometry} from "../../core/Geometry.js";
 
 
@@ -14,56 +14,21 @@ const vs = `
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> box_pos : vec3<f32>;
-[[location(1)]] var<in> box_scale : vec3<f32>;
-[[location(2)]] var<in> point_pos : vec3<f32>;
+[[location(0)]] var<in> box_pos : vec4<f32>;
+[[location(1)]] var<in> box_scale : vec4<f32>;
+[[location(2)]] var<in> point_pos : vec4<f32>;
 [[location(3)]] var<in> box_color : vec4<f32>;
-[[location(4)]] var<in> in_dir : vec3<f32>;
-
-[[builtin(vertex_index)]] var<in> vertexID : i32;
 
 [[builtin(position)]] var<out> out_pos : vec4<f32>;
 [[location(0)]] var<out> fragColor : vec4<f32>;
 
 [[stage(vertex)]]
 fn main() -> void {
-
-
-	var worldPos : vec3<f32> = box_pos + point_pos * box_scale;
-	var worldDir : vec3<f32> = worldPos + in_dir;
-
-	var viewPos : vec3<f32> = (uniforms.worldView * vec4<f32>(worldPos, 1.0)).xyz;
-	var viewTar : vec3<f32> = (uniforms.worldView * vec4<f32>(worldDir, 1.0)).xyz;
-	var viewDir : vec3<f32> = (uniforms.worldView * vec4<f32>(worldDir, 1.0)).xyz - viewPos;
-	viewDir = normalize(viewDir);
-
-	var projPos : vec4<f32> = uniforms.proj * vec4<f32>(viewPos, 1.0);
-	var projTar : vec4<f32> = uniforms.proj * vec4<f32>(viewTar, 1.0);
-
-	projPos.x = uniforms.screen_width * (1.0 + projPos.x / projPos.w) / 2.0;
-	projPos.y = uniforms.screen_height * (1.0 + projPos.y / projPos.w) / 2.0;
-
-	projTar.x = uniforms.screen_width * (1.0 + projTar.x / projTar.w) / 2.0;
-	projTar.y = uniforms.screen_height * (1.0 + projTar.y / projTar.w) / 2.0;
-
-	var projDiff : vec3<f32> = normalize((projTar - projPos).xyz);
-
-	var screenDir : vec2<f32> = vec2<f32>(
-		projTar.x - projPos.x,
-		projTar.y - projPos.y
-	);
-	screenDir = 5.0 * normalize(screenDir);
-
-	var lineWidth : f32 = 2.0;
-	var lineWidthH : f32 = lineWidth / 2.0;
-
-	projPos.x = projPos.x - lineWidthH * projDiff.y;
-	projPos.y = projPos.y + lineWidthH * projDiff.x;
-
-	projPos.x = ((projPos.x / uniforms.screen_width) * 2.0 - 1.0) * projPos.w;
-	projPos.y = ((projPos.y / uniforms.screen_height) * 2.0 - 1.0) * projPos.w;
-
-	out_pos = projPos;
+	
+	var worldPos : vec4<f32> = box_pos + point_pos * box_scale;
+	worldPos.w = 1.0;
+	var viewPos : vec4<f32> = uniforms.worldView * worldPos;
+	out_pos = uniforms.proj * viewPos;
 
 	fragColor = box_color;
 
@@ -92,7 +57,7 @@ let capacity = 10_000;
 function createPipeline(renderer){
 
 	let {device} = renderer;
-	
+
 	pipeline = device.createRenderPipeline({
 		vertex: {
 			module: device.createShaderModule({code: vs}),
@@ -129,14 +94,6 @@ function createPipeline(renderer){
 						shaderLocation: 3,
 						offset: 0,
 						format: "unorm8x4",
-					}],
-				},{ // box line directions
-					arrayStride: 3 * 4,
-					stepMode: "vertex",
-					attributes: [{ 
-						shaderLocation: 4,
-						offset: 0,
-						format: "float32x3",
 					}],
 				}
 			]
@@ -219,8 +176,8 @@ function updateUniforms(renderer){
 	{ // misc
 		let size = renderer.getSize();
 
-		view.setFloat32(128, size.width, true);
-		view.setFloat32(132, size.height, true);
+		view.setUint32(128, size.width, true);
+		view.setUint32(132, size.height, true);
 	}
 
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
@@ -269,38 +226,36 @@ export function render(renderer, pass, boxes, camera){
 		device.queue.writeBuffer(vboColor, 0, color.buffer, 0, color.byteLength);
 	}
 
-	{ // wireframe
-		let boxVertices = cube_wireframe_thick.buffers.find(b => b.name === "position").buffer;
-		let boxLineDirections = cube_wireframe_thick.buffers.find(b => b.name === "direction").buffer;
-		let vboBoxVertices = renderer.getGpuBuffer(boxVertices);
-		let vboBoxLineDirections = renderer.getGpuBuffer(boxLineDirections);
-
-		passEncoder.setVertexBuffer(0, vboPosition);
-		passEncoder.setVertexBuffer(1, vboScale);
-		passEncoder.setVertexBuffer(2, vboBoxVertices);
-		passEncoder.setVertexBuffer(3, vboColor);
-		passEncoder.setVertexBuffer(4, vboBoxLineDirections);
-		// passEncoder.setIndexBuffer(vboBoxIndices, "uint32");
-
-		let numBoxes = boxes.length;
-		let numVertices = cube_wireframe_thick.numElements;
-		passEncoder.draw(numVertices, numBoxes, 0, 0);
-	}
-
-	// { // solid
-	// 	let boxVertices = cube.buffers.find(b => b.name === "position").buffer;
+	// { // wireframe
+	// 	let boxVertices = cube_wireframe.buffers.find(b => b.name === "position").buffer;
 	// 	let vboBoxVertices = renderer.getGpuBuffer(boxVertices);
+	// 	let vboBoxIndices = renderer.getGpuBuffer(cube_wireframe.indices);
 
 	// 	passEncoder.setVertexBuffer(0, vboPosition);
 	// 	passEncoder.setVertexBuffer(1, vboScale);
 	// 	passEncoder.setVertexBuffer(2, vboBoxVertices);
 	// 	passEncoder.setVertexBuffer(3, vboColor);
-	// 	// passEncoder.setIndexBuffer(vboBoxIndices, "uint32");
+	// 	passEncoder.setIndexBuffer(vboBoxIndices, "uint32");
 
 	// 	let numBoxes = boxes.length;
-	// 	let numVertices = cube.numElements;
-	// 	passEncoder.draw(numVertices, numBoxes, 0, 0);
+	// 	let numVertices = cube_wireframe.numElements;
+	// 	passEncoder.drawIndexed(numVertices, numBoxes, 0, 0);
 	// }
+
+	{ // solid
+		let boxVertices = cube.buffers.find(b => b.name === "position").buffer;
+		let vboBoxVertices = renderer.getGpuBuffer(boxVertices);
+
+		passEncoder.setVertexBuffer(0, vboPosition);
+		passEncoder.setVertexBuffer(1, vboScale);
+		passEncoder.setVertexBuffer(2, vboBoxVertices);
+		passEncoder.setVertexBuffer(3, vboColor);
+		// passEncoder.setIndexBuffer(vboBoxIndices, "uint32");
+
+		let numBoxes = boxes.length;
+		let numVertices = cube.numElements;
+		passEncoder.draw(numVertices, numBoxes, 0, 0);
+	}
 
 
 };

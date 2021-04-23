@@ -32,6 +32,13 @@ export class SceneNode{
 	getWorldPosition(){
 		return new Vector3().applyMatrix4(this.world);
 	}
+
+	getWorldDirection(){
+		let p0 = new Vector3(0, 0, 0).applyMatrix4(this.world);
+		let p1 = new Vector3(0, 0, -1).applyMatrix4(this.world);
+
+		return p1.sub(p0).normalize();
+	}
 	
 	traverse(callback){
 

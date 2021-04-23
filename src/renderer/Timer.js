@@ -10,6 +10,8 @@ let frame = 0;
 
 let enabled = true;
 
+let counters = {};
+
 export function setEnabled(value){
 	enabled = value;
 }
@@ -59,9 +61,9 @@ function frameEnd(renderer){
 
 	renderer.readBuffer(queryBuffer, 0, 8 * index).then( buffer => {
 
-		if((frame % 30) !== 0){
-			return;
-		}
+		// if((frame % 30) !== 0){
+		// 	return;
+		// }
 
 		let u64 = new BigInt64Array(buffer);
 
@@ -69,7 +71,7 @@ function frameEnd(renderer){
 		let starts = new Map();
 		let durations = [];
 
-		let msg = "timestamps: \n";
+		// let msg = "timestamps: \n";
 		for(let i = 0; i < Math.min(u64.length, stamps.length); i++){
 
 			let label = stamps[i].label;
@@ -83,16 +85,44 @@ function frameEnd(renderer){
 
 				let current = Number(u64[i] - tStart) / 1_000_000;
 				durations.push(`${lblBase}: ${current.toFixed(3)}ms`);
-			}
 
-			msg += `${label}: ${current.toFixed(3)}ms\n`;
+				if(!counters[lblBase]){
+					counters[lblBase] = [current];
+				}else{
+					counters[lblBase].push(current);
+				}
+			}
 		}
 
-		msg += "\ndurations: \n";
-		msg += durations.join("\n");
+		if((frame % 30) === 0){
+
+			let msg = "durations: \n";
+
+			for(let label of Object.keys(counters)){
+				let values = counters[label];
+
+				let min = Infinity;
+				let max = 0;
+				let sum = 0;
+
+				for(let value of values){
+					min = Math.min(min, value);
+					max = Math.max(max, value);
+					sum += value;
+				}
+
+				let avg = sum / values.length;
+
+				msg += `[${label}]: avg: ${avg.toFixed(1)}, min: ${min.toFixed(1)}, max: ${max.toFixed(1)}\n`;
+
+			}
+
+			document.getElementById("msg_dbg").innerText = msg;
+
+			counters = {};
+		}
 
 
-		document.getElementById("msg_dbg").innerText = msg;
 	});
 
 	frame++;

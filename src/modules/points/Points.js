@@ -1,6 +1,5 @@
 
-import {SceneNode} from "../../scene/SceneNode.js";
-import {Geometry} from "../../core/Geometry.js";
+import {SceneNode, Geometry} from "potree";
 
 export class Points extends SceneNode{
 

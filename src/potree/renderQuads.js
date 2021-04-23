@@ -112,8 +112,8 @@ function createPipeline(renderer){
 		primitiveTopology: "triangle-list",
 		depthStencilState: {
 			depthWriteEnabled: true,
-			depthCompare: "less",
-			format: "depth24plus-stencil8",
+			depthCompare: 'greater',
+			format: "depth32float",
 		},
 		vertexState: {
 			vertexBuffers: [
@@ -123,7 +123,7 @@ function createPipeline(renderer){
 					attributes: [{ 
 						shaderLocation: 0,
 						offset: 0,
-						format: "float3",
+						format: "float32x3",
 					}],
 				},{ // quad position
 					arrayStride: 3 * 4,
@@ -131,7 +131,7 @@ function createPipeline(renderer){
 					attributes: [{ 
 						shaderLocation: 1,
 						offset: 0,
-						format: "float3",
+						format: "float32x3",
 					}],
 				},{ // color
 					arrayStride: 4,
@@ -139,7 +139,7 @@ function createPipeline(renderer){
 					attributes: [{ 
 						shaderLocation: 2,
 						offset: 0,
-						format: "uchar4norm",
+						format: "unorm8x4",
 					}],
 				},
 			],

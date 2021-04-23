@@ -6,7 +6,7 @@ import * as Timer from "../../renderer/Timer.js";
 
 export function render(renderer, pass, node, camera, renderables){
 
-	Timer.timestamp(pass.passEncoder, "meshes-start");
+	// Timer.timestamp(pass.passEncoder, "meshes-start");
 
 	if(node.material instanceof NormalMaterial){
 		renderNormal(renderer, pass, node, camera, renderables);
@@ -14,6 +14,6 @@ export function render(renderer, pass, node, camera, renderables){
 		renderPhong(renderer, pass, node, camera, renderables);
 	}
 
-	Timer.timestamp(pass.passEncoder, "meshes-end");
+	// Timer.timestamp(pass.passEncoder, "meshes-end");
 
 }

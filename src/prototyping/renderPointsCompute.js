@@ -1,16 +1,10 @@
 
-import {Vector3, Matrix4} from "../math/math.js";
-import {SPECTRAL} from "../misc/Gradients.js";
-import {RenderTarget} from "../core/RenderTarget.js";
-import * as Timer from "../renderer/Timer.js";
-
-import glslangModule from "../../libs/glslang/glslang.js";
+import {Vector3, Matrix4} from "potree";
+import {RenderTarget, Timer} from "potree";
+import glslangModule from "glslang";
 
 
-let glslang = null;
-glslangModule().then( result => {
-	glslang = result;
-});
+let glslang = undefined;
 
 let csDepth = `
 
@@ -69,18 +63,12 @@ void main(){
 	int pixelID = pixelCoords.x + pixelCoords.y * imageSize.x;
 
 	uint color = colors[index];
+	uint depth = floatBitsToUint(pos.w);
+	uint old = framebuffer[pixelID];
 
-	//uint r = (color >> 0) & 0xFFu;
-	//uint g = (color >> 8) & 0xFFu;
-	//uint b = (color >> 16) & 0xFFu;
-	//uint a = 255u;
-	//uint c = (r << 24) | (g << 16) | (b << 8) | a;
-
-	//framebuffer[pixelID] = c;
-
-	uint depth = uint(-viewPos.z * 1000.0);
-
-	atomicMin(framebuffer[pixelID], depth);
+	if(depth < old){
+		atomicMin(framebuffer[pixelID], depth);
+	}
 }
 
 `;
@@ -151,15 +139,30 @@ void main(){
 	uint g = (color >> 8) & 0xFFu;
 	uint b = (color >> 16) & 0xFFu;
 
-	uint depth = uint(-viewPos.z * 1000.0);
-	uint bufferedDepth = ssbo_depth[pixelID];
+	float depth = pos.w;
+	float bufferedDepth = uintBitsToFloat(ssbo_depth[pixelID]);
 
-	if(depth < 1.01 * bufferedDepth){
+	// just sum up points with nearly the same depth
+	if(depth <= bufferedDepth * 1.0001){
 		atomicAdd(ssbo_colors[4 * pixelID + 0], r);
 		atomicAdd(ssbo_colors[4 * pixelID + 1], g);
 		atomicAdd(ssbo_colors[4 * pixelID + 2], b);
 		atomicAdd(ssbo_colors[4 * pixelID + 3], 1);
 	}
+	
+
+	// or within a range of 1%
+	// if(depth <= bufferedDepth * 1.01){
+
+
+	// directly write points with same depth
+	// will likely cause flickering
+	// if(depth == bufferedDepth){
+	// 	ssbo_colors[4 * pixelID + 0] = r;
+	// 	ssbo_colors[4 * pixelID + 1] = g;
+	// 	ssbo_colors[4 * pixelID + 2] = b;
+	// 	ssbo_colors[4 * pixelID + 3] = 1u;
+	// }
 }
 
 `;
@@ -189,116 +192,94 @@ void main(){
 
 
 let vs = `
-	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.1)
-	);
-
-	const uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 0.0)
-	);
-
-	[[builtin(position)]] var<out> Position : vec4<f32>;
-	[[builtin(vertex_idx)]] var<in> VertexIndex : i32;
 
 	[[block]] struct Uniforms {
-		[[offset(0)]] uTest : u32;
-		[[offset(4)]] x : f32;
-		[[offset(8)]] y : f32;
-		[[offset(12)]] width : f32;
-		[[offset(16)]] height : f32;
+		[[size(4)]] uTest : u32;
+		[[size(4)]] x : f32;
+		[[size(4)]] y : f32;
+		[[size(4)]] width : f32;
+		[[size(4)]] height : f32;
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[location(0)]] var<out> fragUV : vec2<f32>;
+	struct VertexInput {
+		[[builtin(vertex_idx)]] index : i32;
+	};
+
+	struct VertexOutput {
+		[[builtin(position)]] position : vec4<f32>;
+	};
 
 	[[stage(vertex)]]
-	fn main() -> void {
-		Position = vec4<f32>(pos[VertexIndex], 0.999, 1.0);
-		fragUV = uv[VertexIndex];
+	fn main(vertex : VertexInput) -> VertexOutput {
+
+		var output : VertexOutput;
 
 		var x : f32 = uniforms.x * 2.0 - 1.0;
 		var y : f32 = uniforms.y * 2.0 - 1.0;
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		if(VertexIndex == 0){
-			Position.x = x;
-			Position.y = y;
-		}elseif(VertexIndex == 1){
-			Position.x = x + width;
-			Position.y = y;
-		}elseif(VertexIndex == 2){
-			Position.x = x + width;
-			Position.y = y + height;
-		}elseif(VertexIndex == 3){
-			Position.x = x;
-			Position.y = y;
-		}elseif(VertexIndex == 4){
-			Position.x = x + width;
-			Position.y = y + height;
-		}elseif(VertexIndex == 5){
-			Position.x = x;
-			Position.y = y + height;
+		var vi : i32 = vertex.index;
+
+		if(vi == 0 || vi == 3 || vi == 5){
+			output.position.x = x;
+		}else{
+			output.position.x = x + width;
 		}
 
-		return;
+		if(vi == 0 || vi == 1 || vi == 3){
+			output.position.y = y;
+		}else{
+			output.position.y = y + height;
+		}
+
+		output.position.z = 0.01;
+		output.position.w = 1.0;
+
+		return output;
 	}
 `;
 
 let fs = `
 
 	[[block]] struct Colors {
-		[[offset(0)]] values : [[stride(4)]] array<u32>;
+		values : [[stride(4)]] array<u32>;
 	};
 
 	[[block]] struct Uniforms {
-		[[offset(0)]] uTest : u32;
-		[[offset(4)]] x : f32;
-		[[offset(8)]] y : f32;
-		[[offset(12)]] width : f32;
-		[[offset(16)]] height : f32;
-		[[offset(20)]] screenWidth : f32;
-		[[offset(24)]] screenHeight : f32;
+		uTest : u32;
+		x : f32;
+		y : f32;
+		width : f32;
+		height : f32;
+		screenWidth : f32;
+		screenHeight : f32;
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[binding(1), set(0)]] var<storage_buffer> ssbo_colors : Colors;
+	[[binding(1), set(0)]] var<storage_buffer> ssbo_colors : [[access(read)]]Colors;
 
 	[[location(0)]] var<out> outColor : vec4<f32>;
-
-	[[location(0)]] var<in> fragUV: vec2<f32>;
 
 	[[builtin(frag_coord)]] var<in> fragCoord : vec4<f32>;
 
 	[[stage(fragment)]]
 	fn main() -> void {
 
-		var index : u32 = 
-			u32(fragCoord.x) +
-			(u32(uniforms.screenHeight) - u32(fragCoord.y) - 1) * u32(uniforms.screenWidth);
-		
-		var c : u32 = ssbo_colors.values[4 * index + 3];
+		var frag_x : i32 = i32(fragCoord.x);
+		var frag_y : i32 = i32(uniforms.screenHeight) - i32(fragCoord.y);
+		var width : i32 = i32(uniforms.screenWidth);
+		var index : u32 = u32(frag_x + frag_y * width);
 
-		if(c == 0){
-			#outColor.r = 0.0;
-			#outColor.g = 0.0;
-			#outColor.b = 0.0;
-			#outColor.a = 0.0;
+		var c : u32 = ssbo_colors.values[4u * index + 3u];
+
+		if(c == 0u){
 			discard;
 		}else{
-			var r : u32 = ssbo_colors.values[4 * index + 0] / c;
-			var g : u32 = ssbo_colors.values[4 * index + 1] / c;
-			var b : u32 = ssbo_colors.values[4 * index + 2] / c;
+			var r : u32 = ssbo_colors.values[4u * index + 0u] / c;
+			var g : u32 = ssbo_colors.values[4u * index + 1u] / c;
+			var b : u32 = ssbo_colors.values[4u * index + 2u] / c;
 
 			outColor.r = f32(r) / 256.0;
 			outColor.g = f32(g) / 256.0;
@@ -326,15 +307,15 @@ function getTarget1(renderer){
 				usage: GPUTextureUsage.SAMPLED 
 					// | GPUTextureUsage.COPY_SRC 
 					// | GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			}],
 			depthDescriptor: {
 				size: size,
-				format: "depth24plus-stencil8",
+				format: "depth32float",
 				usage: GPUTextureUsage.SAMPLED 
 					// | GPUTextureUsage.COPY_SRC 
 					// | GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			}
 		});
 	}
@@ -371,7 +352,7 @@ function getDepthState(renderer){
 		});
 
 		let pipeline = device.createComputePipeline({
-			computeStage: {
+			compute: {
 				module: csModule,
 				entryPoint: "main",
 			}
@@ -405,7 +386,7 @@ function getColorState(renderer){
 		});
 
 		let pipeline = device.createComputePipeline({
-			computeStage: {
+			compute: {
 				module: csModule,
 				entryPoint: "main",
 			}
@@ -436,7 +417,7 @@ function getResetState(renderer){
 		let csModule = device.createShaderModule(csDescriptor);
 
 		let pipeline = device.createComputePipeline({
-			computeStage: {
+			compute: {
 				module: csModule,
 				entryPoint: "main",
 			}
@@ -454,23 +435,24 @@ function getScreenPassState(renderer){
 		let {device, swapChainFormat} = renderer;
 
 		let pipeline = device.createRenderPipeline({
-			vertexStage: {
+			vertex: {
 				module: device.createShaderModule({code: vs}),
 				entryPoint: "main",
 			},
-			fragmentStage: {
+			fragment: {
 				module: device.createShaderModule({code: fs}),
 				entryPoint: "main",
+				targets: [{format: "bgra8unorm"}],
 			},
-			primitiveTopology: "triangle-list",
-			depthStencilState: {
+			primitive: {
+				topology: 'triangle-list',
+				cullMode: 'none',
+			},
+			depthStencil: {
 					depthWriteEnabled: true,
-					depthCompare: "less",
-					format: "depth24plus-stencil8",
+					depthCompare: 'greater',
+					format: "depth32float",
 			},
-			colorStates: [{
-				format: swapChainFormat,
-			}],
 		});
 
 		let uniformBufferSize = 32;
@@ -527,21 +509,24 @@ function reset(renderer, ssbo, numUints, value){
 	device.queue.submit([commandEncoder.finish()]);
 }
 
-export function renderAtomic(renderer, octree, camera){
+export function render(renderer, node, camera){
 
-	if(!glslang){
-		console.log("glslang not yet initialized");
+	
 
+	if(glslang === undefined){
+
+		glslang = null;
+
+		glslangModule().then( result => {
+			glslang = result;
+		});
+
+		return;
+	}else if(glslang === null){
 		return;
 	}
 
 	let {device} = renderer;
-
-	let nodes = octree.visibleNodes;
-
-	if(nodes.length === 0){
-		return getTarget1(renderer).colorAttachments[0].texture;
-	}
 
 	{
 		let size = renderer.getSize();
@@ -553,7 +538,7 @@ export function renderAtomic(renderer, octree, camera){
 		let {uniformBuffer} = getDepthState(renderer);
 
 		{ // transform
-			let world = octree.world;
+			let world = node.world;
 			let view = camera.view;
 			let worldView = new Matrix4().multiplyMatrices(view, world);
 
@@ -589,7 +574,7 @@ export function renderAtomic(renderer, octree, camera){
 		let {uniformBuffer} = getColorState(renderer);
 
 		{ // transform
-			let world = octree.world;
+			let world = node.world;
 			let view = camera.view;
 			let worldView = new Matrix4().multiplyMatrices(view, world);
 
@@ -627,7 +612,7 @@ export function renderAtomic(renderer, octree, camera){
 		let {ssbo} = getDepthState(renderer);
 		let {ssbo_colors} = getColorState(renderer);
 
-		reset(renderer, ssbo, numUints, 0xffffff);
+		reset(renderer, ssbo, numUints, 0x7fffffff);
 		reset(renderer, ssbo_colors, 4 * numUints, 0);
 	}
 
@@ -642,7 +627,7 @@ export function renderAtomic(renderer, octree, camera){
 
 		passEncoder.setPipeline(pipeline);
 
-		for(let node of nodes){
+		{
 			let gpuBuffers = renderer.getGpuBuffers(node.geometry);
 
 			let bindGroup = device.createBindGroup({
@@ -676,7 +661,7 @@ export function renderAtomic(renderer, octree, camera){
 	}
 
 	{ // COLOR PASS
-		let {pipeline, uniformBuffer, ssboSize} = getColorState(renderer);
+		let {pipeline, uniformBuffer} = getColorState(renderer);
 		let {ssbo_colors} = getColorState(renderer);
 		let ssbo_depth = getDepthState(renderer).ssbo;
 
@@ -687,7 +672,7 @@ export function renderAtomic(renderer, octree, camera){
 
 		passEncoder.setPipeline(pipeline);
 
-		for(let node of nodes){
+		{
 			let gpuBuffers = renderer.getGpuBuffers(node.geometry);
 
 			let bindGroup = device.createBindGroup({
@@ -722,7 +707,6 @@ export function renderAtomic(renderer, octree, camera){
 	}
 
 	{ // resolve
-		let {ssbo} = getDepthState(renderer);
 		let {ssbo_colors} = getColorState(renderer);
 		let {pipeline, uniformBuffer} = getScreenPassState(renderer);
 		let target = getTarget1(renderer);
@@ -738,12 +722,12 @@ export function renderAtomic(renderer, octree, camera){
 
 		let renderPassDescriptor = {
 			colorAttachments: [{
-				attachment: target.colorAttachments[0].texture.createView(),
+				view: target.colorAttachments[0].texture.createView(),
 				loadValue: { r: 0.4, g: 0.2, b: 0.3, a: 1.0 },
 			}],
 			depthStencilAttachment: {
-				attachment: target.depth.texture.createView(),
-				depthLoadValue: 1.0,
+				view: target.depth.texture.createView(),
+				depthLoadValue: 0.0,
 				depthStoreOp: "store",
 				stencilLoadValue: 0,
 				stencilStoreOp: "store",

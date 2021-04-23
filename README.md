@@ -26,8 +26,16 @@ First approach to render large point clouds (or meshes transformed to point clou
 Basis of most commonly used point cloud acceleration structures, including Potree, Entwine, Arena4D, etc. The key feature is a GPU-friendly data structure that stores subsamples comprising thousands of points in each node. 
 * [High-Quality Surface Splatting on Today’s GPUs](https://www.graphics.rwth-aachen.de/media/papers/splatting1.pdf) <br>
 Anti-Aliasing for point clouds by blending overlapping fragments within a certain range together. Results are similar to mip mapping or anisotropic filtering for textured meshes, which don't work for point clouds because they are colored by vertex rather than texture. 
+* ["A GPGPU-based Pipeline for Accelerated Rendering of Point Clouds."](https://core.ac.uk/download/pdf/295554194.pdf)<br>
+Compute shader rendering using OpenCL.
+* ["View-warped Multi-view Soft Shadowing for Local Area Lights"](http://jcgt.org/published/0007/03/01/)<br>
+Uses compute shaders for point-based depth map rendering.
 
 # Further Credits and Resources
 
 * [WebGPU Samples](http://austin-eng.com/webgpu-samples/?wgsl=1#animometer). Github: [austinEng/webgpu-samples](https://github.com/austinEng/webgpu-samples)
 * [WebGPU x-mas card](http://trierlab.com/VClab/webtek/xmas/)
+
+# LICENSE
+
+This prototype of Potree 2 uses the AGPL license: https://www.gnu.org/licenses/agpl-3.0.en.html. 

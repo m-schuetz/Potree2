@@ -2,20 +2,24 @@
 // after https://github.com/austinEng/webgpu-samples/blob/master/src/examples/rotatingCube.ts
 
 import * as shaders from "../prototyping/shaders.js";
-import {renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
+import {render as renderBoxes} from "../modules/drawCommands/renderBoxes.js";
+import {render as renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
 import {renderLines} from "../modules/drawCommands/renderLines.js";
 import * as Timer from "./Timer.js";
-
+import {writeBuffer} from "./writeBuffer.js";
+import {readPixels, readDepth} from "../renderer/readPixels.js";
 
 class Draws{
 
 	constructor(){
+		this.boundingBoxes = [];
 		this.boxes = [];
 		this.spheres = [];
 		this.lines = [];
 	}
 
 	reset(){
+		this.boundingBoxes = [];
 		this.boxes = [];
 		this.spheres = [];
 		this.lines = [];
@@ -34,6 +38,8 @@ export class Renderer{
 		this.swapChainFormat = null;
 		this.depthTexture = null;
 		this.draws = new Draws();
+		this.currentBindGroup = -1;
+		this.frameCounter = 0;
 
 		this.buffers = new Map();
 		this.typedBuffers = new Map();
@@ -43,7 +49,7 @@ export class Renderer{
 	async init(){
 		this.adapter = await navigator.gpu.requestAdapter();
 		this.device = await this.adapter.requestDevice({
-			extensions: ["timestamp-query"],
+			nonGuaranteedFeatures: ["timestamp-query"],
 		});
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("gpupresent");
@@ -52,17 +58,22 @@ export class Renderer{
 		this.swapChain = this.context.configureSwapChain({
 			device: this.device,
 			format: this.swapChainFormat,
-			usage: GPUTextureUsage.OUTPUT_ATTACHMENT | GPUTextureUsage.COPY_DST,
+			usage: GPUTextureUsage.RENDER_ATTACHMENT 
+				| GPUTextureUsage.COPY_DST 
+				| GPUTextureUsage.COPY_SRC
+				| GPUTextureUsage.SAMPLED,
 		});
 
 		this.depthTexture = this.device.createTexture({
 			size: {
 				width: this.canvas.width,
 				height: this.canvas.height,
-				depth: 1,
 			},
-			format: "depth24plus-stencil8",
-			usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
+			format: "depth32float",
+			usage: GPUTextureUsage.SAMPLED 
+				| GPUTextureUsage.COPY_SRC 
+				| GPUTextureUsage.COPY_DST 
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 	}
 
@@ -88,10 +99,12 @@ export class Renderer{
 				size: {
 					width: this.canvas.width,
 					height: this.canvas.height,
-					depth: 1,
 				},
-				format: "depth24plus-stencil8",
-				usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
+				format: "depth32float",
+				usage: GPUTextureUsage.SAMPLED 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			});
 		}
 	}
@@ -124,7 +137,67 @@ export class Renderer{
 		target.unmap();
 
 		return cloned;
+	}
+
+	async readPixels(texture, x, y, width, height){
+
+		let bytesPerRow = width * 4; 
 		
+		// "bytesPerRow must be a multiple of 256"
+		bytesPerRow = Math.ceil(bytesPerRow / 256) * 256;
+
+		let size = bytesPerRow * height;
+
+		// copyTextureToBuffer
+		const buffer = this.device.createBuffer({
+			size: size,
+			usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+		});
+
+		let source = {
+			texture: texture,
+			origin: {x, y, z: 0},
+		};
+
+		let destination = {
+			buffer,
+			bytesPerRow: bytesPerRow,
+		};
+
+		let copySize = {width, height, depthOrArrayLayers: 1};
+
+		const copyEncoder = this.device.createCommandEncoder();
+		copyEncoder.copyTextureToBuffer(source, destination, copySize);
+
+		// Submit copy commands.
+		const copyCommands = copyEncoder.finish();
+		this.device.queue.submit([copyCommands]);
+
+		await buffer.mapAsync(GPUMapMode.READ);
+
+		const copyArrayBuffer = buffer.getMappedRange();
+
+		let cloned = copyArrayBuffer.slice();
+
+		buffer.unmap();
+
+		return cloned;
+	}
+
+	createTextureFromArray(array, width, height){
+		let texture = this.createTexture(width, height, {format: "rgba8unorm"});
+
+		let raw = new Uint8ClampedArray(array);
+		let imageData = new ImageData(raw, width, height);
+
+		createImageBitmap(imageData).then(bitmap => {
+			this.device.queue.copyImageBitmapToTexture(
+				{imageBitmap: bitmap}, {texture: texture},
+				[bitmap.width, bitmap.height, 1]
+			);
+		});
+
+		return texture;
 	}
 
 	createTexture(width, height, params = {}){
@@ -139,7 +212,7 @@ export class Renderer{
 				| GPUTextureUsage.SAMPLED 
 				| GPUTextureUsage.COPY_SRC 
 				| GPUTextureUsage.COPY_DST 
-				| GPUTextureUsage.OUTPUT_ATTACHMENT
+				| GPUTextureUsage.RENDER_ATTACHMENT
 		});
 
 		return texture;
@@ -159,6 +232,9 @@ export class Renderer{
 		return buffer;
 	}
 
+	writeBuffer(args){
+		writeBuffer(this, args);
+	}
 	
 	getGpuTexture(image){
 
@@ -199,6 +275,7 @@ export class Renderer{
 				size: typedArray.byteLength,
 				usage: GPUBufferUsage.VERTEX 
 					| GPUBufferUsage.INDEX  
+					| GPUBufferUsage.COPY_DST 
 					| GPUBufferUsage.STORAGE,
 				mappedAtCreation: true,
 			});
@@ -253,6 +330,10 @@ export class Renderer{
 	}
 
 	drawBoundingBox(position, size, color){
+		this.draws.boundingBoxes.push([position, size, color]);
+	}
+
+	drawBox(position, size, color){
 		this.draws.boxes.push([position, size, color]);
 	}
 
@@ -262,20 +343,21 @@ export class Renderer{
 
 	start(){
 
-		let scale = window.devicePixelRatio
-		this.setSize(scale * this.canvas.clientWidth, scale * this.canvas.clientHeight);
+		// let scale = window.devicePixelRatio;
+		// this.setSize(scale * this.canvas.clientWidth, scale * this.canvas.clientHeight);
+		this.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
 
 		let renderPassDescriptor = {
 			colorAttachments: [
 				{
-					attachment: this.swapChain.getCurrentTexture().createView(),
+					view: this.swapChain.getCurrentTexture().createView(),
 					loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
 				},
 			],
 			depthStencilAttachment: {
-				attachment: this.depthTexture.createView(),
+				view: this.depthTexture.createView(),
 
-				depthLoadValue: 1.0,
+				depthLoadValue: 0.0,
 				depthStoreOp: "store",
 				stencilLoadValue: 0,
 				stencilStoreOp: "store",
@@ -289,12 +371,16 @@ export class Renderer{
 		return {commandEncoder, passEncoder, renderPassDescriptor};
 	}
 
-	renderDrawCommands(pass, camera){
-		renderBoundingBoxes(this, pass, this.draws.boxes, camera);
-		renderLines(this, pass, this.draws.lines, camera);
-	}
-
 	finish(pass){
+
+		// if((this.frameCounter % 100) === 0){
+		// 	readDepth(this, this.depthTexture, 0, 0, 4, 4);
+		// }
+
+		// readDepth(renderer, this.depthTexture, 500, 500, 8, 8, ({d}) => {
+		// 	console.log("yeah: ", d);
+		// });
+
 
 		pass.passEncoder.endPass();
 
@@ -310,33 +396,20 @@ export class Renderer{
 		// });
 
 		this.draws.reset();
-
+		this.currentBindGroup = -1;
+		this.frameCounter++;
 	}
 
+	getNextBindGroup(){
+		this.currentBindGroup++;
 
-	// render(scene, camera){
-	// 	let nodes = new Map();
+		return this.currentBindGroup;
+	}
 
-	// 	let stack = [scene.root];
-	// 	while(stack.length > 0){
-	// 		let node = stack.pop();
-
-	// 		let nodeType = node.constructor.name;
-	// 		if(!nodes.has(nodeType)){
-	// 			nodes.set(nodeType, []);
-	// 		}
-	// 		nodes.get(nodeType).push(node);
-
-	// 		for(let child of node.children){
-	// 			stack.push(child);
-	// 		}
-	// 	}
-
-
-
-
-
-
-	// }
+	renderDrawCommands(pass, camera){
+		renderBoxes(this, pass, this.draws.boxes, camera);
+		renderBoundingBoxes(this, pass, this.draws.boundingBoxes, camera);
+		renderLines(this, pass, this.draws.lines, camera);
+	}
 
 };

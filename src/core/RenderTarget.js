@@ -14,7 +14,7 @@ export class RenderTarget{
 				usage: GPUTextureUsage.SAMPLED 
 					| GPUTextureUsage.COPY_SRC 
 					| GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.OUTPUT_ATTACHMENT,
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			}];
 
 			for(let descriptor of descriptors){
@@ -27,8 +27,9 @@ export class RenderTarget{
 		{ // DEPTH ATTACHMENT
 			let descriptor = params.depthDescriptor ?? {
 				size: size,
-				format: "depth24plus-stencil8",
-				usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
+				format: "depth32float",
+				usage: GPUTextureUsage.RENDER_ATTACHMENT
+					| GPUTextureUsage.COPY_SRC,
 			};
 
 			let texture = renderer.device.createTexture(descriptor);
