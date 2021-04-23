@@ -46,7 +46,7 @@ fn main(vertex : VertexInput) -> VertexOutput {
 
 const fs = `
 
-[[block]] struct PointLight {
+struct PointLight {
 	position : vec4<f32>;
 };
 

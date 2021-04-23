@@ -1,3 +1,7 @@
+
+let FORMAT_COLOR = 0;
+let FORMAT_DEPTH = 1;
+
 let cs = `
 
 [[block]] struct Uniforms {
@@ -5,6 +9,7 @@ let cs = `
 	y : u32;
 	width: u32;
 	height: u32;
+	format: u32;
 };
 
 [[block]] struct U32s {
@@ -32,8 +37,15 @@ fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 	var color : vec4<f32> = textureLoad(source, coords, 0);
 
 	var index : u32 = uniforms.width * GlobalInvocationID.y + GlobalInvocationID.x;
-	target.values[index] = u32(color.r * 256.0);
 
+	if(uniforms.format == ${FORMAT_COLOR}u){
+		target.values[index] = u32(color.r * 256.0);
+		// TODO
+	}elseif(uniforms.format == ${FORMAT_DEPTH}u){
+		target.values[index] = bitcast<u32>(color.r);
+	}
+
+	// target.values[index] = bitcast<u32>(color.r);
 }
 `;
 
@@ -68,9 +80,7 @@ function init(renderer){
 
 }
 
-
-export function readPixels(renderer, texture, x, y, width, height){
-
+function read(renderer, texture, x, y, width, height, callback, format){
 	init(renderer);
 
 	let {device} = renderer;
@@ -95,6 +105,7 @@ export function readPixels(renderer, texture, x, y, width, height){
 		view.setUint32(4, y, true);
 		view.setUint32(8, width, true);
 		view.setUint32(12, height, true);
+		view.setUint32(16, format, true);
 		
 		renderer.device.queue.writeBuffer(
 			uniformBuffer, 0,
@@ -110,8 +121,17 @@ export function readPixels(renderer, texture, x, y, width, height){
 	device.queue.submit([commandEncoder.finish()]);
 
 	renderer.readBuffer(ssbo, 0, width * height * 4).then(result => {
-		console.log(new Uint8Array(result));
+		let array = new Float32Array(result);
+		let db = Math.max(...array);
+
+		callback({d: db});
 	});
+}
 
+export function readPixels(renderer, texture, x, y, width, height, callback){
+	return read(renderer, texture, x, y, width, height, callback, FORMAT_COLOR);
+}
 
+export function readDepth(renderer, texture, x, y, width, height, callback){
+	return read(renderer, texture, x, y, width, height, callback, FORMAT_DEPTH);
 }

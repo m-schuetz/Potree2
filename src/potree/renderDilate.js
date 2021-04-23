@@ -2,7 +2,8 @@
 import {render as renderPoints}  from "./renderPoints.js";
 import {RenderTarget} from "../core/RenderTarget.js";
 import * as Timer from "../renderer/Timer.js";
-import {readPixels} from "../renderer/readPixels.js";
+import {readPixels, readDepth} from "../renderer/readPixels.js";
+import {Potree} from "potree";
 
 
 let vs = `
@@ -359,9 +360,30 @@ export function renderDilate(renderer, pass, pointclouds, camera){
 		// 	});
 		// }
 
-		if((renderer.frameCounter % 100) === 0){
-			readPixels(renderer, target.colorAttachments[0].texture, 0, 0, 4, 4);
-		}
+		// if((renderer.frameCounter % 10) === 0){
+			
+			for(let {x, y, callback} of Potree.pickQueue){
+
+				let u = x / renderer.canvas.clientWidth;
+				let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
+				let pos = camera.getWorldPosition();
+				let dir = camera.mouseToDirection(u, v);
+				let near = camera.near;
+
+				let window = 9;
+				let wh = 4;
+				readDepth(renderer, target.depth.texture, x - wh, y - wh, window, window, ({d}) => {
+					
+					let depth = near / d;
+					
+					dir.multiplyScalar(depth);
+					let position = pos.add(dir);
+
+					callback({depth, position});
+				});
+			}
+			Potree.pickQueue.length = 0;
+		// }
 	}
 
 	{ // PASS 2: Dilate and write result to main framebuffer

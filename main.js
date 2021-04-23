@@ -1,16 +1,19 @@
 
 import {Vector3} from "potree";
-import {Scene, SceneNode, Camera, OrbitControls} from "potree";
+import {Scene, SceneNode, Camera, OrbitControls, Mesh} from "potree";
 import {Renderer, Timer} from "potree";
 
 import {render as renderPointsTest} from "./src/prototyping/renderPoints.js";
 import {render as renderPointsCompute} from "./src/prototyping/renderPointsCompute.js";
 import {drawTexture, loadImage, drawImage} from "./src/prototyping/textures.js";
 import {createPointsData} from "./src/modules/geometries/points.js";
+import {cube} from "./src/modules/geometries/cube.js";
 import {initGUI} from "./src/prototyping/gui.js";
 import {Potree} from "potree";
 import {renderMesh} from "potree";
 import {loadGLB} from "potree";
+import {MeasureTool} from "./src/interaction/measure.js";
+
 
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
 import {renderDilate}  from "./src/potree/renderDilate.js";
@@ -24,6 +27,7 @@ let fps = 0;
 let renderer = null;
 let camera = null;
 let controls = null;
+let measure = null;
 
 let scene = new Scene();
 window.scene = scene;
@@ -50,7 +54,8 @@ function update(){
 	camera.world.copy(controls.world);
 
 	camera.updateView();
-	guiContent["camera"] = camera.getWorldPosition().toString(1);
+	guiContent["cam.pos"] = camera.getWorldPosition().toString(1);
+	guiContent["cam.dir"] = camera.getWorldDirection().toString(1);
 
 	let size = renderer.getSize();
 	camera.aspect = size.width / size.height;
@@ -77,6 +82,34 @@ function update(){
 		guiContent["#points"] = numPoints.toLocaleString();
 		guiContent["#nodes"] = numNodes.toLocaleString();
 	}
+
+
+	// {
+	// 	let node = scene.root.children.find(c => c.constructor.name === "Mesh");
+
+	// 	if(node){
+	// 		// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	// 		// node.position.set(5, 0, 3);
+	// 		// node.scale.set(2, 2, 2);
+
+	// 		// let dir = camera.mouseToDirection(u, v);
+	// 		let dir = camera.getWorldDirection();
+
+	// 		// if(dbgDepth !== Infinity){
+	// 			// dir.multiplyScalar(dbgDepth);
+	// 			dir.multiplyScalar(10.0);
+
+	// 			let pos = camera.getWorldPosition().add(dir);
+
+	// 			node.position.copy(pos);
+	// 			node.rotation.makeIdentity();
+	// 			node.updateWorld();
+
+	// 		// }
+
+
+	// 	}
+	// }
 }
 
 function render(){
@@ -136,11 +169,7 @@ function render(){
 	if(guiContent["mode"] === "dilate"){
 		let octrees = renderables.get("PointCloudOctree") ?? [];
 
-		target = renderDilate(renderer, pass, octrees, camera);
-
-		// if(target){
-		// 	drawTexture(renderer, pass, target.colorAttachments[0].texture, 0, 0, 1, 1);
-		// }
+		renderDilate(renderer, pass, octrees, camera);
 	}
 
 	if(dbgImage){
@@ -199,6 +228,7 @@ async function main(){
 
 	camera = new Camera();
 	controls = new OrbitControls(renderer.canvas);
+	measure = new MeasureTool(renderer);
 
 	window.camera = camera;
 	window.controls = controls;
@@ -256,24 +286,30 @@ async function main(){
 		dbgImage = image;
 	});
 
-	loadGLB("./resources/models/anita_mui.glb").then(node => {
-	// loadGLB("./resources/models/lion.glb").then(node => {
-		scene.root.children.push(node);
+	// loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// // loadGLB("./resources/models/lion.glb").then(node => {
+	// 	scene.root.children.push(node);
 
-		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-		node.position.set(5, 0, 3);
-		node.scale.set(2, 2, 2);
-		node.updateWorld();
+	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	// 	node.position.set(5, 0, 3);
+	// 	node.scale.set(2, 2, 2);
+	// 	node.updateWorld();
 
-		// controls.set({
-		// 	yaw: -9.2375,
-		// 	pitch: 0.2911333847340012,
-		// 	radius: 3.649930853878021,
-		// 	pivot:  [0.3169157776176301, -0.055293688684424885, 2.2],
-		// });
+	// 	// controls.set({
+	// 	// 	yaw: -9.2375,
+	// 	// 	pitch: 0.2911333847340012,
+	// 	// 	radius: 3.649930853878021,
+	// 	// 	pivot:  [0.3169157776176301, -0.055293688684424885, 2.2],
+	// 	// });
 
-		// controls.zoomTo(node);
-	});
+	// 	// controls.zoomTo(node);
+	// });
+
+	{
+		let mesh = new Mesh("cube", cube);
+
+		scene.root.children.push(mesh);
+	}
 
 	requestAnimationFrame(loop);
 

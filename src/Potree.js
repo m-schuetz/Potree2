@@ -9,9 +9,17 @@ async function load(url){
 	return octree;
 }
 
+
+const pickQueue = [];
+
+function pick(x, y, callback){
+	pickQueue.push({x, y, callback});
+}
+
 export let Potree = {
 	load: load,
 	render: render,
+	pick: pick, pickQueue,
 };
 
 export * from "./math/math.js";
@@ -19,6 +27,7 @@ export * from "./core/Geometry.js";
 export * from "./core/RenderTarget.js";
 export * from "./scene/Scene.js";
 export * from "./scene/SceneNode.js";
+export * from "./modules/mesh/Mesh.js";
 export * from "./scene/Camera.js";
 export * from "./navigation/OrbitControls.js";
 export * from "./renderer/Renderer.js";

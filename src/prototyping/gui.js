@@ -10,7 +10,8 @@ let guiContent = {
 	"fps": "0",
 	"duration(update)": "0",
 	// "timings": "",
-	"camera": "",
+	"cam.pos": "",
+	"cam.dir": "",
 
 
 	// INPUT
@@ -47,7 +48,8 @@ export function initGUI(){
 		stats.add(guiContent, "#nodes").listen();
 		stats.add(guiContent, "fps").listen();
 		stats.add(guiContent, "duration(update)").listen();
-		stats.add(guiContent, "camera").listen();
+		stats.add(guiContent, "cam.pos").listen();
+		stats.add(guiContent, "cam.dir").listen();
 	}
 
 	{

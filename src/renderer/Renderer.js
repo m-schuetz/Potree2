@@ -7,7 +7,7 @@ import {render as renderBoundingBoxes} from "../modules/drawCommands/renderBound
 import {renderLines} from "../modules/drawCommands/renderLines.js";
 import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
-
+import {readPixels, readDepth} from "../renderer/readPixels.js";
 
 class Draws{
 
@@ -62,7 +62,8 @@ export class Renderer{
 			format: this.swapChainFormat,
 			usage: GPUTextureUsage.RENDER_ATTACHMENT 
 				| GPUTextureUsage.COPY_DST 
-				| GPUTextureUsage.COPY_SRC,
+				| GPUTextureUsage.COPY_SRC
+				| GPUTextureUsage.SAMPLED,
 		});
 
 		this.depthTexture = this.device.createTexture({
@@ -71,7 +72,10 @@ export class Renderer{
 				height: this.canvas.height,
 			},
 			format: "depth32float",
-			usage: GPUTextureUsage.RENDER_ATTACHMENT,
+			usage: GPUTextureUsage.SAMPLED 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 	}
 
@@ -373,10 +377,8 @@ export class Renderer{
 
 		// }
 
-		// if((this.frameCounter % 100) == 0){
-		// 	this.readPixels(this.swapChain.getCurrentTexture(), 0, 0, 60, 60).then(result => {
-		// 		console.log(new Uint8Array(result));
-		// 	});
+		// if((this.frameCounter % 100) === 0){
+		// 	readDepth(this, this.depthTexture, 0, 0, 4, 4);
 		// }
 
 
