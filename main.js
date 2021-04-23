@@ -178,7 +178,7 @@ function render(){
 	}
 
 	if(target){
-		drawTexture(renderer, pass, target, 0, 0, 0.5, 0.5);
+		drawTexture(renderer, pass, target, 0, 0, 1, 1);
 	}
 
 	if(guiContent["mode"] === "pixels"){
@@ -270,11 +270,11 @@ async function main(){
 		radius: 10,
 	});
 
-	{
-		let points = createPointsData(1_000);
-		scene.root.children.push(points);
+	// {
+	// 	let points = createPointsData(1_000);
+	// 	scene.root.children.push(points);
 
-	}
+	// }
 
 	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
 	// 	// controls.set({

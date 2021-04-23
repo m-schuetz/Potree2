@@ -192,69 +192,52 @@ void main(){
 
 
 let vs = `
-	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.1)
-	);
-
-	const uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 0.0)
-	);
-
-	[[builtin(position)]] var<out> Position : vec4<f32>;
-	[[builtin(vertex_idx)]] var<in> VertexIndex : i32;
 
 	[[block]] struct Uniforms {
-		uTest : u32;
-		x : f32;
-		y : f32;
-		width : f32;
-		height : f32;
+		[[size(4)]] uTest : u32;
+		[[size(4)]] x : f32;
+		[[size(4)]] y : f32;
+		[[size(4)]] width : f32;
+		[[size(4)]] height : f32;
 	};
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-	[[location(0)]] var<out> fragUV : vec2<f32>;
+	struct VertexInput {
+		[[builtin(vertex_idx)]] index : i32;
+	};
+
+	struct VertexOutput {
+		[[builtin(position)]] position : vec4<f32>;
+	};
 
 	[[stage(vertex)]]
-	fn main() -> void {
-		Position = vec4<f32>(pos[VertexIndex], 0.999, 1.0);
-		fragUV = uv[VertexIndex];
+	fn main(vertex : VertexInput) -> VertexOutput {
+
+		var output : VertexOutput;
 
 		var x : f32 = uniforms.x * 2.0 - 1.0;
 		var y : f32 = uniforms.y * 2.0 - 1.0;
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		if(VertexIndex == 0){
-			Position.x = x;
-			Position.y = y;
-		}elseif(VertexIndex == 1){
-			Position.x = x + width;
-			Position.y = y;
-		}elseif(VertexIndex == 2){
-			Position.x = x + width;
-			Position.y = y + height;
-		}elseif(VertexIndex == 3){
-			Position.x = x;
-			Position.y = y;
-		}elseif(VertexIndex == 4){
-			Position.x = x + width;
-			Position.y = y + height;
-		}elseif(VertexIndex == 5){
-			Position.x = x;
-			Position.y = y + height;
+		var vi : i32 = vertex.index;
+
+		if(vi == 0 || vi == 3 || vi == 5){
+			output.position.x = x;
+		}else{
+			output.position.x = x + width;
 		}
 
-		return;
+		if(vi == 0 || vi == 1 || vi == 3){
+			output.position.y = y;
+		}else{
+			output.position.y = y + height;
+		}
+
+		output.position.z = 0.01;
+		output.position.w = 1.0;
+
+		return output;
 	}
 `;
 
@@ -279,15 +262,13 @@ let fs = `
 
 	[[location(0)]] var<out> outColor : vec4<f32>;
 
-	[[location(0)]] var<in> fragUV: vec2<f32>;
-
 	[[builtin(frag_coord)]] var<in> fragCoord : vec4<f32>;
 
 	[[stage(fragment)]]
 	fn main() -> void {
 
 		var frag_x : i32 = i32(fragCoord.x);
-		var frag_y : i32 = i32(fragCoord.y);
+		var frag_y : i32 = i32(uniforms.screenHeight) - i32(fragCoord.y);
 		var width : i32 = i32(uniforms.screenWidth);
 		var index : u32 = u32(frag_x + frag_y * width);
 
