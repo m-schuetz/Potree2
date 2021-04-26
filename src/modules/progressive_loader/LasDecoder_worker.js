@@ -24,7 +24,7 @@ function shuffle(array) {
 
 function parsePoints(args){
 
-	let {buffer, header, octree_min, batchsize} = args;
+	let {buffer, header, batchsize} = args;
 	let {pointFormat, recordLength, min, max, scale} = header;
 
 	let view = new DataView(buffer);
@@ -51,9 +51,9 @@ function parsePoints(args){
 		let Y = view.getInt32(pointOffset + 4, true);
 		let Z = view.getInt32(pointOffset + 8, true);
 
-		let x = X * scale.x + header.offset.x - octree_min.x;
-		let y = Y * scale.y + header.offset.y - octree_min.y;
-		let z = Z * scale.z + header.offset.z - octree_min.z;
+		let x = X * scale.x + header.offset.x;
+		let y = Y * scale.y + header.offset.y;
+		let z = Z * scale.z + header.offset.z;
 
 		position[3 * i + 0] = x;
 		position[3 * i + 1] = y;
@@ -140,7 +140,7 @@ async function readHeader(file){
 
 async function loadLAS(file, header, octree_min){
 	// break work down into batches
-	let batchSize = 5_000_000;
+	let batchSize = 10_000_000;
 	let batches = [];
 	for(let i = 0; i < header.numPoints; i += batchSize){
 		let batch = {
@@ -161,7 +161,7 @@ async function loadLAS(file, header, octree_min){
 		let buffer = await file.slice(start, end).arrayBuffer()
 		
 		parsePoints({
-			buffer, octree_min, header,
+			buffer, header,
 			batchsize: batch.count,
 		});
 		
@@ -247,7 +247,7 @@ async function loadLAZ(file, header, octree_min){
 		}
 
 		parsePoints({
-			octree_min, header, batchsize,
+			header, batchsize,
 			buffer: target,
 		});
 
@@ -270,16 +270,16 @@ async function loadLAZ(file, header, octree_min){
 
 onmessage = async function(e){
 
-	let {file, octree_min} = e.data;
+	let {file} = e.data;
 
 	let header = await readHeader(file);
 
 	let compressed = (header.pointFormat & 0b11000000) > 0;
 
 	if(compressed){
-		loadLAZ(file, header, octree_min);
+		loadLAZ(file, header);
 	}else{
-		loadLAS(file, header, octree_min);
+		loadLAS(file, header);
 	}
 
 };

@@ -14,6 +14,7 @@ import {renderMesh} from "potree";
 import {loadGLB} from "potree";
 import {MeasureTool} from "./src/interaction/measure.js";
 import {readPixels, readDepth} from "./src/renderer/readPixels.js";
+import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
 
 
 import {render as renderPoints}  from "./src/potree/renderPoints.js";
@@ -298,12 +299,12 @@ async function main(){
 	// 	scene.root.children.push(pointcloud);
 	// });
 
-	// controls.set({
-	// 	radius: 13.8,
-	// 	yaw: -0.66,
-	// 	pitch: 0.37,
-	// 	pivot: [-0.022888880829764084, -0.12292264906406908, 5.322860838969788],
-	// });
+	controls.set({
+		radius: 13.8,
+		yaw: -0.66,
+		pitch: 0.37,
+		pivot: [-0.022888880829764084, -0.12292264906406908, 5.322860838969788],
+	});
 
 	// Potree.load("./resources/pointclouds/ca13/metadata.json").then(pointcloud => {
 
@@ -347,6 +348,21 @@ async function main(){
 
 		scene.root.children.push(mesh);
 	}
+
+
+	// progressive loader
+	let element = document.getElementById("canvas");
+	ProgressiveLoader.install(element, {
+		onSetup: (node) => {
+			scene.root.children.push(node)
+			console.log("setup done");
+		},
+		onProgress: (e) => {
+			console.log("progress", e);
+		}
+	});
+
+
 
 	requestAnimationFrame(loop);
 
