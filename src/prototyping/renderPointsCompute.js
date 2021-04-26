@@ -62,7 +62,6 @@ void main(){
 	ivec2 pixelCoords = ivec2(imgPos);
 	int pixelID = pixelCoords.x + pixelCoords.y * imageSize.x;
 
-	uint color = colors[index];
 	uint depth = floatBitsToUint(pos.w);
 	uint old = framebuffer[pixelID];
 
@@ -143,7 +142,8 @@ void main(){
 	float bufferedDepth = uintBitsToFloat(ssbo_depth[pixelID]);
 
 	// just sum up points with nearly the same depth
-	if(depth <= bufferedDepth * 1.0001){
+	// if(depth <= bufferedDepth * 1.01){
+	if(depth <= bufferedDepth){
 		atomicAdd(ssbo_colors[4 * pixelID + 0], r);
 		atomicAdd(ssbo_colors[4 * pixelID + 1], g);
 		atomicAdd(ssbo_colors[4 * pixelID + 2], b);
@@ -723,7 +723,7 @@ export function render(renderer, node, camera){
 		let renderPassDescriptor = {
 			colorAttachments: [{
 				view: target.colorAttachments[0].texture.createView(),
-				loadValue: { r: 0.4, g: 0.2, b: 0.3, a: 1.0 },
+				loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
 			}],
 			depthStencilAttachment: {
 				view: target.depth.texture.createView(),

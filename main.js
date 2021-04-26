@@ -271,32 +271,39 @@ async function main(){
 	});
 
 	// {
-	// 	let points = createPointsData(1_000);
+	// 	let points = createPointsData(6_000);
 	// 	scene.root.children.push(points);
+
+	// 	controls.set({
+	// 		radius: 7.8,
+	// 		yaw: 5.66,
+	// 		pitch: 0.7,
+	// 		pivot: [0.2094438030078714, -0.23336995166449773, 0.2092711916242336],
+	// 	});
 
 	// }
 
-	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
-	// 	// controls.set({
-	// 	// 	radius: 7,
-	// 	// 	yaw: -0.86,
-	// 	// 	pitch: 0.51,
-	// 	// 	pivot: [-0.22, -0.01, 3.72],
-	// 	// });
+	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+		// controls.set({
+		// 	radius: 7,
+		// 	yaw: -0.86,
+		// 	pitch: 0.51,
+		// 	pivot: [-0.22, -0.01, 3.72],
+		// });
 
-	// 	scene.root.children.push(pointcloud);
-	// });
-
-	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 		scene.root.children.push(pointcloud);
 	});
 
-	controls.set({
-		radius: 13.8,
-		yaw: -0.66,
-		pitch: 0.37,
-		pivot: [-0.022888880829764084, -0.12292264906406908, 5.322860838969788],
-	});
+	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
+	// });
+
+	// controls.set({
+	// 	radius: 13.8,
+	// 	yaw: -0.66,
+	// 	pitch: 0.37,
+	// 	pivot: [-0.022888880829764084, -0.12292264906406908, 5.322860838969788],
+	// });
 
 	// Potree.load("./resources/pointclouds/ca13/metadata.json").then(pointcloud => {
 
