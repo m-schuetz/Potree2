@@ -141,8 +141,7 @@ void main(){
 	float depth = pos.w;
 	float bufferedDepth = uintBitsToFloat(ssbo_depth[pixelID]);
 
-	// just sum up points with nearly the same depth
-	// if(depth <= bufferedDepth * 1.01){
+	// just sum up points with the same depth
 	if(depth <= bufferedDepth){
 		atomicAdd(ssbo_colors[4 * pixelID + 0], r);
 		atomicAdd(ssbo_colors[4 * pixelID + 1], g);
@@ -151,9 +150,13 @@ void main(){
 	}
 	
 
-	// or within a range of 1%
-	// if(depth <= bufferedDepth * 1.01){
-
+	// // or within a depth range (1.01 -> 1%)
+	// if(depth <= bufferedDepth * 1.001){
+	// 	atomicAdd(ssbo_colors[4 * pixelID + 0], r);
+	// 	atomicAdd(ssbo_colors[4 * pixelID + 1], g);
+	// 	atomicAdd(ssbo_colors[4 * pixelID + 2], b);
+	// 	atomicAdd(ssbo_colors[4 * pixelID + 3], 1);
+	// }
 
 	// directly write points with same depth
 	// will likely cause flickering
@@ -509,123 +512,55 @@ function reset(renderer, ssbo, numUints, value){
 	device.queue.submit([commandEncoder.finish()]);
 }
 
-export function render(renderer, node, camera){
-
-	
-
-	if(glslang === undefined){
-
-		glslang = null;
-
-		glslangModule().then( result => {
-			glslang = result;
-		});
-
-		return;
-	}else if(glslang === null){
-		return;
-	}
+function depthPass(renderer, nodes, camera){
 
 	let {device} = renderer;
 
-	{
-		let size = renderer.getSize();
-		let target = getTarget1(renderer);
-		target.setSize(size.width, size.height);
-	}
+	const commandEncoder = device.createCommandEncoder();
+	let passEncoder = commandEncoder.beginComputePass();
 
-	{ // update uniforms DEPTH
-		let {uniformBuffer} = getDepthState(renderer);
+	Timer.timestamp(passEncoder,"depth-start");
 
-		{ // transform
-			let world = node.world;
-			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
+	let {pipeline, uniformBuffer, ssbo, ssboSize} = getDepthState(renderer);
+	passEncoder.setPipeline(pipeline);
 
-			let tmp = new Float32Array(16);
+	for(let node of nodes){
 
-			tmp.set(worldView.elements);
-			device.queue.writeBuffer(
-				uniformBuffer, 0,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
+		{ // update uniforms DEPTH
+			let {uniformBuffer} = getDepthState(renderer);
 
-			tmp.set(camera.proj.elements);
-			device.queue.writeBuffer(
-				uniformBuffer, 64,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
+			{ // transform
+				let world = node.world;
+				let view = camera.view;
+				let worldView = new Matrix4().multiplyMatrices(view, world);
+
+				let tmp = new Float32Array(16);
+
+				tmp.set(worldView.elements);
+				device.queue.writeBuffer(
+					uniformBuffer, 0,
+					tmp.buffer, tmp.byteOffset, tmp.byteLength
+				);
+
+				tmp.set(camera.proj.elements);
+				device.queue.writeBuffer(
+					uniformBuffer, 64,
+					tmp.buffer, tmp.byteOffset, tmp.byteLength
+				);
+			}
+
+			{ // screen size
+				let size = renderer.getSize();
+				let data = new Uint32Array([size.width, size.height]);
+				device.queue.writeBuffer(
+					uniformBuffer,
+					128,
+					data.buffer,
+					data.byteOffset,
+					data.byteLength
+				);
+			}
 		}
-
-		{ // screen size
-			let size = renderer.getSize();
-			let data = new Uint32Array([size.width, size.height]);
-			device.queue.writeBuffer(
-				uniformBuffer,
-				128,
-				data.buffer,
-				data.byteOffset,
-				data.byteLength
-			);
-		}
-	}
-
-	{ // update uniforms COLOR
-		let {uniformBuffer} = getColorState(renderer);
-
-		{ // transform
-			let world = node.world;
-			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
-
-			let tmp = new Float32Array(16);
-
-			tmp.set(worldView.elements);
-			device.queue.writeBuffer(
-				uniformBuffer, 0,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
-
-			tmp.set(camera.proj.elements);
-			device.queue.writeBuffer(
-				uniformBuffer, 64,
-				tmp.buffer, tmp.byteOffset, tmp.byteLength
-			);
-		}
-
-		{ // screen size
-			let size = renderer.getSize();
-			let data = new Uint32Array([size.width, size.height]);
-			device.queue.writeBuffer(
-				uniformBuffer,
-				128,
-				data.buffer,
-				data.byteOffset,
-				data.byteLength
-			);
-		}
-	}
-
-	{ // RESET BUFFERS
-		let size = renderer.getSize();
-		let numUints = size.width * size.height;
-		let {ssbo} = getDepthState(renderer);
-		let {ssbo_colors} = getColorState(renderer);
-
-		reset(renderer, ssbo, numUints, 0x7fffffff);
-		reset(renderer, ssbo_colors, 4 * numUints, 0);
-	}
-
-
-	{ // DEPTH PASS
-		let {pipeline, uniformBuffer, ssbo, ssboSize} = getDepthState(renderer);
-
-		const commandEncoder = device.createCommandEncoder();
-		let passEncoder = commandEncoder.beginComputePass();
-
-		Timer.timestamp(passEncoder,"depth-start");
-
-		passEncoder.setPipeline(pipeline);
 
 		{
 			let gpuBuffers = renderer.getGpuBuffers(node.geometry);
@@ -649,28 +584,70 @@ export function render(renderer, node, camera){
 			passEncoder.dispatch(...groups);
 
 		}
-
-		Timer.timestamp(passEncoder,"depth-end");
-
-		passEncoder.endPass();
-
-		Timer.resolve(renderer, commandEncoder);
-
-		device.queue.submit([commandEncoder.finish()]);
-
 	}
 
-	{ // COLOR PASS
-		let {pipeline, uniformBuffer} = getColorState(renderer);
-		let {ssbo_colors} = getColorState(renderer);
-		let ssbo_depth = getDepthState(renderer).ssbo;
+	Timer.timestamp(passEncoder,"depth-end");
 
-		const commandEncoder = device.createCommandEncoder();
-		let passEncoder = commandEncoder.beginComputePass();
+	passEncoder.endPass();
 
-		Timer.timestamp(passEncoder,"color-start");
+	Timer.resolve(renderer, commandEncoder);
 
-		passEncoder.setPipeline(pipeline);
+	device.queue.submit([commandEncoder.finish()]);
+
+}
+
+function colorPass(renderer, nodes, camera){
+
+	let {device} = renderer;
+
+	let {pipeline, uniformBuffer} = getColorState(renderer);
+	let {ssbo_colors} = getColorState(renderer);
+	let ssbo_depth = getDepthState(renderer).ssbo;
+
+	const commandEncoder = device.createCommandEncoder();
+	let passEncoder = commandEncoder.beginComputePass();
+
+	Timer.timestamp(passEncoder,"color-start");
+
+	passEncoder.setPipeline(pipeline);
+
+	for(let node of nodes){
+
+		{ // update uniforms COLOR
+			let {uniformBuffer} = getColorState(renderer);
+
+			{ // transform
+				let world = node.world;
+				let view = camera.view;
+				let worldView = new Matrix4().multiplyMatrices(view, world);
+
+				let tmp = new Float32Array(16);
+
+				tmp.set(worldView.elements);
+				device.queue.writeBuffer(
+					uniformBuffer, 0,
+					tmp.buffer, tmp.byteOffset, tmp.byteLength
+				);
+
+				tmp.set(camera.proj.elements);
+				device.queue.writeBuffer(
+					uniformBuffer, 64,
+					tmp.buffer, tmp.byteOffset, tmp.byteLength
+				);
+			}
+
+			{ // screen size
+				let size = renderer.getSize();
+				let data = new Uint32Array([size.width, size.height]);
+				device.queue.writeBuffer(
+					uniformBuffer,
+					128,
+					data.buffer,
+					data.byteOffset,
+					data.byteLength
+				);
+			}
+		}
 
 		{
 			let gpuBuffers = renderer.getGpuBuffers(node.geometry);
@@ -696,15 +673,57 @@ export function render(renderer, node, camera){
 			
 		}
 
-		Timer.timestamp(passEncoder,"color-end");
-
-		passEncoder.endPass();
-
-		Timer.resolve(renderer, commandEncoder);
-
-		device.queue.submit([commandEncoder.finish()]);
-
 	}
+
+	Timer.timestamp(passEncoder,"color-end");
+
+	passEncoder.endPass();
+
+	Timer.resolve(renderer, commandEncoder);
+
+	device.queue.submit([commandEncoder.finish()]);
+
+
+
+}
+
+
+export function render(renderer, nodes, camera){
+
+	if(glslang === undefined){
+
+		glslang = null;
+
+		glslangModule().then( result => {
+			glslang = result;
+		});
+
+		return;
+	}else if(glslang === null){
+		return;
+	}
+
+	let {device} = renderer;
+
+	{
+		let size = renderer.getSize();
+		let target = getTarget1(renderer);
+		target.setSize(size.width, size.height);
+	}
+
+
+	{ // RESET BUFFERS
+		let size = renderer.getSize();
+		let numUints = size.width * size.height;
+		let {ssbo} = getDepthState(renderer);
+		let {ssbo_colors} = getColorState(renderer);
+
+		reset(renderer, ssbo, numUints, 0x7fffffff);
+		reset(renderer, ssbo_colors, 4 * numUints, 0);
+	}
+
+	depthPass(renderer, nodes, camera);
+	colorPass(renderer, nodes, camera);
 
 	{ // resolve
 		let {ssbo_colors} = getColorState(renderer);

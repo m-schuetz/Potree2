@@ -161,9 +161,7 @@ function render(){
 	if(guiContent["mode"] === "HQS"){
 		let points = renderables.get("Points") ?? [];
 
-		for(let point of points){
-			target = renderPointsCompute(renderer, point, camera);
-		}
+		target = renderPointsCompute(renderer, points, camera);
 	}
 
 	let pass = renderer.start();
