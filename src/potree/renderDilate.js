@@ -2,9 +2,6 @@
 import {render as renderPoints}  from "./renderPoints.js";
 import {RenderTarget} from "../core/RenderTarget.js";
 import * as Timer from "../renderer/Timer.js";
-import {readPixels, readDepth} from "../renderer/readPixels.js";
-import {Potree} from "potree";
-
 
 let vs = `
 	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(

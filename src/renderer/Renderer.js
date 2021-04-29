@@ -8,6 +8,8 @@ import {renderLines} from "../modules/drawCommands/renderLines.js";
 import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
 import {readPixels, readDepth} from "../renderer/readPixels.js";
+import {RenderTarget} from "potree";
+
 
 class Draws{
 
@@ -34,13 +36,16 @@ export class Renderer{
 		this.device = null;
 		this.canvas = null;
 		this.context = null;
-		this.swapChain = null;
 		this.swapChainFormat = null;
-		this.depthTexture = null;
 		this.draws = new Draws();
 		this.currentBindGroup = -1;
 		this.frameCounter = 0;
 
+		this.swapChain = null;
+		this.depthTexture = null;
+		this.screenbuffer = null;
+
+		this.framebuffers = new Map();
 		this.buffers = new Map();
 		this.typedBuffers = new Map();
 		this.textures = new Map();
@@ -64,17 +69,21 @@ export class Renderer{
 				| GPUTextureUsage.SAMPLED,
 		});
 
+		let size = this.getSize();
 		this.depthTexture = this.device.createTexture({
-			size: {
-				width: this.canvas.width,
-				height: this.canvas.height,
-			},
+			size: {width: size.width, height: size.height},
 			format: "depth32float",
 			usage: GPUTextureUsage.SAMPLED 
 				| GPUTextureUsage.COPY_SRC 
 				| GPUTextureUsage.COPY_DST 
 				| GPUTextureUsage.RENDER_ATTACHMENT,
 		});
+
+		this.screenbuffer = RenderTarget.create();
+		this.screenbuffer.colorAttachments = [this.swapChain.getCurrentTexture()];
+		this.screenbuffer.depth = this.depthTexture;
+		this.screenbuffer.size = [size.width, size.height];
+
 	}
 
 	getSize(){
@@ -106,6 +115,10 @@ export class Renderer{
 					| GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.RENDER_ATTACHMENT,
 			});
+
+			this.screenbuffer.colorAttachments = [this.swapChain.getCurrentTexture()];
+			this.screenbuffer.depth = this.depthTexture;
+			this.screenbuffer.size = [width, height];
 		}
 	}
 
@@ -329,6 +342,21 @@ export class Renderer{
 		return buffers;
 	}
 
+	getFramebuffer(id){
+
+		if(this.framebuffers.has(id)){
+			return this.framebuffers.get(id);
+		}else{
+
+			let framebuffer = new RenderTarget(renderer);
+			
+			this.framebuffers.set(id, framebuffer);
+
+			return framebuffer;
+		}
+
+	}
+
 	drawBoundingBox(position, size, color){
 		this.draws.boundingBoxes.push([position, size, color]);
 	}
@@ -347,47 +375,45 @@ export class Renderer{
 		// this.setSize(scale * this.canvas.clientWidth, scale * this.canvas.clientHeight);
 		this.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
 
-		let renderPassDescriptor = {
-			colorAttachments: [
-				{
-					view: this.swapChain.getCurrentTexture().createView(),
-					loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
-				},
-			],
-			depthStencilAttachment: {
-				view: this.depthTexture.createView(),
+		let size = this.getSize();
+		this.screenbuffer.colorAttachments = [this.swapChain.getCurrentTexture()];
+		this.screenbuffer.depth = this.depthTexture;
+		this.screenbuffer.size = [size.width, size.height];
 
-				depthLoadValue: 0.0,
-				depthStoreOp: "store",
-				stencilLoadValue: 0,
-				stencilStoreOp: "store",
-			},
-			sampleCount: 1,
-		};
+		// let renderPassDescriptor = {
+		// 	colorAttachments: [
+		// 		{
+		// 			view: this.swapChain.getCurrentTexture().createView(),
+		// 			loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
+		// 		},
+		// 	],
+		// 	depthStencilAttachment: {
+		// 		view: this.depthTexture.createView(),
 
-		const commandEncoder = this.device.createCommandEncoder();
-		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+		// 		depthLoadValue: 0.0,
+		// 		depthStoreOp: "store",
+		// 		stencilLoadValue: 0,
+		// 		stencilStoreOp: "store",
+		// 	},
+		// 	sampleCount: 1,
+		// };
 
-		return {commandEncoder, passEncoder, renderPassDescriptor};
+		// const commandEncoder = this.device.createCommandEncoder();
+		// const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+		// return {commandEncoder, passEncoder, renderPassDescriptor};
 	}
 
-	finish(pass){
+	finish(){
 
-		// if((this.frameCounter % 100) === 0){
-		// 	readDepth(this, this.depthTexture, 0, 0, 4, 4);
-		// }
+		// pass.passEncoder.endPass();
 
-		// readDepth(renderer, this.depthTexture, 500, 500, 8, 8, ({d}) => {
-		// 	console.log("yeah: ", d);
-		// });
+		// Timer.resolve(renderer, pass.commandEncoder);
+
+		// let commandBuffer = pass.commandEncoder.finish();
+		// this.device.queue.submit([commandBuffer]);
 
 
-		pass.passEncoder.endPass();
-
-		Timer.resolve(renderer, pass.commandEncoder);
-
-		let commandBuffer = pass.commandEncoder.finish();
-		this.device.queue.submit([commandBuffer]);
 
 		// not yet available?
 		// https://github.com/gpuweb/gpuweb/issues/1325

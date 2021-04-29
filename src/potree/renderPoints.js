@@ -165,65 +165,44 @@ function getOctreeState(renderer, node){
 	return state;
 }
 
-export function render(renderer, pass, octree, camera){
+function updateUniforms(octree, octreeState, drawstate){
 
-	let {device} = renderer;
+	let {uniformBuffer} = octreeState;
+	let {renderer} = drawstate;
 
+	let data = new ArrayBuffer(256);
+	let f32 = new Float32Array(data);
+	let view = new DataView(data);
+
+	let world = octree.world;
+	let camView = camera.view;
+	let worldView = new Matrix4().multiplyMatrices(camView, world);
+
+	f32.set(worldView.elements, 0);
+	f32.set(camera.proj.elements, 16);
+
+	let size = renderer.getSize();
+
+	view.setFloat32(128, size.width, true);
+	view.setFloat32(132, size.height, true);
+
+	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 136);
+}
+
+function renderOctree(octree, drawstate, passEncoder){
+	
+	let {renderer} = drawstate;
+	
 	let octreeState = getOctreeState(renderer, octree);
 
-	let nodes = octree.visibleNodes;
+	updateUniforms(octree, octreeState, drawstate);
 
-	{ // update uniforms
-		
-
-		{ // uniforms
-
-			let {uniformBuffer} = octreeState;
-
-			let data = new ArrayBuffer(256);
-			let f32 = new Float32Array(data);
-			let view = new DataView(data);
-
-			let world = octree.world;
-			let camView = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(camView, world);
-
-			f32.set(worldView.elements, 0);
-			f32.set(camera.proj.elements, 16);
-
-			let size = renderer.getSize();
-
-			view.setFloat32(128, size.width, true);
-			view.setFloat32(132, size.height, true);
-
-			renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 136);
-		}
-
-
-		// { // nodes
-		// 	let buffer = new Float32Array(4 * nodes.length);
-		// 	for(let i = 0; i < nodes.length; i++){
-		// 		buffer[4 * i + 0] = 0;
-		// 		buffer[4 * i + 1] = i / 200;
-		// 		buffer[4 * i + 2] = 0;
-		// 		buffer[4 * i + 3] = 1;
-		// 	}
-
-		// 	device.queue.writeBuffer(
-		// 		octreeState.uNodesBuffer, 0,
-		// 		buffer.buffer, buffer.byteOffset, buffer.byteLength
-		// 	);
-		// }
-	}
-
-	let {passEncoder} = pass;
 	let {pipeline, uniformBindGroup} = octreeState;
-
-	Timer.timestamp(passEncoder, "points-start");
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, uniformBindGroup);
 
+	let nodes = octree.visibleNodes;
 	let i = 0;
 	for(let node of nodes){
 
@@ -249,7 +228,46 @@ export function render(renderer, pass, octree, camera){
 
 		i++;
 	}
+}
+
+export function render(args = {}){
+
+	let octrees = args.in;
+	let target = args.target;
+	let drawstate = args.drawstate;
+	let {renderer, camera} = drawstate;
+
+	let firstDraw = target.version < renderer.frameCounter;
+	let view = target.colorAttachments[0].createView();
+	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
+	let depthLoadValue = firstDraw ? 0 : "load";
+	let renderPassDescriptor = {
+		colorAttachments: [{view, loadValue}],
+		depthStencilAttachment: {
+			view: target.depth.createView(),
+			depthLoadValue: depthLoadValue,
+			depthStoreOp: "store",
+			stencilLoadValue: 0,
+			stencilStoreOp: "store",
+		},
+		sampleCount: 1,
+	};
+	target.version = renderer.frameCounter;
+
+	const commandEncoder = renderer.device.createCommandEncoder();
+	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+	Timer.timestamp(passEncoder, "points-start");
+
+	for(let octree of octrees){
+		renderOctree(octree, drawstate, passEncoder);
+	}
 
 	Timer.timestamp(passEncoder, "points-end");
+
+	passEncoder.endPass();
+	let commandBuffer = commandEncoder.finish();
+	renderer.device.queue.submit([commandBuffer]);
+
 
 };

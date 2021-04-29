@@ -1,15 +1,16 @@
 
 export class RenderTarget{
 
-	constructor(renderer, params){
+	constructor(renderer, params = {}){
 		this.colorAttachments = [];
 		this.depth = null;
 		this.size = params.size ?? [128, 128];
 		this.renderer = renderer;
+		this.version = 0;
 
 		{ // COLOR ATTACHMENTS
 			let descriptors = params.colorDescriptors ?? [{
-				size: size,
+				size: this.size,
 				format: "r32uint",
 				usage: GPUTextureUsage.SAMPLED 
 					| GPUTextureUsage.COPY_SRC 
@@ -26,7 +27,7 @@ export class RenderTarget{
 
 		{ // DEPTH ATTACHMENT
 			let descriptor = params.depthDescriptor ?? {
-				size: size,
+				size: this.size,
 				format: "depth32float",
 				usage: GPUTextureUsage.RENDER_ATTACHMENT
 					| GPUTextureUsage.COPY_SRC,
@@ -36,6 +37,12 @@ export class RenderTarget{
 
 			this.depth = {descriptor, texture};
 		}
+	}
+
+	static create(){
+		let instance = Object.create(RenderTarget);
+
+		return instance;
 	}
 
 	setSize(width, height){
