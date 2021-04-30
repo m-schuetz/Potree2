@@ -293,40 +293,6 @@ let fs = `
 	}
 `;
 
-
-
-
-let _target_1 = null;
-
-function getTarget1(renderer){
-	if(_target_1 === null){
-
-		let size = [128, 128, 1];
-		_target_1 = new RenderTarget(renderer, {
-			size: size,
-			colorDescriptors: [{
-				size: size,
-				format: renderer.swapChainFormat,
-				usage: GPUTextureUsage.SAMPLED 
-					// | GPUTextureUsage.COPY_SRC 
-					// | GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.RENDER_ATTACHMENT,
-			}],
-			depthDescriptor: {
-				size: size,
-				format: "depth32float",
-				usage: GPUTextureUsage.SAMPLED 
-					// | GPUTextureUsage.COPY_SRC 
-					// | GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.RENDER_ATTACHMENT,
-			}
-		});
-	}
-
-	return _target_1;
-}
-
-
 let depthState = null;
 let colorState = null;
 let resetState = null;
@@ -338,7 +304,6 @@ function getDepthState(renderer){
 
 		let {device} = renderer;
 
-		// let target = getTarget1(renderer);
 		let ssboSize = 2560 * 1440 * 4 * 4;
 		let ssbo = renderer.createBuffer(ssboSize);
 
@@ -688,7 +653,7 @@ function colorPass(renderer, nodes, camera){
 }
 
 
-export function render(renderer, nodes, camera){
+export function render(args = {}){
 
 	if(glslang === undefined){
 
@@ -703,14 +668,15 @@ export function render(renderer, nodes, camera){
 		return;
 	}
 
+	let nodes = args.in;
+	let target = args.target;
+	let drawstate = args.drawstate;
+	let {renderer, camera} = drawstate;
 	let {device} = renderer;
 
-	{
-		let size = renderer.getSize();
-		let target = getTarget1(renderer);
-		target.setSize(size.width, size.height);
-	}
+	Timer.timestampSep(renderer,"render-hqs-start");
 
+	// init(renderer);
 
 	{ // RESET BUFFERS
 		let size = renderer.getSize();
@@ -725,10 +691,29 @@ export function render(renderer, nodes, camera){
 	depthPass(renderer, nodes, camera);
 	colorPass(renderer, nodes, camera);
 
+	let firstDraw = target.version < renderer.frameCounter;
+	let view = target.colorAttachments[0].texture.createView();
+	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
+	let depthLoadValue = firstDraw ? 0 : "load";
+	let renderPassDescriptor = {
+		colorAttachments: [{view, loadValue}],
+		depthStencilAttachment: {
+			view: target.depth.texture.createView(),
+			depthLoadValue: depthLoadValue,
+			depthStoreOp: "store",
+			stencilLoadValue: 0,
+			stencilStoreOp: "store",
+		},
+		sampleCount: 1,
+	};
+	target.version = renderer.frameCounter;
+
+	const commandEncoder = renderer.device.createCommandEncoder();
+	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
 	{ // resolve
 		let {ssbo_colors} = getColorState(renderer);
 		let {pipeline, uniformBuffer} = getScreenPassState(renderer);
-		let target = getTarget1(renderer);
 		let size = renderer.getSize();
 
 		let uniformBindGroup = device.createBindGroup({
@@ -738,26 +723,6 @@ export function render(renderer, nodes, camera){
 				{binding: 1, resource: {buffer: ssbo_colors}}
 			],
 		});
-
-		let renderPassDescriptor = {
-			colorAttachments: [{
-				view: target.colorAttachments[0].texture.createView(),
-				loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
-			}],
-			depthStencilAttachment: {
-				view: target.depth.texture.createView(),
-				depthLoadValue: 0.0,
-				depthStoreOp: "store",
-				stencilLoadValue: 0,
-				stencilStoreOp: "store",
-			},
-			sampleCount: 1,
-		};
-
-		const commandEncoder = renderer.device.createCommandEncoder();
-		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
-		Timer.timestamp(passEncoder,"resolve-start");
 
 		passEncoder.setPipeline(pipeline);
 
@@ -791,18 +756,12 @@ export function render(renderer, nodes, camera){
 
 		passEncoder.draw(6, 1, 0, 0);
 
-		Timer.timestamp(passEncoder,"resolve-end");
-
-		passEncoder.endPass();
-
-		Timer.resolve(renderer, commandEncoder);
-
-		let commandBuffer = commandEncoder.finish();
-		renderer.device.queue.submit([commandBuffer]);
-
 	}
 
-	frame++;
+	passEncoder.endPass();
+	let commandBuffer = commandEncoder.finish();
+	renderer.device.queue.submit([commandBuffer]);
 
-	return getTarget1(renderer).colorAttachments[0].texture;
+	Timer.timestampSep(renderer,"render-hqs-end");
+
 }

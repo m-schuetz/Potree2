@@ -185,12 +185,14 @@ function render(){
 		// dilate(             {in: framebuffer , target: framebuffer1 , drawstate});
 		// dilate(             {in: framebuffer1, target: screenbuffer , drawstate});
 
-		dilate(             {in: framebuffer, target: screenbuffer , drawstate});
+		dilate(             {in: framebuffer , target: screenbuffer , drawstate});
 
 	}else if(guiContent["mode"] === "HQS"){
 
-		// renderPointsHQS(    {in: points      , target: screenbuffer , drawstate});
+		renderPointsOctree( {in: octrees     , target: screenbuffer , drawstate});
+		renderPointsCompute({in: points      , target: screenbuffer , drawstate});
 
+		// dilate(             {in: framebuffer , target: screenbuffer , drawstate});
 	}
 
 	// { // HANDLE PICKING

@@ -155,7 +155,6 @@ export function render(args = {}){
 
 	init(renderer);
 
-
 	let firstDraw = target.version < renderer.frameCounter;
 	let view = target.colorAttachments[0].texture.createView();
 	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
