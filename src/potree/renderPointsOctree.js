@@ -238,13 +238,13 @@ export function render(args = {}){
 	let {renderer, camera} = drawstate;
 
 	let firstDraw = target.version < renderer.frameCounter;
-	let view = target.colorAttachments[0].createView();
+	let view = target.colorAttachments[0].texture.createView();
 	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
 	let depthLoadValue = firstDraw ? 0 : "load";
 	let renderPassDescriptor = {
 		colorAttachments: [{view, loadValue}],
 		depthStencilAttachment: {
-			view: target.depth.createView(),
+			view: target.depth.texture.createView(),
 			depthLoadValue: depthLoadValue,
 			depthStoreOp: "store",
 			stencilLoadValue: 0,
@@ -257,17 +257,16 @@ export function render(args = {}){
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-	Timer.timestamp(passEncoder, "points-start");
+	Timer.timestamp(passEncoder, "octree-start");
 
 	for(let octree of octrees){
 		renderOctree(octree, drawstate, passEncoder);
 	}
 
-	Timer.timestamp(passEncoder, "points-end");
+	Timer.timestamp(passEncoder, "octree-end");
 
 	passEncoder.endPass();
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.queue.submit([commandBuffer]);
-
 
 };

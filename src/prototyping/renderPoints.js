@@ -1,6 +1,5 @@
 
 import {Vector3, Matrix4} from "potree";
-import {SceneNode} from "potree";
 import * as Timer from "../renderer/Timer.js";
 
 const vs = `
@@ -43,10 +42,13 @@ fn main() -> void {
 `;
 
 
-
 let initialized = false;
-let uniformBuffer = null;
-let bindGroup = null;
+
+// let uniformBufferNumElements = 1000;
+// let uniformBufferCapacity = uniformBufferNumElements * 256;
+// let uniformBuffer = null;
+// let uniformBufferData = new ArrayBuffer(uniformBufferCapacity);
+let states = new Map();
 let pipeline = null;
 
 function init(renderer){
@@ -97,65 +99,132 @@ function init(renderer){
 		},
 	});
 
-	uniformBuffer = device.createBuffer({
-		size: 256,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	});
+	// uniformBuffer = device.createBuffer({
+	// 	size: uniformBufferCapacity,
+	// 	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	// });
 
-	bindGroup = device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
-		entries: [
-			{binding: 0, resource: {buffer: uniformBuffer}},
-		],
-	});
-
-	
-
+	// bindGroup = device.createBindGroup({
+	// 	layout: pipeline.getBindGroupLayout(0),
+	// 	entries: [
+	// 		{
+	// 			binding: 0, resource: {
+	// 				buffer: uniformBuffer,
+	// 				offset: 0,
+	// 				size: 256, 
+	// 			}
+	// 		},
+	// 	],
+	// });
 
 }
 
+function getState(renderer, node){
 
+	let {device} = renderer;
 
-export function render(renderer, pass, node, camera){
+	if(!states.has(node)){
 
+		let uniformBuffer = device.createBuffer({
+			size: 256,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		let bindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [
+				{binding: 0, resource: {buffer: uniformBuffer}},
+			],
+		});
+
+		let state = {uniformBuffer, bindGroup};
+
+		states.set(node, state);
+	}
+
+	return states.get(node);
+}
+
+export function render(args = {}){
+
+	let nodes = args.in;
+	let target = args.target;
+	let drawstate = args.drawstate;
+	let {renderer, camera} = drawstate;
 	let {device} = renderer;
 
 	init(renderer);
 
-	{ // update uniforms
-		let data = new ArrayBuffer(140);
-		let f32 = new Float32Array(data);
 
-		{ // transform
-			let world = node.world;
-			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
+	let firstDraw = target.version < renderer.frameCounter;
+	let view = target.colorAttachments[0].texture.createView();
+	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
+	let depthLoadValue = firstDraw ? 0 : "load";
+	let renderPassDescriptor = {
+		colorAttachments: [{view, loadValue}],
+		depthStencilAttachment: {
+			view: target.depth.texture.createView(),
+			depthLoadValue: depthLoadValue,
+			depthStoreOp: "store",
+			stencilLoadValue: 0,
+			stencilStoreOp: "store",
+		},
+		sampleCount: 1,
+	};
+	target.version = renderer.frameCounter;
 
-			f32.set(worldView.elements, 0);
-			f32.set(camera.proj.elements, 16);
-		}
-
-		device.queue.writeBuffer(
-			uniformBuffer, 0,
-			data, 0, data.byteLength
-		);
-	}
-
-	let {passEncoder} = pass;
+	const commandEncoder = renderer.device.createCommandEncoder();
+	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+	
 	Timer.timestamp(passEncoder, "points-start");
 
 	passEncoder.setPipeline(pipeline);
-	passEncoder.setBindGroup(0, bindGroup);
+	
+	let i = 0;
+	for(let node of nodes){
 
-	let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "position").buffer);
-	let vboColor = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "rgba").buffer);
+		let state = getState(renderer, node);
+		let {bindGroup} = state;
 
-	passEncoder.setVertexBuffer(0, vboPosition);
-	passEncoder.setVertexBuffer(1, vboColor);
+		{ // update uniforms
+			let {uniformBuffer} = state;
 
-	let numElements = node.geometry.numElements;
-	passEncoder.draw(numElements, 1, 0, 0);
+			let data = new ArrayBuffer(256);
+			let f32 = new Float32Array(data);
+
+			{ // transform
+				let world = node.world;
+				let view = camera.view;
+				let worldView = new Matrix4().multiplyMatrices(view, world);
+
+				f32.set(worldView.elements, 0);
+				f32.set(camera.proj.elements, 16);
+			}
+
+			device.queue.writeBuffer(
+				uniformBuffer, 0,
+				data, 0, data.byteLength
+			);
+		}
+
+		passEncoder.setBindGroup(0, bindGroup);
+
+		let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "position").buffer);
+		let vboColor = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "rgba").buffer);
+
+		passEncoder.setVertexBuffer(0, vboPosition);
+		passEncoder.setVertexBuffer(1, vboColor);
+
+		let numElements = node.geometry.numElements;
+		passEncoder.draw(numElements, 1, 0, 0);
+
+		i++;
+	}
 
 	Timer.timestamp(passEncoder, "points-end");
+
+	passEncoder.endPass();
+	let commandBuffer = commandEncoder.finish();
+	renderer.device.queue.submit([commandBuffer]);
 
 }

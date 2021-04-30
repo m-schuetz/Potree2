@@ -3,7 +3,7 @@ import {Vector3} from "potree";
 import {Scene, SceneNode, Camera, OrbitControls, Mesh} from "potree";
 import {Renderer, Timer} from "potree";
 
-import {render as renderPointsTest} from "./src/prototyping/renderPoints.js";
+import {render as renderPoints} from "./src/prototyping/renderPoints.js";
 import {render as renderPointsCompute} from "./src/prototyping/renderPointsCompute.js";
 import {drawTexture, loadImage, drawImage} from "./src/prototyping/textures.js";
 import {createPointsData} from "./src/modules/geometries/points.js";
@@ -17,8 +17,8 @@ import {readPixels, readDepth} from "./src/renderer/readPixels.js";
 import * as ProgressiveLoader from "./src/modules/progressive_loader/ProgressiveLoader.js";
 
 
-import {render as renderPointsOctree}  from "./src/potree/renderPoints.js";
-import {renderDilate}  from "./src/potree/renderDilate.js";
+import {render as renderPointsOctree}  from "./src/potree/renderPointsOctree.js";
+import {dilate}  from "./src/potree/dilate.js";
 // import {render as renderPoints}  from "./src/potree/arbitrary_attributes/renderPoints_arbitrary_attributes.js";
 
 let frame = 0;
@@ -165,6 +165,8 @@ function render(){
 	let screenbuffer = renderer.screenbuffer;
 	let framebuffer = renderer.getFramebuffer("point target");
 	framebuffer.setSize(...screenbuffer.size);
+	// let framebuffer1 = renderer.getFramebuffer("point target 1");
+	// framebuffer1.setSize(...screenbuffer.size);
 
 	// if(dbgImage){
 	// 	drawImage(renderer, pass, dbgImage, 0.1, 0.1, 0.1, 0.1);
@@ -172,15 +174,18 @@ function render(){
 
 	if(guiContent["mode"] === "pixels"){
 
-		// renderPoints(       {in: points      , target: screenbuffer , drawstate});
+		renderPoints(       {in: points      , target: screenbuffer , drawstate});
 		renderPointsOctree( {in: octrees     , target: screenbuffer , drawstate});
 		
 	}else if(guiContent["mode"] === "dilate"){
 
-		// renderPoints(       {in: points      , target: framebuffer  , drawstate});
-		// renderPointsOctree( {in: octrees     , target: framebuffer  , drawstate});
+		renderPoints(       {in: points      , target: framebuffer  , drawstate});
+		renderPointsOctree( {in: octrees     , target: framebuffer  , drawstate});
 
-		// dilate(             {in: framebuffer , target: screenbuffer , drawstate});
+		// dilate(             {in: framebuffer , target: framebuffer1 , drawstate});
+		// dilate(             {in: framebuffer1, target: screenbuffer , drawstate});
+
+		dilate(             {in: framebuffer, target: screenbuffer , drawstate});
 
 	}else if(guiContent["mode"] === "HQS"){
 

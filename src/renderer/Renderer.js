@@ -79,11 +79,41 @@ export class Renderer{
 				| GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 
-		this.screenbuffer = RenderTarget.create();
-		this.screenbuffer.colorAttachments = [this.swapChain.getCurrentTexture()];
-		this.screenbuffer.depth = this.depthTexture;
-		this.screenbuffer.size = [size.width, size.height];
+		// this.screenbuffer = RenderTarget.create();
 
+		{
+			this.screenbuffer = Object.create(RenderTarget.prototype);
+		}
+
+		this.updateScreenbuffer();
+	}
+
+	updateScreenbuffer(){
+		let size = this.getSize();
+
+		this.screenbuffer.colorAttachments = [{
+			descriptor: {
+				size: [size.width, size.height],
+				format: this.swapChainFormat,
+				usage: GPUTextureUsage.SAMPLED 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
+			},
+			texture: this.swapChain.getCurrentTexture(),
+		}];
+		this.screenbuffer.depth = {
+			descriptor: {
+				size: [size.width, size.height],
+				format: "depth32float",
+				usage: GPUTextureUsage.SAMPLED 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
+			},
+			texture: this.depthTexture,
+		};
+		this.screenbuffer.size = [size.width, size.height];
 	}
 
 	getSize(){
@@ -104,11 +134,9 @@ export class Renderer{
 			this.canvas.width = width;
 			this.canvas.height = height;
 
+			let size = {width, height};
 			this.depthTexture = this.device.createTexture({
-				size: {
-					width: this.canvas.width,
-					height: this.canvas.height,
-				},
+				size: size,
 				format: "depth32float",
 				usage: GPUTextureUsage.SAMPLED 
 					| GPUTextureUsage.COPY_SRC 
@@ -116,9 +144,7 @@ export class Renderer{
 					| GPUTextureUsage.RENDER_ATTACHMENT,
 			});
 
-			this.screenbuffer.colorAttachments = [this.swapChain.getCurrentTexture()];
-			this.screenbuffer.depth = this.depthTexture;
-			this.screenbuffer.size = [width, height];
+			this.updateScreenbuffer();
 		}
 	}
 
@@ -348,7 +374,28 @@ export class Renderer{
 			return this.framebuffers.get(id);
 		}else{
 
-			let framebuffer = new RenderTarget(renderer);
+			let size = [128, 128, 1];
+			let descriptor = {
+				size: size,
+				colorDescriptors: [{
+					size: size,
+					format: this.swapChainFormat,
+					usage: GPUTextureUsage.SAMPLED 
+						// | GPUTextureUsage.COPY_SRC 
+						// | GPUTextureUsage.COPY_DST 
+						| GPUTextureUsage.RENDER_ATTACHMENT,
+				}],
+				depthDescriptor: {
+					size: size,
+					format: "depth32float",
+					usage: GPUTextureUsage.SAMPLED 
+						// | GPUTextureUsage.COPY_SRC 
+						// | GPUTextureUsage.COPY_DST 
+						| GPUTextureUsage.RENDER_ATTACHMENT,
+				}
+			};
+
+			let framebuffer = new RenderTarget(this, descriptor);
 			
 			this.framebuffers.set(id, framebuffer);
 
@@ -375,10 +422,7 @@ export class Renderer{
 		// this.setSize(scale * this.canvas.clientWidth, scale * this.canvas.clientHeight);
 		this.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
 
-		let size = this.getSize();
-		this.screenbuffer.colorAttachments = [this.swapChain.getCurrentTexture()];
-		this.screenbuffer.depth = this.depthTexture;
-		this.screenbuffer.size = [size.width, size.height];
+		this.updateScreenbuffer();
 
 		// let renderPassDescriptor = {
 		// 	colorAttachments: [

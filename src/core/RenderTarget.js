@@ -39,11 +39,11 @@ export class RenderTarget{
 		}
 	}
 
-	static create(){
-		let instance = Object.create(RenderTarget);
+	// static create(descriptor){
+	// 	let instance = Object.create(RenderTarget);
 
-		return instance;
-	}
+	// 	return instance;
+	// }
 
 	setSize(width, height){
 
