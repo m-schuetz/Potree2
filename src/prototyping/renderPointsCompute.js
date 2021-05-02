@@ -32,6 +32,9 @@ layout(std430, set = 0, binding = 3) buffer SSBO_color {
 	uint colors[];
 };
 
+// [[binding(4), set(0)]] var myTexture: texture_2d<f32>;
+// layout(binding = 4) writeonly  uniform image2D destTex;
+// uniform layout(set = 0, binding = 4, rgba8ui) writeonly  uimage2D uFractalTexture;
 
 
 void main(){
@@ -71,6 +74,75 @@ void main(){
 }
 
 `;
+
+// let csDepth = `
+
+// [[block]] struct Uniforms {
+// 	worldView : mat4x4<f32>;
+// 	proj : mat4x4<f32>;
+// 	width : u32;
+// 	height: u32;
+// };
+
+// [[block]] struct U32s{
+// 	values : [[stride(4)]] array<u32>;
+// };
+
+// [[block]] struct F32s{
+// 	values : [[stride(4)]] array<f32>;
+// };
+
+// [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+// [[binding(1), group(0)]] var<storage> framebuffer : [[access(read_write)]] U32s;
+// [[binding(2), group(0)]] var<storage> positions : [[access(read)]] F32s;
+// [[binding(3), group(0)]] var<storage> colors : [[access(read)]] U32s;
+
+
+// [[stage(compute), workgroup_size(128)]]
+// fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
+
+// 	var index : u32 = GlobalInvocationID.x;
+
+
+// 	var pos_point : vec4<f32> = vec4<f32>(
+// 		positions.values[3u * index + 0u],
+// 		positions.values[3u * index + 1u],
+// 		positions.values[3u * index + 2u],
+// 		1.0
+// 	);
+
+// 	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
+// 	var pos : vec4<f32> = uniforms.proj * viewPos;
+
+// 	pos.x = pos.x / pos.w;
+// 	pos.y = pos.y / pos.w;
+// 	pos.z = pos.z / pos.w;
+
+// 	if(pos.w <= 0.0 || pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0){
+// 		return;
+// 	}
+
+// 	var imgPos : vec2<f32> = vec2<f32>(
+// 		(pos.x * 0.5 + 0.5) * f32(uniforms.width),
+// 		(pos.y * 0.5 + 0.5) * f32(uniforms.height)
+// 	);
+
+// 	var pixelCoords : vec2<u32> = vec2<u32>(imgPos);
+
+// 	var pixelID : u32 = pixelCoords.x + pixelCoords.y * uniforms.width;
+
+// 	var depth : u32 = bitcast<u32>(pos.w);
+
+// 	var oldDepth : u32 = framebuffer.values[pixelID];
+
+// 	if(depth < oldDepth){
+// 		framebuffer.values[pixelID] = depth;
+// 	}
+
+// 	// framebuffer.values[pixelID] = 0x42c80000u;
+// }
+
+// `;
 
 let csColor = `
 
@@ -307,6 +379,9 @@ function getDepthState(renderer){
 		let ssboSize = 2560 * 1440 * 4 * 4;
 		let ssbo = renderer.createBuffer(ssboSize);
 
+		// let csDescriptor = {
+		// 	code: csDepth,
+		// };
 		let csDescriptor = {
 			code: glslang.compileGLSL(csDepth, "compute"),
 			source: csDepth,
@@ -477,7 +552,7 @@ function reset(renderer, ssbo, numUints, value){
 	device.queue.submit([commandEncoder.finish()]);
 }
 
-function depthPass(renderer, nodes, camera){
+function depthPass(renderer, nodes, camera, target){
 
 	let {device} = renderer;
 
@@ -537,16 +612,22 @@ function depthPass(renderer, nodes, camera){
 					{binding: 1, resource: {buffer: ssbo}},
 					{binding: 2, resource: {buffer: gpuBuffers[0].vbo}},
 					{binding: 3, resource: {buffer: gpuBuffers[1].vbo}},
+					// {binding: 4, resource: target.colorAttachments[0].texture.createView()},
 				]
 			});
 
 			passEncoder.setBindGroup(0, bindGroup);
 
-			let groups = [
-				Math.floor(node.geometry.numElements / 128),
-				1, 1
-			];
-			passEncoder.dispatch(...groups);
+			// let groups = [
+			// 	Math.floor(node.geometry.numElements / 128),
+			// 	1, 1
+			// ];
+			// passEncoder.dispatch(...groups);
+			passEncoder.dispatch(
+				Math.ceil(node.geometry.numElements / 128)
+			);
+
+			// passEncoder.dispatch(node.geometry.numElements);
 
 		}
 	}
@@ -688,7 +769,7 @@ export function render(args = {}){
 		reset(renderer, ssbo_colors, 4 * numUints, 0);
 	}
 
-	depthPass(renderer, nodes, camera);
+	depthPass(renderer, nodes, camera, target);
 	colorPass(renderer, nodes, camera);
 
 	let firstDraw = target.version < renderer.frameCounter;

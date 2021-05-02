@@ -241,6 +241,10 @@ export function render(args = {}){
 	let view = target.colorAttachments[0].texture.createView();
 	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
 	let depthLoadValue = firstDraw ? 0 : "load";
+
+	// loadValue = "load";
+	// depthLoadValue = "load";
+
 	let renderPassDescriptor = {
 		colorAttachments: [{view, loadValue}],
 		depthStencilAttachment: {

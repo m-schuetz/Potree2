@@ -180,7 +180,9 @@ function render(){
 	}else if(guiContent["mode"] === "dilate"){
 
 		renderPoints(       {in: points      , target: framebuffer  , drawstate});
+		// Timer.timestampSep(renderer,"dbg-start");
 		renderPointsOctree( {in: octrees     , target: framebuffer  , drawstate});
+		// Timer.timestampSep(renderer,"dbg-end");
 
 		// dilate(             {in: framebuffer , target: framebuffer1 , drawstate});
 		// dilate(             {in: framebuffer1, target: screenbuffer , drawstate});
@@ -278,27 +280,34 @@ async function main(){
 
 	// }
 
-	Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
-		// controls.set({
-		// 	radius: 7,
-		// 	yaw: -0.86,
-		// 	pitch: 0.51,
-		// 	pivot: [-0.22, -0.01, 3.72],
-		// });
+	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
+	// 	// controls.set({
+	// 	// 	radius: 7,
+	// 	// 	yaw: -0.86,
+	// 	// 	pitch: 0.51,
+	// 	// 	pivot: [-0.22, -0.01, 3.72],
+	// 	// });
 
-		scene.root.children.push(pointcloud);
-	});
-
-	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 	// 	scene.root.children.push(pointcloud);
 	// });
 
-	controls.set({
-		radius: 13.8,
-		yaw: -0.66,
-		pitch: 0.37,
-		pivot: [-0.022888880829764084, -0.12292264906406908, 5.322860838969788],
+	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+		scene.root.children.push(pointcloud);
+
+		controls.set({
+			radius: 26.8,
+			yaw: -4.2,
+			pitch: 0.31,
+			pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
+		});
 	});
+
+	// controls.set({
+	// 	radius: 13.8,
+	// 	yaw: -0.66,
+	// 	pitch: 0.37,
+	// 	pivot: [-0.022888880829764084, -0.12292264906406908, 5.322860838969788],
+	// });
 
 	// controls.set({
 	// 	radius: 1000,
