@@ -19,6 +19,7 @@ import * as ProgressiveLoader from "./src/modules/progressive_loader/Progressive
 
 import {render as renderPointsOctree}  from "./src/potree/renderPointsOctree.js";
 import {dilate}  from "./src/potree/dilate.js";
+import {EDL}  from "./src/potree/EDL.js";
 // import {render as renderPoints}  from "./src/potree/arbitrary_attributes/renderPoints_arbitrary_attributes.js";
 
 let frame = 0;
@@ -164,7 +165,11 @@ function render(){
 	let drawstate = {renderer, camera};
 	let screenbuffer = renderer.screenbuffer;
 	let framebuffer = renderer.getFramebuffer("point target");
+	let fbo_edl = renderer.getFramebuffer("EDL target");
+
 	framebuffer.setSize(...screenbuffer.size);
+	fbo_edl.setSize(...screenbuffer.size);
+
 	// let framebuffer1 = renderer.getFramebuffer("point target 1");
 	// framebuffer1.setSize(...screenbuffer.size);
 
@@ -187,7 +192,10 @@ function render(){
 		// dilate(             {in: framebuffer , target: framebuffer1 , drawstate});
 		// dilate(             {in: framebuffer1, target: screenbuffer , drawstate});
 
-		dilate(             {in: framebuffer , target: screenbuffer , drawstate});
+		// dilate(             {in: framebuffer , target: screenbuffer , drawstate});
+
+		dilate(             {in: framebuffer , target: fbo_edl      , drawstate});
+		EDL(                {in: fbo_edl     , target: screenbuffer , drawstate});
 
 	}else if(guiContent["mode"] === "HQS"){
 

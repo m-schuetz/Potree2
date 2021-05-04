@@ -10,7 +10,7 @@ let csDepth = `
 
 #version 450
 
-layout(local_size_x = 128, local_size_y = 1) in;
+layout(local_size_x = 32, local_size_y = 1) in;
 
 layout(set = 0, binding = 0) uniform Uniforms {
 	mat4 worldView;
@@ -36,6 +36,9 @@ layout(std430, set = 0, binding = 3) buffer SSBO_color {
 // layout(binding = 4) writeonly  uniform image2D destTex;
 // uniform layout(set = 0, binding = 4, rgba8ui) writeonly  uimage2D uFractalTexture;
 
+shared uint sX;
+shared uint sY;
+shared uint sDiverging;
 
 void main(){
 
@@ -52,8 +55,9 @@ void main(){
 
 	pos.xyz = pos.xyz / pos.w;
 
+	bool isClipped = false;
 	if(pos.w <= 0.0 || pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0){
-		return;
+		isClipped = true;
 	}
 
 	ivec2 imageSize = ivec2(
@@ -71,6 +75,43 @@ void main(){
 	if(depth < old){
 		atomicMin(framebuffer[pixelID], depth);
 	}
+
+	// if(gl_LocalInvocationID.x == 0){
+	// 	sX = pixelCoords.x;
+	// 	sY = pixelCoords.y;
+	// 	sDiverging = 0;
+	// }
+
+	// barrier();
+
+	// if(pixelCoords.x != sX || pixelCoords.y != sY){
+	// 	atomicAdd(sDiverging, 1);
+	// }
+
+	// barrier();
+
+	// bool inDifferentPixels = sDiverging > 0;
+	// bool inSamePixel = !inDifferentPixels;
+
+	// if(isClipped){
+
+	// }else if(inDifferentPixels){
+	// 	uint depth = floatBitsToUint(pos.w);
+	// 	uint old = framebuffer[pixelID];
+
+	// 	if(depth < old){
+	// 		atomicMin(framebuffer[pixelID], depth);
+	// 	}
+	// }else if(inSamePixel && gl_LocalInvocationID.x == 0){
+	// 	uint depth = floatBitsToUint(pos.w);
+	// 	uint old = framebuffer[pixelID];
+
+	// 	if(depth < old){
+	// 		atomicMin(framebuffer[pixelID], depth);
+	// 	}
+	// }
+
+	
 }
 
 `;
@@ -624,7 +665,7 @@ function depthPass(renderer, nodes, camera, target){
 			// ];
 			// passEncoder.dispatch(...groups);
 			passEncoder.dispatch(
-				Math.ceil(node.geometry.numElements / 128)
+				Math.ceil(node.geometry.numElements / 32)
 			);
 
 			// passEncoder.dispatch(node.geometry.numElements);
