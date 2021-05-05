@@ -303,8 +303,9 @@ function getBindGroup(renderer, node){
 	return bindGroup;
 }
 
-export function render(renderer, pass, node, camera, renderables){
+export function render(pass, node, drawstate){
 	
+	let {renderer, camera, renderables} = drawstate;
 	let {device} = renderer;
 	let {material} = node;
 

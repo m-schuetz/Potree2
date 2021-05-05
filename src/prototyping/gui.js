@@ -21,7 +21,7 @@ let guiContent = {
 	// "mode": "HQS",
 	"attribute": "rgba",
 	"point budget (M)": 4,
-	"point size": 3,
+	"point size": 7,
 	"update": true,
 
 	// COLOR ADJUSTMENT

@@ -126,8 +126,9 @@ function initialize(renderer){
 	initialized = true;
 }
 
-export function render(renderer, pass, node, camera, renderables){
+export function render(pass, node, drawstate){
 	
+	let {renderer, camera, renderables} = drawstate;
 	let {device} = renderer;
 
 	initialize(renderer);

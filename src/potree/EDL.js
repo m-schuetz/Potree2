@@ -133,7 +133,8 @@ let fs = `
 			var offset : vec2<f32> = sampleOffsets[i];
 			var neighbourDepth : f32 = readLinearDepth(offset.x, offset.y, uniforms.near);
 
-			sum = sum + min(log2(depth) - log2(neighbourDepth), 0.0);
+			sum = sum + max(log2(depth) - log2(neighbourDepth), 0.0);
+			// sum = sum + min(log2(depth) - log2(neighbourDepth), 0.0);
 		}
 		
 		var response : f32 = sum / 4.0;
@@ -150,7 +151,7 @@ let fs = `
 
 		var c : vec4<f32> = textureLoad(myTexture, coords, 0);
 		var response : f32 = getEdlResponse(input);
-		var shade : f32 = exp(response * 100.0);
+		var shade : f32 = exp(-response * 100.0);
 
 		var output : FragmentOutput;
 		output.color = vec4<f32>(

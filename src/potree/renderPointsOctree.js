@@ -15,8 +15,10 @@ const vs = `
 
 struct VertexInput {
 	[[builtin(instance_index)]] instanceIdx : u32;
+	[[builtin(vertex_index)]] vertexID : u32;
 	[[location(0)]] position : vec4<f32>;
 	[[location(1)]] color : vec4<f32>;
+	// [[location(2)]] intensity : u32;
 };
 
 struct VertexOutput {
@@ -33,16 +35,13 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	var viewPos : vec4<f32> = uniforms.worldView * vertex.position;
 	output.position = uniforms.proj * viewPos;
 
-	// output.position.x = output.position.x / output.position.w;
-	// output.position.y = output.position.y / output.position.w;
-	// output.position.z = output.position.z / output.position.w;
-	// output.position.w = output.position.w / output.position.w;
-	// output.position.z = 1.0 - output.position.z;
-
-	//output.position.z = -output.position.z;
-	// output.position.w = -output.position.w;
-
 	var c : vec4<f32> = vertex.color;
+	// var c : vec4<f32> = vec4<f32>(
+	// 	f32(vertex.intensity) / 256.0 + vertex.color.x * 0.001, 
+	// 	f32(vertex.intensity) / 256.0, 
+	// 	f32(vertex.intensity) / 256.0, 
+	// 	1.0
+	// );
 
 	// check if instance_index works
 	// c.r = f32(vertex.instanceIdx);
@@ -103,6 +102,15 @@ function createPipeline(renderer){
 						format: "unorm8x4",
 					}],
 				},
+				// { // intensity
+				// 	arrayStride: 4,
+				// 	stepMode: "vertex",
+				// 	attributes: [{ 
+				// 		shaderLocation: 2,
+				// 		offset: 0,
+				// 		format: "uint32",
+				// 	}],
+				// },
 			],
 		},
 		fragment: {
@@ -208,9 +216,11 @@ function renderOctree(octree, drawstate, passEncoder){
 
 		let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "position").buffer);
 		let vboColor = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "rgba").buffer);
+		// let vboIntensity = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "intensity").buffer);
 
 		passEncoder.setVertexBuffer(0, vboPosition);
 		passEncoder.setVertexBuffer(1, vboColor);
+		// passEncoder.setVertexBuffer(2, vboIntensity);
 
 		if(octree.showBoundingBox === true){
 			let box = node.boundingBox.clone().applyMatrix4(octree.world);

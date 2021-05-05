@@ -9,6 +9,9 @@ import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
 import {readPixels, readDepth} from "../renderer/readPixels.js";
 import {RenderTarget} from "potree";
+// import {renderPoints, renderMeshes, renderPointsCompute, renderPointsOctree} from "potree";
+// import {dilate, EDL} from "potree";
+// import {Potree} from "potree";
 
 
 class Draws{
@@ -481,5 +484,13 @@ export class Renderer{
 		renderBoundingBoxes(this, pass, this.draws.boundingBoxes, camera);
 		renderLines(this, pass, this.draws.lines, camera);
 	}
+
+	update(){
+
+	}
+
+	// render(scene, camera){
+		
+	// }
 
 };
