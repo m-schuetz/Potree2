@@ -49,6 +49,8 @@ export const geometries = {createPointsData, cube};
 
 import {init} from "./init.js";
 
+import {load as loadGLB} from "./misc/GLBLoader.js";
+
 const settings = {
 	pointSize: 3,
 	pointBudget: 1_000_000,
@@ -67,6 +69,7 @@ const state = {
 
 export let Potree = {
 	load: load,
+	loadGLB: loadGLB,
 	render: render,
 	pick: pick, pickQueue,
 	init: init,

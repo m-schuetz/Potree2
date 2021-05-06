@@ -90,7 +90,9 @@ fn getColor(fragment : FragmentInput) -> vec4<f32>{
 	}elseif(uniforms.color_source == 1u){
 		// NORMALS
 
-		color = vec4<f32>(0.0, 0.0, 1.0, 1.0);
+		// color = vec4<f32>(0.0, 0.0, 1.0, 1.0);
+		color = fragment.normal;
+		color.a = 1.0;
 
 	}elseif(uniforms.color_source == 2u){
 		// uniform color
@@ -373,12 +375,19 @@ export function render(pass, node, drawstate){
 
 	let vboPosition = vbos.find(item => item.name === "position").vbo;
 	let vboNormal = vbos.find(item => item.name === "normal").vbo;
-	let vboUV = vbos.find(item => item.name === "uv").vbo;
 	let vboColor = vbos.find(item => item.name === "color").vbo;
+
+	if(material.mode === ColorMode.TEXTURE){
+		let vboUV = vbos.find(item => item.name === "uv").vbo;
+		passEncoder.setVertexBuffer(2, vboUV);
+	}else{
+		// TODO: set garbage data since it's not used but required
+		// TODO: could we just set this buffer empty somehow?
+		passEncoder.setVertexBuffer(2, vboPosition);
+	}
 
 	passEncoder.setVertexBuffer(0, vboPosition);
 	passEncoder.setVertexBuffer(1, vboNormal);
-	passEncoder.setVertexBuffer(2, vboUV);
 	passEncoder.setVertexBuffer(3, vboColor);
 
 	if(node.geometry.indices){

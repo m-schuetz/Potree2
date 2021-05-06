@@ -74,7 +74,7 @@ td{
 
 <script type="module">
 
-	import {Potree, loadGLB} from "potree";
+	import {Potree} from "potree";
 	import {Vector3} from "potree";
 
 	window.Potree = Potree;
@@ -94,31 +94,31 @@ td{
 		radius: 10,
 	});
 
-	// let url = "./resources/pointclouds/heidentor/metadata.json";
-	// Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
-	// 	scene.root.children.push(pointcloud);
-
-	// 	controls.set({
-	// 		radius: 26.8, yaw: -4.2, pitch: 0.31,
-	// 		pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
-	// 	});
-	// });
-
-	Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	let url = "./resources/pointclouds/heidentor/metadata.json";
+	Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
 		scene.root.children.push(pointcloud);
 
-		// controls.zoomTo(pointcloud);
 		controls.set({
-			yaw: -1.1, pitch: 0.37, radius: 406,
-			pivot: [696743.76, 3919073.53, 37.68],
+			radius: 26.8, yaw: -4.2, pitch: 0.31,
+			pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
 		});
 	});
+
+	// Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
+
+	// 	// controls.zoomTo(pointcloud);
+	// 	controls.set({
+	// 		yaw: -1.1, pitch: 0.37, radius: 406,
+	// 		pivot: [696743.76, 3919073.53, 37.68],
+	// 	});
+	// });
 
 	// Potree.load(url, {name: "Anita", target: scene.root});
 
 	// TODO: 
 	// Potree.load("./resources/models/anita_mui.glb").then(node => {
-	// loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 	// 	scene.root.children.push(node);
 
 	// 	node.set({
@@ -127,6 +127,28 @@ td{
 	// 	});
 	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
 	// });
+
+	// Potree.loadGLB("./resources/models/vcity_sitn.glb").then(node => {
+	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
+	// 	scene.root.children.push(node);
+
+	// 	node.set({
+	// 		position: [5, 0, 3],
+	// 		scale: [2, 2, 2],
+	// 	});
+	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	// });
+
+	Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
+		scene.root.children.push(node);
+
+		node.set({
+			position: [-10, 10, 10],
+			scale: [2, 2, 2],
+		});
+		// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	});
 
 </script>
 
