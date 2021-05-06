@@ -73,7 +73,8 @@ function renderOctree(octree, drawstate, passEncoder){
 	
 	let {renderer} = drawstate;
 	
-	let attributeName = guiContent["attribute"];
+	let attributeName = Potree.settings.attribute;
+
 	let octreeState = getOctreeState(renderer, octree, attributeName);
 
 	updateUniforms(octree, octreeState, drawstate);

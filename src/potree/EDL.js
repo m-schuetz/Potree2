@@ -261,7 +261,7 @@ export function EDL(args = {}){
 		let source = new ArrayBuffer(32);
 		let view = new DataView(source);
 
-		let size = Number(guiContent["point size"]);
+		let size = Potree.settings.pointSize;
 		let window = Math.round((size - 1) / 2);
 
 		view.setUint32(0, 5, true);

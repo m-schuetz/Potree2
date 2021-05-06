@@ -80,7 +80,12 @@ td{
 	window.Potree = Potree;
 
 	let canvas = document.getElementById("canvas");
-	let {scene, controls} = await Potree.init(canvas);
+	let potree = await Potree.init(canvas);
+	let {scene, controls} = potree;
+
+	import {initGUI} from "./src/modules/gui_dat/gui.js";
+
+	initGUI(potree);
 
 	// default, if not overriden later on
 	controls.set({
@@ -89,25 +94,25 @@ td{
 		radius: 10,
 	});
 
-	let url = "./resources/pointclouds/heidentor/metadata.json";
-	Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
-		scene.root.children.push(pointcloud);
-
-		controls.set({
-			radius: 26.8, yaw: -4.2, pitch: 0.31,
-			pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
-		});
-	});
-
-	// Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// let url = "./resources/pointclouds/heidentor/metadata.json";
+	// Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
 	// 	scene.root.children.push(pointcloud);
 
-	// 	// controls.zoomTo(pointcloud);
 	// 	controls.set({
-	// 		yaw: -1.1, pitch: 0.37, radius: 406,
-	// 		pivot: [696743.76, 3919073.53, 37.68],
+	// 		radius: 26.8, yaw: -4.2, pitch: 0.31,
+	// 		pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
 	// 	});
 	// });
+
+	Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+		scene.root.children.push(pointcloud);
+
+		// controls.zoomTo(pointcloud);
+		controls.set({
+			yaw: -1.1, pitch: 0.37, radius: 406,
+			pivot: [696743.76, 3919073.53, 37.68],
+		});
+	});
 
 	// Potree.load(url, {name: "Anita", target: scene.root});
 

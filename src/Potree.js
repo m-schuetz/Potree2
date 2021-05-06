@@ -34,6 +34,8 @@ export * from "./potree/PointCloudOctreeNode.js";
 export * from "./modules/mesh/renderMesh.js";
 export {load as loadGLB} from "./misc/GLBLoader.js";
 
+export * from "./misc/EventDispatcher.js";
+
 export {render as renderPoints} from "./prototyping/renderPoints.js";
 export {render as renderPointsCompute} from "./prototyping/renderPointsCompute.js";
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";
@@ -47,22 +49,29 @@ export const geometries = {createPointsData, cube};
 
 import {init} from "./init.js";
 
-// export async function init(){
+const settings = {
+	pointSize: 3,
+	pointBudget: 1_000_000,
+	attribute: "rgba",
+	showBoundingBox: false,
+	mode: "pixels",
+};
 
-// 	return new Promise( (resolve) => {
-
-// 		initGUI();
-
-// 		resolve();
-// 	});
-	
-// }
+const state = {
+	fps: 0,
+	camPos: "",
+	camDir: "",
+	numPoints: 0,
+	numNodes: 0,
+};
 
 export let Potree = {
 	load: load,
 	render: render,
 	pick: pick, pickQueue,
 	init: init,
+	settings: settings,
+	state: state,
 };
 
 

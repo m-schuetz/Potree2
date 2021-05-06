@@ -1,10 +1,9 @@
 
 import {Vector3} from "potree";
 import {Scene, SceneNode, Camera, OrbitControls, Mesh} from "potree";
-import {Renderer, Timer} from "potree";
+import {Renderer, Timer, EventDispatcher} from "potree";
 import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
 import {geometries} from "potree";
-import {initGUI} from "./prototyping/gui.js";
 import {Potree} from "potree";
 import {loadGLB} from "potree";
 import {MeasureTool} from "./interaction/measure.js";
@@ -24,77 +23,19 @@ let controls = null;
 let measure = null;
 let dbgImage = null;
 
+let dispatcher = new EventDispatcher();
+
 let scene = new Scene();
 
+function addEventListener(name, callback){
+	dispatcher.addEventListener(name, callback);
+}
+
+function removeEventListener(name, callback){
+	dispatcher.removeEventListener(name, callback);
+}
+
 function initScene(){
-
-	// camera.fov = 60;
-
-	// default, if not overriden later on
-	// controls.set({
-	// 	yaw: -0.2,
-	// 	pitch: 0.8,
-	// 	radius: 10,
-	// });
-
-
-	// {
-	// 	let points = createPointsData(6_000);
-	// 	scene.root.children.push(points);
-
-	// 	controls.set({
-	// 		radius: 7.8,
-	// 		yaw: 5.66,
-	// 		pitch: 0.7,
-	// 		pivot: [0.2094438030078714, -0.23336995166449773, 0.2092711916242336],
-	// 	});
-
-	// }
-
-	// Potree.load("./resources/pointclouds/lion/metadata.json").then(pointcloud => {
-	// 	// controls.set({
-	// 	// 	radius: 7,
-	// 	// 	yaw: -0.86,
-	// 	// 	pitch: 0.51,
-	// 	// 	pivot: [-0.22, -0.01, 3.72],
-	// 	// });
-
-	// 	scene.root.children.push(pointcloud);
-	// });
-
-	// let url = "./resources/pointclouds/heidentor/metadata.json";
-	// Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
-	// 	scene.root.children.push(pointcloud);
-
-	// 	controls.set({
-	// 		radius: 26.8, yaw: -4.2, pitch: 0.31,
-	// 		pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
-	// 	});
-	// });
-
-	// loadGLB("./resources/models/anita_mui.glb").then(node => {
-	// // loadGLB("./resources/models/lion.glb").then(node => {
-	// 	scene.root.children.push(node);
-
-	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-	// 	node.position.set(5, 0, 3);
-	// 	node.scale.set(2, 2, 2);
-	// 	node.updateWorld();
-
-	// 	// controls.set({
-	// 	// 	yaw: -9.2375,
-	// 	// 	pitch: 0.2911333847340012,
-	// 	// 	radius: 3.649930853878021,
-	// 	// 	pivot:  [0.3169157776176301, -0.055293688684424885, 2.2],
-	// 	// });
-
-	// 	// controls.zoomTo(node);
-	// });
-
-	// loadImage("./resources/images/background.jpg").then(image => {
-	// 	dbgImage = image;
-	// });
-
 	{
 		let mesh = new Mesh("cube", geometries.cube);
 		mesh.scale.set(0.5, 0.5, 0.5);
@@ -112,7 +53,7 @@ function update(){
 
 		lastFpsCount = now;
 		framesSinceLastCount = 0;
-		guiContent["fps"] = Math.floor(fps).toLocaleString();
+		Potree.state.fps = Math.floor(fps).toLocaleString();
 	}
 
 	frame++;
@@ -122,12 +63,14 @@ function update(){
 	camera.world.copy(controls.world);
 
 	camera.updateView();
-	guiContent["cam.pos"] = camera.getWorldPosition().toString(1);
-	guiContent["cam.dir"] = camera.getWorldDirection().toString(1);
+	Potree.state.camPos = camera.getWorldPosition().toString(1);
+	Potree.state.camDir = camera.getWorldDirection().toString(1);
 
 	let size = renderer.getSize();
 	camera.aspect = size.width / size.height;
 	camera.updateProj();
+
+	dispatcher.dispatch("update");
 
 }
 
@@ -159,17 +102,16 @@ function render(){
 	let octrees = renderables.get("PointCloudOctree") ?? [];
 
 	for(let octree of octrees){
-
-		octree.showBoundingBox = guiContent["show bounding box"];
-		octree.pointBudget = guiContent["point budget (M)"] * 1_000_000;
-		octree.pointSize = guiContent["point size"];
+		octree.showBoundingBox = Potree.settings.showBoundingBox;
+		octree.pointBudget = Potree.settings.pointBudget;
+		octree.pointSize = Potree.settings.pointSize;
 		octree.updateVisibility(camera);
 
 		let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
 		let numNodes = octree.visibleNodes.length;
 
-		guiContent["#points"] = numPoints.toLocaleString();
-		guiContent["#nodes"] = numNodes.toLocaleString();
+		Potree.state.numPoints = numPoints;
+		Potree.state.numNodes = numNodes;
 	}
 
 	Timer.frameStart(renderer);
@@ -192,12 +134,12 @@ function render(){
 	// 	drawImage(renderer, pass, dbgImage, 0.1, 0.1, 0.1, 0.1);
 	// }
 
-	if(guiContent["mode"] === "pixels"){
+	if(Potree.settings.mode === "pixels"){
 
 		renderPoints(       {in: points      , target: screenbuffer , drawstate});
 		renderPointsOctree( {in: octrees     , target: screenbuffer , drawstate});
 		
-	}else if(guiContent["mode"] === "dilate"){
+	}else if(Potree.settings.mode === "dilate"){
 
 		renderPoints(       {in: points      , target: framebuffer  , drawstate});
 		// Timer.timestampSep(renderer,"dbg-start");
@@ -212,7 +154,7 @@ function render(){
 		dilate(             {in: framebuffer , target: fbo_edl      , drawstate});
 		EDL(                {in: fbo_edl     , target: screenbuffer , drawstate});
 
-	}else if(guiContent["mode"] === "HQS"){
+	}else if(Potree.settings.mode === "HQS"){
 
 		renderPointsOctree( {in: octrees     , target: screenbuffer , drawstate});
 		renderPointsCompute({in: points      , target: screenbuffer , drawstate});
@@ -286,8 +228,6 @@ window.dbgControls = dbgControls;
 
 export async function init(){
 
-	initGUI();
-
 	renderer = new Renderer();
 
 	await renderer.init();
@@ -318,5 +258,5 @@ export async function init(){
 
 	requestAnimationFrame(loop);
 
-	return {scene, controls};
+	return {scene, controls, addEventListener, removeEventListener};
 }
