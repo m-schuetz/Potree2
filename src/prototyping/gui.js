@@ -63,7 +63,7 @@ export function initGUI(){
 		]);
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
-		guiAttributes = input.add(guiContent, "attribute", ["rgba"]).listen();
+		guiAttributes = input.add(guiContent, "attribute", ["rgba", "intensity"]).listen();
 		window.guiAttributes = guiAttributes;
 
 		// slider

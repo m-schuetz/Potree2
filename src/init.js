@@ -72,25 +72,6 @@ function initScene(){
 	// 	});
 	// });
 
-	// Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
-	// 	scene.root.children.push(pointcloud);
-
-	// 	// controls.zoomTo(pointcloud);
-	// 	controls.set({
-	// 		yaw: -1.1, pitch: 0.37, radius: 406,
-	// 		pivot: [696743.76, 3919073.53, 37.68],
-	// 	});
-
-	// 	// guiContent["point budget (M)"] = 0.0015;
-	// 	// controls.set({
-	// 	// 	yaw: 0.13474178403755852,
-	// 	// 	pitch: 0.8641724941724933,
-	// 	// 	radius: 116542.60616174094,
-	// 	// 	pivot:  [696743.76, 3919073.53, 37.68],
-	// 	// });
-
-	// });
-
 	// loadGLB("./resources/models/anita_mui.glb").then(node => {
 	// // loadGLB("./resources/models/lion.glb").then(node => {
 	// 	scene.root.children.push(node);

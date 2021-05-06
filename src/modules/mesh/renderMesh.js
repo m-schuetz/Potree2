@@ -33,6 +33,8 @@ export function renderMeshes(args = {}){
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 	const pass = {commandEncoder, passEncoder, renderPassDescriptor};
 
+	Timer.timestamp(passEncoder, "meshes-start");
+
 	for(let mesh of meshes){
 		if(mesh.material instanceof NormalMaterial){
 			renderNormal(pass, mesh, drawstate);
@@ -40,6 +42,8 @@ export function renderMeshes(args = {}){
 			renderPhong(pass, mesh, drawstate);
 		}
 	}
+
+	Timer.timestamp(passEncoder, "meshes-end");
 
 	passEncoder.endPass();
 	let commandBuffer = commandEncoder.finish();

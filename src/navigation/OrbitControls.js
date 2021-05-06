@@ -1,5 +1,6 @@
 
-import {Vector3, Matrix4, Box3} from "../math/math.js";
+import {Vector3, Matrix4, Box3} from "potree";
+import {Potree} from "potree";
 
 export class OrbitControls{
 

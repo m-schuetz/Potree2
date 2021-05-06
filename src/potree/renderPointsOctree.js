@@ -1,161 +1,35 @@
 
 import {Vector3, Matrix4} from "potree";
 import {Timer} from "potree";
-
-
-const vs = `
-[[block]] struct Uniforms {
-	[[size(64)]] worldView : mat4x4<f32>;
-	[[size(64)]] proj : mat4x4<f32>;
-	[[size(4)]] screen_width : f32;
-	[[size(4)]] screen_height : f32;
-};
-
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
-
-struct VertexInput {
-	[[builtin(instance_index)]] instanceIdx : u32;
-	[[builtin(vertex_index)]] vertexID : u32;
-	[[location(0)]] position : vec4<f32>;
-	[[location(1)]] color : vec4<f32>;
-	// [[location(2)]] intensity : u32;
-};
-
-struct VertexOutput {
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
-};
-
-
-[[stage(vertex)]]
-fn main(vertex : VertexInput) -> VertexOutput {
-
-	var output : VertexOutput;
-
-	var viewPos : vec4<f32> = uniforms.worldView * vertex.position;
-	output.position = uniforms.proj * viewPos;
-
-	var c : vec4<f32> = vertex.color;
-	// var c : vec4<f32> = vec4<f32>(
-	// 	f32(vertex.intensity) / 256.0 + vertex.color.x * 0.001, 
-	// 	f32(vertex.intensity) / 256.0, 
-	// 	f32(vertex.intensity) / 256.0, 
-	// 	1.0
-	// );
-
-	// check if instance_index works
-	// c.r = f32(vertex.instanceIdx);
-	// c.g = 0.0;
-	// c.b = 0.0;
-	// c.a = 1.0;
-
-	output.color = c;
-
-	return output;
-}
-`;
-
-const fs = `
-
-struct FragmentInput {
-	[[location(0)]] color : vec4<f32>;
-};
-
-struct FragmentOutput {
-	[[location(0)]] color : vec4<f32>;
-};
-
-[[stage(fragment)]]
-fn main(fragment : FragmentInput) -> FragmentOutput {
-	var output : FragmentOutput;
-	output.color = fragment.color;
-
-	return output;
-}
-`;
+import {generate as generatePipeline} from "./octree/pipelineGenerator.js";
 
 let octreeStates = new Map();
 
-function createPipeline(renderer){
+function getOctreeState(renderer, octree, attributeName){
 
 	let {device} = renderer;
 
-	const pipeline = device.createRenderPipeline({
-		vertex: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
-			buffers: [
-				{ // point position
-					arrayStride: 3 * 4,
-					stepMode: "vertex",
-					attributes: [{ 
-						shaderLocation: 0,
-						offset: 0,
-						format: "float32x3",
-					}],
-				},{ // color
-					arrayStride: 4,
-					stepMode: "vertex",
-					attributes: [{ 
-						shaderLocation: 1,
-						offset: 0,
-						format: "unorm8x4",
-					}],
-				},
-				// { // intensity
-				// 	arrayStride: 4,
-				// 	stepMode: "vertex",
-				// 	attributes: [{ 
-				// 		shaderLocation: 2,
-				// 		offset: 0,
-				// 		format: "uint32",
-				// 	}],
-				// },
-			],
-		},
-		fragment: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-			targets: [{format: "bgra8unorm"}],
-		},
-		primitive: {
-			topology: 'point-list',
-			cullMode: 'none',
-		},
-		depthStencil: {
-			depthWriteEnabled: true,
-			depthCompare: "greater",
-			format: "depth32float",
-		},
-	});
+	let attributes = octree.loader.attributes.attributes;
+	let attribute = attributes.find(a => a.name === attributeName);
 
-	return pipeline;
-}
+	let mapping = attributeName === "rgba" ? "rgba" : "scalar";
 
-function getOctreeState(renderer, node){
+	let key = `${attribute.name}_${attribute.numElements}_${attribute.type.name}_${mapping}}`;
 
-	let {device} = renderer;
-
-	let state = octreeStates.get(node);
+	let state = octreeStates.get(key);
 
 	if(!state){
-		let pipeline = createPipeline(renderer);
+		let pipeline = generatePipeline(renderer, {attribute, mapping});
 
 		const uniformBuffer = device.createBuffer({
-			size: 2 * 4 * 16 + 8,
+			size: 256,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-		});
-
-		const uNodesBuffer = device.createBuffer({
-			size: 16 * 1000,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		const uniformBindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
 				{binding: 0, resource: {buffer: uniformBuffer}},
-				// {binding: 1, resource: {buffer: uNodesBuffer}}
 			],
 		});
 
@@ -163,11 +37,9 @@ function getOctreeState(renderer, node){
 			pipeline: pipeline,
 			uniformBuffer: uniformBuffer,
 			uniformBindGroup: uniformBindGroup,
-			uNodesBuffer: uNodesBuffer,
 		};
 
-		octreeStates.set(node, state);
-
+		octreeStates.set(key, state);
 	}
 
 	return state;
@@ -201,7 +73,8 @@ function renderOctree(octree, drawstate, passEncoder){
 	
 	let {renderer} = drawstate;
 	
-	let octreeState = getOctreeState(renderer, octree);
+	let attributeName = guiContent["attribute"];
+	let octreeState = getOctreeState(renderer, octree, attributeName);
 
 	updateUniforms(octree, octreeState, drawstate);
 
@@ -215,11 +88,12 @@ function renderOctree(octree, drawstate, passEncoder){
 	for(let node of nodes){
 
 		let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "position").buffer);
-		let vboColor = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "rgba").buffer);
+		// let vboColor = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "rgba").buffer);
 		// let vboIntensity = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "intensity").buffer);
+		let vboAttribute = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === attributeName).buffer);
 
 		passEncoder.setVertexBuffer(0, vboPosition);
-		passEncoder.setVertexBuffer(1, vboColor);
+		passEncoder.setVertexBuffer(1, vboAttribute);
 		// passEncoder.setVertexBuffer(2, vboIntensity);
 
 		if(octree.showBoundingBox === true){

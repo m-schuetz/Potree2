@@ -77,6 +77,7 @@ td{
 	import {Potree, loadGLB} from "potree";
 	import {Vector3} from "potree";
 
+	window.Potree = Potree;
 
 	let canvas = document.getElementById("canvas");
 	let {scene, controls} = await Potree.init(canvas);
@@ -98,17 +99,29 @@ td{
 		});
 	});
 
-	loadGLB("./resources/models/anita_mui.glb").then(node => {
-		scene.root.children.push(node);
+	// Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
 
-		node.set({
-			position: [5, 0, 3],
-			scale: [2, 2, 2],
-		});
+	// 	// controls.zoomTo(pointcloud);
+	// 	controls.set({
+	// 		yaw: -1.1, pitch: 0.37, radius: 406,
+	// 		pivot: [696743.76, 3919073.53, 37.68],
+	// 	});
+	// });
 
-		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-	});
+	// Potree.load(url, {name: "Anita", target: scene.root});
 
+	// TODO: 
+	// Potree.load("./resources/models/anita_mui.glb").then(node => {
+	// loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// 	scene.root.children.push(node);
+
+	// 	node.set({
+	// 		position: [5, 0, 3],
+	// 		scale: [2, 2, 2],
+	// 	});
+	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	// });
 
 </script>
 
