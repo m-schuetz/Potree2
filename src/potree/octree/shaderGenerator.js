@@ -24,14 +24,14 @@ fn getColor(vertex : VertexInput) -> vec4<f32> {
 const getColor_scalar = `
 fn getColor(vertex : VertexInput) -> vec4<f32> {
 
-	var w : f32 = f32(vertex.attribute) / 256.0;
+	// var w : f32 = (f32(vertex.attribute) - 0.0) / 255.0;
+	// w = clamp(1.0 - w, 0.0, 1.0);
 
-	var color : vec4<f32> = vec4<f32>(
-		w,
-		w,
-		w,
-		1.0
-	);
+	var w : f32 = f32(vertex.attribute % 10u) / 10.0;
+	// w = clamp(1.0 - w, 0.0, 1.0);
+
+	var uv : vec2<f32> = vec2<f32>(w, 0.0);
+	var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
 
 	return color;
 }
@@ -60,7 +60,9 @@ let shader = `
 	[[size(4)]] screen_height : f32;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0), group(1)]] var mySampler: sampler;
+[[binding(1), group(1)]] var myTexture: texture_2d<f32>;
 
 struct VertexInput {
 	[[builtin(instance_index)]] instanceIdx : u32;

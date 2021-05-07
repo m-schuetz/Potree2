@@ -18,6 +18,7 @@ let guiContent = {
 	"show bounding box": false,
 	// "mode": "pixels",
 	"mode": "dilate",
+	"EDL": true,
 	// "mode": "HQS",
 	"attribute": "rgba",
 	"point budget (M)": 4,
@@ -41,6 +42,7 @@ export function initGUI(potree){
 
 	gui = new dat.GUI();
 	window.gui = gui;
+	window.guiContent = guiContent;
 	
 	{
 		let stats = gui.addFolder("stats");
@@ -62,6 +64,7 @@ export function initGUI(potree){
 			"dilate",
 			"HQS",
 		]);
+		input.add(guiContent, "EDL");
 		input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
 		guiAttributes = input.add(guiContent, "attribute", ["rgba", "intensity"]).listen();
@@ -98,7 +101,7 @@ export function initGUI(potree){
 		Potree.settings.attribute = guiContent["attribute"];
 		Potree.settings.pointBudget = guiContent["point budget (M)"] * 1_000_000;
 		Potree.settings.pointSize = guiContent["point size"];
-
+		Potree.settings.edlEnabled = guiContent["EDL"];
 	
 	});
 

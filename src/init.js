@@ -123,44 +123,37 @@ function render(){
 	let screenbuffer = renderer.screenbuffer;
 	let framebuffer = renderer.getFramebuffer("point target");
 	let fbo_edl = renderer.getFramebuffer("EDL target");
+	let edlEnabled = Potree.settings.edlEnabled;
 
 	framebuffer.setSize(...screenbuffer.size);
 	fbo_edl.setSize(...screenbuffer.size);
 
-	// let framebuffer1 = renderer.getFramebuffer("point target 1");
-	// framebuffer1.setSize(...screenbuffer.size);
-
-	// if(dbgImage){
-	// 	drawImage(renderer, pass, dbgImage, 0.1, 0.1, 0.1, 0.1);
-	// }
+	let pointTarget = edlEnabled ? fbo_edl : screenbuffer;
 
 	if(Potree.settings.mode === "pixels"){
 
-		renderPoints(       {in: points      , target: screenbuffer , drawstate});
-		renderPointsOctree( {in: octrees     , target: screenbuffer , drawstate});
+		renderPoints(       {in: points      , target: pointTarget , drawstate});
+		renderPointsOctree( {in: octrees     , target: pointTarget , drawstate});
 		
 	}else if(Potree.settings.mode === "dilate"){
 
 		renderPoints(       {in: points      , target: framebuffer  , drawstate});
-		// Timer.timestampSep(renderer,"dbg-start");
 		renderPointsOctree( {in: octrees     , target: framebuffer  , drawstate});
-		// Timer.timestampSep(renderer,"dbg-end");
 
-		// dilate(             {in: framebuffer , target: framebuffer1 , drawstate});
-		// dilate(             {in: framebuffer1, target: screenbuffer , drawstate});
-
-		// dilate(             {in: framebuffer , target: screenbuffer , drawstate});
-
-		dilate(             {in: framebuffer , target: fbo_edl      , drawstate});
-		EDL(                {in: fbo_edl     , target: screenbuffer , drawstate});
+		dilate(             {in: framebuffer , target: pointTarget      , drawstate});
 
 	}else if(Potree.settings.mode === "HQS"){
 
-		renderPointsOctree( {in: octrees     , target: screenbuffer , drawstate});
-		renderPointsCompute({in: points      , target: screenbuffer , drawstate});
+		renderPointsOctree( {in: octrees     , target: pointTarget , drawstate});
+		renderPointsCompute({in: points      , target: pointTarget , drawstate});
 
 		// dilate(             {in: framebuffer , target: screenbuffer , drawstate});
 	}
+
+	if(edlEnabled){
+		EDL(                {in: fbo_edl     , target: screenbuffer , drawstate});
+	}
+
 
 	{ // HANDLE PICKING
 		for(let {x, y, callback} of Potree.pickQueue){

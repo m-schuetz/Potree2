@@ -2,8 +2,32 @@
 import {Vector3, Matrix4} from "potree";
 import {Timer} from "potree";
 import {generate as generatePipeline} from "./octree/pipelineGenerator.js";
+import {Gradients} from "potree";
 
 let octreeStates = new Map();
+let gradientTexture = null;
+let gradientSampler = null;
+let initialized = false;
+
+function init(renderer){
+
+	if(initialized){
+		return;
+	}
+
+	let SPECTRAL = Gradients.SPECTRAL;
+	gradientTexture	= renderer.createTextureFromArray(SPECTRAL.steps.flat(), SPECTRAL.steps.length, 1);
+
+	gradientSampler = renderer.device.createSampler({
+		magFilter: 'linear',
+		minFilter: 'linear',
+		mipmapFilter : 'linear',
+		addressModeU: "repeat",
+		addressModeV: "repeat",
+		maxAnisotropy: 1,
+	});
+}
+ 
 
 function getOctreeState(renderer, octree, attributeName){
 
@@ -33,11 +57,15 @@ function getOctreeState(renderer, octree, attributeName){
 			],
 		});
 
-		state = {
-			pipeline: pipeline,
-			uniformBuffer: uniformBuffer,
-			uniformBindGroup: uniformBindGroup,
-		};
+		const miscBindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(1),
+			entries: [
+				{binding: 0, resource: gradientSampler},
+				{binding: 1, resource: gradientTexture.createView()},
+			],
+		});
+
+		state = {pipeline, uniformBuffer, uniformBindGroup, miscBindGroup};
 
 		octreeStates.set(key, state);
 	}
@@ -79,10 +107,11 @@ function renderOctree(octree, drawstate, passEncoder){
 
 	updateUniforms(octree, octreeState, drawstate);
 
-	let {pipeline, uniformBindGroup} = octreeState;
+	let {pipeline, uniformBindGroup, miscBindGroup} = octreeState;
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, uniformBindGroup);
+	passEncoder.setBindGroup(1, miscBindGroup);
 
 	let nodes = octree.visibleNodes;
 	let i = 0;
@@ -126,6 +155,8 @@ export function render(args = {}){
 	let view = target.colorAttachments[0].texture.createView();
 	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
 	let depthLoadValue = firstDraw ? 0 : "load";
+
+	init(renderer);
 
 	// loadValue = "load";
 	// depthLoadValue = "load";

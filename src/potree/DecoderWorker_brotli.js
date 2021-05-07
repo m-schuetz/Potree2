@@ -230,11 +230,6 @@ async function load(event){
 				continue;
 			}
 
-			if(pointAttribute.name !== "intensity"){
-				continue;
-			}
-
-
 			attributeBuffers[pointAttribute.name] = { 
 				buffer: target, 
 				attribute: pointAttribute, 

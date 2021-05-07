@@ -33,6 +33,7 @@ export * from "./potree/PointCloudOctree.js";
 export * from "./potree/PointCloudOctreeNode.js";
 export * from "./modules/mesh/renderMesh.js";
 export {load as loadGLB} from "./misc/GLBLoader.js";
+export * from "./misc/Gradients.js";
 
 export * from "./misc/EventDispatcher.js";
 
@@ -57,6 +58,7 @@ const settings = {
 	attribute: "rgba",
 	showBoundingBox: false,
 	mode: "pixels",
+	edlEnabled: true,
 };
 
 const state = {
