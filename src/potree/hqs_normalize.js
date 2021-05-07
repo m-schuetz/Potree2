@@ -77,13 +77,6 @@ let fs = `
 	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
 	[[binding(3), set(0)]] var myDepth: texture_2d<f32>;
 
-	let sampleOffsets : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
-		vec2<f32>(-1.0,  0.0),
-		vec2<f32>( 1.0,  0.0),
-		vec2<f32>( 0.0, -1.0),
-		vec2<f32>( 0.0,  1.0)
-	);
-
 	[[block]] struct Uniforms {
 		uTest   : u32;
 		x       : f32;
@@ -106,61 +99,31 @@ let fs = `
 		[[location(0)]] color : vec4<f32>;
 	};
 
-	var<private> fragXY : vec2<f32>;
-
 	fn toLinear(depth: f32, near: f32) -> f32{
 		return near / depth;
-	}
-
-	fn readLinearDepth(offsetX : f32, offsetY : f32, near : f32) -> f32 {
-
-		var fCoord : vec2<f32> = vec2<f32>(fragXY.x + offsetX, fragXY.y + offsetY);
-		var iCoord : vec2<i32> = vec2<i32>(fCoord);
-
-		var d : f32 = textureLoad(myDepth, iCoord, 0).x;
-		var dl : f32 = toLinear(d, uniforms.near);
-
-		return dl;
-	}
-
-	fn getEdlResponse(input : FragmentInput) -> f32 {
-
-		var depth : f32 = readLinearDepth(0.0, 0.0, uniforms.near);
-
-		var sum : f32 = 0.0;
-		
-		for(var i : i32 = 0; i < 4; i = i + 1){
-			var offset : vec2<f32> = sampleOffsets[i];
-			var neighbourDepth : f32 = readLinearDepth(offset.x, offset.y, uniforms.near);
-
-			sum = sum + max(log2(depth) - log2(neighbourDepth), 0.0);
-			// sum = sum + min(log2(depth) - log2(neighbourDepth), 0.0);
-		}
-		
-		var response : f32 = sum / 4.0;
-
-		return response;
 	}
 
 	[[stage(fragment)]]
 	fn main(input : FragmentInput) -> FragmentOutput {
 
-		fragXY = input.fragCoord.xy;
-
-		var coords : vec2<i32> = vec2<i32>(input.fragCoord.xy);
-
-		var c : vec4<f32> = textureLoad(myTexture, coords, 0);
-		var response : f32 = getEdlResponse(input);
-		var shade : f32 = exp(-response * 100.0);
-
 		var output : FragmentOutput;
-		output.color = vec4<f32>(
-			c.r * shade, 
-			c.g * shade, 
-			c.b * shade, 
-			1.0);
+
+		var coords : vec2<i32>;
+		coords.x = i32(input.fragCoord.x);
+		coords.y = i32(input.fragCoord.y);
+		
+		var c : vec4<f32> = textureLoad(myTexture, coords, 0);
+		// c.w = 1.0;
+		c.r = c.r / c.w;
+		c.g = c.g / c.w;
+		c.b = c.b / c.w;
+		// c.r = c.w / 10.0;
+		// c.g = c.w / 10.0;
+		// c.b = c.w / 10.0;
 
 		var d : f32 = textureLoad(myDepth, coords, 0).x;
+
+		output.color = c;
 		output.depth = d;
 
 		return output;
@@ -195,7 +158,7 @@ function init(renderer){
 		},
 		depthStencil: {
 				depthWriteEnabled: true,
-				depthCompare: "greater",
+				depthCompare: "always",
 				format: "depth32float",
 		},
 	});
@@ -207,14 +170,14 @@ function init(renderer){
 	});
 }
 
-export function EDL(source, drawstate){
+export function hqs_normalize(source, drawstate){
 
 	let {renderer, camera, pass} = drawstate;
 	let {passEncoder} = pass;
 
 	init(renderer);
 
-	Timer.timestamp(passEncoder,"EDL-start");
+	Timer.timestamp(passEncoder,"dilate-start");
 
 	let sampler = renderer.device.createSampler({
 		magFilter: "linear",
@@ -260,5 +223,6 @@ export function EDL(source, drawstate){
 
 	passEncoder.draw(6, 1, 0, 0);
 
-	Timer.timestamp(passEncoder,"EDL-end");
+	Timer.timestamp(passEncoder,"dilate-end");
+
 }

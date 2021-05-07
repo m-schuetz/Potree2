@@ -58,6 +58,7 @@ let shader = `
 	[[size(64)]] proj : mat4x4<f32>;
 	[[size(4)]] screen_width : f32;
 	[[size(4)]] screen_height : f32;
+	[[size(4)]] hqs_flag : u32;
 };
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
@@ -84,7 +85,20 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	var output : VertexOutput;
 
 	var viewPos : vec4<f32> = uniforms.worldView * vertex.position;
+
 	output.position = uniforms.proj * viewPos;
+
+	if(uniforms.hqs_flag > 0u){
+		output.position.x = output.position.x / output.position.w;
+		output.position.y = output.position.y / output.position.w;
+		output.position.z = output.position.z / output.position.w;
+		output.position.w = 1.0;
+
+		viewPos.z = viewPos.z * 1.01;
+		
+		var shifted : vec4<f32> = uniforms.proj * viewPos;
+		output.position.z = shifted.z / shifted.w;
+	}
 
 	output.color = getColor(vertex);
 

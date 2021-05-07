@@ -29,7 +29,7 @@ function init(renderer){
 }
  
 
-function getOctreeState(renderer, octree, attributeName){
+function getOctreeState(renderer, octree, attributeName, flags = []){
 
 	let {device} = renderer;
 
@@ -38,12 +38,12 @@ function getOctreeState(renderer, octree, attributeName){
 
 	let mapping = attributeName === "rgba" ? "rgba" : "scalar";
 
-	let key = `${attribute.name}_${attribute.numElements}_${attribute.type.name}_${mapping}}`;
+	let key = `${attribute.name}_${attribute.numElements}_${attribute.type.name}_${mapping}_${flags.join("_")}`;
 
 	let state = octreeStates.get(key);
 
 	if(!state){
-		let pipeline = generatePipeline(renderer, {attribute, mapping});
+		let pipeline = generatePipeline(renderer, {attribute, mapping, flags});
 
 		const uniformBuffer = device.createBuffer({
 			size: 256,
@@ -73,10 +73,11 @@ function getOctreeState(renderer, octree, attributeName){
 	return state;
 }
 
-function updateUniforms(octree, octreeState, drawstate){
+function updateUniforms(octree, octreeState, drawstate, flags){
 
 	let {uniformBuffer} = octreeState;
 	let {renderer} = drawstate;
+	let isHqsDepth = flags.includes("hqs-depth");
 
 	let data = new ArrayBuffer(256);
 	let f32 = new Float32Array(data);
@@ -93,25 +94,26 @@ function updateUniforms(octree, octreeState, drawstate){
 
 	view.setFloat32(128, size.width, true);
 	view.setFloat32(132, size.height, true);
+	view.setUint32(136, isHqsDepth ? 1 : 0, true);
 
-	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 136);
+	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 140);
 }
 
-function renderOctree(octree, drawstate, passEncoder){
+function renderOctree(octree, drawstate, flags){
 	
-	let {renderer} = drawstate;
+	let {renderer, pass} = drawstate;
 	
 	let attributeName = Potree.settings.attribute;
 
-	let octreeState = getOctreeState(renderer, octree, attributeName);
+	let octreeState = getOctreeState(renderer, octree, attributeName, flags);
 
-	updateUniforms(octree, octreeState, drawstate);
+	updateUniforms(octree, octreeState, drawstate, flags);
 
 	let {pipeline, uniformBindGroup, miscBindGroup} = octreeState;
 
-	passEncoder.setPipeline(pipeline);
-	passEncoder.setBindGroup(0, uniformBindGroup);
-	passEncoder.setBindGroup(1, miscBindGroup);
+	pass.passEncoder.setPipeline(pipeline);
+	pass.passEncoder.setBindGroup(0, uniformBindGroup);
+	pass.passEncoder.setBindGroup(1, miscBindGroup);
 
 	let nodes = octree.visibleNodes;
 	let i = 0;
@@ -122,9 +124,9 @@ function renderOctree(octree, drawstate, passEncoder){
 		// let vboIntensity = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "intensity").buffer);
 		let vboAttribute = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === attributeName).buffer);
 
-		passEncoder.setVertexBuffer(0, vboPosition);
-		passEncoder.setVertexBuffer(1, vboAttribute);
-		// passEncoder.setVertexBuffer(2, vboIntensity);
+		pass.passEncoder.setVertexBuffer(0, vboPosition);
+		pass.passEncoder.setVertexBuffer(1, vboAttribute);
+		// pass.passEncoder.setVertexBuffer(2, vboIntensity);
 
 		if(octree.showBoundingBox === true){
 			let box = node.boundingBox.clone().applyMatrix4(octree.world);
@@ -138,55 +140,24 @@ function renderOctree(octree, drawstate, passEncoder){
 		}
 
 		let numElements = node.geometry.numElements;
-		passEncoder.draw(numElements, 1, 0, i);
+		pass.passEncoder.draw(numElements, 1, 0, i);
 
 		i++;
 	}
 }
 
-export function render(args = {}){
+export function render(octrees, drawstate, flags = []){
 
-	let octrees = args.in;
-	let target = args.target;
-	let drawstate = args.drawstate;
-	let {renderer, camera} = drawstate;
-
-	let firstDraw = target.version < renderer.frameCounter;
-	let view = target.colorAttachments[0].texture.createView();
-	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
-	let depthLoadValue = firstDraw ? 0 : "load";
+	let {renderer} = drawstate;
 
 	init(renderer);
 
-	// loadValue = "load";
-	// depthLoadValue = "load";
-
-	let renderPassDescriptor = {
-		colorAttachments: [{view, loadValue}],
-		depthStencilAttachment: {
-			view: target.depth.texture.createView(),
-			depthLoadValue: depthLoadValue,
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
-	target.version = renderer.frameCounter;
-
-	const commandEncoder = renderer.device.createCommandEncoder();
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
-	Timer.timestamp(passEncoder, "octree-start");
+	Timer.timestamp(drawstate.pass.passEncoder, "octree-start");
 
 	for(let octree of octrees){
-		renderOctree(octree, drawstate, passEncoder);
+		renderOctree(octree, drawstate, flags);
 	}
 
-	Timer.timestamp(passEncoder, "octree-end");
-
-	passEncoder.endPass();
-	let commandBuffer = commandEncoder.finish();
-	renderer.device.queue.submit([commandBuffer]);
+	Timer.timestamp(drawstate.pass.passEncoder, "octree-end");
 
 };

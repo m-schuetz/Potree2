@@ -86,8 +86,9 @@ td{
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 
 	initGUI(potree);
-	guiContent["point budget (M)"] = 10;
-	guiContent["attribute"] = "intensity";
+	guiContent["point budget (M)"] = 4;
+	guiContent["point size"] = 3;
+	// guiContent["attribute"] = "intensity";
 
 	// default, if not overriden later on
 	controls.set({
@@ -109,17 +110,10 @@ td{
 	Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
 		scene.root.children.push(pointcloud);
 
-		// controls.zoomTo(pointcloud);
 		controls.set({
-			// yaw: -1.1, pitch: 0.37, radius: 406,
 			position: [737368.845, 3890920.357, 923.367],
 			pivot: [736054.256, 3890998.977, 236.332],
 		});
-
-		// scene.view.setView(
-		// 	[737368.845, 3890920.357, 923.367],
-		// 	[736054.256, 3890998.977, 236.332],
-		// );
 	});
 
 	// Potree.load(url, {name: "Anita", target: scene.root});

@@ -1,6 +1,6 @@
 
 import {Vector3} from "potree";
-import {Scene, SceneNode, Camera, OrbitControls, Mesh} from "potree";
+import {Scene, SceneNode, Camera, OrbitControls, Mesh, RenderTarget} from "potree";
 import {Renderer, Timer, EventDispatcher} from "potree";
 import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
 import {geometries} from "potree";
@@ -10,7 +10,7 @@ import {MeasureTool} from "./interaction/measure.js";
 import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoader.js";
 import {readPixels, readDepth} from "./renderer/readPixels.js";
 import {renderPoints, renderMeshes, renderPointsCompute, renderPointsOctree} from "potree";
-import {dilate, EDL} from "potree";
+import {dilate, EDL, hqs_normalize} from "potree";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -74,6 +74,91 @@ function update(){
 
 }
 
+let sumBuffer = null;
+function getSumBuffer(renderer){
+
+	if(sumBuffer){
+		return sumBuffer;
+	}
+
+	let size = [128, 128, 1];
+	let descriptor = {
+		size: size,
+		colorDescriptors: [{
+			size: size,
+			format: "rgba32float",
+			usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.RENDER_ATTACHMENT,
+		}],
+		depthDescriptor: {
+			size: size,
+			format: "depth32float",
+			usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.RENDER_ATTACHMENT,
+		}
+	};
+
+	sumBuffer = new RenderTarget(renderer, descriptor);
+
+	return sumBuffer;
+
+}
+
+function startPass(renderer, target){
+	let view = target.colorAttachments[0].texture.createView();
+
+	let renderPassDescriptor = {
+		colorAttachments: [{
+			view, 
+			loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 }
+		}],
+		depthStencilAttachment: {
+			view: target.depth.texture.createView(),
+			depthLoadValue: 0,
+			depthStoreOp: "store",
+			stencilLoadValue: 0,
+			stencilStoreOp: "store",
+		},
+		sampleCount: 1,
+	};
+
+	const commandEncoder = renderer.device.createCommandEncoder();
+	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+	return {commandEncoder, passEncoder};
+}
+
+function startSumPass(renderer, target){
+	let view = target.colorAttachments[0].texture.createView();
+
+	let renderPassDescriptor = {
+		colorAttachments: [{
+			view, 
+			loadValue: { r: 0, g: 0, b: 0, a: 0.0 }
+		}],
+		depthStencilAttachment: {
+			view: target.depth.texture.createView(),
+			depthLoadValue: "load",
+			depthStoreOp: "store",
+			stencilLoadValue: 0,
+			stencilStoreOp: "store",
+		},
+		sampleCount: 1,
+	};
+
+	const commandEncoder = renderer.device.createCommandEncoder();
+	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+	return {commandEncoder, passEncoder};
+}
+
+function endPass(pass){
+
+	let {passEncoder, commandEncoder} = pass;
+
+	passEncoder.endPass();
+	let commandBuffer = commandEncoder.finish();
+	renderer.device.queue.submit([commandBuffer]);
+}
+
 function render(){
 	Timer.setEnabled(true);
 
@@ -116,76 +201,141 @@ function render(){
 
 	Timer.frameStart(renderer);
 	
-	// let pass = renderer.start();
+	let hqsEnabled = Potree.settings.hqsEnabled;
+	let edlEnabled = Potree.settings.edlEnabled;
+	let dilateEnabled = Potree.settings.mode === "dilate";
+
 	renderer.start();
 
-	let drawstate = {renderer, camera, renderables};
 	let screenbuffer = renderer.screenbuffer;
-	let framebuffer = renderer.getFramebuffer("point target");
-	let fbo_edl = renderer.getFramebuffer("EDL target");
-	let edlEnabled = Potree.settings.edlEnabled;
+	let fbo_source = null;
 
-	framebuffer.setSize(...screenbuffer.size);
-	fbo_edl.setSize(...screenbuffer.size);
+	let fbo_0 = renderer.getFramebuffer("fbo intermediate 0");
+	let fbo_1 = renderer.getFramebuffer("fbo intermediate 1");
+	
+	fbo_0.setSize(...screenbuffer.size);
+	fbo_1.setSize(...screenbuffer.size);
+	
+	let forwardRendering = !(hqsEnabled || dilateEnabled || edlEnabled);
 
-	let pointTarget = edlEnabled ? fbo_edl : screenbuffer;
+	let fboTarget = (!dilateEnabled && !edlEnabled) ? screenbuffer : fbo_0;
+	
+	if(hqsEnabled){
 
-	if(Potree.settings.mode === "pixels"){
+		let fbo_hqs_depth = renderer.getFramebuffer("hqs depth");
+		let fbo_hqs_sum = getSumBuffer(renderer);
 
-		renderPoints(       {in: points      , target: pointTarget , drawstate});
-		renderPointsOctree( {in: octrees     , target: pointTarget , drawstate});
-		
-	}else if(Potree.settings.mode === "dilate"){
+		fbo_hqs_sum.setSize(...screenbuffer.size);
+		fbo_hqs_depth.setSize(...screenbuffer.size);
 
-		renderPoints(       {in: points      , target: framebuffer  , drawstate});
-		renderPointsOctree( {in: octrees     , target: framebuffer  , drawstate});
+		{ // depth pass
+			let pass = startPass(renderer, fbo_hqs_depth);
+			let drawstate = {renderer, camera, renderables, pass};
 
-		dilate(             {in: framebuffer , target: pointTarget      , drawstate});
+			renderPointsOctree(octrees, drawstate, ["hqs-depth"]);
 
-	}else if(Potree.settings.mode === "HQS"){
-
-		renderPointsOctree( {in: octrees     , target: pointTarget , drawstate});
-		renderPointsCompute({in: points      , target: pointTarget , drawstate});
-
-		// dilate(             {in: framebuffer , target: screenbuffer , drawstate});
-	}
-
-	if(edlEnabled){
-		EDL(                {in: fbo_edl     , target: screenbuffer , drawstate});
-	}
-
-
-	{ // HANDLE PICKING
-		for(let {x, y, callback} of Potree.pickQueue){
-
-			let u = x / renderer.canvas.clientWidth;
-			let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
-			let pos = camera.getWorldPosition();
-			let dir = camera.mouseToDirection(u, v);
-			let near = camera.near;
-
-			let window = 2;
-			let wh = 1;
-			readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
-				
-				let depth = near / d;
-				
-				dir.multiplyScalar(depth);
-				let position = pos.add(dir);
-
-				// console.log(position);
-
-				callback({depth, position});
-			});
+			endPass(pass);
 		}
-		Potree.pickQueue.length = 0;
+
+		{ // attribute pass
+			fbo_hqs_sum.depth = fbo_hqs_depth.depth;
+
+			let pass = startSumPass(renderer, fbo_hqs_sum);
+			let drawstate = {renderer, camera, renderables, pass};
+
+			renderPointsOctree(octrees, drawstate, ["additive_blending"]);
+
+			endPass(pass);
+		}
+
+		{ // normalization pass
+			let pass = startPass(renderer, fboTarget);
+			let drawstate = {renderer, camera, renderables, pass};
+
+			hqs_normalize(fbo_hqs_sum, drawstate);
+
+			endPass(pass);
+		}
+
+		fbo_source = fboTarget;
+
+	}else if(forwardRendering){
+
+		// render directly to screenbuffer
+		let pass = startPass(renderer, screenbuffer);
+		let drawstate = {renderer, camera, renderables, pass};
+
+		renderPointsOctree(octrees, drawstate);
+
+		endPass(pass);
+	}else{
+
+		// render to intermediate framebuffer
+		let pass = startPass(renderer, fbo_0);
+		let drawstate = {renderer, camera, renderables, pass};
+
+		renderPointsOctree(octrees, drawstate);
+
+		endPass(pass);
+
+		fbo_source = fbo_0;
 	}
 
-	{ // MESHES
-		let meshes = renderables.get("Mesh") ?? [];
 
-		renderMeshes({in: meshes      , target: screenbuffer  , drawstate});
+	if(dilateEnabled){ // dilate
+		let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
+
+		let pass = startPass(renderer, fboTarget);
+		let drawstate = {renderer, camera, renderables, pass};
+
+		dilate(fbo_source, drawstate);
+
+		endPass(pass);
+
+		fbo_source = fboTarget;
 	}
+
+	if(edlEnabled){ // EDL
+		let pass = startPass(renderer, screenbuffer);
+		let drawstate = {renderer, camera, renderables, pass};
+
+		EDL(fbo_source, drawstate);
+
+		endPass(pass);
+	}
+
+
+	// { // HANDLE PICKING
+	// 	for(let {x, y, callback} of Potree.pickQueue){
+
+	// 		let u = x / renderer.canvas.clientWidth;
+	// 		let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
+	// 		let pos = camera.getWorldPosition();
+	// 		let dir = camera.mouseToDirection(u, v);
+	// 		let near = camera.near;
+
+	// 		let window = 2;
+	// 		let wh = 1;
+	// 		readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
+				
+	// 			let depth = near / d;
+				
+	// 			dir.multiplyScalar(depth);
+	// 			let position = pos.add(dir);
+
+	// 			// console.log(position);
+
+	// 			callback({depth, position});
+	// 		});
+	// 	}
+	// 	Potree.pickQueue.length = 0;
+	// }
+
+	// { // MESHES
+	// 	let meshes = renderables.get("Mesh") ?? [];
+
+	// 	renderMeshes({in: meshes      , target: screenbuffer  , drawstate});
+	// }
 
 	// renderer.renderDrawCommands(pass, camera);
 	renderer.finish();

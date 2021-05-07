@@ -42,6 +42,7 @@ export {render as renderPointsCompute} from "./prototyping/renderPointsCompute.j
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";
 export {dilate}  from "./potree/dilate.js";
 export {EDL}  from "./potree/EDL.js";
+export {hqs_normalize}  from "./potree/hqs_normalize.js";
 
 
 import {createPointsData} from "./modules/geometries/points.js";

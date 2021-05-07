@@ -224,34 +224,12 @@ function init(renderer){
 	});
 }
 
-export function dilate(args = {}){
+export function dilate(source, drawstate){
 
-	let source = args.in;
-	let target = args.target;
-	let drawstate = args.drawstate;
-	let {renderer, camera} = drawstate;
+	let {renderer, camera, pass} = drawstate;
+	let {passEncoder} = pass;
 
 	init(renderer);
-
-	let firstDraw = target.version < renderer.frameCounter;
-	let view = target.colorAttachments[0].texture.createView();
-	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
-	let depthLoadValue = firstDraw ? 0 : "load";
-	let renderPassDescriptor = {
-		colorAttachments: [{view, loadValue}],
-		depthStencilAttachment: {
-			view: target.depth.texture.createView(),
-			depthLoadValue: depthLoadValue,
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
-	target.version = renderer.frameCounter;
-
-	const commandEncoder = renderer.device.createCommandEncoder();
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
 	Timer.timestamp(passEncoder,"dilate-start");
 
@@ -301,8 +279,4 @@ export function dilate(args = {}){
 
 	Timer.timestamp(passEncoder,"dilate-end");
 
-	passEncoder.endPass();
-	let commandBuffer = commandEncoder.finish();
-	renderer.device.queue.submit([commandBuffer]);
-	
 }
