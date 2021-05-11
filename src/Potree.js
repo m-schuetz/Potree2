@@ -58,7 +58,8 @@ const settings = {
 	pointBudget: 1_000_000,
 	attribute: "rgba",
 	showBoundingBox: false,
-	mode: "pixels",
+	// mode: "pixels",
+	dilateEnabled: true,
 	edlEnabled: true,
 };
 

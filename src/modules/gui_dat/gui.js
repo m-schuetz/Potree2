@@ -11,15 +11,17 @@ let guiContent = {
 	"fps": "0",
 	"duration(update)": "0",
 	"cam.pos": "",
+	"cam.target": "",
 	"cam.dir": "",
 
 
 	// INPUT
-	"show bounding box": false,
+	// "show bounding box": false,
 	// "mode": "pixels",
-	"mode": "dilate",
-	"EDL": true,
-	"HQS": true,
+	// "mode": "dilate",
+	"dilate": true,
+	"Eye-Dome-Lighting": true,
+	"High-Quality": true,
 	// "mode": "HQS",
 	"attribute": "rgba",
 	"point budget (M)": 4,
@@ -53,6 +55,7 @@ export function initGUI(potree){
 		stats.add(guiContent, "fps").listen();
 		stats.add(guiContent, "duration(update)").listen();
 		stats.add(guiContent, "cam.pos").listen();
+		stats.add(guiContent, "cam.target").listen();
 		stats.add(guiContent, "cam.dir").listen();
 	}
 
@@ -60,14 +63,15 @@ export function initGUI(potree){
 		let input = gui.addFolder("input");
 		input.open();
 
-		input.add(guiContent, "mode", [
-			"pixels", 
-			"dilate",
-			"HQS",
-		]);
-		input.add(guiContent, "EDL");
-		input.add(guiContent, "HQS");
-		input.add(guiContent, "show bounding box");
+		// input.add(guiContent, "mode", [
+		// 	"pixels", 
+		// 	"dilate",
+		// 	"HQS",
+		// ]);
+		input.add(guiContent, "dilate");
+		input.add(guiContent, "Eye-Dome-Lighting");
+		input.add(guiContent, "High-Quality");
+		// input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
 		guiAttributes = input.add(guiContent, "attribute", ["rgba", "intensity"]).listen();
 		window.guiAttributes = guiAttributes;
@@ -77,16 +81,16 @@ export function initGUI(potree){
 		input.add(guiContent, 'point size', 1, 5);
 	}
 
-	{
-		let input = gui.addFolder("Color Adjustments");
-		input.open();
+	// {
+	// 	let input = gui.addFolder("Color Adjustments");
+	// 	input.open();
 
-		guiScalarMin = input.add(guiContent, 'scalar min', 0, 2 ** 16).listen();
-		guiScalarMax = input.add(guiContent, 'scalar max', 0, 2 ** 16).listen();
-		input.add(guiContent, 'gamma', 0, 2).listen();
-		input.add(guiContent, 'brightness', -1, 1).listen();
-		input.add(guiContent, 'contrast', -1, 1).listen();
-	}
+	// 	guiScalarMin = input.add(guiContent, 'scalar min', 0, 2 ** 16).listen();
+	// 	guiScalarMax = input.add(guiContent, 'scalar max', 0, 2 ** 16).listen();
+	// 	input.add(guiContent, 'gamma', 0, 2).listen();
+	// 	input.add(guiContent, 'brightness', -1, 1).listen();
+	// 	input.add(guiContent, 'contrast', -1, 1).listen();
+	// }
 
 
 	potree.addEventListener("update", () => {
@@ -97,14 +101,18 @@ export function initGUI(potree){
 		guiContent["#points"]   = state.numPoints.toLocaleString();
 		guiContent["#nodes"]    = state.numNodes.toLocaleString();
 		guiContent["cam.pos"]   = state.camPos;
+		guiContent["cam.target"]   = state.camTarget;
 		guiContent["cam.dir"]   = state.camDir;
 		
-		Potree.settings.mode = guiContent["mode"];
+		// Potree.settings.mode = guiContent["mode"];
+		Potree.settings.dilateEnabled = guiContent["dilate"];
 		Potree.settings.attribute = guiContent["attribute"];
 		Potree.settings.pointBudget = guiContent["point budget (M)"] * 1_000_000;
 		Potree.settings.pointSize = guiContent["point size"];
-		Potree.settings.edlEnabled = guiContent["EDL"];
-		Potree.settings.hqsEnabled = guiContent["HQS"];
+		Potree.settings.edlEnabled = guiContent["Eye-Dome-Lighting"];
+		Potree.settings.hqsEnabled = guiContent["High-Quality"];
+		Potree.settings.updateEnabled = guiContent["update"];
+
 	
 	});
 

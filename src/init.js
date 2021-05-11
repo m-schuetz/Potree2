@@ -64,6 +64,7 @@ function update(){
 
 	camera.updateView();
 	Potree.state.camPos = camera.getWorldPosition().toString(1);
+	Potree.state.camTarget = controls.pivot.toString(1);
 	Potree.state.camDir = camera.getWorldDirection().toString(1);
 
 	let size = renderer.getSize();
@@ -190,7 +191,10 @@ function render(){
 		octree.showBoundingBox = Potree.settings.showBoundingBox;
 		octree.pointBudget = Potree.settings.pointBudget;
 		octree.pointSize = Potree.settings.pointSize;
-		octree.updateVisibility(camera);
+
+		if(Potree.settings.updateEnabled){
+			octree.updateVisibility(camera);
+		}
 
 		let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
 		let numNodes = octree.visibleNodes.length;
@@ -203,7 +207,8 @@ function render(){
 	
 	let hqsEnabled = Potree.settings.hqsEnabled;
 	let edlEnabled = Potree.settings.edlEnabled;
-	let dilateEnabled = Potree.settings.mode === "dilate";
+	let dilateEnabled = Potree.settings.dilateEnabled;
+	// let dilateEnabled = Potree.settings.mode === "dilate";
 
 	renderer.start();
 
@@ -222,6 +227,8 @@ function render(){
 	
 	if(hqsEnabled){
 
+		Timer.timestampSep(renderer, "HQS(total)-start");
+
 		let fbo_hqs_depth = renderer.getFramebuffer("hqs depth");
 		let fbo_hqs_sum = getSumBuffer(renderer);
 
@@ -232,7 +239,9 @@ function render(){
 			let pass = startPass(renderer, fbo_hqs_depth);
 			let drawstate = {renderer, camera, renderables, pass};
 
+			Timer.timestamp(pass.passEncoder, "HQS-depth-start");
 			renderPointsOctree(octrees, drawstate, ["hqs-depth"]);
+			Timer.timestamp(pass.passEncoder, "HQS-depth-end");
 
 			endPass(pass);
 		}
@@ -243,7 +252,9 @@ function render(){
 			let pass = startSumPass(renderer, fbo_hqs_sum);
 			let drawstate = {renderer, camera, renderables, pass};
 
+			Timer.timestamp(pass.passEncoder, "HQS-attributes-start");
 			renderPointsOctree(octrees, drawstate, ["additive_blending"]);
+			Timer.timestamp(pass.passEncoder, "HQS-attributes-end");
 
 			endPass(pass);
 		}
@@ -252,12 +263,16 @@ function render(){
 			let pass = startPass(renderer, fboTarget);
 			let drawstate = {renderer, camera, renderables, pass};
 
+			Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
 			hqs_normalize(fbo_hqs_sum, drawstate);
+			Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
 
 			endPass(pass);
 		}
 
 		fbo_source = fboTarget;
+
+		Timer.timestampSep(renderer, "HQS(total)-end");
 
 	}else if(forwardRendering){
 
@@ -403,3 +418,6 @@ export async function init(){
 
 	return {scene, controls, addEventListener, removeEventListener};
 }
+
+
+

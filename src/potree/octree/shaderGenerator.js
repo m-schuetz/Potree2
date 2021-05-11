@@ -24,10 +24,10 @@ fn getColor(vertex : VertexInput) -> vec4<f32> {
 const getColor_scalar = `
 fn getColor(vertex : VertexInput) -> vec4<f32> {
 
-	// var w : f32 = (f32(vertex.attribute) - 0.0) / 255.0;
-	// w = clamp(1.0 - w, 0.0, 1.0);
+	var w : f32 = (f32(vertex.attribute) - 0.0) / 255.0;
+	w = clamp(1.0 - w, 0.0, 1.0);
 
-	var w : f32 = f32(vertex.attribute % 10u) / 10.0;
+	// var w : f32 = f32(vertex.attribute % 10u) / 10.0;
 	// w = clamp(1.0 - w, 0.0, 1.0);
 
 	var uv : vec2<f32> = vec2<f32>(w, 0.0);

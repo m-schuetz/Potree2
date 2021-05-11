@@ -120,6 +120,10 @@ let fs = `
 		var d : f32 = textureLoad(myDepth, iCoord, 0).x;
 		var dl : f32 = toLinear(d, uniforms.near);
 
+		// Artificially reduce depth precision to visualize artifacts
+		// var di : u32 = u32(10.0 * dl);
+		// dl = f32(di);
+
 		return dl;
 	}
 

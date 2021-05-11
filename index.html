@@ -43,19 +43,19 @@ td{
 		grid-column: 1; grid-row: 1">
 </canvas>
 
-<!-- <span style="position: absolute; left: 10px; top: 10px; 
+<span style="position: absolute; left: 10px; top: 10px; 
 	background-color: white; opacity: 0.7; padding: 10px;">
 	
-	<span style="font-weight: bold">WebGPU based Las & LAZ viewer prototype:</span>
+	<span style="font-weight: bold">Rewriting Potree in WebGPU:</span>
 
 	<ul>
 		<li>Highly experimental and crashy.</li>
-		<li>Requires <a href="https://www.google.com/intl/de/chrome/canary/">Chrome Canary 89</a></li>
+		<li>Requires <a href="https://www.google.com/intl/de/chrome/canary/">Chrome Canary 92</a></li>
 		<li>To enable WebGPU, open this URL: <pre>chrome://flags/#enable-unsafe-webgpu</pre></li>
 		<li>Github: <a href="https://github.com/m-schuetz/Potree2">https://github.com/m-schuetz/Potree2</a></li>
 	</ul>
 
-</span> -->
+</span>
 
 <span id="big_message"></span>
 <span id="msg_dbg"></span>
@@ -105,14 +105,29 @@ td{
 	// 		radius: 26.8, yaw: -4.2, pitch: 0.31,
 	// 		pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
 	// 	});
+
+	// 	controls.set({
+	// 		position: [-16.8, 12.0, 10.8],
+	// 		pivot: [-1.7482506615697777, 4.1140199696259545, 7.4239815576054085],
+	// 	});
+
+
 	// });
 
-	Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
 		scene.root.children.push(pointcloud);
 
+		// // close-up
+		// controls.set({
+		// 	position: [737368.845, 3890920.357, 923.367],
+		// 	pivot: [736054.256, 3890998.977, 236.332],
+		// });
+
+		// overview
 		controls.set({
-			position: [737368.845, 3890920.357, 923.367],
-			pivot: [736054.256, 3890998.977, 236.332],
+			position: [687630.7, 3888448.6, 38021.8],
+			pivot: [693764.5, 3916109.6, -46.0],
 		});
 	});
 
