@@ -10,7 +10,7 @@ let csDepth = `
 
 #version 450
 
-layout(local_size_x = 128, local_size_y = 1) in;
+layout(local_size_x = 32, local_size_y = 1) in;
 
 layout(set = 0, binding = 0) uniform Uniforms {
 	mat4 worldView;
@@ -32,7 +32,13 @@ layout(std430, set = 0, binding = 3) buffer SSBO_color {
 	uint colors[];
 };
 
+// [[binding(4), set(0)]] var myTexture: texture_2d<f32>;
+// layout(binding = 4) writeonly  uniform image2D destTex;
+// uniform layout(set = 0, binding = 4, rgba8ui) writeonly  uimage2D uFractalTexture;
 
+shared uint sX;
+shared uint sY;
+shared uint sDiverging;
 
 void main(){
 
@@ -49,8 +55,9 @@ void main(){
 
 	pos.xyz = pos.xyz / pos.w;
 
+	bool isClipped = false;
 	if(pos.w <= 0.0 || pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0){
-		return;
+		isClipped = true;
 	}
 
 	ivec2 imageSize = ivec2(
@@ -65,12 +72,118 @@ void main(){
 	uint depth = floatBitsToUint(pos.w);
 	uint old = framebuffer[pixelID];
 
-	if(depth < old){
+	if(depth < old && !isClipped){
 		atomicMin(framebuffer[pixelID], depth);
 	}
+
+	// if(gl_LocalInvocationID.x == 0){
+	// 	sX = pixelCoords.x;
+	// 	sY = pixelCoords.y;
+	// 	sDiverging = 0;
+	// }
+
+	// barrier();
+
+	// if(pixelCoords.x != sX || pixelCoords.y != sY){
+	// 	atomicAdd(sDiverging, 1);
+	// }
+
+	// barrier();
+
+	// bool inDifferentPixels = sDiverging > 0;
+	// bool inSamePixel = !inDifferentPixels;
+
+	// if(isClipped){
+
+	// }else if(inDifferentPixels){
+	// 	uint depth = floatBitsToUint(pos.w);
+	// 	uint old = framebuffer[pixelID];
+
+	// 	if(depth < old){
+	// 		atomicMin(framebuffer[pixelID], depth);
+	// 	}
+	// }else if(inSamePixel && gl_LocalInvocationID.x == 0){
+	// 	uint depth = floatBitsToUint(pos.w);
+	// 	uint old = framebuffer[pixelID];
+
+	// 	if(depth < old){
+	// 		atomicMin(framebuffer[pixelID], depth);
+	// 	}
+	// }
+
+	
 }
 
 `;
+
+// let csDepth = `
+
+// [[block]] struct Uniforms {
+// 	worldView : mat4x4<f32>;
+// 	proj : mat4x4<f32>;
+// 	width : u32;
+// 	height: u32;
+// };
+
+// [[block]] struct U32s{
+// 	values : [[stride(4)]] array<u32>;
+// };
+
+// [[block]] struct F32s{
+// 	values : [[stride(4)]] array<f32>;
+// };
+
+// [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+// [[binding(1), group(0)]] var<storage> framebuffer : [[access(read_write)]] U32s;
+// [[binding(2), group(0)]] var<storage> positions : [[access(read)]] F32s;
+// [[binding(3), group(0)]] var<storage> colors : [[access(read)]] U32s;
+
+
+// [[stage(compute), workgroup_size(128)]]
+// fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
+
+// 	var index : u32 = GlobalInvocationID.x;
+
+
+// 	var pos_point : vec4<f32> = vec4<f32>(
+// 		positions.values[3u * index + 0u],
+// 		positions.values[3u * index + 1u],
+// 		positions.values[3u * index + 2u],
+// 		1.0
+// 	);
+
+// 	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
+// 	var pos : vec4<f32> = uniforms.proj * viewPos;
+
+// 	pos.x = pos.x / pos.w;
+// 	pos.y = pos.y / pos.w;
+// 	pos.z = pos.z / pos.w;
+
+// 	if(pos.w <= 0.0 || pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0){
+// 		return;
+// 	}
+
+// 	var imgPos : vec2<f32> = vec2<f32>(
+// 		(pos.x * 0.5 + 0.5) * f32(uniforms.width),
+// 		(pos.y * 0.5 + 0.5) * f32(uniforms.height)
+// 	);
+
+// 	var pixelCoords : vec2<u32> = vec2<u32>(imgPos);
+
+// 	var pixelID : u32 = pixelCoords.x + pixelCoords.y * uniforms.width;
+
+// 	var depth : u32 = bitcast<u32>(pos.w);
+
+// 	var oldDepth : u32 = framebuffer.values[pixelID];
+
+// 	if(depth < oldDepth){
+// 		framebuffer.values[pixelID] = depth;
+// 	}
+
+// 	// framebuffer.values[pixelID] = 0x42c80000u;
+// }
+
+// `;
 
 let csColor = `
 
@@ -293,40 +406,6 @@ let fs = `
 	}
 `;
 
-
-
-
-let _target_1 = null;
-
-function getTarget1(renderer){
-	if(_target_1 === null){
-
-		let size = [128, 128, 1];
-		_target_1 = new RenderTarget(renderer, {
-			size: size,
-			colorDescriptors: [{
-				size: size,
-				format: renderer.swapChainFormat,
-				usage: GPUTextureUsage.SAMPLED 
-					// | GPUTextureUsage.COPY_SRC 
-					// | GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.RENDER_ATTACHMENT,
-			}],
-			depthDescriptor: {
-				size: size,
-				format: "depth32float",
-				usage: GPUTextureUsage.SAMPLED 
-					// | GPUTextureUsage.COPY_SRC 
-					// | GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.RENDER_ATTACHMENT,
-			}
-		});
-	}
-
-	return _target_1;
-}
-
-
 let depthState = null;
 let colorState = null;
 let resetState = null;
@@ -338,10 +417,12 @@ function getDepthState(renderer){
 
 		let {device} = renderer;
 
-		// let target = getTarget1(renderer);
 		let ssboSize = 2560 * 1440 * 4 * 4;
 		let ssbo = renderer.createBuffer(ssboSize);
 
+		// let csDescriptor = {
+		// 	code: csDepth,
+		// };
 		let csDescriptor = {
 			code: glslang.compileGLSL(csDepth, "compute"),
 			source: csDepth,
@@ -572,16 +653,22 @@ function depthPass(renderer, nodes, camera){
 					{binding: 1, resource: {buffer: ssbo}},
 					{binding: 2, resource: {buffer: gpuBuffers[0].vbo}},
 					{binding: 3, resource: {buffer: gpuBuffers[1].vbo}},
+					// {binding: 4, resource: target.colorAttachments[0].texture.createView()},
 				]
 			});
 
 			passEncoder.setBindGroup(0, bindGroup);
 
-			let groups = [
-				Math.floor(node.geometry.numElements / 128),
-				1, 1
-			];
-			passEncoder.dispatch(...groups);
+			// let groups = [
+			// 	Math.floor(node.geometry.numElements / 128),
+			// 	1, 1
+			// ];
+			// passEncoder.dispatch(...groups);
+			passEncoder.dispatch(
+				Math.ceil(node.geometry.numElements / 32)
+			);
+
+			// passEncoder.dispatch(node.geometry.numElements);
 
 		}
 	}
@@ -666,7 +753,7 @@ function colorPass(renderer, nodes, camera){
 			passEncoder.setBindGroup(0, bindGroup);
 
 			let groups = [
-				Math.floor(node.geometry.numElements / 128),
+				Math.ceil(node.geometry.numElements / 128),
 				1, 1
 			];
 			passEncoder.dispatch(...groups);
@@ -688,7 +775,7 @@ function colorPass(renderer, nodes, camera){
 }
 
 
-export function render(renderer, nodes, camera){
+export function render(nodes, drawstate){
 
 	if(glslang === undefined){
 
@@ -703,14 +790,12 @@ export function render(renderer, nodes, camera){
 		return;
 	}
 
+	let {renderer, camera} = drawstate;
 	let {device} = renderer;
 
-	{
-		let size = renderer.getSize();
-		let target = getTarget1(renderer);
-		target.setSize(size.width, size.height);
-	}
+	Timer.timestampSep(renderer,"compute-start");
 
+	// init(renderer);
 
 	{ // RESET BUFFERS
 		let size = renderer.getSize();
@@ -726,9 +811,10 @@ export function render(renderer, nodes, camera){
 	colorPass(renderer, nodes, camera);
 
 	{ // resolve
+		let {pass} = drawstate;
+		let {passEncoder} = pass;
 		let {ssbo_colors} = getColorState(renderer);
 		let {pipeline, uniformBuffer} = getScreenPassState(renderer);
-		let target = getTarget1(renderer);
 		let size = renderer.getSize();
 
 		let uniformBindGroup = device.createBindGroup({
@@ -738,26 +824,6 @@ export function render(renderer, nodes, camera){
 				{binding: 1, resource: {buffer: ssbo_colors}}
 			],
 		});
-
-		let renderPassDescriptor = {
-			colorAttachments: [{
-				view: target.colorAttachments[0].texture.createView(),
-				loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
-			}],
-			depthStencilAttachment: {
-				view: target.depth.texture.createView(),
-				depthLoadValue: 0.0,
-				depthStoreOp: "store",
-				stencilLoadValue: 0,
-				stencilStoreOp: "store",
-			},
-			sampleCount: 1,
-		};
-
-		const commandEncoder = renderer.device.createCommandEncoder();
-		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
-		Timer.timestamp(passEncoder,"resolve-start");
 
 		passEncoder.setPipeline(pipeline);
 
@@ -791,18 +857,8 @@ export function render(renderer, nodes, camera){
 
 		passEncoder.draw(6, 1, 0, 0);
 
-		Timer.timestamp(passEncoder,"resolve-end");
-
-		passEncoder.endPass();
-
-		Timer.resolve(renderer, commandEncoder);
-
-		let commandBuffer = commandEncoder.finish();
-		renderer.device.queue.submit([commandBuffer]);
-
 	}
 
-	frame++;
+	Timer.timestampSep(renderer,"compute-end");
 
-	return getTarget1(renderer).colorAttachments[0].texture;
 }

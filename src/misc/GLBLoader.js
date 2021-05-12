@@ -1,9 +1,7 @@
 
-import {Geometry} from "../core/Geometry.js";
-import {SceneNode} from "../scene/SceneNode.js";
-import {Mesh} from "../modules/mesh/Mesh.js";
+import {Geometry, SceneNode, Mesh} from "potree";
+import {Box3, Vector3} from "potree";
 import {PhongMaterial, ColorMode} from "../modules/mesh/PhongMaterial.js";
-import {Box3, Vector3} from "../math/math.js";
 
 
 
@@ -95,7 +93,7 @@ export async function load(url){
 	let node = new SceneNode("glb node");
 	node.children.push(mesh);
 
-	{ // IMAGES
+	if(json.images?.length > 0){
 		let image = json.images[0];
 		let buffer = bufferViews[image.bufferView].buffer;
 		let mimeType = image.mimeType;
@@ -113,6 +111,10 @@ export async function load(url){
 		mesh.material = new PhongMaterial();
 		mesh.material.image = imageBitmap;
 		mesh.material.colorMode = ColorMode.TEXTURE;
+	}else{
+		mesh.material = new PhongMaterial();
+		// mesh.material.image = null;
+		mesh.material.colorMode = ColorMode.VERTEX_COLOR;
 	}
 
 	let duration = performance.now() - tStart;

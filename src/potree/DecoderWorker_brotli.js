@@ -106,7 +106,7 @@ async function load(event){
 		bytesPerPoint += pointAttribute.byteSize;
 	}
 
-	let order = getShuffleOrder(numPoints);
+	// let order = getShuffleOrder(numPoints);
 
 	let byteOffset = 0;
 	for (let pointAttribute of pointAttributes.attributes) {
@@ -118,7 +118,8 @@ async function load(event){
 
 			for (let j = 0; j < numPoints; j++) {
 
-				let src_index = order[j];
+				// let src_index = order[j];
+				let src_index = j;
 				let pointOffset = byteOffset + src_index * 16;
 
 				let mc_0 = view.getUint32(pointOffset +  4, true);
@@ -172,7 +173,8 @@ async function load(event){
 
 			for (let j = 0; j < numPoints; j++) {
 
-				let src_index = order[j];
+				// let src_index = order[j];
+				let src_index = j;
 				let pointOffset = byteOffset + src_index * 8;
 
 				let mc_0 = view.getUint32(pointOffset +  4, true);
@@ -208,13 +210,25 @@ async function load(event){
 
 			let start = byteOffset;
 			let length = numPoints * pointAttribute.byteSize;
-			let src = new Uint8Array(decoded.buffer, start, length);
+			let srcData = new Uint8Array(decoded.buffer, start, length);
+			let sourceView = new DataView(srcData.buffer, start, length);
+			let src = null;
+			let target = null;
 
 			byteOffset += length;
 
-			let length4 = length + (4 - (length % 4));
-			let target = new Uint8Array(new ArrayBuffer(length4));
-			target.set(src);
+			if(pointAttribute.type.name === "uint16"){
+				target = new Uint32Array(numPoints * pointAttribute.numElements);
+
+				for(let i = 0; i < numPoints; i++){
+					let srcOffset = i * pointAttribute.byteSize;
+					let value = sourceView.getUint16(srcOffset, true);
+					target[i] = value;
+				}
+
+			}else{
+				continue;
+			}
 
 			attributeBuffers[pointAttribute.name] = { 
 				buffer: target, 

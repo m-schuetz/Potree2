@@ -50,4 +50,17 @@ export class SceneNode{
 
 	}
 
+	set(args = {}){
+
+		if(args.position){
+			this.position.set(...args.position);
+		}
+
+		if(args.scale){
+			this.scale.set(...args.scale);
+		}
+
+		this.updateWorld();
+	}
+
 };

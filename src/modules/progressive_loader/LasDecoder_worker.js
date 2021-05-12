@@ -140,7 +140,7 @@ async function readHeader(file){
 
 async function loadLAS(file, header, octree_min){
 	// break work down into batches
-	let batchSize = 10_000_000;
+	let batchSize = 1_000_000;
 	let batches = [];
 	for(let i = 0; i < header.numPoints; i += batchSize){
 		let batch = {

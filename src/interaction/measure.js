@@ -15,13 +15,15 @@ export class MeasureTool{
 			let node = scene.root.children.find(c => c.constructor.name === "Mesh");
 
 			if(node){
-				// Potree.pick(x, y, (result) => {
+				Potree.pick(x, y, (result) => {
 
-				// 	if(result.depth !== Infinity){
-				// 		node.position.copy(result.position);
-				// 		node.updateWorld();
-				// 	}
-				// });
+					if(result.depth !== Infinity){
+						node.position.copy(result.position);
+						node.updateWorld();
+
+						Potree.pickPos = result.position;
+					}
+				});
 			}
 
 		});

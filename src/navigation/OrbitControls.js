@@ -1,5 +1,6 @@
 
-import {Vector3, Matrix4, Box3} from "../math/math.js";
+import {Vector3, Matrix4, Box3} from "potree";
+import {Potree} from "potree";
 
 export class OrbitControls{
 
@@ -59,7 +60,7 @@ export class OrbitControls{
 		});
 	}
 
-	set({yaw, pitch, radius, pivot}){
+	set({yaw, pitch, radius, pivot, position}){
 		this.yaw = yaw ?? this.yaw;
 		this.pitch = pitch ?? this.pitch;
 		this.radius = radius ?? this.radius;
@@ -71,6 +72,24 @@ export class OrbitControls{
 				this.pivot.set(...pivot);
 			}
 		}
+		
+		if(position !== undefined && pivot !== undefined){
+			let diff = new Vector3(
+				pivot[0] - position[0],
+				pivot[1] - position[1],
+				pivot[2] - position[2],
+			);
+
+			let radius = diff.length();
+			let yaw = Math.PI / 2 - Math.atan2(diff.y, diff.x);
+			let groundRadius = Math.sqrt(diff.x ** 2 + diff.y ** 2);
+			let pitch = -Math.atan2(diff.z, groundRadius);
+
+			this.yaw = yaw;
+			this.pitch = pitch;
+			this.radius = radius;
+
+		} 
 	}
 
 	zoomTo(node, args){
