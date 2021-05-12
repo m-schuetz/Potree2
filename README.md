@@ -13,7 +13,7 @@ Contact: mschuetz@potree.org
 ## own
 
 * [Rendering point clouds with compute shaders](https://github.com/m-schuetz/compute_rasterizer) <br>
-In some cases, compute shaders can render point clouds multiply times faster than native primitives like GL_POINTS or "point-list". Extensive evaluation subject to future work. 
+In some cases, compute shaders can render point clouds multiply times faster than native primitives like GL_POINTS or "point-list". 
 * [Fast Out-of-Core Octree Generation for Massive Point Clouds](https://www.cg.tuwien.ac.at/research/publications/2020/SCHUETZ-2020-MPC/)<br>
 Generating LOD structures can be slow and time consuming. Using hierarchical counting sort, we can efficiently organize the input into small batches that can be processed in parallel. 
 * [Potree: Rendering Large Point Clouds in Web Browsers](https://www.cg.tuwien.ac.at/research/publications/2016/SCHUETZ-2016-POT/) <br>
