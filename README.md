@@ -6,6 +6,8 @@
 	<!-- * Achieves 144fps rendering 15.6M points in 3'106 nodes on an RTX 2080 Ti. -->
 <!-- * [Experimental LAS viewer](http://potree.org/temporary/lasviewer_2021.01.14/lasviewer.html) -->
 
+Contact: mschuetz@potree.org
+
 # References
 
 ## own
