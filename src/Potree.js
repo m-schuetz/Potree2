@@ -45,9 +45,9 @@ export {EDL}  from "./potree/EDL.js";
 export {hqs_normalize}  from "./potree/hqs_normalize.js";
 
 
-import {createPointsData} from "./modules/geometries/points.js";
+import {createPointsData, createPointsSphere} from "./modules/geometries/points.js";
 import {cube} from "./modules/geometries/cube.js";
-export const geometries = {createPointsData, cube};
+export const geometries = {createPointsData, createPointsSphere, cube};
 
 import {init} from "./init.js";
 
@@ -59,6 +59,7 @@ const settings = {
 	attribute: "rgba",
 	showBoundingBox: false,
 	// mode: "pixels",
+	useCompute: false,
 	dilateEnabled: true,
 	edlEnabled: true,
 };

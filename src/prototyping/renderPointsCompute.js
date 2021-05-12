@@ -72,7 +72,7 @@ void main(){
 	uint depth = floatBitsToUint(pos.w);
 	uint old = framebuffer[pixelID];
 
-	if(depth < old){
+	if(depth < old && !isClipped){
 		atomicMin(framebuffer[pixelID], depth);
 	}
 
@@ -593,7 +593,7 @@ function reset(renderer, ssbo, numUints, value){
 	device.queue.submit([commandEncoder.finish()]);
 }
 
-function depthPass(renderer, nodes, camera, target){
+function depthPass(renderer, nodes, camera){
 
 	let {device} = renderer;
 
@@ -753,7 +753,7 @@ function colorPass(renderer, nodes, camera){
 			passEncoder.setBindGroup(0, bindGroup);
 
 			let groups = [
-				Math.floor(node.geometry.numElements / 128),
+				Math.ceil(node.geometry.numElements / 128),
 				1, 1
 			];
 			passEncoder.dispatch(...groups);
@@ -775,7 +775,7 @@ function colorPass(renderer, nodes, camera){
 }
 
 
-export function render(args = {}){
+export function render(nodes, drawstate){
 
 	if(glslang === undefined){
 
@@ -790,13 +790,10 @@ export function render(args = {}){
 		return;
 	}
 
-	let nodes = args.in;
-	let target = args.target;
-	let drawstate = args.drawstate;
 	let {renderer, camera} = drawstate;
 	let {device} = renderer;
 
-	Timer.timestampSep(renderer,"render-hqs-start");
+	Timer.timestampSep(renderer,"compute-start");
 
 	// init(renderer);
 
@@ -810,30 +807,12 @@ export function render(args = {}){
 		reset(renderer, ssbo_colors, 4 * numUints, 0);
 	}
 
-	depthPass(renderer, nodes, camera, target);
+	depthPass(renderer, nodes, camera);
 	colorPass(renderer, nodes, camera);
 
-	let firstDraw = target.version < renderer.frameCounter;
-	let view = target.colorAttachments[0].texture.createView();
-	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
-	let depthLoadValue = firstDraw ? 0 : "load";
-	let renderPassDescriptor = {
-		colorAttachments: [{view, loadValue}],
-		depthStencilAttachment: {
-			view: target.depth.texture.createView(),
-			depthLoadValue: depthLoadValue,
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
-	target.version = renderer.frameCounter;
-
-	const commandEncoder = renderer.device.createCommandEncoder();
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
 	{ // resolve
+		let {pass} = drawstate;
+		let {passEncoder} = pass;
 		let {ssbo_colors} = getColorState(renderer);
 		let {pipeline, uniformBuffer} = getScreenPassState(renderer);
 		let size = renderer.getSize();
@@ -880,10 +859,6 @@ export function render(args = {}){
 
 	}
 
-	passEncoder.endPass();
-	let commandBuffer = commandEncoder.finish();
-	renderer.device.queue.submit([commandBuffer]);
-
-	Timer.timestampSep(renderer,"render-hqs-end");
+	Timer.timestampSep(renderer,"compute-end");
 
 }

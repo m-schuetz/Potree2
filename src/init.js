@@ -11,6 +11,7 @@ import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoad
 import {readPixels, readDepth} from "./renderer/readPixels.js";
 import {renderPoints, renderMeshes, renderPointsCompute, renderPointsOctree} from "potree";
 import {dilate, EDL, hqs_normalize} from "potree";
+import Stats from "stats";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -22,6 +23,7 @@ let camera = null;
 let controls = null;
 let measure = null;
 let dbgImage = null;
+let stats = null;
 
 let dispatcher = new EventDispatcher();
 
@@ -280,6 +282,12 @@ function render(){
 		let pass = startPass(renderer, screenbuffer);
 		let drawstate = {renderer, camera, renderables, pass};
 
+		if(!Potree.settings.useCompute){
+			renderPoints(points, drawstate);
+		}else{
+			renderPointsCompute(points, drawstate);
+		}
+
 		renderPointsOctree(octrees, drawstate);
 
 		endPass(pass);
@@ -360,8 +368,13 @@ function render(){
 
 
 function loop(){
+
+	stats.begin();
+
 	update();
 	render();
+
+	stats.end();
 
 	requestAnimationFrame(loop);
 }
@@ -399,6 +412,10 @@ export async function init(){
 	window.controls = controls;
 	window.scene = scene;
 	window.renderer = renderer;
+
+	stats = new Stats();
+	stats.showPanel(0);
+	document.body.appendChild( stats.dom );
 
 	initScene();
 

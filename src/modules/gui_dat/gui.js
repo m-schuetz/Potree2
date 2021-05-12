@@ -19,6 +19,7 @@ let guiContent = {
 	// "show bounding box": false,
 	// "mode": "pixels",
 	// "mode": "dilate",
+	"use compute": true,
 	"dilate": true,
 	"Eye-Dome-Lighting": true,
 	"High-Quality": true,
@@ -68,6 +69,7 @@ export function initGUI(potree){
 		// 	"dilate",
 		// 	"HQS",
 		// ]);
+		input.add(guiContent, "use compute");
 		input.add(guiContent, "dilate");
 		input.add(guiContent, "Eye-Dome-Lighting");
 		input.add(guiContent, "High-Quality");
@@ -105,6 +107,7 @@ export function initGUI(potree){
 		guiContent["cam.dir"]   = state.camDir;
 		
 		// Potree.settings.mode = guiContent["mode"];
+		Potree.settings.useCompute = guiContent["use compute"];
 		Potree.settings.dilateEnabled = guiContent["dilate"];
 		Potree.settings.attribute = guiContent["attribute"];
 		Potree.settings.pointBudget = guiContent["point budget (M)"] * 1_000_000;

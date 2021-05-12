@@ -43,7 +43,7 @@ td{
 		grid-column: 1; grid-row: 1">
 </canvas>
 
-<span style="position: absolute; left: 10px; top: 10px; 
+<span style="position: absolute; left: 10px; top: 70px; 
 	background-color: white; opacity: 0.7; padding: 10px;">
 	
 	<span style="font-weight: bold">Rewriting Potree in WebGPU:</span>
@@ -65,7 +65,8 @@ td{
 	"imports": {
 		"potree": "./src/Potree.js",
 		"dat.gui": "./libs/dat.gui/dat.gui.module.js",
-		"glslang": "./libs/glslang/glslang.js"
+		"glslang": "./libs/glslang/glslang.js",
+		"stats": "./libs/stats.js/stats.module.js"
 	}
 }
 </script>
@@ -75,7 +76,7 @@ td{
 <script type="module">
 
 	import {Potree} from "potree";
-	import {Vector3} from "potree";
+	import {Vector3, geometries, Points} from "potree";
 
 	window.Potree = Potree;
 
@@ -88,6 +89,9 @@ td{
 	initGUI(potree);
 	guiContent["point budget (M)"] = 4;
 	guiContent["point size"] = 3;
+	guiContent["High-Quality"] = false;
+	guiContent["Eye-Dome-Lighting"] = false;
+	guiContent["dilate"] = false;
 	// guiContent["attribute"] = "intensity";
 
 	// default, if not overriden later on
@@ -96,6 +100,23 @@ td{
 		pitch: 0.8,
 		radius: 10,
 	});
+
+	// let url = "./resources/pointclouds/lion/metadata.json";
+	// Potree.load(url, {name: "Lion"}).then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
+
+	// 	controls.set({
+	// 		position: [6.3, -4.0, 7.6],
+	// 		pivot: [0.6, -0.2, 4.5],
+	// 	});
+	// });
+
+	{
+		let geometry = geometries.createPointsSphere(30_000_000);
+		let points = new Points("points", geometry.geometry);
+
+		scene.root.children.push(points);
+	}
 
 	// let url = "./resources/pointclouds/heidentor/metadata.json";
 	// Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
@@ -115,21 +136,21 @@ td{
 	// });
 
 	// Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
-	Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
-		scene.root.children.push(pointcloud);
+	// Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
 
-		// // close-up
-		// controls.set({
-		// 	position: [737368.845, 3890920.357, 923.367],
-		// 	pivot: [736054.256, 3890998.977, 236.332],
-		// });
+	// 	// // close-up
+	// 	// controls.set({
+	// 	// 	position: [737368.845, 3890920.357, 923.367],
+	// 	// 	pivot: [736054.256, 3890998.977, 236.332],
+	// 	// });
 
-		// overview
-		controls.set({
-			position: [687630.7, 3888448.6, 38021.8],
-			pivot: [693764.5, 3916109.6, -46.0],
-		});
-	});
+	// 	// overview
+	// 	controls.set({
+	// 		position: [687630.7, 3888448.6, 38021.8],
+	// 		pivot: [693764.5, 3916109.6, -46.0],
+	// 	});
+	// });
 
 	// Potree.load(url, {name: "Anita", target: scene.root});
 
