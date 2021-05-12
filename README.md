@@ -1,10 +1,10 @@
 # About
 
 * Playing around with WebGPU and learning how to rewrite [Potree](https://github.com/potree/potree/) with it.
-* Tested with Chrome Version 89.0.4378.0.
-* Online demo: http://potree.org/temporary/potree2_2021.01.04/
-	* Achieves 144fps rendering 15.6M points in 3'106 nodes on an RTX 2080 Ti.
-* [Experimental LAS viewer](http://potree.org/temporary/lasviewer_2021.01.14/lasviewer.html)
+* Tested with Chrome Version 92.
+* Online demo: https://potree.org/temporary/potree2_ca13/
+	<!-- * Achieves 144fps rendering 15.6M points in 3'106 nodes on an RTX 2080 Ti. -->
+<!-- * [Experimental LAS viewer](http://potree.org/temporary/lasviewer_2021.01.14/lasviewer.html) -->
 
 # References
 

@@ -13,19 +13,39 @@ export function createPointsData(cells = 1_000){
 
 		let u = 2.0 * (i / cells) - 1.0;
 		let v = 2.0 * (j / cells) - 1.0;
+		let d = u * u + v * v;
 
 		let x = 2 * u;
 		let y = 2 * v;
-		let z = sin(3 * u) * cos(3 * v);
+		let z = cos(3 * u) * cos(3 * v) * Math.ceil(1 - d, 0);
+
+		if(d >= 1){
+			x = x / d;
+			y = y / d;
+			z = -1;
+		}
 
 		position[3 * k + 0] = x;
 		position[3 * k + 1] = y;
 		position[3 * k + 2] = z;
 
-		color[4 * k + 0] = 255 * u;
-		color[4 * k + 1] = 255 * v;
-		color[4 * k + 2] = 0;
+		let b = (z / 2 + 0.5) * 0.8 + 0.2;
+
+		color[4 * k + 0] = b * 255;
+		color[4 * k + 1] = b * 50;
+		color[4 * k + 2] = b * 190;
+
+		// color[4 * k + 0] = b * 255 * (u + 1) / 2;
+		// color[4 * k + 1] = b * 255 * (v + 1) / 2;
+		// color[4 * k + 2] = b * 100 * (z + 1) / 2;
 		color[4 * k + 3] = 255;
+
+		if((Math.floor(60 * (z / 2 + 0.5)) % 10) == 0){
+			color[4 * k + 0] = 0;
+			color[4 * k + 1] = 0;
+			color[4 * k + 2] = 0;
+		}
+		
 
 		k++;
 	}
