@@ -2,7 +2,7 @@
 import * as Timer from "../renderer/Timer.js";
 
 let vs = `
-	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+	let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 		vec2<f32>(0.0, 0.0),
 		vec2<f32>(0.1, 0.0),
 		vec2<f32>(0.1, 0.1),
@@ -11,7 +11,7 @@ let vs = `
 		vec2<f32>(0.0, 0.1)
 	);
 
-	const uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+	let uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 		vec2<f32>(0.0, 1.0),
 		vec2<f32>(1.0, 1.0),
 		vec2<f32>(1.0, 0.0),
@@ -30,7 +30,7 @@ let vs = `
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
-		[[builtin(vertex_idx)]] index : i32;
+		[[builtin(vertex_idx)]] index : u32;
 	};
 
 	struct VertexOutput {

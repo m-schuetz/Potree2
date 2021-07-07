@@ -57,13 +57,13 @@ export class Renderer{
 	async init(){
 		this.adapter = await navigator.gpu.requestAdapter();
 		this.device = await this.adapter.requestDevice({
-			nonGuaranteedFeatures: ["timestamp-query"],
+			requiredFeatures: ["timestamp-query"],
 		});
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("gpupresent");
 
 		this.swapChainFormat = "bgra8unorm";
-		this.swapChain = this.context.configureSwapChain({
+		this.context.configure({
 			device: this.device,
 			format: this.swapChainFormat,
 			usage: GPUTextureUsage.RENDER_ATTACHMENT 
@@ -71,6 +71,8 @@ export class Renderer{
 				| GPUTextureUsage.COPY_SRC
 				| GPUTextureUsage.SAMPLED,
 		});
+
+		this.swapChain = this.context.getCurrentTexture();
 
 		let size = this.getSize();
 		this.depthTexture = this.device.createTexture({
@@ -103,7 +105,7 @@ export class Renderer{
 					| GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.RENDER_ATTACHMENT,
 			},
-			texture: this.swapChain.getCurrentTexture(),
+			texture: this.context.getCurrentTexture(),
 		}];
 		this.screenbuffer.depth = {
 			descriptor: {
@@ -138,6 +140,16 @@ export class Renderer{
 			this.canvas.height = height;
 
 			let size = {width, height};
+
+			this.context.configure({
+				device: this.device,
+				format: this.swapChainFormat,
+				usage: GPUTextureUsage.RENDER_ATTACHMENT 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.COPY_SRC
+					| GPUTextureUsage.SAMPLED,
+			});
+
 			this.depthTexture = this.device.createTexture({
 				size: size,
 				format: "depth32float",
@@ -233,10 +245,18 @@ export class Renderer{
 		let imageData = new ImageData(raw, width, height);
 
 		createImageBitmap(imageData).then(bitmap => {
-			this.device.queue.copyImageBitmapToTexture(
-				{imageBitmap: bitmap}, {texture: texture},
+
+			this.device.queue.copyExternalImageToTexture(
+				{source: bitmap}, 
+				{texture: texture},
 				[bitmap.width, bitmap.height, 1]
 			);
+
+			// this.device.queue.copyImageBitmapToTexture(
+			// 	{imageBitmap: bitmap}, {texture: texture},
+			// 	[bitmap.width, bitmap.height, 1]
+			// );
+
 		});
 
 		return texture;

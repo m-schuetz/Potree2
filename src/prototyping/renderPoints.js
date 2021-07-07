@@ -4,40 +4,45 @@ import * as Timer from "../renderer/Timer.js";
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
+	worldView : mat4x4<f32>;
+	proj : mat4x4<f32>;
+};
+
+struct VertexInput{
+	[[location(0)]] pos_point : vec4<f32>;
+	[[location(1)]] color : vec4<f32>;
+};
+
+struct VertexOutput{
+	[[builtin(position)]] pos : vec4<f32>;
+	[[location(0)]] color : vec4<f32>;
 };
 
 [[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> pos_point : vec4<f32>;
-[[location(1)]] var<in> color : vec4<f32>;
-
-[[builtin(position)]] var<out> out_pos : vec4<f32>;
-[[location(0)]] var<out> fragColor : vec4<f32>;
-
 [[stage(vertex)]]
-fn main() -> void {
+fn main(vertex : VertexInput) -> VertexOutput {
 
-	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
-	out_pos = uniforms.proj * viewPos;
+	var viewPos : vec4<f32> = uniforms.worldView * vertex.pos_point;
+	var c : vec4<f32> = vertex.color;
 
-	var c : vec4<f32> = color;
-	fragColor = c;
+	var vout : VertexOutput;
+	vout.pos = uniforms.proj * viewPos;
+	vout.color = c;
 
-	return;
+	return vout;
 }
 `;
 
 const fs = `
-[[location(0)]] var<in> fragColor : vec4<f32>;
-[[location(0)]] var<out> outColor : vec4<f32>;
+
+struct FragmentInput{
+	[[location(0)]] color : vec4<f32>;
+};
 
 [[stage(fragment)]]
-fn main() -> void {
-	outColor = fragColor;
-
-	return;
+fn main(fragment : FragmentInput) -> [[location(0)]] vec4<f32> {
+	return fragment.color;
 }
 `;
 

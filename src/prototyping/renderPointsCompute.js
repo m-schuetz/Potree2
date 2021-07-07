@@ -319,7 +319,7 @@ let vs = `
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
-		[[builtin(vertex_idx)]] index : i32;
+		[[builtin(vertex_idx)]] index : u32;
 	};
 
 	struct VertexOutput {

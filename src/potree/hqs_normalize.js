@@ -2,7 +2,7 @@
 import {Timer} from "potree";
 
 let vs = `
-	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+	let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 		vec2<f32>(0.0, 0.0),
 		vec2<f32>(0.1, 0.0),
 		vec2<f32>(0.1, 0.1),
@@ -11,7 +11,7 @@ let vs = `
 		vec2<f32>(0.0, 0.1)
 	);
 
-	const uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+	let uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 		vec2<f32>(0.0, 1.0),
 		vec2<f32>(1.0, 1.0),
 		vec2<f32>(1.0, 0.0),
@@ -32,7 +32,7 @@ let vs = `
 	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
-		[[builtin(vertex_idx)]] index : i32;
+		[[builtin(vertex_idx)]] index : u32;
 	};
 
 	struct VertexOutput {
@@ -45,7 +45,8 @@ let vs = `
 
 		var output : VertexOutput;
 
-		output.position = vec4<f32>(pos[vertex.index], 0.999, 1.0);
+		var abc : u32 = vertex.index;
+		output.position = vec4<f32>(pos[abc], 0.999, 1.0);
 		output.uv = uv[vertex.index];
 
 		var x : f32 = uniforms.x * 2.0 - 1.0;
