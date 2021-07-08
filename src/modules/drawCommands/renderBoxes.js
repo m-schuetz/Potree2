@@ -12,7 +12,7 @@ const vs = `
 	[[offset(132)]] screen_height : f32;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 [[location(0)]] var<in> box_pos : vec4<f32>;
 [[location(1)]] var<in> box_scale : vec4<f32>;

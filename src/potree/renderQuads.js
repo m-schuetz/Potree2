@@ -12,7 +12,7 @@ const vs = `
 	[[offset(136)]] point_size : f32;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 [[location(0)]] var<in> pos_point : vec4<f32>;
 [[location(1)]] var<in> pos_quad : vec4<f32>;

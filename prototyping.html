@@ -1,0 +1,166 @@
+<html>
+<head>
+	<link rel="stylesheet" href="./resources/potree.css">
+</head>
+<body style="padding: 0; margin: 0">
+
+
+<canvas id="canvas" width="800" height="600" 
+	style="
+		width: 100%; height: 100%;
+		grid-column: 1; grid-row: 1">
+</canvas>
+
+<span id="big_message"></span>
+<span id="msg_dbg"></span>
+
+<script type="importmap">
+{
+	"imports": {
+		"potree": "./src/Potree.js",
+		"LasLoader": "./src/modules/LasLoader/LasLoader.js",
+		"dat.gui": "./libs/dat.gui/dat.gui.module.js",
+		"glslang": "./libs/glslang/glslang.js",
+		"stats": "./libs/stats.js/stats.module.js"
+	}
+}
+</script>
+
+<!-- <script type="module" src="main.js"></script> -->
+
+<script type="module">
+
+	import {Potree} from "potree";
+	import {LasLoader, Header} from "LasLoader";
+	import {Vector3, geometries, Points} from "potree";
+
+	window.Potree = Potree;
+
+	let canvas = document.getElementById("canvas");
+	let potree = await Potree.init(canvas);
+	let {scene, controls} = potree;
+
+	import {initGUI} from "./src/modules/gui_dat/gui.js";
+	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
+
+	initGUI(potree);
+	guiContent["point budget (M)"] = 4;
+	guiContent["point size"] = 3;
+	// guiContent["High-Quality"] = false;
+	// guiContent["Eye-Dome-Lighting"] = false;
+	// guiContent["dilate"] = false;
+	// guiContent["attribute"] = "intensity";
+
+	// default, if not overriden later on
+	controls.set({
+		yaw: -0.2,
+		pitch: 0.8,
+		radius: 10,
+	});
+
+	let lasfiles = [];
+
+	function splitLasfile(las){
+		let maxBatchSize = 10_000;
+
+		let batches = [];
+		let batch = null;
+		for(let i = 0; i < las.header.numPoints; i++){
+
+			if(batch == null || batch.header.numPoints >= maxBatchSize){
+				// new batch
+
+				let newBatchSize = Math.min(las.header.numPoints - i, maxBatchSize);
+				let header = new Header();
+				header.numPoints = 0;
+				header.scale = las.header.scale.clone();
+				header.offset = las.header.scale.clone();
+				header.min = new Vector3(Infinity, Infinity, Infinity);
+				header.max = new Vector3(-Infinity, -Infinity, -Infinity);
+
+				let positionf32 = new Float32Array(3 * newBatchSize);
+				let color = new Uint8Array(4 * newBatchSize);
+				let buffers = {positionf32, color};
+
+				batch = {header, buffers};
+
+				batches.push(batch);
+			}
+
+			let j = batch.header.numPoints;
+
+			let x = las.buffers.positionf32[3 * i + 0]
+			let y = las.buffers.positionf32[3 * i + 1]
+			let z = las.buffers.positionf32[3 * i + 2]
+
+			batch.header.min.x = Math.min(batch.header.min.x, x);
+			batch.header.min.y = Math.min(batch.header.min.y, y);
+			batch.header.min.z = Math.min(batch.header.min.z, z);
+			batch.header.max.x = Math.max(batch.header.max.x, x);
+			batch.header.max.y = Math.max(batch.header.max.y, y);
+			batch.header.max.z = Math.max(batch.header.max.z, z);
+
+			batch.buffers.positionf32[3 * j + 0] = x;
+			batch.buffers.positionf32[3 * j + 1] = y;
+			batch.buffers.positionf32[3 * j + 2] = z;
+
+			batch.buffers.color[4 * j + 0] = las.buffers.color[4 * i + 0];
+			batch.buffers.color[4 * j + 1] = las.buffers.color[4 * i + 1];
+			batch.buffers.color[4 * j + 2] = las.buffers.color[4 * i + 2];
+			batch.buffers.color[4 * j + 3] = las.buffers.color[4 * i + 3];
+
+			batch.header.numPoints++;
+		}
+
+		return batches;
+	}
+
+	LasLoader.load("./prototyping/lion.las").then( (las) => {
+		console.log(las);
+
+		let center = las.header.min.clone().add(las.header.max).multiplyScalar(0.5);
+		let extent = las.header.max.clone().sub(las.header.min);
+		
+		// boxes.push({
+		// 	position: center,
+		// 	scale: extent,
+		// });
+
+		controls.set({
+			yaw: -0.2,
+			pitch: 0.5,
+			radius: 6,
+			pivot: center,
+		});
+
+		// lasfiles.push(las);
+
+		lasfiles = splitLasfile(las);
+
+	});
+
+	potree.addEventListener("update", () => {
+
+		for(let las of lasfiles){
+
+			let {header} = las;
+
+			let center = header.min.clone().add(header.max).multiplyScalar(0.5);
+			let extent = header.max.clone().sub(header.min);
+
+			potree.renderer.drawBoundingBox(
+				center, extent,
+				{x: 255, y: 0, z: 0},
+			);
+
+			potree.renderer.drawPoints(las.buffers.positionf32, las.buffers.color);
+		}
+
+	});
+
+
+
+</script>
+
+</body>
+</html>

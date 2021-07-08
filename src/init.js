@@ -9,7 +9,7 @@ import {loadGLB} from "potree";
 import {MeasureTool} from "./interaction/measure.js";
 import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoader.js";
 import {readPixels, readDepth} from "./renderer/readPixels.js";
-import {renderPoints, renderMeshes, renderPointsCompute, renderPointsOctree} from "potree";
+import {renderPoints, renderMeshes, renderPointsCompute, renderPointsOctree, renderPointsOctreeBundledVBO} from "potree";
 import {dilate, EDL, hqs_normalize} from "potree";
 import Stats from "stats";
 
@@ -288,7 +288,10 @@ function render(){
 			renderPointsCompute(points, drawstate);
 		}
 
-		renderPointsOctree(octrees, drawstate);
+		// renderPointsOctree(octrees, drawstate);
+		renderPointsOctreeBundledVBO(octrees, drawstate);
+
+		renderer.renderDrawCommands(drawstate);
 
 		endPass(pass);
 	}else{
@@ -298,6 +301,9 @@ function render(){
 		let drawstate = {renderer, camera, renderables, pass};
 
 		renderPointsOctree(octrees, drawstate);
+		// renderPointsOctreeBundledVBO(octrees, drawstate);
+
+		renderer.renderDrawCommands(drawstate);
 
 		endPass(pass);
 
@@ -360,7 +366,8 @@ function render(){
 	// 	renderMeshes({in: meshes      , target: screenbuffer  , drawstate});
 	// }
 
-	// renderer.renderDrawCommands(pass, camera);
+	// renderer.renderDrawCommands(drawstate);
+
 	renderer.finish();
 
 	Timer.frameEnd(renderer);
@@ -433,7 +440,7 @@ export async function init(){
 
 	requestAnimationFrame(loop);
 
-	return {scene, controls, addEventListener, removeEventListener};
+	return {scene, controls, addEventListener, removeEventListener, renderer};
 }
 
 

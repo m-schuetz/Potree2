@@ -102,6 +102,11 @@ fn main(vertex : VertexInput) -> VertexOutput {
 
 	output.color = getColor(vertex);
 
+	// output.color.x = 10.0 * f32(vertex.instanceIdx);
+	// output.color.y = 0.0;
+	// output.color.z = 0.0;
+
+
 	return output;
 }
 `;

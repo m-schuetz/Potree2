@@ -9,7 +9,7 @@ let cs = `
 	[[offset(0)]] offset : u32;
 	[[offset(4)]] size : u32;
 };
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0)]] var<uniform> uniforms : Uniforms;
 [[binding(1), set(0)]] var<storage_buffer> ssbo_source : U32s;
 [[binding(2), set(0)]] var<storage_buffer> ssbo_target : U32s;
 

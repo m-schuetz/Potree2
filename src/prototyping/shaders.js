@@ -4,7 +4,7 @@ export const vs = `
   [[offset(0)]] modelViewProjectionMatrix : mat4x4<f32>;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 [[location(0)]] var<in> position : vec4<f32>;
 [[location(1)]] var<in> color : vec4<f32>;
@@ -41,7 +41,7 @@ export let csTest = `
 	[[offset(0)]] values : [[stride(16)]] array<vec4<f32>>;
 };
 
-[[binding(0), set(0)]] var<storage_buffer> positions : Positions;
+[[binding(0)]] var<storage_buffer> positions : Positions;
 [[binding(1), set(0)]] var<storage_buffer> colors : Colors;
 
 [[builtin(global_invocation_id)]] var<in> GlobalInvocationID : vec3<u32>;
@@ -98,7 +98,7 @@ export let csLasToVBO = `
   [[offset(4)]] numPoints : u32;
 };
 
-[[binding(0), set(0)]] var<storage_buffer> lasdata : LasData;
+[[binding(0)]] var<storage_buffer> lasdata : LasData;
 [[binding(1), set(0)]] var<storage_buffer> positions : Positions;
 [[binding(2), set(0)]] var<storage_buffer> colors : Colors;
 

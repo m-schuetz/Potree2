@@ -10,7 +10,7 @@ const vs = `
 	color : vec4<f32>;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 struct VertexInput {
 	[[location(0)]] position        : vec4<f32>;
@@ -62,7 +62,7 @@ struct PointLight {
 	color : vec4<f32>;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0)]] var<uniform> uniforms : Uniforms;
 [[binding(1), set(0)]] var<storage_buffer> pointLights : [[access(read)]]PointLights;
 [[binding(2), set(0)]] var mySampler: sampler;
 [[binding(3), set(0)]] var myTexture: texture_2d<f32>;

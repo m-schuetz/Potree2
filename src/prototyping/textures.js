@@ -27,7 +27,7 @@ let vs = `
 		[[size(4)]] width : f32;
 		[[size(4)]] height : f32;
 	};
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
 		[[builtin(vertex_idx)]] index : u32;

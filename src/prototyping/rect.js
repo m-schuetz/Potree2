@@ -28,7 +28,7 @@ let vs = `
 		[[offset(12)]] width : f32;
 		[[offset(16)]] height : f32;
 	};
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 	[[location(0)]] var<out> fragUV : vec2<f32>;
 

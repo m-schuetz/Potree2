@@ -4,6 +4,7 @@
 import * as shaders from "../prototyping/shaders.js";
 import {render as renderBoxes} from "../modules/drawCommands/renderBoxes.js";
 import {render as renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
+import {render as renderPoints} from "../modules/drawCommands/renderPoints.js";
 import {renderLines} from "../modules/drawCommands/renderLines.js";
 import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
@@ -21,6 +22,7 @@ class Draws{
 		this.boxes = [];
 		this.spheres = [];
 		this.lines = [];
+		this.points = [];
 	}
 
 	reset(){
@@ -28,6 +30,7 @@ class Draws{
 		this.boxes = [];
 		this.spheres = [];
 		this.lines = [];
+		this.points = [];
 	}
 
 };
@@ -439,6 +442,10 @@ export class Renderer{
 		this.draws.lines.push([start, end, color]);
 	}
 
+	drawPoints(positions, colors){
+		this.draws.points.push({positions, colors});
+	}
+
 	start(){
 
 		// let scale = window.devicePixelRatio;
@@ -499,10 +506,11 @@ export class Renderer{
 		return this.currentBindGroup;
 	}
 
-	renderDrawCommands(pass, camera){
-		renderBoxes(this, pass, this.draws.boxes, camera);
-		renderBoundingBoxes(this, pass, this.draws.boundingBoxes, camera);
-		renderLines(this, pass, this.draws.lines, camera);
+	renderDrawCommands(drawstate){
+		// renderBoxes(this.draws.boxes, drawstate);
+		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
+		renderPoints(this.draws.points, drawstate);
+		// renderLines(this.draws.lines, drawstate);
 	}
 
 	update(){

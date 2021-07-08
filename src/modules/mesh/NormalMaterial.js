@@ -7,7 +7,7 @@ const vs = `
 	proj : mat4x4<f32>;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 [[location(0)]] var<in> position : vec4<f32>;
 [[location(1)]] var<in> normal : vec4<f32>;
@@ -42,7 +42,7 @@ const fs = `
 	proj : mat4x4<f32>;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 struct FragmentInput {
 	[[builtin(position)]] position  : vec4<f32>;

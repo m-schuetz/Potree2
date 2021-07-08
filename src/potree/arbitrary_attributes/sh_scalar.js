@@ -20,7 +20,7 @@ const vs = `
 	[[offset(0)]] values : [[stride(4)]] array<u32>;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0)]] var<uniform> uniforms : Uniforms;
 [[binding(1), set(0)]] var<uniform> in_adjust : ColorAdjustments;
 [[binding(3), set(0)]] var<storage_buffer> ssbo_attribute : [[access(read)]]U32s;
 

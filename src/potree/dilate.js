@@ -30,7 +30,7 @@ let vs = `
 		near : f32;
 	};
 
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
 		[[builtin(vertex_idx)]] index : u32;
@@ -88,7 +88,7 @@ let fs = `
 		window  : i32;
 	};
 	
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	[[binding(0)]] var<uniform> uniforms : Uniforms;
 
 	struct FragmentInput {
 		[[builtin(position)]] fragCoord : vec4<f32>;
