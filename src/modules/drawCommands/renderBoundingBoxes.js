@@ -38,7 +38,8 @@ fn main(vertex : VertexIn) -> VertexOut {
 
 	var vout : VertexOut;
 	vout.pos = uniforms.proj * viewPos;
-	vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	// vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	vout.color = vertex.box_color;
 
 	return vout;
 }

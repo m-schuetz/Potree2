@@ -39,7 +39,6 @@ function frameStart(renderer){
 		return;
 	}
 
-	stamps = [];
 	index = 0;
 	unresolvedIndex = 0;
 
@@ -59,6 +58,8 @@ function frameEnd(renderer){
 
 	timestampSep(renderer, "frame-end");
 
+	let localStamps = stamps
+
 	renderer.readBuffer(queryBuffer, 0, 8 * index).then( buffer => {
 
 		// if((frame % 30) !== 0){
@@ -72,9 +73,9 @@ function frameEnd(renderer){
 		let durations = [];
 
 		// let msg = "timestamps: \n";
-		for(let i = 0; i < Math.min(u64.length, stamps.length); i++){
+		for(let i = 0; i < Math.min(u64.length, localStamps.length); i++){
 
-			let label = stamps[i].label;
+			let label = localStamps[i].label;
 			let current = Number(u64[i] - tStart) / 1_000_000;
 			
 			if(label.endsWith("-start")){
@@ -84,12 +85,18 @@ function frameEnd(renderer){
 				let tStart = starts.get(lblBase + "-start");
 
 				let current = Number(u64[i] - tStart) / 1_000_000;
-				durations.push(`${lblBase}: ${current.toFixed(3)}ms`);
+				let message = `${lblBase}: ${current.toFixed(3)}ms`;
+				durations.push(message);
 
 				if(!counters[lblBase]){
 					counters[lblBase] = [current];
 				}else{
 					counters[lblBase].push(current);
+				}
+
+				let doPrint = localStamps[i].args?.print ?? false;
+				if(doPrint){
+					console.log(message);
 				}
 			}
 		}
@@ -126,16 +133,17 @@ function frameEnd(renderer){
 	});
 
 	frame++;
+	stamps = [];
 }
 
-function timestamp(encoder, label){
+function timestamp(encoder, label, args = {}){
 
 	if(!enabled){
 		return;
 	}
 
 	encoder.writeTimestamp(querySet, index);
-	stamps.push({label, index});
+	stamps.push({label, index, args});
 
 	index++;
 };
