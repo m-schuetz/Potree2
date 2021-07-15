@@ -288,8 +288,8 @@ function render(){
 			renderPointsCompute(points, drawstate);
 		}
 
-		// renderPointsOctree(octrees, drawstate);
-		renderPointsOctreeBundledVBO(octrees, drawstate);
+		renderPointsOctree(octrees, drawstate);
+		// renderPointsOctreeBundledVBO(octrees, drawstate);
 
 		renderer.renderDrawCommands(drawstate);
 

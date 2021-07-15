@@ -113,7 +113,7 @@ function renderOctree(octree, drawstate, flags){
 
 	pass.passEncoder.setPipeline(pipeline);
 	pass.passEncoder.setBindGroup(0, uniformBindGroup);
-	pass.passEncoder.setBindGroup(1, miscBindGroup);
+	// pass.passEncoder.setBindGroup(1, miscBindGroup);
 
 	let nodes = octree.visibleNodes;
 	let i = 0;

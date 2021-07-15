@@ -3,23 +3,6 @@ import {RenderTarget} from "../core/RenderTarget.js";
 import * as Timer from "../renderer/Timer.js";
 
 let vs = `
-	let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.1)
-	);
-
-	let uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 0.0)
-	);
 
 	[[block]] struct Uniforms {
 		uTest : u32;
@@ -30,10 +13,13 @@ let vs = `
 		near : f32;
 	};
 
-	[[binding(0)]] var<uniform> uniforms : Uniforms;
+	[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+	// [[binding(1), group(0)]] var mySampler: sampler;
+	// [[binding(2), group(0)]] var myTexture: texture_2d<f32>;
+	// [[binding(3), group(0)]] var myDepth: texture_2d<f32>;
 
 	struct VertexInput {
-		[[builtin(vertex_idx)]] index : u32;
+		[[builtin(vertex_index)]] index : u32;
 	};
 
 	struct VertexOutput {
@@ -43,6 +29,24 @@ let vs = `
 
 	[[stage(vertex)]]
 	fn main(vertex : VertexInput) -> VertexOutput {
+
+		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+			vec2<f32>(0.0, 0.0),
+			vec2<f32>(0.1, 0.0),
+			vec2<f32>(0.1, 0.1),
+			vec2<f32>(0.0, 0.0),
+			vec2<f32>(0.1, 0.1),
+			vec2<f32>(0.0, 0.1)
+		);
+
+		var uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+			vec2<f32>(0.0, 1.0),
+			vec2<f32>(1.0, 1.0),
+			vec2<f32>(1.0, 0.0),
+			vec2<f32>(0.0, 1.0),
+			vec2<f32>(1.0, 0.0),
+			vec2<f32>(0.0, 0.0)
+		);
 
 		var output : VertexOutput;
 
@@ -54,15 +58,15 @@ let vs = `
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		var vi : i32 = vertex.index;
+		var vi = vertex.index;
 		
-		if(vi == 0 || vi == 3 || vi == 5){
+		if(vi == 0u || vi == 3u || vi == 5u){
 			output.position.x = x;
 		}else{
 			output.position.x = x + width;
 		}
 
-		if(vi == 0 || vi == 1 || vi == 3){
+		if(vi == 0u || vi == 1u || vi == 3u){
 			output.position.y = y;
 		}else{
 			output.position.y = y + height;
@@ -74,10 +78,6 @@ let vs = `
 
 let fs = `
 
-	[[binding(1), set(0)]] var mySampler: sampler;
-	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
-	[[binding(3), set(0)]] var myDepth: texture_2d<f32>;
-
 	[[block]] struct Uniforms {
 		uTest   : u32;
 		x       : f32;
@@ -88,7 +88,10 @@ let fs = `
 		window  : i32;
 	};
 	
-	[[binding(0)]] var<uniform> uniforms : Uniforms;
+	[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+	// [[binding(1), group(0)]] var mySampler: sampler;
+	[[binding(2), group(0)]] var myTexture: texture_2d<f32>;
+	[[binding(3), group(0)]] var myDepth: texture_2d<f32>;
 
 	struct FragmentInput {
 		[[builtin(position)]] fragCoord : vec4<f32>;
@@ -244,7 +247,7 @@ export function dilate(source, drawstate){
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
 			{binding: 0, resource: {buffer: uniformBuffer}},
-			{binding: 1, resource: sampler},
+			// {binding: 1, resource: sampler},
 			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
 			{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
 		],

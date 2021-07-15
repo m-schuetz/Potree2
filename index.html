@@ -66,7 +66,8 @@ td{
 		"potree": "./src/Potree.js",
 		"dat.gui": "./libs/dat.gui/dat.gui.module.js",
 		"glslang": "./libs/glslang/glslang.js",
-		"stats": "./libs/stats.js/stats.module.js"
+		"stats": "./libs/stats.js/stats.module.js",
+		"toolbar": "./src/modules/toolbar/toolbar.js"
 	}
 }
 </script>
@@ -77,23 +78,29 @@ td{
 
 	import {Potree} from "potree";
 	import {Vector3, geometries, Points} from "potree";
+	import {initGUI} from "./src/modules/gui_dat/gui.js";
+	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
 
-	window.Potree = Potree;
+	import {installToolbar} from "toolbar";
+
+
 
 	let canvas = document.getElementById("canvas");
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
+	installToolbar(potree.renderer.canvas);
 
-	import {initGUI} from "./src/modules/gui_dat/gui.js";
-	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
+	window.Potree = Potree;
+	window.potree = potree;
 
 	initGUI(potree);
 	guiContent["point budget (M)"] = 4;
 	guiContent["point size"] = 3;
 	// guiContent["High-Quality"] = false;
 	// guiContent["Eye-Dome-Lighting"] = false;
-	// guiContent["dilate"] = false;
+	guiContent["dilate"] = true;
 	// guiContent["attribute"] = "intensity";
+
 
 	// default, if not overriden later on
 	controls.set({

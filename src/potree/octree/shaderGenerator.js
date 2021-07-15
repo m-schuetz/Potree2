@@ -63,7 +63,7 @@ let shader = `
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 [[binding(0), group(1)]] var mySampler: sampler;
-[[binding(1), group(1)]] var myTexture: texture_2d<f32>;
+// [[binding(1), group(1)]] var myTexture: texture_2d<f32>;
 
 struct VertexInput {
 	[[builtin(instance_index)]] instanceIdx : u32;

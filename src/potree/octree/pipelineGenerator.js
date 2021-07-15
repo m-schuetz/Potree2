@@ -70,6 +70,14 @@ export function generate(renderer, args = {}){
 		}],
 	};
 
+	
+	console.groupCollapsed("compiling octree shader");
+	console.log("==== VERTEX SHADER ====");
+	console.log(vs);
+	console.log("==== FRAGMENT SHADER ====");
+	console.log(fs);
+	console.groupEnd();
+
 	const pipeline = device.createRenderPipeline({
 		vertex: {
 			module: device.createShaderModule({code: vs}),

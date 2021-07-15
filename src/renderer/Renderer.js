@@ -5,14 +5,12 @@ import * as shaders from "../prototyping/shaders.js";
 import {render as renderBoxes} from "../modules/drawCommands/renderBoxes.js";
 import {render as renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
 import {render as renderPoints} from "../modules/drawCommands/renderPoints.js";
+import {render as renderQuads} from "../modules/drawCommands/renderQuads.js";
 import {renderLines} from "../modules/drawCommands/renderLines.js";
 import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
 import {readPixels, readDepth} from "../renderer/readPixels.js";
 import {RenderTarget} from "potree";
-// import {renderPoints, renderMeshes, renderPointsCompute, renderPointsOctree} from "potree";
-// import {dilate, EDL} from "potree";
-// import {Potree} from "potree";
 
 
 class Draws{
@@ -509,7 +507,8 @@ export class Renderer{
 	renderDrawCommands(drawstate){
 		// renderBoxes(this.draws.boxes, drawstate);
 		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
-		renderPoints(this.draws.points, drawstate);
+		// renderPoints(this.draws.points, drawstate);
+		renderQuads(this.draws.points, drawstate);
 		// renderLines(this.draws.lines, drawstate);
 	}
 
