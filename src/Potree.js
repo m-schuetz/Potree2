@@ -64,6 +64,7 @@ const settings = {
 	useCompute: false,
 	dilateEnabled: false,
 	edlEnabled: false,
+	updateEnabled: true,
 };
 
 const state = {

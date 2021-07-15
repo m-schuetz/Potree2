@@ -29,3 +29,5 @@ resources/pointclouds/66_73/metadata.json
 resources/pointclouds/66_73/octree.bin
 resources/models/vcity_sitn.glb
 prototyping/lion.las
+prototyping/color.bin
+prototyping/positionf32.bin

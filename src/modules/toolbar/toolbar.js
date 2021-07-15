@@ -49,6 +49,7 @@ export async function installToolbar(element){
 			</div>
 		</span>
 
+		<!--
 		<span class="potree_toolbar_separator"></span>
 
 		<span>
@@ -60,6 +61,7 @@ export async function installToolbar(element){
 				<input id="sldPointBudget" type="range" min="1" max="100" value="30" class="slider">
 			</div>
 		</span>
+		-->
 	`;
 
 	{ // GRADIENT
@@ -89,23 +91,26 @@ export async function installToolbar(element){
 		}
 	}
 
-	{ // POINT BUDGET
+	// { // POINT BUDGET
 
-		let slider = elToolbar.querySelector("#sldPointBudget");
-		let lblPointBudget = elToolbar.querySelector("#lblPointBudget");
+	// 	let slider = elToolbar.querySelector("#sldPointBudget");
+	// 	let lblPointBudget = elToolbar.querySelector("#lblPointBudget");
 
-		let updateLabel = () => {
-			let value = (Number(slider.value) / 10).toFixed(1);
-			let string = value.toLocaleString() + "M";
+	// 	let updateLabel = () => {
+	// 		let budget = Number(slider.value) * 100_000;
+	// 		let stringValue = (budget / 1_000_000).toFixed(1);
+	// 		let string = stringValue.toLocaleString() + "M";
 
-			lblPointBudget.innerHTML = string;
-		};
+	// 		lblPointBudget.innerHTML = string;
 
-		slider.oninput = updateLabel;
+	// 		Potree.settings.pointBudget = budget;
+	// 	};
 
-		updateLabel();
+	// 	slider.oninput = updateLabel;
 
-	}
+	// 	updateLabel();
+
+	// }
 
 	element.parentElement.appendChild(elToolbar);
 

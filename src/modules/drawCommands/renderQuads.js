@@ -184,7 +184,7 @@ function updateUniforms(drawstate){
 
 		view.setFloat32(128, size.width, true);
 		view.setFloat32(132, size.height, true);
-		view.setFloat32(136, 8.0, true);
+		view.setFloat32(136, 3.0, true);
 	}
 
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
@@ -207,16 +207,11 @@ export function render(points, drawstate){
 		let vboPosition = renderer.getGpuBuffer(batch.positions);
 		let vboColor = renderer.getGpuBuffer(batch.colors);
 
-		// device.queue.writeBuffer(vboPosition, 0, position.buffer, 0, position.byteLength);
-		// device.queue.writeBuffer(vboColor, 0, color.buffer, 0, color.byteLength);
-
 		passEncoder.setVertexBuffer(0, vboPosition);
 		passEncoder.setVertexBuffer(1, vboColor);
 
 		let numVertices = batch.positions.length / 3;
 		passEncoder.draw(6, numVertices, 0, 0);
-		// passEncoder.drawIndexed(6, numVertices, 0, 0);
-
 	}
 
 };

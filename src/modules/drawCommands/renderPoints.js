@@ -183,9 +183,6 @@ export function render(points, drawstate){
 		let vboPosition = renderer.getGpuBuffer(batch.positions);
 		let vboColor = renderer.getGpuBuffer(batch.colors);
 
-		// device.queue.writeBuffer(vboPosition, 0, position.buffer, 0, position.byteLength);
-		// device.queue.writeBuffer(vboColor, 0, color.buffer, 0, color.byteLength);
-
 		passEncoder.setVertexBuffer(0, vboPosition);
 		passEncoder.setVertexBuffer(1, vboColor);
 
