@@ -21,6 +21,7 @@ class Draws{
 		this.spheres = [];
 		this.lines = [];
 		this.points = [];
+		this.quads = [];
 	}
 
 	reset(){
@@ -29,6 +30,7 @@ class Draws{
 		this.spheres = [];
 		this.lines = [];
 		this.points = [];
+		this.quads = [];
 	}
 
 };
@@ -444,6 +446,10 @@ export class Renderer{
 		this.draws.points.push({positions, colors});
 	}
 
+	drawQuads(positions, colors){
+		this.draws.quads.push({positions, colors});
+	}
+
 	start(){
 
 		// let scale = window.devicePixelRatio;
@@ -507,8 +513,8 @@ export class Renderer{
 	renderDrawCommands(drawstate){
 		// renderBoxes(this.draws.boxes, drawstate);
 		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
-		// renderPoints(this.draws.points, drawstate);
-		renderQuads(this.draws.points, drawstate);
+		renderPoints(this.draws.points, drawstate);
+		renderQuads(this.draws.quads, drawstate);
 		// renderLines(this.draws.lines, drawstate);
 	}
 
