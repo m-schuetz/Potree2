@@ -66,7 +66,7 @@ export class OrbitControls{
 		this.radius = radius ?? this.radius;
 
 		if(pivot){
-			if(pivot.x){
+			if(typeof pivot.x !== "undefined"){
 				this.pivot.copy(pivot);
 			}else{
 				this.pivot.set(...pivot);
@@ -174,6 +174,22 @@ export class OrbitControls{
 			this.world.multiplyMatrices(flip, this.world);
 		}
 
+	}
+
+	toExpression(){
+
+		let pivot = this.pivot;
+
+		let str = `;
+		controls.set(
+			yaw: ${this.yaw},
+			pitch: ${this.pitch},
+			radius: ${this.radius},
+			pivot: new Vector3(${pivot.x}, ${pivot.y}, ${pivot.z}),
+		);
+		`;
+
+		return str;
 	}
 
 

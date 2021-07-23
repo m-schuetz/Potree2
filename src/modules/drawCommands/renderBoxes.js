@@ -6,44 +6,60 @@ import {Geometry} from "../../core/Geometry.js";
 
 const vs = `
 [[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
-	[[offset(128)]] screen_width : f32;
-	[[offset(132)]] screen_height : f32;
+	worldView : mat4x4<f32>;
+	proj : mat4x4<f32>;
+	screen_width : f32;
+	screen_height : f32;
 };
 
-[[binding(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> box_pos : vec4<f32>;
-[[location(1)]] var<in> box_scale : vec4<f32>;
-[[location(2)]] var<in> point_pos : vec4<f32>;
-[[location(3)]] var<in> box_color : vec4<f32>;
+struct VertexIn{
+	[[location(0)]] box_pos : vec4<f32>;
+	[[location(1)]] box_scale : vec4<f32>;
+	[[location(2)]] point_pos : vec4<f32>;
+	[[location(3)]] box_color : vec4<f32>;
+};
 
-[[builtin(position)]] var<out> out_pos : vec4<f32>;
-[[location(0)]] var<out> fragColor : vec4<f32>;
+struct VertexOut{
+	[[builtin(position)]] out_pos : vec4<f32>;
+	[[location(0)]] fragColor : vec4<f32>;
+};
+
+
 
 [[stage(vertex)]]
-fn main() -> void {
+fn main(vertex : VertexIn) -> VertexOut {
 	
-	var worldPos : vec4<f32> = box_pos + point_pos * box_scale;
+	var worldPos : vec4<f32> = vertex.box_pos + vertex.point_pos * vertex.box_scale;
 	worldPos.w = 1.0;
 	var viewPos : vec4<f32> = uniforms.worldView * worldPos;
-	out_pos = uniforms.proj * viewPos;
 
-	fragColor = box_color;
+	var vout : VertexOut;
+	vout.fragColor = vertex.box_color;
+	vout.out_pos = uniforms.proj * viewPos;
 
-	return;
+	return vout;
 }
 `;
 
 const fs = `
-[[location(0)]] var<in> fragColor : vec4<f32>;
-[[location(0)]] var<out> outColor : vec4<f32>;
+
+struct FragmentIn{
+	[[location(0)]] fragColor : vec4<f32>;
+};
+
+struct FragmentOut{
+	[[location(0)]] outColor : vec4<f32>;
+};
 
 [[stage(fragment)]]
-fn main() -> void {
-	outColor = fragColor;
-	return;
+fn main(fragment : FragmentIn) -> FragmentOut {
+
+	var fout : FragmentOut;
+	fout.outColor = fragment.fragColor;
+
+	return fout;
 }
 `;
 
@@ -105,7 +121,7 @@ function createPipeline(renderer){
 		},
 		primitive: {
 			topology: 'triangle-list',
-			cullMode: 'back',
+			cullMode: 'none',
 		},
 		depthStencil: {
 			depthWriteEnabled: true,
@@ -159,7 +175,10 @@ function init(renderer){
 
 }
 
-function updateUniforms(renderer){
+function updateUniforms(drawstate){
+
+	let {renderer, camera} = drawstate;
+
 	let data = new ArrayBuffer(256);
 	let f32 = new Float32Array(data);
 	let view = new DataView(data);
@@ -183,15 +202,16 @@ function updateUniforms(renderer){
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
 }
 
-export function render(renderer, pass, boxes, camera){
+export function render(boxes, drawstate){
 
+	let {renderer} = drawstate;
 	let {device} = renderer;
 
 	init(renderer);
 
-	updateUniforms(renderer);
+	updateUniforms(drawstate);
 
-	let {passEncoder} = pass;
+	let {passEncoder} = drawstate.pass;
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
@@ -225,22 +245,6 @@ export function render(renderer, pass, boxes, camera){
 		device.queue.writeBuffer(vboScale, 0, scale.buffer, 0, scale.byteLength);
 		device.queue.writeBuffer(vboColor, 0, color.buffer, 0, color.byteLength);
 	}
-
-	// { // wireframe
-	// 	let boxVertices = cube_wireframe.buffers.find(b => b.name === "position").buffer;
-	// 	let vboBoxVertices = renderer.getGpuBuffer(boxVertices);
-	// 	let vboBoxIndices = renderer.getGpuBuffer(cube_wireframe.indices);
-
-	// 	passEncoder.setVertexBuffer(0, vboPosition);
-	// 	passEncoder.setVertexBuffer(1, vboScale);
-	// 	passEncoder.setVertexBuffer(2, vboBoxVertices);
-	// 	passEncoder.setVertexBuffer(3, vboColor);
-	// 	passEncoder.setIndexBuffer(vboBoxIndices, "uint32");
-
-	// 	let numBoxes = boxes.length;
-	// 	let numVertices = cube_wireframe.numElements;
-	// 	passEncoder.drawIndexed(numVertices, numBoxes, 0, 0);
-	// }
 
 	{ // solid
 		let boxVertices = cube.buffers.find(b => b.name === "position").buffer;

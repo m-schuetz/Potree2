@@ -511,7 +511,7 @@ export class Renderer{
 	}
 
 	renderDrawCommands(drawstate){
-		// renderBoxes(this.draws.boxes, drawstate);
+		renderBoxes(this.draws.boxes, drawstate);
 		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
 		renderPoints(this.draws.points, drawstate);
 		renderQuads(this.draws.quads, drawstate);

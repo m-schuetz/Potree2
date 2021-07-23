@@ -274,20 +274,4 @@ export function render(boxes, drawstate){
 		passEncoder.draw(numVertices, numBoxes, 0, 0);
 	}
 
-	// { // solid
-	// 	let boxVertices = cube.buffers.find(b => b.name === "position").buffer;
-	// 	let vboBoxVertices = renderer.getGpuBuffer(boxVertices);
-
-	// 	passEncoder.setVertexBuffer(0, vboPosition);
-	// 	passEncoder.setVertexBuffer(1, vboScale);
-	// 	passEncoder.setVertexBuffer(2, vboBoxVertices);
-	// 	passEncoder.setVertexBuffer(3, vboColor);
-	// 	// passEncoder.setIndexBuffer(vboBoxIndices, "uint32");
-
-	// 	let numBoxes = boxes.length;
-	// 	let numVertices = cube.numElements;
-	// 	passEncoder.draw(numVertices, numBoxes, 0, 0);
-	// }
-
-
 };
