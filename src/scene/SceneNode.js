@@ -12,6 +12,7 @@ export class SceneNode{
 		this.rotation = new Matrix4();
 		this.scale = new Vector3(1, 1, 1);
 		this.boundingBox = new Box3();
+		this.renderLayer = 0;
 
 		this.children = [];
 

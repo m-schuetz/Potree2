@@ -128,39 +128,67 @@ td{
 	// 	camera.fov = 60;
 	// }
 
-	// let url = "./resources/pointclouds/heidentor/metadata.json";
-	// Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
+	let url = "./resources/pointclouds/heidentor/metadata.json";
+	Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
+		scene.root.children.push(pointcloud);
+
+		controls.set({
+			radius: 26.8, yaw: -4.2, pitch: 0.31,
+			pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
+		});
+
+		// controls.set({
+		// 	position: [-16.8, 12.0, 10.8],
+		// 	pivot: [-1.7482506615697777, 4.1140199696259545, 7.4239815576054085],
+		// });
+
+
+	});
+
+	// Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// // Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
 	// 	scene.root.children.push(pointcloud);
 
-	// 	controls.set({
-	// 		radius: 26.8, yaw: -4.2, pitch: 0.31,
-	// 		pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
-	// 	});
+	// 	// // close-up
+	// 	// controls.set({
+	// 	// 	position: [737368.845, 3890920.357, 923.367],
+	// 	// 	pivot: [736054.256, 3890998.977, 236.332],
+	// 	// });
 
+	// 	// overview
 	// 	controls.set({
-	// 		position: [-16.8, 12.0, 10.8],
-	// 		pivot: [-1.7482506615697777, 4.1140199696259545, 7.4239815576054085],
+	// 		position: [687630.7, 3888448.6, 38021.8],
+	// 		pivot: [693764.5, 3916109.6, -46.0],
 	// 	});
-
 
 	// });
 
-	Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
-	// Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
-		scene.root.children.push(pointcloud);
+	document.body.addEventListener("click", (e) => {
+		console.log(e);
 
-		// // close-up
-		// controls.set({
-		// 	position: [737368.845, 3890920.357, 923.367],
-		// 	pivot: [736054.256, 3890998.977, 236.332],
-		// });
+		let target = e.target;
+		let x = e.clientX;
+		let y = e.clientY;
 
-		// overview
-		controls.set({
-			position: [687630.7, 3888448.6, 38021.8],
-			pivot: [693764.5, 3916109.6, -46.0],
+		// let u = x / target.clientWidth;
+		// let v = 1 - y / target.clientHeight;
+
+		// let origin = camera.getWorldPosition();
+		// let direction = camera.mouseToDirection(u, v);
+		// let ray = new Ray(origin, direction);
+
+		Potree.pick(x, y, (I) => {
+			console.log(I);
 		});
 	});
+
+	// potree.addEventListener("update", () => {
+
+	// 	potree.pick(scene, ray).then( (I) => {
+	// 		console.log(I);
+	// 	});
+
+	// });
 
 	// Potree.load(url, {name: "Anita", target: scene.root});
 

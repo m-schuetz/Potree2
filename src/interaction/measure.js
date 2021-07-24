@@ -1,30 +1,40 @@
 
-import {Potree} from "potree";
-
+import {Potree, Mesh, Vector3, geometries} from "potree";
 
 export class MeasureTool{
 
-	constructor(renderer){
-		this.renderer = renderer;
-		this.element = renderer.canvas;
+	constructor(potree){
+		this.potree = potree;
+		this.renderer = potree.renderer;
+		this.element = potree.renderer.canvas;
+
+		this.mesh = new Mesh("cube", geometries.sphere);
+		this.mesh.scale.set(0.5, 0.5, 0.5);
+		potree.scene.root.children.push(this.mesh);
 
 		this.element.addEventListener('mousemove', e => {
 
 			let [x, y] = [e.clientX, e.clientY];
 
-			let node = scene.root.children.find(c => c.constructor.name === "Mesh");
+			let node = this.mesh;
 
-			if(node){
-				Potree.pick(x, y, (result) => {
+			Potree.pick(x, y, (result) => {
 
-					if(result.depth !== Infinity){
-						node.position.copy(result.position);
-						node.updateWorld();
+				if(result.depth !== Infinity){
+					node.position.copy(result.position);
+					node.updateWorld();
 
-						Potree.pickPos = result.position;
-					}
-				});
-			}
+					Potree.pickPos = result.position;
+				}
+			});
+
+		});
+
+		potree.onUpdate( () => {
+			let depth = camera.getWorldPosition().distanceTo(this.mesh.position);
+			let radius = depth / 50;
+
+			this.mesh.scale.set(radius, radius, radius);
 
 		});
 

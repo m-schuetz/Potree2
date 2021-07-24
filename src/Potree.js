@@ -49,7 +49,8 @@ export {hqs_normalize}  from "./potree/hqs_normalize.js";
 
 import {createPointsData, createPointsSphere} from "./modules/geometries/points.js";
 import {cube} from "./modules/geometries/cube.js";
-export const geometries = {createPointsData, createPointsSphere, cube};
+import {sphere} from "./modules/geometries/sphere.js";
+export const geometries = {createPointsData, createPointsSphere, cube, sphere};
 
 import {init} from "./init.js";
 
@@ -76,13 +77,11 @@ const state = {
 };
 
 export let Potree = {
-	load: load,
-	loadGLB: loadGLB,
+	load, loadGLB,
 	render: render,
-	pick: pick, pickQueue,
-	init: init,
-	settings: settings,
-	state: state,
+	pick, pickQueue,
+	init,
+	settings, state,
 };
 
 

@@ -7,10 +7,7 @@ const vs = `
 	proj : mat4x4<f32>;
 };
 
-[[binding(0)]] var<uniform> uniforms : Uniforms;
-
-[[location(0)]] var<in> position : vec4<f32>;
-[[location(1)]] var<in> normal : vec4<f32>;
+[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 
 struct VertexInput {
 	[[location(0)]] position        : vec4<f32>;
@@ -42,7 +39,7 @@ const fs = `
 	proj : mat4x4<f32>;
 };
 
-[[binding(0)]] var<uniform> uniforms : Uniforms;
+[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 
 struct FragmentInput {
 	[[builtin(position)]] position  : vec4<f32>;
@@ -70,7 +67,7 @@ let initialized = false;
 let pipeline = null;
 let uniformBuffer = null;
 
-function initialize(renderer){
+function init(renderer){
 
 	if(initialized){
 		return;
@@ -107,10 +104,10 @@ function initialize(renderer){
 		},
 		primitive: {
 			topology: 'triangle-list',
-			cullMode: 'none',
+			cullMode: 'back',
 		},
 		depthStencil: {
-			depthWriteEnabled: true,
+			depthWriteEnabled: false,
 			depthCompare: 'greater',
 			format: "depth32float",
 		},
@@ -126,37 +123,42 @@ function initialize(renderer){
 	initialized = true;
 }
 
-export function render(pass, node, drawstate){
-	
-	let {renderer, camera, renderables} = drawstate;
+function updateUniforms(mesh, drawstate){
+
+	let {renderer, camera} = drawstate;
 	let {device} = renderer;
 
-	initialize(renderer);
+	let world = mesh.world;
+	let view = camera.view;
+	let worldView = new Matrix4().multiplyMatrices(view, world);
 
-	{ // update uniforms
-		let world = node.world;
-		let view = camera.view;
-		let worldView = new Matrix4().multiplyMatrices(view, world);
+	let tmp = new Float32Array(16);
 
-		let tmp = new Float32Array(16);
+	tmp.set(worldView.elements);
+	device.queue.writeBuffer(
+		uniformBuffer, 0,
+		tmp.buffer, tmp.byteOffset, tmp.byteLength
+	);
 
-		tmp.set(worldView.elements);
-		device.queue.writeBuffer(
-			uniformBuffer, 0,
-			tmp.buffer, tmp.byteOffset, tmp.byteLength
-		);
+	tmp.set(camera.proj.elements);
+	device.queue.writeBuffer(
+		uniformBuffer, 64,
+		tmp.buffer, tmp.byteOffset, tmp.byteLength
+	);
+}
 
-		tmp.set(camera.proj.elements);
-		device.queue.writeBuffer(
-			uniformBuffer, 64,
-			tmp.buffer, tmp.byteOffset, tmp.byteLength
-		);
-	}
-
+export function render(node, drawstate){
+	
+	let {renderer, pass} = drawstate;
+	let {device} = renderer;
 	let {passEncoder} = pass;
+
+	init(renderer);
+
+	updateUniforms(node, drawstate);
+
 	let vbos = renderer.getGpuBuffers(node.geometry);
 
-	passEncoder.setPipeline(pipeline);
 
 	let bindGroup = device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
@@ -165,6 +167,7 @@ export function render(pass, node, drawstate){
 		]
 	});
 
+	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
 
 	let vboPosition = vbos.find(item => item.name === "position").vbo;

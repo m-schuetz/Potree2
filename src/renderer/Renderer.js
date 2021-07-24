@@ -63,7 +63,7 @@ export class Renderer{
 			requiredFeatures: ["timestamp-query"],
 		});
 		this.canvas = document.getElementById("canvas");
-		this.context = this.canvas.getContext("gpupresent");
+		this.context = this.canvas.getContext("webgpu");
 
 		this.swapChainFormat = "bgra8unorm";
 		this.context.configure({

@@ -18,9 +18,9 @@ let cs = `
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 [[binding(1), group(0)]] var source : texture_2d<f32>;
-[[binding(2), group(0)]] var<storage> target : [[access(read_write)]] U32s;
+[[binding(2), group(0)]] var<storage, read_write> target : U32s;
 
-[[stage(compute)]]
+[[stage(compute), workgroup_size(1)]]
 fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 
 	if(GlobalInvocationID.x > uniforms.width){

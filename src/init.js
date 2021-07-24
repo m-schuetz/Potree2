@@ -38,12 +38,12 @@ function removeEventListener(name, callback){
 }
 
 function initScene(){
-	{
-		let mesh = new Mesh("cube", geometries.cube);
-		mesh.scale.set(0.5, 0.5, 0.5);
+	// {
+	// 	let mesh = new Mesh("cube", geometries.cube);
+	// 	mesh.scale.set(0.5, 0.5, 0.5);
 
-		scene.root.children.push(mesh);
-	}
+	// 	scene.root.children.push(mesh);
+	// }
 }
 
 function update(){
@@ -165,6 +165,7 @@ function endPass(pass){
 function render(){
 	Timer.setEnabled(true);
 
+	// let layers = new Map();
 	let renderables = new Map();
 
 	let stack = [scene.root];
@@ -210,7 +211,6 @@ function render(){
 	let hqsEnabled = Potree.settings.hqsEnabled;
 	let edlEnabled = Potree.settings.edlEnabled;
 	let dilateEnabled = Potree.settings.dilateEnabled;
-	// let dilateEnabled = Potree.settings.mode === "dilate";
 
 	renderer.start();
 
@@ -289,7 +289,9 @@ function render(){
 		}
 
 		renderPointsOctree(octrees, drawstate);
-		// renderPointsOctreeBundledVBO(octrees, drawstate);
+
+		let meshes = renderables.get("Mesh") ?? [];
+		renderMeshes(meshes, drawstate);
 
 		renderer.renderDrawCommands(drawstate);
 
@@ -301,7 +303,6 @@ function render(){
 		let drawstate = {renderer, camera, renderables, pass};
 
 		renderPointsOctree(octrees, drawstate);
-		// renderPointsOctreeBundledVBO(octrees, drawstate);
 
 		renderer.renderDrawCommands(drawstate);
 
@@ -334,36 +335,34 @@ function render(){
 	}
 
 
-	// { // HANDLE PICKING
-	// 	for(let {x, y, callback} of Potree.pickQueue){
+	{ // HANDLE PICKING
+		for(let {x, y, callback} of Potree.pickQueue){
 
-	// 		let u = x / renderer.canvas.clientWidth;
-	// 		let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
-	// 		let pos = camera.getWorldPosition();
-	// 		let dir = camera.mouseToDirection(u, v);
-	// 		let near = camera.near;
+			let u = x / renderer.canvas.clientWidth;
+			let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
+			let pos = camera.getWorldPosition();
+			let dir = camera.mouseToDirection(u, v);
+			let near = camera.near;
 
-	// 		let window = 2;
-	// 		let wh = 1;
-	// 		readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
+			let window = 2;
+			let wh = 1;
+			readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
 				
-	// 			let depth = near / d;
+				let depth = near / d;
 				
-	// 			dir.multiplyScalar(depth);
-	// 			let position = pos.add(dir);
+				dir.multiplyScalar(depth);
+				let position = pos.add(dir);
 
-	// 			// console.log(position);
-
-	// 			callback({depth, position});
-	// 		});
-	// 	}
-	// 	Potree.pickQueue.length = 0;
-	// }
+				callback({depth, position});
+			});
+		}
+		Potree.pickQueue.length = 0;
+	}
 
 	// { // MESHES
 	// 	let meshes = renderables.get("Mesh") ?? [];
 
-	// 	renderMeshes({in: meshes      , target: screenbuffer  , drawstate});
+	// 	renderMeshes(meshes, drawstate);
 	// }
 
 	// renderer.renderDrawCommands(drawstate);
@@ -410,9 +409,21 @@ export async function init(){
 
 	await renderer.init();
 
+	let potree = {};
+
 	camera = new Camera();
 	controls = new OrbitControls(renderer.canvas);
-	measure = new MeasureTool(renderer);
+
+	potree.controls = controls;
+	potree.addEventListener = addEventListener;
+	potree.removeEventListener = removeEventListener;
+	potree.renderer = renderer;
+	potree.scene = scene;
+	potree.onUpdate = (callback) => {
+		addEventListener("update", callback);
+	};
+
+	measure = new MeasureTool(potree);
 
 	// make things available in dev tools for debugging
 	window.camera = camera;
@@ -440,7 +451,7 @@ export async function init(){
 
 	requestAnimationFrame(loop);
 
-	return {scene, controls, addEventListener, removeEventListener, renderer};
+	return potree;
 }
 
 
