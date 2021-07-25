@@ -8,7 +8,7 @@ export class MeasureTool{
 		this.renderer = potree.renderer;
 		this.element = potree.renderer.canvas;
 
-		this.mesh = new Mesh("cube", geometries.sphere);
+		this.mesh = new Mesh("sphere", geometries.sphere);
 		this.mesh.scale.set(0.5, 0.5, 0.5);
 		potree.scene.root.children.push(this.mesh);
 
@@ -22,7 +22,7 @@ export class MeasureTool{
 
 				if(result.depth !== Infinity){
 					node.position.copy(result.position);
-					node.updateWorld();
+					// node.updateWorld();
 
 					Potree.pickPos = result.position;
 				}

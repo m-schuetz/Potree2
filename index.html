@@ -76,7 +76,7 @@ td{
 <script type="module">
 
 	import {Potree} from "potree";
-	import {Vector3, geometries, Points} from "potree";
+	import {Vector3, Mesh, geometries, Points} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
 
@@ -167,15 +167,14 @@ td{
 		let x = e.clientX;
 		let y = e.clientY;
 
-		// let u = x / target.clientWidth;
-		// let v = 1 - y / target.clientHeight;
-
-		// let origin = camera.getWorldPosition();
-		// let direction = camera.mouseToDirection(u, v);
-		// let ray = new Ray(origin, direction);
-
 		Potree.pick(x, y, (I) => {
 			console.log(I);
+
+			let sphere = new Mesh("sphere", geometries.sphere);
+			sphere.position.copy(I.position);
+			sphere.scale.set(0.2, 0.2, 0.2);
+			potree.scene.root.children.push(sphere);
+
 		});
 	});
 

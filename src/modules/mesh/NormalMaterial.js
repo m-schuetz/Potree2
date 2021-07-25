@@ -65,7 +65,7 @@ fn main(fragment : FragmentInput) -> FragmentOutput {
 
 let initialized = false;
 let pipeline = null;
-let uniformBuffer = null;
+// let uniformBuffer = null;
 
 function init(renderer){
 
@@ -113,22 +113,21 @@ function init(renderer){
 		},
 	});
 
-	const uniformBufferSize = 256; 
-
-	uniformBuffer = device.createBuffer({
-		size: uniformBufferSize,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	});
+	// const uniformBufferSize = 256; 
+	// uniformBuffer = device.createBuffer({
+	// 	size: uniformBufferSize,
+	// 	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	// });
 
 	initialized = true;
 }
 
-function updateUniforms(mesh, drawstate){
+function updateUniforms(node, uniformsBuffer, drawstate){
 
 	let {renderer, camera} = drawstate;
 	let {device} = renderer;
 
-	let world = mesh.world;
+	let world = node.world;
 	let view = camera.view;
 	let worldView = new Matrix4().multiplyMatrices(view, world);
 
@@ -136,15 +135,33 @@ function updateUniforms(mesh, drawstate){
 
 	tmp.set(worldView.elements);
 	device.queue.writeBuffer(
-		uniformBuffer, 0,
+		uniformsBuffer, 0,
 		tmp.buffer, tmp.byteOffset, tmp.byteLength
 	);
 
 	tmp.set(camera.proj.elements);
 	device.queue.writeBuffer(
-		uniformBuffer, 64,
+		uniformsBuffer, 64,
 		tmp.buffer, tmp.byteOffset, tmp.byteLength
 	);
+}
+
+let uniformsMap = new Map();
+
+function getUniforms(renderer, node){
+
+	if(!uniformsMap.has(node)){
+		const uniformBufferSize = 256; 
+
+		let uniformsBuffer = renderer.device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		uniformsMap.set(node, uniformsBuffer);
+	}
+
+	return uniformsMap.get(node);
 }
 
 export function render(node, drawstate){
@@ -155,15 +172,15 @@ export function render(node, drawstate){
 
 	init(renderer);
 
-	updateUniforms(node, drawstate);
+	let uniformsBuffer = getUniforms(renderer, node);
+	updateUniforms(node, uniformsBuffer, drawstate);
 
 	let vbos = renderer.getGpuBuffers(node.geometry);
-
 
 	let bindGroup = device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
-			{binding: 0, resource: {buffer: uniformBuffer}},
+			{binding: 0, resource: {buffer: uniformsBuffer}},
 		]
 	});
 
