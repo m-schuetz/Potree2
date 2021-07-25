@@ -5,9 +5,10 @@ import {generate as generatePipeline} from "./octree/pipelineGenerator.js";
 import {Gradients} from "potree";
 
 let octreeStates = new Map();
-let gradientTexture = null;
+// let gradientTexture = null;
 let gradientSampler = null;
 let initialized = false;
+let gradientTextureMap = new Map();
 
 function init(renderer){
 
@@ -15,8 +16,8 @@ function init(renderer){
 		return;
 	}
 
-	let SPECTRAL = Gradients.SPECTRAL;
-	gradientTexture	= renderer.createTextureFromArray(SPECTRAL.steps.flat(), SPECTRAL.steps.length, 1);
+	// let SPECTRAL = Gradients.SPECTRAL;
+	// gradientTexture	= renderer.createTextureFromArray(SPECTRAL.steps.flat(), SPECTRAL.steps.length, 1);
 
 	gradientSampler = renderer.device.createSampler({
 		magFilter: 'linear',
@@ -26,6 +27,20 @@ function init(renderer){
 		addressModeV: "repeat",
 		maxAnisotropy: 1,
 	});
+}
+
+function getGradient(){
+
+	let gradient = Potree.settings.gradient;
+
+	if(!gradientTextureMap.has(gradient)){
+		let texture = renderer.createTextureFromArray(
+			gradient.steps.flat(), gradient.steps.length, 1);
+
+		gradientTextureMap.set(gradient, texture);
+	}
+
+	return gradientTextureMap.get(gradient);
 }
  
 
@@ -56,6 +71,8 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 				{binding: 0, resource: {buffer: uniformBuffer}},
 			],
 		});
+
+		let gradientTexture = getGradient(Potree.settings.gradient);
 
 		const miscBindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(1),
@@ -96,7 +113,13 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 	view.setFloat32(132, size.height, true);
 	view.setUint32(136, isHqsDepth ? 1 : 0, true);
 
-	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 140);
+	if(Potree.settings.dbgAttribute === "rgba"){
+		view.setUint32(140, 0, true);
+	}else if(Potree.settings.dbgAttribute === "elevation"){
+		view.setUint32(140, 1, true);
+	}
+
+	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 144);
 }
 
 function renderOctree(octree, drawstate, flags){
@@ -113,7 +136,19 @@ function renderOctree(octree, drawstate, flags){
 
 	pass.passEncoder.setPipeline(pipeline);
 	pass.passEncoder.setBindGroup(0, uniformBindGroup);
-	// pass.passEncoder.setBindGroup(1, miscBindGroup);
+
+	{
+		let gradientTexture = getGradient(Potree.settings.gradient);
+
+		const miscBindGroup = renderer.device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(1),
+			entries: [
+				{binding: 0, resource: gradientSampler},
+				{binding: 1, resource: gradientTexture.createView()},
+			],
+		});
+		pass.passEncoder.setBindGroup(1, miscBindGroup);
+	}
 
 	let nodes = octree.visibleNodes;
 	let i = 0;

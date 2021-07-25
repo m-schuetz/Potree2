@@ -24,7 +24,7 @@ let guiContent = {
 	"Eye-Dome-Lighting": false,
 	"High-Quality": false,
 	// "mode": "HQS",
-	"attribute": "rgba",
+	// "attribute": "rgba",
 	"point budget (M)": 4,
 	"point size": 3,
 	"update": true,
@@ -75,8 +75,8 @@ export function initGUI(potree){
 		input.add(guiContent, "High-Quality");
 		// input.add(guiContent, "show bounding box");
 		input.add(guiContent, "update");
-		guiAttributes = input.add(guiContent, "attribute", ["rgba", "intensity"]).listen();
-		window.guiAttributes = guiAttributes;
+		// guiAttributes = input.add(guiContent, "attribute", ["rgba", "intensity"]).listen();
+		// window.guiAttributes = guiAttributes;
 
 		// slider
 		input.add(guiContent, 'point budget (M)', 0.01, 5);
@@ -109,7 +109,7 @@ export function initGUI(potree){
 		// Potree.settings.mode = guiContent["mode"];
 		Potree.settings.useCompute = guiContent["use compute"];
 		Potree.settings.dilateEnabled = guiContent["dilate"];
-		Potree.settings.attribute = guiContent["attribute"];
+		// Potree.settings.attribute = guiContent["attribute"];
 		Potree.settings.pointBudget = guiContent["point budget (M)"] * 1_000_000;
 		Potree.settings.pointSize = guiContent["point size"];
 		Potree.settings.edlEnabled = guiContent["Eye-Dome-Lighting"];

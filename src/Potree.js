@@ -52,20 +52,26 @@ import {cube} from "./modules/geometries/cube.js";
 import {sphere} from "./modules/geometries/sphere.js";
 export const geometries = {createPointsData, createPointsSphere, cube, sphere};
 
+export * as math from "./math/math.js";
+
 import {init} from "./init.js";
 
 import {load as loadGLB} from "./misc/GLBLoader.js";
+
+import * as Gradients from "./misc/Gradients.js";
 
 const settings = {
 	pointSize: 3,
 	pointBudget: 1_000_000,
 	attribute: "rgba",
+	dbgAttribute: "rgba",
 	showBoundingBox: false,
 	// mode: "pixels",
 	useCompute: false,
 	dilateEnabled: false,
 	edlEnabled: false,
 	updateEnabled: true,
+	gradient: Gradients.SPECTRAL,
 };
 
 const state = {

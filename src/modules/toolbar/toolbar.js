@@ -19,20 +19,17 @@ export async function installToolbar(element){
 			<div class="potree_toolbar_label">
 				Attribute
 			</div>
-			<div>
-				<img name="action_elevation" src="${dir}/icons/profile.svg" class="annotation-action-icon" style="width: 2em; height: auto;"/>
-				<img name="action_rgb" src="${dir}/icons/rgb.svg" class="annotation-action-icon" style="width: 2em; height: auto;"/>
-			</div>
+			<div id="attributes_panel"></div>
 		</span>
 
 		<span class="potree_toolbar_separator"></span>
 
 		<span>
 			<div class="potree_toolbar_label">
-				Gradient
+				Gradients
 			</div>
 			<div>
-				<span name="gradient_schemes"></span>
+				<span id="gradient_schemes" name="gradient_schemes"></span>
 			</div>
 		</span>
 
@@ -42,11 +39,7 @@ export async function installToolbar(element){
 			<div class="potree_toolbar_label">
 				Measure
 			</div>
-			<div>
-				<img name="action_measure_point" src="${dir}/icons/point.svg" class="annotation-action-icon" style="width: 2em; height: auto;"/>
-				<img name="action_measure_distance" src="${dir}/icons/distance.svg" class="annotation-action-icon" style="width: 2em; height: auto;"/>
-				<img name="action_measure_circle" src="${dir}/icons/circle.svg" class="annotation-action-icon" style="width: 2em; height: auto;"/>
-			</div>
+			<div id="measures_panel"></div>
 		</span>
 
 		<!--
@@ -64,28 +57,103 @@ export async function installToolbar(element){
 		-->
 	`;
 
+	{ // ATTRIBUTE
+		const elContainer = elToolbar.querySelector("#attributes_panel");
+		
+		{ // ELEVATION
+			let elButton = document.createElement("input");
+			elButton.classList.add("potree_toolbar_button");
+			elButton.type = "button";
+			elButton.style.backgroundImage = `url(${dir}/icons/profile.svg)`;
+
+			elButton.addEventListener("click", () => {
+				Potree.settings.dbgAttribute = "elevation";
+			});
+			
+			elContainer.appendChild(elButton);
+		}
+
+		{ // RGB
+			let elButton = document.createElement("input");
+			elButton.classList.add("potree_toolbar_button");
+			elButton.type = "button";
+			elButton.style.backgroundImage = `url(${dir}/icons/rgb.svg)`;
+
+			elButton.addEventListener("click", () => {
+				Potree.settings.dbgAttribute = "rgba";
+			});
+			
+			elContainer.appendChild(elButton);
+		}
+
+	}
+
+	{ // MEASURE
+		const elMeasures = elToolbar.querySelector("#measures_panel");
+		
+		{ // POINT
+			let elButton = document.createElement("input");
+			elButton.classList.add("potree_toolbar_button");
+			elButton.type = "button";
+			elButton.style.backgroundImage = `url(${dir}/icons/point.svg)`;
+			
+			elMeasures.appendChild(elButton);
+		}
+
+		{ // DISTANCE
+			let elButton = document.createElement("input");
+			elButton.classList.add("potree_toolbar_button");
+			elButton.type = "button";
+			elButton.style.backgroundImage = `url(${dir}/icons/distance.svg)`;
+			
+			elMeasures.appendChild(elButton);
+		}
+
+		{ // CIRCLE
+			let elButton = document.createElement("input");
+			elButton.classList.add("potree_toolbar_button");
+			elButton.type = "button";
+			elButton.style.backgroundImage = `url(${dir}/icons/circle.svg)`;
+			
+			elMeasures.appendChild(elButton);
+		}
+
+	}
+
 	{ // GRADIENT
 		const schemes = Object.keys(Gradients).map(name => ({name: name, values: Gradients[name]}));
-		// const elGradientSchemes = elToolbar.find("span[name=gradient_schemes]");
 
-		const elGradientSchemes = Utils.domFindByName(elToolbar, "gradient_schemes");
+		const elGradientSchemes = elToolbar.querySelector("#gradient_schemes");
 
 		for(const scheme of schemes){
-			const elButton = document.createElement("span");
+			let elButton = document.createElement("input");
+			elButton.type = "button";
 
-			const svg = Utils.createSvgGradient(scheme.values);
-			svg.setAttributeNS(null, "class", `button-icon`);
-			svg.style.height = "2em";
-			svg.style.width = "1.3em";
+			let stops = [];
+			let n = 16;
+			for(let i = 0; i <= n; i++){
+				let u = i / n;
+				let stopVal = scheme.values.get(u);
 
-			elButton.appendChild(svg);
+				let [r, g, b, a] = stopVal.map(v => parseInt(v));
+				let percent = u * 100;
 
-			// elButton.click( () => {
-			// 	for(const pointcloud of viewer.scene.pointclouds){
-			// 		pointcloud.material.activeAttributeName = "elevation";
-			// 		pointcloud.material.gradient = Potree.Gradients[scheme.name];
-			// 	}
-			// });
+				let stopString = `rgba(${r}, ${g}, ${b}) ${percent}%`;
+				
+				stops.push(stopString);
+			}
+
+			let stopsString = stops.join(", ");
+			let cssGradient = `linear-gradient(to bottom, ${stopsString})`;
+
+			elButton.style.backgroundImage = cssGradient;
+
+			elButton.addEventListener("click", () => {
+				Potree.settings.gradient = scheme.values;
+			});
+
+
+			elButton.classList.add("potree_toolbar_gradient_button");
 
 			elGradientSchemes.appendChild(elButton);
 		}

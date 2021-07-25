@@ -17,6 +17,7 @@ export const css = `
 	text-align: center;
 	font-size: smaller;
 	opacity: 0.9;
+	padding: 0.1em 0.5em 0.5em 0.5em;
 }
 
 .potree_toolbar_separator{
@@ -25,4 +26,28 @@ export const css = `
 	margin: 5px 10px;
 	width: 1px;
 }
+
+.potree_toolbar_gradient_button{
+	width: 2em;
+	height: 3em;
+}
+
+ .potree_toolbar_gradient_button:hover {
+	filter: brightness(120%);
+}
+
+.potree_toolbar_button{
+	width: 3em;
+	height: 3em;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-color: transparent;
+	border: none;
+}
+
+.potree_toolbar_button:hover{
+	filter: brightness(120%);
+	filter: drop-shadow(0px 0px 6px white) drop-shadow(0px 0px 6px white);
+}
+
 `;

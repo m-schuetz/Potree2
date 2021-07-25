@@ -60,6 +60,7 @@ function createSvgGradient(scheme){
 	return svg;
 }
 
+
 function domFindByName(parent, name){
 	let result = Array.from(parent.getElementsByTagName("span")).find(node => node.getAttribute("name") === name);
 

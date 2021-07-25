@@ -18,6 +18,28 @@ function toWgslType(attribute){
 const getColor_rgba = `
 fn getColor(vertex : VertexInput) -> vec4<f32> {
 	return vertex.attribute;
+
+	// var uv : vec2<f32> = vec2<f32>(vertex.position.z * 0.2, 0.0);
+	// var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
+
+	// return color;
+}
+`;
+
+const getColor_elevation = `
+fn getColor_elevation(vertex : VertexInput) -> vec4<f32> {
+
+	var min = 3.0;
+	var max = 15.0;
+	var size = max - min;
+
+	var w = (vertex.position.z - min) / size;
+	// w = -clamp(-w, 0.0, 1.0);
+
+	var uv : vec2<f32> = vec2<f32>(w, 0.0);
+	var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
+
+	return color;
 }
 `;
 
@@ -59,11 +81,12 @@ let shader = `
 	[[size(4)]] screen_width : f32;
 	[[size(4)]] screen_height : f32;
 	[[size(4)]] hqs_flag : u32;
+	[[size(4)]] colorMode : u32;
 };
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 [[binding(0), group(1)]] var mySampler: sampler;
-// [[binding(1), group(1)]] var myTexture: texture_2d<f32>;
+[[binding(1), group(1)]] var myTexture: texture_2d<f32>;
 
 struct VertexInput {
 	[[builtin(instance_index)]] instanceIdx : u32;
@@ -77,7 +100,11 @@ struct VertexOutput {
 	[[location(0)]] color : vec4<f32>;
 };
 
+let COLOR_MODE_RGBA        = 0u;
+let COLOR_MODE_ELEVATION   = 1u;
+
 ${fnGetColor}
+${getColor_elevation}
 
 [[stage(vertex)]]
 fn main(vertex : VertexInput) -> VertexOutput {
@@ -89,10 +116,7 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	output.position = uniforms.proj * viewPos;
 
 	if(uniforms.hqs_flag > 0u){
-		output.position.x = output.position.x / output.position.w;
-		output.position.y = output.position.y / output.position.w;
-		output.position.z = output.position.z / output.position.w;
-		output.position.w = 1.0;
+		output.position = output.position / output.position.w;
 
 		viewPos.z = viewPos.z * 1.01;
 		
@@ -100,9 +124,18 @@ fn main(vertex : VertexInput) -> VertexOutput {
 		output.position.z = shifted.z / shifted.w;
 	}
 
-	output.color = getColor(vertex);
+	// need to reference all potentially unused variables, 
+	// otherwise the bind group layout breaks if they're not used in the shader
+	ignore(mySampler);
+	ignore(myTexture);
 
-	// output.color.x = 10.0 * f32(vertex.instanceIdx);
+	if(uniforms.colorMode == COLOR_MODE_RGBA){
+		output.color = getColor(vertex);
+	}elseif(uniforms.colorMode == COLOR_MODE_ELEVATION){
+		output.color = getColor_elevation(vertex);
+	}
+
+	// output.color.x = 0.001 * f32(vertex.instanceIdx);
 	// output.color.y = 0.0;
 	// output.color.z = 0.0;
 

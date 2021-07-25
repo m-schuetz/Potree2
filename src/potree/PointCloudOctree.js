@@ -1,9 +1,8 @@
 
-import {SceneNode} from "../scene/SceneNode.js";
-import {PointCloudOctreeNode} from "./PointCloudOctreeNode.js";
-import {BinaryHeap} from "../../libs/BinaryHeap/BinaryHeap.js";
-import {toRadians} from "../math/PMath.js";
-import {Vector3, Matrix4, Frustum} from "../math/math.js";
+import {Vector3, Matrix4, Frustum} from "potree";
+import {SceneNode, PointCloudOctreeNode} from "potree";
+import {math} from "potree";
+import {BinaryHeap} from "BinaryHeap";
 
 export class PointCloudOctree extends SceneNode{
 
@@ -101,7 +100,7 @@ export class PointCloudOctree extends SceneNode{
 				let distance = Math.sqrt(dd);
 
 
-				let fov = toRadians(camera.fov);
+				let fov = math.toRadians(camera.fov);
 				let slope = Math.tan(fov / 2);
 				let projFactor = 1 / (slope * distance);
 				// let projFactor = (0.5 * domHeight) / (slope * distance);

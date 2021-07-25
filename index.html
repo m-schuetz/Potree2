@@ -63,16 +63,15 @@ td{
 <script type="importmap">
 {
 	"imports": {
-		"potree": "./src/Potree.js",
-		"dat.gui": "./libs/dat.gui/dat.gui.module.js",
-		"glslang": "./libs/glslang/glslang.js",
-		"stats": "./libs/stats.js/stats.module.js",
-		"toolbar": "./src/modules/toolbar/toolbar.js"
+		"potree":      "./src/Potree.js",
+		"toolbar":     "./src/modules/toolbar/toolbar.js",
+		"dat.gui":     "./libs/dat.gui/dat.gui.module.js",
+		"glslang":     "./libs/glslang/glslang.js",
+		"stats":       "./libs/stats.js/stats.module.js",
+		"BinaryHeap":  "./libs/BinaryHeap/BinaryHeap.js"
 	}
 }
 </script>
-
-<!-- <script type="module" src="main.js"></script> -->
 
 <script type="module">
 
@@ -82,8 +81,6 @@ td{
 	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
 
 	import {installToolbar} from "toolbar";
-
-
 
 	let canvas = document.getElementById("canvas");
 	let potree = await Potree.init(canvas);
