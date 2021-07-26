@@ -160,6 +160,25 @@ td{
 
 	// });
 
+	Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+
+		node.set({
+			position: [5, 0, 3],
+			scale: [4, 4, 4],
+		});
+		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+
+		scene.root.children.push(node);
+
+
+		let light = new PointLight();
+		light.position.set(10, 10, 10);
+
+		scene.root.children.push(light);
+
+	});
+
+
 	document.body.addEventListener("click", (e) => {
 		console.log(e);
 
@@ -178,56 +197,8 @@ td{
 		});
 	});
 
-	// potree.addEventListener("update", () => {
 
-	// 	potree.pick(scene, ray).then( (I) => {
-	// 		console.log(I);
-	// 	});
-
-	// });
-
-	// Potree.load(url, {name: "Anita", target: scene.root});
-
-	// TODO: 
-	// Potree.load("./resources/models/anita_mui.glb").then(node => {
-	Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
-
-		node.set({
-			position: [5, 0, 3],
-			scale: [2, 2, 2],
-		});
-		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-
-		scene.root.children.push(node);
-
-
-		let light = new PointLight();
-		light.position.set(10, 10, 10);
-
-		scene.root.children.push(light);
-	});
-
-	// Potree.loadGLB("./resources/models/vcity_sitn.glb").then(node => {
-	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
-	// Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
-	// 	scene.root.children.push(node);
-
-	// 	node.set({
-	// 		position: [5, 0, 3],
-	// 		scale: [2, 2, 2],
-	// 	});
-	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-	// });
-
-	// Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
-	// 	scene.root.children.push(node);
-
-	// 	node.set({
-	// 		position: [-10, 10, 10],
-	// 		scale: [2, 2, 2],
-	// 	});
-	// 	// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-	// });
+	
 
 </script>
 

@@ -155,18 +155,25 @@ fn main(fragment : FragmentInput) -> FragmentOutput {
 `;
 
 let initialized = false;
-let pipeline = null;
+// let pipeline = null;
+let pipelineCache = new Map();
 let sampler = null;
 
-function init(renderer){
 
-	if(initialized){
-		return;
-	}
+function getPipeline(drawstate, node){
 
+	let {renderer} = drawstate;
 	let {device} = renderer;
 
-	pipeline = device.createRenderPipeline({
+	let material = node.material;
+	let depthWrite = material.depthWrite;
+	let id = `depthWrite(${depthWrite})`;
+
+	if(pipelineCache.has(id)){
+		return pipelineCache.get(id);
+	}
+
+	let pipeline = device.createRenderPipeline({
 		vertex: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",
@@ -196,11 +203,26 @@ function init(renderer){
 			cullMode: 'back',
 		},
 		depthStencil: {
-			depthWriteEnabled: false,
+			depthWriteEnabled: depthWrite,
 			depthCompare: 'greater',
 			format: "depth32float",
 		},
 	});
+
+	pipelineCache.set(id, pipeline);
+
+	return pipeline;
+}
+
+function init(renderer){
+
+	if(initialized){
+		return;
+	}
+
+	let {device} = renderer;
+
+	
 
 	sampler = device.createSampler({
 		magFilter: 'linear',
@@ -321,6 +343,8 @@ function getBindGroup(drawstate, node){
 		let texture = renderer.getGpuTexture(node.material.image);
 		let lightsBuffer = getLightsBuffer(node, drawstate);
 
+		let pipeline = getPipeline(drawstate, node);
+		
 		bindGroup = renderer.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
@@ -355,6 +379,7 @@ export function render(node, drawstate){
 
 	let texture = renderer.getGpuTexture(node.material.image);
 
+	let pipeline = getPipeline(drawstate, node);
 	let bindGroup = getBindGroup(drawstate, node);
 
 	passEncoder.setPipeline(pipeline);
@@ -406,6 +431,7 @@ export class PhongMaterial{
 		this.colorMode = ColorMode.DIFFUSE_COLOR;
 		this.color = new Vector3(1.0, 0.0, 0.5);
 		this.uniformBufferData = new ArrayBuffer(256);
+		this.depthWrite = true;
 	}
 	
 }

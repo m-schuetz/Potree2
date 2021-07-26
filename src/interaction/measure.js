@@ -10,6 +10,7 @@ export class MeasureTool{
 
 		this.mesh = new Mesh("sphere", geometries.sphere);
 		this.mesh.scale.set(0.5, 0.5, 0.5);
+		this.mesh.renderLayer = 10;
 		potree.scene.root.children.push(this.mesh);
 
 		this.element.addEventListener('mousemove', e => {

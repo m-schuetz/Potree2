@@ -107,7 +107,7 @@ function init(renderer){
 			cullMode: 'back',
 		},
 		depthStencil: {
-			depthWriteEnabled: false,
+			depthWriteEnabled: true,
 			depthCompare: 'greater',
 			format: "depth32float",
 		},

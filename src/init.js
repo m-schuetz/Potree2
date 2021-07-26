@@ -129,6 +129,30 @@ function startPass(renderer, target){
 	return {commandEncoder, passEncoder};
 }
 
+function revisitPass(renderer, target){
+	let view = target.colorAttachments[0].texture.createView();
+
+	let renderPassDescriptor = {
+		colorAttachments: [{
+			view, 
+			loadValue: "load",
+		}],
+		depthStencilAttachment: {
+			view: target.depth.texture.createView(),
+			depthLoadValue: "load",
+			depthStoreOp: "store",
+			stencilLoadValue: 0,
+			stencilStoreOp: "store",
+		},
+		sampleCount: 1,
+	};
+
+	const commandEncoder = renderer.device.createCommandEncoder();
+	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+	return {commandEncoder, passEncoder};
+}
+
 function startSumPass(renderer, target){
 	let view = target.colorAttachments[0].texture.createView();
 
@@ -165,12 +189,20 @@ function endPass(pass){
 function render(){
 	Timer.setEnabled(true);
 
-	// let layers = new Map();
-	let renderables = new Map();
+	let layers = new Map();
+	// let renderables = new Map();
 
 	let stack = [scene.root];
 	while(stack.length > 0){
 		let node = stack.pop();
+
+		let layer = layers.get(node.renderLayer);
+		if(!layer){
+			layer = {renderables: new Map()};
+			layers.set(node.renderLayer, layer);
+		}
+
+		let renderables = layer.renderables;
 
 		let nodeType = node.constructor.name;
 		if(!renderables.has(nodeType)){
@@ -186,6 +218,8 @@ function render(){
 			stack.push(child);
 		}
 	}
+
+	let renderables = layers.get(0).renderables;
 
 	let points = renderables.get("Points") ?? [];
 	let octrees = renderables.get("PointCloudOctree") ?? [];
@@ -341,7 +375,7 @@ function render(){
 			let u = x / renderer.canvas.clientWidth;
 			let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
 			let pos = camera.getWorldPosition();
-			let dir = camera.mouseToDirection(u, v);
+			let dir = camera.mouseToUnormalizedDirection(u, v);
 			let near = camera.near;
 
 			let window = 2;
@@ -357,6 +391,25 @@ function render(){
 			});
 		}
 		Potree.pickQueue.length = 0;
+	}
+
+
+	{
+		let layer = layers.get(10);
+
+		if(layer){
+
+			let renderables = layer.renderables;
+
+			let pass = revisitPass(renderer, screenbuffer);
+			let drawstate = {renderer, camera, renderables, pass};
+
+			let meshes = renderables.get("Mesh") ?? [];
+			renderMeshes(meshes, drawstate);
+
+			endPass(pass);
+		}
+
 	}
 
 	// { // MESHES
