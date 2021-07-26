@@ -1,7 +1,8 @@
 
 import {Geometry, SceneNode, Mesh} from "potree";
 import {Box3, Vector3} from "potree";
-import {PhongMaterial, ColorMode} from "../modules/mesh/PhongMaterial.js";
+import {PhongMaterial, ColorMode} from "potree";
+import {NormalMaterial} from "potree";
 
 
 
@@ -108,6 +109,7 @@ export async function load(url){
 
 		let imageBitmap = await createImageBitmap(img);
 
+		// mesh.material = new NormalMaterial();
 		mesh.material = new PhongMaterial();
 		mesh.material.image = imageBitmap;
 		mesh.material.colorMode = ColorMode.TEXTURE;

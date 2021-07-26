@@ -76,7 +76,7 @@ td{
 <script type="module">
 
 	import {Potree} from "potree";
-	import {Vector3, Mesh, geometries, Points} from "potree";
+	import {Vector3, Mesh, geometries, Points, PointLight} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
 
@@ -190,15 +190,22 @@ td{
 
 	// TODO: 
 	// Potree.load("./resources/models/anita_mui.glb").then(node => {
-	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
-	// 	scene.root.children.push(node);
+	Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 
-	// 	node.set({
-	// 		position: [5, 0, 3],
-	// 		scale: [2, 2, 2],
-	// 	});
-	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-	// });
+		node.set({
+			position: [5, 0, 3],
+			scale: [2, 2, 2],
+		});
+		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+
+		scene.root.children.push(node);
+
+
+		let light = new PointLight();
+		light.position.set(10, 10, 10);
+
+		scene.root.children.push(light);
+	});
 
 	// Potree.loadGLB("./resources/models/vcity_sitn.glb").then(node => {
 	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {

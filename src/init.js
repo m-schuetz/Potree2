@@ -347,8 +347,6 @@ function render(){
 			let window = 2;
 			let wh = 1;
 			readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
-
-				console.log(d);
 				
 				let depth = near / d;
 				

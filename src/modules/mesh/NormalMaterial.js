@@ -1,5 +1,5 @@
 
-import {Vector3, Matrix4} from "../../math/math.js";
+import {Vector3, Matrix4} from "potree";
 
 const vs = `
 [[block]] struct Uniforms {
