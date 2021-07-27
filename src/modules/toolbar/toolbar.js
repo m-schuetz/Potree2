@@ -64,6 +64,7 @@ export async function installToolbar(element){
 			let elButton = document.createElement("input");
 			elButton.classList.add("potree_toolbar_button");
 			elButton.type = "button";
+			elButton.title = "Elevation";
 			elButton.style.backgroundImage = `url(${dir}/icons/profile.svg)`;
 
 			elButton.addEventListener("click", () => {
@@ -77,6 +78,7 @@ export async function installToolbar(element){
 			let elButton = document.createElement("input");
 			elButton.classList.add("potree_toolbar_button");
 			elButton.type = "button";
+			elButton.title = "RGB colors";
 			elButton.style.backgroundImage = `url(${dir}/icons/rgb.svg)`;
 
 			elButton.addEventListener("click", () => {
@@ -95,6 +97,7 @@ export async function installToolbar(element){
 			let elButton = document.createElement("input");
 			elButton.classList.add("potree_toolbar_button");
 			elButton.type = "button";
+			elButton.title = "Point Measure";
 			elButton.style.backgroundImage = `url(${dir}/icons/point.svg)`;
 			
 			elMeasures.appendChild(elButton);
@@ -104,6 +107,7 @@ export async function installToolbar(element){
 			let elButton = document.createElement("input");
 			elButton.classList.add("potree_toolbar_button");
 			elButton.type = "button";
+			elButton.title = "Distance Measure";
 			elButton.style.backgroundImage = `url(${dir}/icons/distance.svg)`;
 			
 			elMeasures.appendChild(elButton);
@@ -113,6 +117,7 @@ export async function installToolbar(element){
 			let elButton = document.createElement("input");
 			elButton.classList.add("potree_toolbar_button");
 			elButton.type = "button";
+			elButton.title = "Circle Measure";
 			elButton.style.backgroundImage = `url(${dir}/icons/circle.svg)`;
 			
 			elMeasures.appendChild(elButton);
@@ -147,6 +152,7 @@ export async function installToolbar(element){
 			let cssGradient = `linear-gradient(to bottom, ${stopsString})`;
 
 			elButton.style.backgroundImage = cssGradient;
+			elButton.title = scheme.name;
 
 			elButton.addEventListener("click", () => {
 				Potree.settings.gradient = scheme.values;

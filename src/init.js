@@ -1,6 +1,6 @@
 
 import {Vector3} from "potree";
-import {Scene, SceneNode, Camera, OrbitControls, Mesh, RenderTarget} from "potree";
+import {Scene, SceneNode, Camera, OrbitControls, PotreeControls, Mesh, RenderTarget} from "potree";
 import {Renderer, Timer, EventDispatcher} from "potree";
 import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
 import {geometries} from "potree";
@@ -465,7 +465,8 @@ export async function init(){
 	let potree = {};
 
 	camera = new Camera();
-	controls = new OrbitControls(renderer.canvas);
+	// controls = new OrbitControls(renderer.canvas);
+	controls = new PotreeControls(renderer.canvas);
 
 	potree.controls = controls;
 	potree.addEventListener = addEventListener;

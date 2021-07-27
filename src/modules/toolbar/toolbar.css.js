@@ -11,6 +11,8 @@ export const css = `
 	font-family: "system-ui";
 	border-radius: 0em 0em 0.3em 0.3em;
 	display: flex;
+	transform: scale(1.3, 1.3);
+	transform-origin: top left;
 }
 
 .potree_toolbar_label{

@@ -29,6 +29,7 @@ export * from "./modules/mesh/NormalMaterial.js";
 export * from "./modules/mesh/PhongMaterial.js";
 export * from "./scene/Camera.js";
 export * from "./navigation/OrbitControls.js";
+export * from "./navigation/PotreeControls.js";
 export * from "./renderer/Renderer.js";
 export * from "./modules/points/Points.js";
 export * as Timer from "./renderer/Timer.js";
