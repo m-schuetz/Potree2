@@ -31,6 +31,9 @@ export async function installToolbar(element){
 			<div>
 				<span id="gradient_schemes" name="gradient_schemes"></span>
 			</div>
+			<div id="gradient_drop">
+				
+			</div>
 		</span>
 
 		<span class="potree_toolbar_separator"></span>
@@ -40,6 +43,15 @@ export async function installToolbar(element){
 				Measure
 			</div>
 			<div id="measures_panel"></div>
+		</span>
+
+		<span class="potree_toolbar_separator"></span>
+
+		<span>
+			<div class="potree_toolbar_label">
+				Display
+			</div>
+			<div id="display_panel"></div>
 		</span>
 
 		<!--
@@ -163,6 +175,28 @@ export async function installToolbar(element){
 			elButton.classList.add("potree_toolbar_gradient_button");
 
 			elGradientSchemes.appendChild(elButton);
+		}
+
+		{ // DROPDOWN
+
+			let elDropdown = elToolbar.querySelector("#gradient_drop");
+
+			let elButton = document.createElement("input");
+			elButton.type = "button";
+			// elButton.value = "···";
+			elButton.classList.add("potree_toolbar_dropdown_button");
+			elButton.style.backgroundImage = `url(${dir}/icons/dotdotdot.svg)`;
+
+			// elButton.innerHTML = `
+			
+			// <svg height="32" width="32">
+			// 	<text x="0" y="15" fill="red">I love SVG!</text>
+			// </svg>
+
+			// `;
+
+			elDropdown.appendChild(elButton);
+
 		}
 	}
 

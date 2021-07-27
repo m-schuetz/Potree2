@@ -52,4 +52,26 @@ export const css = `
 	filter: drop-shadow(0px 0px 6px white) drop-shadow(0px 0px 6px white);
 }
 
+.potree_toolbar_dropdown_button{
+	background: none;
+	border: none;
+	width: 100%;
+	color: white;
+	opacity: 0.5;
+	font-weight: bold;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: 1.6em;
+	height: 0.8em;
+	margin-top: 0.2em;
+
+}
+
+.potree_toolbar_dropdown_button:hover{
+	filter: brightness(120%);
+	filter: drop-shadow(0px 0px 3px white);
+	border: 1px solid rgba(255, 255, 255, 0.4);
+	opacity: 1;
+}
+
 `;
