@@ -91,12 +91,14 @@ td{
 	window.potree = potree;
 
 	initGUI(potree);
-	// guiContent["point budget (M)"] = 4;
+	guiContent["point budget (M)"] = 0.1;
 	// guiContent["point size"] = 3;
 	// guiContent["High-Quality"] = false;
 	// guiContent["Eye-Dome-Lighting"] = false;
 	// guiContent["dilate"] = true;
 	// guiContent["attribute"] = "intensity";
+
+
 
 
 	// default, if not overriden later on
@@ -180,15 +182,11 @@ td{
 
 
 	document.body.addEventListener("click", (e) => {
-		console.log(e);
-
 		let target = e.target;
 		let x = e.clientX;
 		let y = e.clientY;
 
 		Potree.pick(x, y, (I) => {
-			console.log(I);
-
 			let sphere = new Mesh("sphere", geometries.sphere);
 			sphere.position.copy(I.position);
 			sphere.scale.set(0.2, 0.2, 0.2);
@@ -197,6 +195,24 @@ td{
 		});
 	});
 
+
+	// {
+	// 	let workerPath = `${import.meta.url}/../GLBLoaderWorker.js`;
+	// 	workerPath = "./src/misc/GLBLoaderWorker.js";
+	// 	let worker = new Worker(workerPath);
+	// 	// let worker = new Worker(workerPath, {type: "module"});
+
+	// 	worker.onmessage = (e) => {
+	// 		console.log("test");
+	// 	};
+
+	// 	// console.log(workerPath);
+	// 	// console.log(worker);
+
+	// 	worker.postMessage({
+	// 		test: "abc",
+	// 	});
+	// }
 
 	
 
