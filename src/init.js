@@ -89,7 +89,7 @@ function getSumBuffer(renderer){
 		size: size,
 		colorDescriptors: [{
 			size: size,
-			format: "rgba32float",
+			format: "rgba16float",
 			usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.RENDER_ATTACHMENT,
 		}],
 		depthDescriptor: {

@@ -43,7 +43,7 @@ export function generate(renderer, args = {}){
 
 	// isAdditive = true;
 	if(isAdditive){
-		format = "rgba32float";
+		format = "rgba16float";
 		depthWrite = false;
 
 		blend = {
