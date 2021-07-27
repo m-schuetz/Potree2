@@ -91,11 +91,11 @@ td{
 	window.potree = potree;
 
 	initGUI(potree);
-	guiContent["point budget (M)"] = 0.1;
+	guiContent["point budget (M)"] = 1;
 	// guiContent["point size"] = 3;
 	// guiContent["High-Quality"] = false;
 	// guiContent["Eye-Dome-Lighting"] = false;
-	// guiContent["dilate"] = true;
+	guiContent["dilate"] = true;
 	// guiContent["attribute"] = "intensity";
 
 
@@ -162,21 +162,38 @@ td{
 
 	// });
 
-	Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 
-		node.set({
-			position: [5, 0, 3],
-			scale: [4, 4, 4],
-		});
-		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	// 	node.set({
+	// 		position: [5, 0, 3],
+	// 		scale: [4, 4, 4],
+	// 	});
+	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
 
-		scene.root.children.push(node);
+	// 	scene.root.children.push(node);
 
 
-		let light = new PointLight();
-		light.position.set(10, 10, 10);
+	// 	let light = new PointLight();
+	// 	light.position.set(10, 10, 10);
 
-		scene.root.children.push(light);
+	// 	scene.root.children.push(light);
+
+	// });
+
+
+	potree.addEventListener("update", (e) => {
+
+		potree.renderer.drawBox(
+			new Vector3(0, 0, 0),
+			new Vector3(2, 2, 2),
+			new Vector3(0, 0, 100),
+		);
+
+		potree.renderer.drawLine(
+			new Vector3(0, 0, 0),
+			new Vector3(10, 10, 10),
+			new Vector3(200, 0, 0),
+		);
 
 	});
 
@@ -195,26 +212,6 @@ td{
 		});
 	});
 
-
-	// {
-	// 	let workerPath = `${import.meta.url}/../GLBLoaderWorker.js`;
-	// 	workerPath = "./src/misc/GLBLoaderWorker.js";
-	// 	let worker = new Worker(workerPath);
-	// 	// let worker = new Worker(workerPath, {type: "module"});
-
-	// 	worker.onmessage = (e) => {
-	// 		console.log("test");
-	// 	};
-
-	// 	// console.log(workerPath);
-	// 	// console.log(worker);
-
-	// 	worker.postMessage({
-	// 		test: "abc",
-	// 	});
-	// }
-
-	
 
 </script>
 

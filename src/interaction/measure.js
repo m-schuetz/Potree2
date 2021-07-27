@@ -23,7 +23,6 @@ export class MeasureTool{
 
 				if(result.depth !== Infinity){
 					node.position.copy(result.position);
-					// node.updateWorld();
 
 					Potree.pickPos = result.position;
 				}

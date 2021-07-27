@@ -1,7 +1,6 @@
 
-import {Vector3, Matrix4} from "../../math/math.js";
+import {Geometry, Vector3, Matrix4} from "potree";
 import {cube, cube_wireframe} from "../geometries/cube.js";
-import {Geometry} from "../../core/Geometry.js";
 
 
 const vs = `
@@ -15,18 +14,16 @@ const vs = `
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 
 struct VertexIn{
-	[[location(0)]] box_pos : vec4<f32>;
-	[[location(1)]] box_scale : vec4<f32>;
-	[[location(2)]] point_pos : vec4<f32>;
-	[[location(3)]] box_color : vec4<f32>;
+	[[location(0)]]         box_pos   : vec4<f32>;
+	[[location(1)]]         box_scale : vec4<f32>;
+	[[location(2)]]         point_pos : vec4<f32>;
+	[[location(3)]]         box_color : vec4<f32>;
 };
 
 struct VertexOut{
-	[[builtin(position)]] out_pos : vec4<f32>;
-	[[location(0)]] fragColor : vec4<f32>;
+	[[builtin(position)]]   out_pos   : vec4<f32>;
+	[[location(0)]]         fragColor : vec4<f32>;
 };
-
-
 
 [[stage(vertex)]]
 fn main(vertex : VertexIn) -> VertexOut {

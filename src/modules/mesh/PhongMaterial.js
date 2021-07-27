@@ -361,6 +361,48 @@ function getBindGroup(drawstate, node){
 	return bindGroup;
 }
 
+
+let buffersCache = new Map();
+function getGpuBuffers(renderer, geometry){
+
+	if(buffersCache.has(geometry)){
+		// returns null if currently loading, or actual buffer handles if loaded
+		return buffersCache.get(geometry);
+	}else{
+		// set null to indicate it's already requested and loading right now
+		buffersCache.set(geometry, null);
+	}
+
+	let {device} = renderer;
+
+	let vbos = [];
+	let promises = [];
+
+	for(let entry of geometry.buffers){
+		let {name, buffer} = entry;
+
+		let size = buffer.byteLength;
+		let usage = GPUBufferUsage.VERTEX 
+			| GPUBufferUsage.INDEX 
+			| GPUBufferUsage.COPY_DST 
+			| GPUBufferUsage.STORAGE; 
+		let vbo = device.createBuffer({size, usage});
+
+		renderer.device.queue.writeBuffer(vbo, 0, buffer, 0, buffer.byteLength);
+
+		vbos.push({
+			name: name,
+			vbo: vbo,
+		});
+	}
+
+	Promise.all(promises).then(() => {
+		buffersCache.set(geometry, vbos);
+	});
+
+	return null;
+}
+
 export function render(node, drawstate){
 	
 	let {renderer, pass} = drawstate;
@@ -375,7 +417,13 @@ export function render(node, drawstate){
 
 	updateLights(node, drawstate);
 
-	let vbos = renderer.getGpuBuffers(node.geometry);
+	let vbos = getGpuBuffers(renderer, node.geometry);
+	// let vbos = renderer.getGpuBuffers(node.geometry);
+
+	if(vbos == null){
+		// buffers might not have been finished sending to GPU, yet
+		return;
+	}
 
 	let texture = renderer.getGpuTexture(node.material.image);
 

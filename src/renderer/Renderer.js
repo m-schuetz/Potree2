@@ -6,7 +6,7 @@ import {render as renderBoxes} from "../modules/drawCommands/renderBoxes.js";
 import {render as renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
 import {render as renderPoints} from "../modules/drawCommands/renderPoints.js";
 import {render as renderQuads} from "../modules/drawCommands/renderQuads.js";
-import {renderLines} from "../modules/drawCommands/renderLines.js";
+import {render as renderLines} from "../modules/drawCommands/renderLines.js";
 import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
 import {readPixels, readDepth} from "../renderer/readPixels.js";
@@ -515,7 +515,7 @@ export class Renderer{
 		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
 		renderPoints(this.draws.points, drawstate);
 		renderQuads(this.draws.quads, drawstate);
-		// renderLines(this.draws.lines, drawstate);
+		renderLines(this.draws.lines, drawstate);
 	}
 
 	update(){

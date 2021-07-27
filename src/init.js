@@ -249,7 +249,7 @@ function render(){
 	renderer.start();
 
 	let screenbuffer = renderer.screenbuffer;
-	let fbo_source = null;
+	let fbo_source = screenbuffer;
 
 	let fbo_0 = renderer.getFramebuffer("fbo intermediate 0");
 	let fbo_1 = renderer.getFramebuffer("fbo intermediate 1");
@@ -401,7 +401,7 @@ function render(){
 
 			let renderables = layer.renderables;
 
-			let pass = revisitPass(renderer, screenbuffer);
+			let pass = revisitPass(renderer, fbo_source);
 			let drawstate = {renderer, camera, renderables, pass};
 
 			let meshes = renderables.get("Mesh") ?? [];
