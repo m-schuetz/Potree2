@@ -401,7 +401,8 @@ export class InputHandler extends EventDispatcher {
 		for (let inputListener of this.getSortedListeners()) {
 			inputListener.dispatch("mousewheel", {
 				delta: ndelta,
-				object: null
+				object: null,
+				event: e,
 			});
 		}
 		

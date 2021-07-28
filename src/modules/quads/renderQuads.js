@@ -1,5 +1,5 @@
 
-import {Vector3, Matrix4, Geometry} from "potree";
+import {Vector3, Matrix4} from "potree";
 
 const vs = `
 [[block]] struct Uniforms {
@@ -14,7 +14,6 @@ const vs = `
 
 struct VertexIn{
 	[[location(0)]] position : vec3<f32>;
-	[[location(1)]] color : vec3<f32>;
 	[[builtin(vertex_index)]] vertexID : u32;
 };
 
@@ -53,7 +52,7 @@ fn main(vertex : VertexIn) -> VertexOut {
 
 	var vout : VertexOut;
 	vout.position = projPos;
-	vout.color = vec4<f32>(vertex.color, 1.0);
+	vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 
 	return vout;
 }
@@ -81,10 +80,8 @@ fn main(fragment : FragmentIn) -> FragmentOut {
 
 let initialized = false;
 let pipeline = null;
-let geometry_boxes = null;
 let uniformBuffer = null;
 let bindGroup = null;
-let capacity = 10_000;
 
 function createPipeline(renderer){
 
@@ -102,14 +99,6 @@ function createPipeline(renderer){
 						shaderLocation: 0,
 						offset: 0,
 						format: "float32x3",
-					}],
-				},{ // color
-					arrayStride: 4,
-					stepMode: "instance",
-					attributes: [{ 
-						shaderLocation: 1,
-						offset: 0,
-						format: "unorm8x4",
 					}],
 				}
 			]
@@ -190,7 +179,7 @@ function updateUniforms(drawstate){
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
 }
 
-export function render(points, drawstate){
+export function renderQuads(node, drawstate){
 
 	let {renderer} = drawstate;
 
@@ -203,15 +192,12 @@ export function render(points, drawstate){
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
 
-	for(let batch of points){
-		let vboPosition = renderer.getGpuBuffer(batch.positions);
-		let vboColor = renderer.getGpuBuffer(batch.colors);
+	let vboPosition = renderer.getGpuBuffer(node.positions);
 
-		passEncoder.setVertexBuffer(0, vboPosition);
-		passEncoder.setVertexBuffer(1, vboColor);
+	passEncoder.setVertexBuffer(0, vboPosition);
 
-		let numVertices = batch.positions.length / 3;
-		passEncoder.draw(6, numVertices, 0, 0);
-	}
+	let numVertices = node.positions.length / 3;
+	passEncoder.draw(6, numVertices, 0, 0);
+	
 
 };

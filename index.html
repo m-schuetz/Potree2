@@ -76,7 +76,7 @@ td{
 <script type="module">
 
 	import {Potree} from "potree";
-	import {Vector3, Mesh, geometries, Points, PointLight} from "potree";
+	import {Vector3, Mesh, Quads, geometries, Points, PointLight} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
 
@@ -195,6 +195,22 @@ td{
 		);
 
 	});
+
+	{
+		let n = 10_000;
+		let positions = new Float32Array(3 * n);
+
+		for(let i = 0; i < n; i++){
+			positions[3 * i + 0] = Math.random() * 100 - 50;
+			positions[3 * i + 1] = Math.random() * 100 - 50;
+			positions[3 * i + 2] = Math.random() * 2 + 5;
+		}
+
+		let quads = new Quads("quads", positions);
+
+
+		scene.root.children.push(quads);
+	}
 
 
 	// document.body.addEventListener("click", (e) => {

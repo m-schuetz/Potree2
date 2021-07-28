@@ -9,7 +9,10 @@ import {loadGLB} from "potree";
 import {MeasureTool} from "./interaction/measure.js";
 import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoader.js";
 import {readPixels, readDepth} from "./renderer/readPixels.js";
-import {renderPoints, renderMeshes, renderPointsCompute, renderPointsOctree, renderPointsOctreeBundledVBO} from "potree";
+import {
+	renderPoints, renderMeshes, renderQuads, 
+	renderPointsCompute, renderPointsOctree, renderPointsOctreeBundledVBO
+} from "potree";
 import {dilate, EDL, hqs_normalize} from "potree";
 import Stats from "stats";
 
@@ -319,6 +322,12 @@ function render(){
 			let meshes = renderables.get("Mesh") ?? [];
 			renderMeshes(meshes, drawstate);
 
+			let quadss = renderables.get("Quads") ?? [];
+			for(let quads of quadss){
+				renderQuads(quads, drawstate);
+			}
+
+
 			renderer.renderDrawCommands(drawstate);
 
 			endPass(pass);
@@ -502,6 +511,7 @@ export async function init(){
 	inputHandler = new InputHandler(potree);
 	potree.inputHandler = inputHandler;
 
+	inputHandler.addInputListener(controls.dispatcher);
 	inputHandler.addInputListener(measure.dispatcher);
 
 	// make things available in dev tools for debugging

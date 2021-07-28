@@ -1,6 +1,6 @@
 
 import {Vector3, Matrix4, Box3} from "potree";
-import {Potree} from "potree";
+import {Potree, EventDispatcher} from "potree";
 
 export class PotreeControls{
 
@@ -12,25 +12,25 @@ export class PotreeControls{
 		this.pitch = 0;
 		this.pivot = new Vector3();
 		this.world = new Matrix4();
+		this.dispatcher = new EventDispatcher();
 
-		element.addEventListener('contextmenu', e => {
-			e.preventDefault();
+		// element.addEventListener('contextmenu', e => {
+		// 	e.preventDefault();
 
-			return false;
-		});
+		// 	return false;
+		// });
 
-		element.addEventListener('dblclick ', e => {
-			console.log("test");
-		});
+		// element.addEventListener('dblclick ', e => {
+		// 	console.log("test");
+		// });
 
-		element.addEventListener('mousemove', e => {
-
-			let dragLeft = e.buttons === 1;
-			let dragRight = e.buttons === 2;
+		this.dispatcher.add("mousemove", e => {
+			let dragLeft = e.event.buttons === 1;
+			let dragRight = e.event.buttons === 2;
 
 			if(dragLeft){
-				let diffX = e.movementX;
-				let diffY = e.movementY;
+				let diffX = e.event.movementX;
+				let diffY = e.event.movementY;
 
 				let ux = diffX / this.element.width;
 				let uy = diffY / this.element.height;
@@ -38,8 +38,8 @@ export class PotreeControls{
 				this.yaw += 12 * ux;
 				this.pitch += 12 * uy;
 			}else if(dragRight){
-				let diffX = e.movementX;
-				let diffY = e.movementY;
+				let diffX = e.event.movementX;
+				let diffY = e.event.movementY;
 
 				let ux = diffX / this.element.width;
 				let uy = diffY / this.element.height;
@@ -50,10 +50,21 @@ export class PotreeControls{
 					uy * this.radius);
 
 			}
+
+			{ // always compute pick location
+				let [x, y] = [e.event.clientX, e.event.clientY];
+
+				Potree.pick(x, y, (result) => {
+
+					if(result.depth !== Infinity){
+						Potree.pickPos = result.position;
+					}
+				});
+			}
 		});
 
-		element.addEventListener('wheel', e => {
-			let diff = Math.sign(e.deltaY);
+		this.dispatcher.add("mousewheel", e => {
+			let diff = -Math.sign(e.delta);
 
 			// if(diff > 0){
 			// 	this.radius *= 1.05;
