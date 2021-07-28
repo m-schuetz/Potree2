@@ -127,14 +127,25 @@ let fs = `
 
 		var sum : f32 = 0.0;
 
-		var sampleOffsets : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
-			vec2<f32>(-1.0,  0.0),
-			vec2<f32>( 1.0,  0.0),
-			vec2<f32>( 0.0, -1.0),
-			vec2<f32>( 0.0,  1.0)
+		// var sampleOffsets : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
+		// 	vec2<f32>(-1.0,  0.0),
+		// 	vec2<f32>( 1.0,  0.0),
+		// 	vec2<f32>( 0.0, -1.0),
+		// 	vec2<f32>( 0.0,  1.0)
+		// );
+
+		var sampleOffsets : array<vec2<f32>, 8> = array<vec2<f32>, 8>(
+			vec2<f32>(0.0, 1.0),
+			vec2<f32>(0.7071067811865475, 0.70710678118654769),
+			vec2<f32>(1.0, 0.0),
+			vec2<f32>(0.7071067811865476, -0.7071067811865475),
+			vec2<f32>(0.0, -1.0),
+			vec2<f32>(-0.7071067811865475, -0.7071067811865477),
+			vec2<f32>(-1.0, 0.0),
+			vec2<f32>(-0.7071067811865477, 0.7071067811865474),
 		);
 		
-		for(var i : i32 = 0; i < 4; i = i + 1){
+		for(var i : i32 = 0; i < 8; i = i + 1){
 			var offset : vec2<f32> = sampleOffsets[i];
 			var neighbourDepth : f32 = readLinearDepth(offset.x, offset.y, uniforms.near);
 
@@ -142,7 +153,7 @@ let fs = `
 			// sum = sum + min(log2(depth) - log2(neighbourDepth), 0.0);
 		}
 		
-		var response : f32 = sum / 4.0;
+		var response : f32 = sum / 8.0;
 
 		return response;
 	}

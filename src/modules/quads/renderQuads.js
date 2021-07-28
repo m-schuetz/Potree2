@@ -24,6 +24,8 @@ struct VertexOut{
 	[[builtin(position)]] position : vec4<f32>;
 	[[location(0)]] color : vec4<f32>;
 	[[location(1)]] uv    : vec2<f32>;
+	// [[location(2)]] depth : f32;
+	[[location(2)]] viewPos : vec3<f32>;
 };
 
 
@@ -41,7 +43,7 @@ fn main(vertex : VertexIn) -> VertexOut {
 	);
 
 	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
-	var viewTopPos = viewPos + vec4<f32>(0.0, 1.0, 0.0, 0.0);
+	var viewTopPos = viewPos + vec4<f32>(0.0, uniforms.size, 0.0, 0.0);
 	var projPos : vec4<f32> = uniforms.proj * viewPos;
 	var projTopPos : vec4<f32> = uniforms.proj * viewTopPos;
 
@@ -70,6 +72,8 @@ fn main(vertex : VertexIn) -> VertexOut {
 		pos_quad.x * 0.5 + 0.5, 
 		pos_quad.y * 0.5 + 0.5,
 	);
+	// vout.depth = projPos.z / projPos.w;
+	vout.viewPos = viewPos.xyz;
 
 	return vout;
 }
@@ -80,12 +84,26 @@ const fs = `
 struct FragmentIn{
 	[[location(0)]] color : vec4<f32>;
 	[[location(1)]] uv    : vec2<f32>;
+	[[location(2)]] viewPos : vec3<f32>;
 };
 
 struct FragmentOut{
 	[[location(0)]] color : vec4<f32>;
+	[[builtin(frag_depth)]] depth : f32;
 };
 
+[[block]] struct Uniforms {
+	worldView : mat4x4<f32>;
+	proj : mat4x4<f32>;
+	screen_width : f32;
+	screen_height : f32;
+	point_size : f32;
+	size : f32;
+	min_pixel_size : f32;
+	max_pixel_size: f32;
+};
+
+[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 [[binding(2), group(0)]] var mySampler: sampler;
 [[binding(3), group(0)]] var myTexture: texture_2d<f32>;
 
@@ -99,9 +117,25 @@ fn main(fragment : FragmentIn) -> FragmentOut {
 	// fout.color.y = fragment.uv.y;
 	// fout.color.a = 1.0;
 
+	var uv = vec2<f32>(fragment.uv.x, 1.0 - fragment.uv.y);
+
 	ignore(mySampler);
 	ignore(myTexture);
-	fout.color = textureSample(myTexture, mySampler, fragment.uv);
+	fout.color = textureSample(myTexture, mySampler, uv);
+
+	if(fout.color.w < 1.0){
+		discard;
+	}
+
+	
+	var d = length(fragment.uv - 0.5);
+	var dw = d * uniforms.size;
+	dw = dw * dw;
+
+	var viewPos = fragment.viewPos;
+	viewPos.z = viewPos.z - dw;
+	var projPos = uniforms.proj * vec4<f32>(viewPos, 1.0);
+	fout.depth = projPos.z / projPos.w;
 
 	return fout;
 }
@@ -182,8 +216,8 @@ function init(renderer){
 		magFilter: 'linear',
 		minFilter: 'linear',
 		mipmapFilter : 'linear',
-		addressModeU: "repeat",
-		addressModeV: "repeat",
+		addressModeU: "clamp-to-edge",
+		addressModeV: "clamp-to-edge",
 		maxAnisotropy: 1,
 	});
 
@@ -214,7 +248,7 @@ function updateUniforms(drawstate){
 		view.setFloat32(128, size.width, true);
 		view.setFloat32(132, size.height, true);
 		view.setFloat32(136, 20.0, true);
-		view.setFloat32(140, 0.5, true);
+		view.setFloat32(140, 5, true);
 		view.setFloat32(144, 5.0, true);
 		view.setFloat32(148, 100.0, true);
 	}

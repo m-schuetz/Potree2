@@ -94,7 +94,7 @@ td{
 	guiContent["point budget (M)"] = 4;
 	// guiContent["point size"] = 3;
 	guiContent["High-Quality"] = true;
-	guiContent["Eye-Dome-Lighting"] = false;
+	guiContent["Eye-Dome-Lighting"] = true;
 	guiContent["dilate"] = true;
 	// guiContent["attribute"] = "intensity";
 
@@ -206,12 +206,13 @@ td{
 			positions[3 * i + 2] = Math.random() * 2 + 5;
 		}
 
-		fetch("./resources/images/background.jpg").then( async (response) => {
+		fetch("./resources/images/360.png").then( async (response) => {
+		// fetch("./resources/images/background.jpg").then( async (response) => {
 			let quads = new Quads("quads", positions);
 			let buffer = await response.arrayBuffer();
 			let u8 = new Uint8Array(buffer);
 
-			let blob = new Blob([u8], {type: "image/jpeg"});
+			let blob = new Blob([u8], {type: "image/png"});
 			let image = await createImageBitmap(blob);
 			let texture = renderer.getGpuTexture(image);
 
