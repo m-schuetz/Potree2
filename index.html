@@ -197,7 +197,7 @@ td{
 	});
 
 	{
-		let n = 10_000;
+		let n = 1_000;
 		let positions = new Float32Array(3 * n);
 
 		for(let i = 0; i < n; i++){
@@ -206,27 +206,23 @@ td{
 			positions[3 * i + 2] = Math.random() * 2 + 5;
 		}
 
-		let quads = new Quads("quads", positions);
+		fetch("./resources/images/background.jpg").then( async (response) => {
+			let quads = new Quads("quads", positions);
+			let buffer = await response.arrayBuffer();
+			let u8 = new Uint8Array(buffer);
+
+			let blob = new Blob([u8], {type: "image/jpeg"});
+			let image = await createImageBitmap(blob);
+			let texture = renderer.getGpuTexture(image);
+
+			quads.texture = texture;
+			scene.root.children.push(quads);
+		});
+		
 
 
-		scene.root.children.push(quads);
+		
 	}
-
-
-	// document.body.addEventListener("click", (e) => {
-	// 	let target = e.target;
-	// 	let x = e.clientX;
-	// 	let y = e.clientY;
-
-	// 	Potree.pick(x, y, (I) => {
-	// 		let sphere = new Mesh("sphere", geometries.sphere);
-	// 		sphere.position.copy(I.position);
-	// 		sphere.scale.set(0.2, 0.2, 0.2);
-	// 		potree.scene.root.children.push(sphere);
-
-	// 	});
-	// });
-
 
 </script>
 
