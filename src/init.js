@@ -1,7 +1,7 @@
 
 import {Vector3} from "potree";
 import {Scene, SceneNode, Camera, OrbitControls, PotreeControls, Mesh, RenderTarget} from "potree";
-import {Renderer, Timer, EventDispatcher} from "potree";
+import {Renderer, Timer, EventDispatcher, InputHandler} from "potree";
 import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
 import {geometries} from "potree";
 import {Potree} from "potree";
@@ -24,6 +24,7 @@ let controls = null;
 let measure = null;
 let dbgImage = null;
 let stats = null;
+let inputHandler = null;
 
 let dispatcher = new EventDispatcher();
 
@@ -196,6 +197,10 @@ function render(){
 	while(stack.length > 0){
 		let node = stack.pop();
 
+		if(!node.visible){
+			continue;
+		}
+
 		let layer = layers.get(node.renderLayer);
 		if(!layer){
 			layer = {renderables: new Map()};
@@ -302,6 +307,19 @@ function render(){
 			Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
 			hqs_normalize(fbo_hqs_sum, drawstate);
 			Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
+
+			endPass(pass);
+		}
+
+		{
+
+			let pass = revisitPass(renderer, fboTarget);
+			let drawstate = {renderer, camera, renderables, pass};
+
+			let meshes = renderables.get("Mesh") ?? [];
+			renderMeshes(meshes, drawstate);
+
+			renderer.renderDrawCommands(drawstate);
 
 			endPass(pass);
 		}
@@ -468,6 +486,7 @@ export async function init(){
 	// controls = new OrbitControls(renderer.canvas);
 	controls = new PotreeControls(renderer.canvas);
 
+
 	potree.controls = controls;
 	potree.addEventListener = addEventListener;
 	potree.removeEventListener = removeEventListener;
@@ -478,6 +497,12 @@ export async function init(){
 	};
 
 	measure = new MeasureTool(potree);
+	potree.measure = measure;
+
+	inputHandler = new InputHandler(potree);
+	potree.inputHandler = inputHandler;
+
+	inputHandler.addInputListener(measure.dispatcher);
 
 	// make things available in dev tools for debugging
 	window.camera = camera;

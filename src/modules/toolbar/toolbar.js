@@ -1,7 +1,7 @@
 
 import {Gradients, Utils} from "potree";
 
-export async function installToolbar(element){
+export async function installToolbar(element, potree){
 
 	let {css} = await import("./toolbar.css.js");
 	
@@ -111,6 +111,12 @@ export async function installToolbar(element){
 			elButton.type = "button";
 			elButton.title = "Point Measure";
 			elButton.style.backgroundImage = `url(${dir}/icons/point.svg)`;
+
+			elButton.addEventListener("click", () => {
+				potree.measure.startMeasuring({
+					requiredMarkers: 1,
+				});
+			});
 			
 			elMeasures.appendChild(elButton);
 		}
@@ -121,6 +127,12 @@ export async function installToolbar(element){
 			elButton.type = "button";
 			elButton.title = "Distance Measure";
 			elButton.style.backgroundImage = `url(${dir}/icons/distance.svg)`;
+
+			elButton.addEventListener("click", () => {
+				potree.measure.startMeasuring({
+					
+				});
+			});
 			
 			elMeasures.appendChild(elButton);
 		}

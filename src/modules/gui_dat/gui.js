@@ -69,12 +69,12 @@ export function initGUI(potree){
 		// 	"dilate",
 		// 	"HQS",
 		// ]);
-		input.add(guiContent, "use compute");
-		input.add(guiContent, "dilate");
-		input.add(guiContent, "Eye-Dome-Lighting");
-		input.add(guiContent, "High-Quality");
+		input.add(guiContent, "use compute").listen();
+		input.add(guiContent, "dilate").listen();
+		input.add(guiContent, "Eye-Dome-Lighting").listen();
+		input.add(guiContent, "High-Quality").listen();
 		// input.add(guiContent, "show bounding box");
-		input.add(guiContent, "update");
+		input.add(guiContent, "update").listen();
 		// guiAttributes = input.add(guiContent, "attribute", ["rgba", "intensity"]).listen();
 		// window.guiAttributes = guiAttributes;
 

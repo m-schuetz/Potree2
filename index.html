@@ -85,7 +85,7 @@ td{
 	let canvas = document.getElementById("canvas");
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
-	installToolbar(potree.renderer.canvas);
+	installToolbar(potree.renderer.canvas, potree);
 
 	window.Potree = Potree;
 	window.potree = potree;
@@ -94,7 +94,7 @@ td{
 	guiContent["point budget (M)"] = 4;
 	// guiContent["point size"] = 3;
 	guiContent["High-Quality"] = true;
-	guiContent["Eye-Dome-Lighting"] = true;
+	guiContent["Eye-Dome-Lighting"] = false;
 	guiContent["dilate"] = true;
 	// guiContent["attribute"] = "intensity";
 
@@ -184,8 +184,8 @@ td{
 
 		potree.renderer.drawBox(
 			new Vector3(0, 0, 0),
-			new Vector3(2, 2, 2),
-			new Vector3(0, 0, 100),
+			new Vector3(5, 5, 5),
+			new Vector3(0, 100, 200),
 		);
 
 		potree.renderer.drawLine(
@@ -197,19 +197,19 @@ td{
 	});
 
 
-	document.body.addEventListener("click", (e) => {
-		let target = e.target;
-		let x = e.clientX;
-		let y = e.clientY;
+	// document.body.addEventListener("click", (e) => {
+	// 	let target = e.target;
+	// 	let x = e.clientX;
+	// 	let y = e.clientY;
 
-		Potree.pick(x, y, (I) => {
-			let sphere = new Mesh("sphere", geometries.sphere);
-			sphere.position.copy(I.position);
-			sphere.scale.set(0.2, 0.2, 0.2);
-			potree.scene.root.children.push(sphere);
+	// 	Potree.pick(x, y, (I) => {
+	// 		let sphere = new Mesh("sphere", geometries.sphere);
+	// 		sphere.position.copy(I.position);
+	// 		sphere.scale.set(0.2, 0.2, 0.2);
+	// 		potree.scene.root.children.push(sphere);
 
-		});
-	});
+	// 	});
+	// });
 
 
 </script>

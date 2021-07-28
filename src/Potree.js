@@ -39,8 +39,9 @@ export * from "./modules/mesh/renderMesh.js";
 export {load as loadGLB} from "./misc/GLBLoader.js";
 export * from "./misc/Gradients.js";
 export * from "./utils.js";
-
+export * from "./defines.js";
 export * from "./misc/EventDispatcher.js";
+export * from "./InputHandler.js";
 
 export {render as renderPoints} from "./prototyping/renderPoints.js";
 export {render as renderPointsCompute} from "./prototyping/renderPointsCompute.js";

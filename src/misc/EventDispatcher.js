@@ -20,8 +20,16 @@ export class EventDispatcher{
 
 	}
 
+	add(name, callback){
+		this.addEventListener(name, callback);
+	}
+
 	removeEventListener(name, callback){
 		throw "not implemented";
+	}
+
+	removeAll(){
+		this.listeners = new Map();
 	}
 
 	dispatch(name, data){

@@ -16,7 +16,7 @@ export class OrbitControls{
 		element.addEventListener('contextmenu', e => {
 			e.preventDefault();
 
-			return false;
+			return true;
 		});
 
 		element.addEventListener('mousemove', e => {

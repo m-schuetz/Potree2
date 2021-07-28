@@ -13,6 +13,7 @@ export class SceneNode{
 		this.scale = new Vector3(1, 1, 1);
 		this.boundingBox = new Box3();
 		this.renderLayer = 0;
+		this.visible = true;
 
 		this.children = [];
 
