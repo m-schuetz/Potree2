@@ -82,7 +82,20 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			],
 		});
 
-		state = {pipeline, uniformBuffer, uniformBindGroup, miscBindGroup};
+		let nodesBuffer = new ArrayBuffer(10_000 * 8);
+		let nodesGpuBuffer = device.createBuffer({
+			size: nodesBuffer.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		let nodesBindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(3),
+			entries: [
+				{binding: 0, resource: {buffer: nodesGpuBuffer}},
+			],
+		});
+
+		state = {pipeline, uniformBuffer, uniformBindGroup, miscBindGroup, nodesBuffer, nodesGpuBuffer, nodesBindGroup};
 
 		octreeStates.set(key, state);
 	}
@@ -122,6 +135,32 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 144);
 }
 
+let bufferBindGroupCache = new Map();
+function getCachedBufferBindGroup(renderer, pipeline, node){
+
+	let bindGroup = bufferBindGroupCache.get(node);
+
+	if(bindGroup){
+		return bindGroup;
+	}else{
+		let buffer = node.geometry.buffer;
+		let gpuBuffer = renderer.getGpuBuffer(buffer);
+
+		let bufferBindGroup = renderer.device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(2),
+			entries: [
+				{binding: 0, resource: {buffer: gpuBuffer}}
+			],
+		});
+
+		bufferBindGroupCache.set(node, bufferBindGroup);
+
+		return bufferBindGroup;
+	}
+
+	
+}
+
 function renderOctree(octree, drawstate, flags){
 	
 	let {renderer, pass} = drawstate;
@@ -129,6 +168,7 @@ function renderOctree(octree, drawstate, flags){
 	let attributeName = Potree.settings.attribute;
 
 	let octreeState = getOctreeState(renderer, octree, attributeName, flags);
+	let nodes = octree.visibleNodes;
 
 	updateUniforms(octree, octreeState, drawstate, flags);
 
@@ -140,7 +180,7 @@ function renderOctree(octree, drawstate, flags){
 	{
 		let gradientTexture = getGradient(Potree.settings.gradient);
 
-		const miscBindGroup = renderer.device.createBindGroup({
+		let miscBindGroup = renderer.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(1),
 			entries: [
 				{binding: 0, resource: gradientSampler},
@@ -150,18 +190,47 @@ function renderOctree(octree, drawstate, flags){
 		pass.passEncoder.setBindGroup(1, miscBindGroup);
 	}
 
-	let nodes = octree.visibleNodes;
+	{
+		let {nodesBuffer, nodesGpuBuffer, nodesBindGroup} = octreeState;
+		let view = new DataView(nodesBuffer);
+
+		for(let i = 0; i < nodes.length; i++){
+			let node = nodes[i];
+
+			view.setUint32(8 * i + 0, node.geometry.numElements, true);
+			view.setUint32(8 * i + 4, i, true);
+		}
+
+		renderer.device.queue.writeBuffer(
+			nodesGpuBuffer, 0, 
+			nodesBuffer, 0, 8 * nodes.length
+		);
+
+		pass.passEncoder.setBindGroup(3, nodesBindGroup);
+	}
+
 	let i = 0;
 	for(let node of nodes){
 
 		let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "position").buffer);
-		// let vboColor = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "rgba").buffer);
-		// let vboIntensity = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "intensity").buffer);
 		let vboAttribute = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === attributeName).buffer);
 
 		pass.passEncoder.setVertexBuffer(0, vboPosition);
 		pass.passEncoder.setVertexBuffer(1, vboAttribute);
-		// pass.passEncoder.setVertexBuffer(2, vboIntensity);
+
+		{
+			// let buffer = node.geometry.buffer;
+			// let gpuBuffer = renderer.getGpuBuffer(buffer);
+
+			// let bufferBindGroup = renderer.device.createBindGroup({
+			// 	layout: pipeline.getBindGroupLayout(2),
+			// 	entries: [
+			// 		{binding: 0, resource: {buffer: gpuBuffer}}
+			// 	],
+			// });
+			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
+			pass.passEncoder.setBindGroup(2, bufferBindGroup);
+		}
 
 		if(octree.showBoundingBox === true){
 			let box = node.boundingBox.clone().applyMatrix4(octree.world);

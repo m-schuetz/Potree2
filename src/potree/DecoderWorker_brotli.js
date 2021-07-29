@@ -244,15 +244,28 @@ async function load(event){
 	let pointsPerSecond = (1000 * numPoints / duration) / 1_000_000;
 	// console.log(`[${name}] duration: ${duration.toFixed(1)}ms, #points: ${numPoints}, points/s: ${pointsPerSecond.toFixed(1)}M`);
 
-	return attributeBuffers;
+	// pad to multiple of 4 bytes due to GPU requirements.
+	let alignedBuffer;
+	if((decoded.byteLength % 4) === 0){
+		alignedBuffer = decoded;
+	}else{
+		let alignedSize = decoded.byteLength + (4 - (decoded.byteLength % 4));
+		alignedBuffer = new Uint8Array(alignedSize);
+		alignedBuffer.set(decoded);
+	}
+
+	return {
+		buffer: alignedBuffer, 
+		attributeBuffers
+	};
 }
 
 onmessage = async function (event) {
 
 	try{
-		let attributeBuffers = await load(event);
+		let loaded = await load(event);
 
-		let message = {attributeBuffers};
+		let message = loaded;
 		
 		let transferables = [];
 		for (let property in message.attributeBuffers) {
@@ -265,6 +278,8 @@ onmessage = async function (event) {
 				transferables.push(buffer.buffer);
 			}
 		}
+
+		transferables.push(loaded.buffer.buffer);
 
 		postMessage(message, transferables);
 	}catch(e){
