@@ -127,39 +127,39 @@ td{
 	// 	camera.fov = 60;
 	// }
 
-	let url = "./resources/pointclouds/heidentor/metadata.json";
-	Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
-		scene.root.children.push(pointcloud);
-
-		controls.set({
-			radius: 26.8, yaw: -4.2, pitch: 0.31,
-			pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
-		});
-
-		// controls.set({
-		// 	position: [-16.8, 12.0, 10.8],
-		// 	pivot: [-1.7482506615697777, 4.1140199696259545, 7.4239815576054085],
-		// });
-
-	});
-
-	// Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
-	// // Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// let url = "./resources/pointclouds/heidentor/metadata.json";
+	// Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
 	// 	scene.root.children.push(pointcloud);
 
-	// 	// // close-up
-	// 	// controls.set({
-	// 	// 	position: [737368.845, 3890920.357, 923.367],
-	// 	// 	pivot: [736054.256, 3890998.977, 236.332],
-	// 	// });
-
-	// 	// overview
 	// 	controls.set({
-	// 		position: [687630.7, 3888448.6, 38021.8],
-	// 		pivot: [693764.5, 3916109.6, -46.0],
+	// 		radius: 26.8, yaw: -4.2, pitch: 0.31,
+	// 		pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
 	// 	});
 
+	// 	// controls.set({
+	// 	// 	position: [-16.8, 12.0, 10.8],
+	// 	// 	pivot: [-1.7482506615697777, 4.1140199696259545, 7.4239815576054085],
+	// 	// });
+
 	// });
+
+	Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
+		scene.root.children.push(pointcloud);
+
+		// // close-up
+		// controls.set({
+		// 	position: [737368.845, 3890920.357, 923.367],
+		// 	pivot: [736054.256, 3890998.977, 236.332],
+		// });
+
+		// overview
+		controls.set({
+			position: [687630.7, 3888448.6, 38021.8],
+			pivot: [693764.5, 3916109.6, -46.0],
+		});
+
+	});
 
 	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 
@@ -180,50 +180,50 @@ td{
 	// });
 
 
-	potree.addEventListener("update", (e) => {
+	// potree.addEventListener("update", (e) => {
 
-		potree.renderer.drawBox(
-			new Vector3(0, 0, 0),
-			new Vector3(5, 5, 5),
-			new Vector3(0, 100, 200),
-		);
+	// 	potree.renderer.drawBox(
+	// 		new Vector3(0, 0, 0),
+	// 		new Vector3(5, 5, 5),
+	// 		new Vector3(0, 100, 200),
+	// 	);
 
-		potree.renderer.drawLine(
-			new Vector3(0, 0, 0),
-			new Vector3(10, 10, 10),
-			new Vector3(200, 0, 0),
-		);
+	// 	potree.renderer.drawLine(
+	// 		new Vector3(0, 0, 0),
+	// 		new Vector3(10, 10, 10),
+	// 		new Vector3(200, 0, 0),
+	// 	);
 
-	});
+	// });
 
-	{
-		let n = 1_000;
-		let positions = new Float32Array(3 * n);
+	// {
+	// 	let n = 1_000;
+	// 	let positions = new Float32Array(3 * n);
 
-		for(let i = 0; i < n; i++){
-			positions[3 * i + 0] = Math.random() * 100 - 50;
-			positions[3 * i + 1] = Math.random() * 100 - 50;
-			positions[3 * i + 2] = Math.random() * 2 + 5;
-		}
+	// 	for(let i = 0; i < n; i++){
+	// 		positions[3 * i + 0] = Math.random() * 100 - 50;
+	// 		positions[3 * i + 1] = Math.random() * 100 - 50;
+	// 		positions[3 * i + 2] = Math.random() * 2 + 5;
+	// 	}
 
-		fetch("./resources/images/360.png").then( async (response) => {
-		// fetch("./resources/images/background.jpg").then( async (response) => {
-			let quads = new Quads("quads", positions);
-			let buffer = await response.arrayBuffer();
-			let u8 = new Uint8Array(buffer);
+	// 	fetch("./resources/images/360.png").then( async (response) => {
+	// 	// fetch("./resources/images/background.jpg").then( async (response) => {
+	// 		let quads = new Quads("quads", positions);
+	// 		let buffer = await response.arrayBuffer();
+	// 		let u8 = new Uint8Array(buffer);
 
-			let blob = new Blob([u8], {type: "image/png"});
-			let image = await createImageBitmap(blob);
-			let texture = renderer.getGpuTexture(image);
+	// 		let blob = new Blob([u8], {type: "image/png"});
+	// 		let image = await createImageBitmap(blob);
+	// 		let texture = renderer.getGpuTexture(image);
 
-			quads.texture = texture;
-			scene.root.children.push(quads);
-		});
+	// 		quads.texture = texture;
+	// 		scene.root.children.push(quads);
+	// 	});
 		
 
 
 		
-	}
+	// }
 
 </script>
 
