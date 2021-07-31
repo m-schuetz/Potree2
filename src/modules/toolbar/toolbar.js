@@ -19,7 +19,9 @@ export async function installToolbar(element, potree){
 			<div class="potree_toolbar_label">
 				Attribute
 			</div>
-			<div id="attributes_panel"></div>
+			<div id="attributes_panel">
+
+			</div>
 		</span>
 
 		<span class="potree_toolbar_separator"></span>
@@ -98,6 +100,31 @@ export async function installToolbar(element, potree){
 			});
 			
 			elContainer.appendChild(elButton);
+		}
+
+		{
+			let elList = document.createElement("select");
+			elList.multiple = true;
+			elList.size = 3;
+
+			let items = ["RGB", "elevation", "intensity", "number of returns", "gps-time"];
+
+			for(let item of items){
+				let elOption = document.createElement("option");
+				elOption.innerText = item;
+
+				elList.appendChild(elOption);
+			}
+
+			elContainer.appendChild(elList);
+
+			// <select name="pets" multiple size="3">
+			// 	<option value="dog">RGB</option>
+			// 	<option value="cat">elevation</option>
+			// 	<option value="cat">intensity</option>
+			// 	<option value="cat">number of returns</option>
+			// 	<option value="cat">gps-time</option>
+			// </select>
 		}
 
 	}

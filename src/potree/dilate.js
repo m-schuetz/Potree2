@@ -1,6 +1,6 @@
 
-import {RenderTarget} from "../core/RenderTarget.js";
-import * as Timer from "../renderer/Timer.js";
+
+import {Timer} from "potree";
 
 let vs = `
 
@@ -107,15 +107,31 @@ let fs = `
 		return near / depth;
 	}
 
+	fn getLinearDepthAt(fragment : FragmentInput, depthCoord : vec2<f32>) -> f32 {
+		var currentCoord = fragment.fragCoord.xy;
+
+		var pixelDepth : f32 = textureLoad(myDepth, vec2<i32>(depthCoord), 0).x;
+		var diff = (currentCoord - depthCoord) / f32(uniforms.window);
+
+		var depth = uniforms.near / pixelDepth;
+		var wRadius = uniforms.near * f32(uniforms.window) * depth / f32(uniforms.width);
+		var wi = diff.x * diff.x + diff.y * diff.y;
+		// var wi = pow(diff.x * diff.x + diff.y * diff.y, 2.5);
+		var newDepth = depth + wi * wRadius * 0.5;
+
+		return newDepth;
+	}
+
 	[[stage(fragment)]]
 	fn main(input : FragmentInput) -> FragmentOutput {
 
-		var output : FragmentOutput;
-
-		var avg : vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+		ignore(myTexture);
+		ignore(myDepth);
 
 		var window : i32 = uniforms.window;
-		var closest : f32 = 0.0;
+		var DEFAULT_CLOSEST = 10000000.0;
+		var closest = DEFAULT_CLOSEST;
+		var closestCoords = vec2<f32>(0.0, 0.0);
 
 		for(var i : i32 = -window; i <= window; i = i + 1){
 		for(var j : i32 = -window; j <= window; j = j + 1){
@@ -123,64 +139,37 @@ let fs = `
 			coords.x = i32(input.fragCoord.x) + i;
 			coords.y = i32(input.fragCoord.y) + j;
 
-			var d : f32 = textureLoad(myDepth, coords, 0).x;
+			var d : f32 = getLinearDepthAt(input, vec2<f32>(coords));
 
-			closest = max(closest, d);
-		}
-		}
+			if(d == 0.0){
+				continue;
+			}
 
-		var closestLinear : f32 = toLinear(closest, uniforms.near);
-		
-		for(var i : i32 = -window; i <= window; i = i + 1){
-		for(var j : i32 = -window; j <= window; j = j + 1){
-			var coords : vec2<i32>;
-			coords.x = i32(input.fragCoord.x) + i;
-			coords.y = i32(input.fragCoord.y) + j;
+			closest = min(closest, d);
 
-			var d : f32 = textureLoad(myDepth, coords, 0).x;
-			var linearD : f32 = toLinear(d, uniforms.near);
-
-			var isBackground : bool = d == 0.0;
-			var isInRange : bool = linearD <= closestLinear * 1.01;
-
-			if(isInRange && !isBackground){
-				var manhattanDistance : f32 = f32(abs(i) + abs(j));
-
-				var weight : f32 = 1.0;
-
-				if(manhattanDistance <= 0.0){
-					weight = 10.0;
-				}elseif(manhattanDistance <= 1.0){
-					weight = 0.3;
-				}elseif(manhattanDistance <= 2.0){
-					weight = 0.01;
-				}else{
-					weight = 0.001;
-				}
-				
-				var color : vec4<f32> = textureLoad(myTexture, coords, 0);
-				color.x = color.x * weight;
-				color.y = color.y * weight;
-				color.z = color.z * weight;
-				color.w = color.w * weight;
-
-				avg = avg + color;
+			if(closest == d){
+				closestCoords = input.fragCoord.xy + vec2<f32>(f32(i), f32(j));
 			}
 		}
 		}
 
-		if(avg.w == 0.0){
-			output.color = vec4<f32>(0.1, 0.2, 0.3, 1.0);
-			output.depth = 0.0;
-		}else{
-			// avg = avg / avg.w;
-			avg.x = avg.x / avg.w;
-			avg.y = avg.y / avg.w;
-			avg.z = avg.z / avg.w;
-			avg.w = 1.0;
+		var output : FragmentOutput;
 
-			output.color = avg;
-			output.depth = closest;
+		if(closest != DEFAULT_CLOSEST){
+
+			var source = closestCoords;
+
+			var color : vec4<f32> = textureLoad(myTexture, vec2<i32>(source), 0);
+			var pixelDepth : f32 = textureLoad(myDepth, vec2<i32>(source), 0).x;
+			var d = getLinearDepthAt(input, source);
+
+			// output.depth = pixelDepth;
+			output.depth = uniforms.near / d;
+			output.color = color;
+
+			return output;
+		}else{
+			discard;
 		}
 
 		return output;

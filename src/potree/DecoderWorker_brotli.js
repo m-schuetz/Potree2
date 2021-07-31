@@ -189,14 +189,26 @@ async function load(event){
 				let b = dealign24b((mc_1 & 0x00FFFFFF) >>> 2) 
 						| (dealign24b(((mc_1 >>> 24) | (mc_0 << 8)) >>> 2) << 8);
 
-				// colors[3 * j + 0] = r;
-				// colors[3 * j + 1] = g;
-				// colors[3 * j + 2] = b;
 
 				colors[4 * j + 0] = r | 255 ? r / 256 : r;
 				colors[4 * j + 1] = g | 255 ? g / 256 : g;
 				colors[4 * j + 2] = b | 255 ? b / 256 : b;
 				colors[4 * j + 3] = 255;
+
+				// let float = view.getFloat64(25 * numPoints + j * 8, true);
+				// let f64 = new Float64Array([float]);
+				// let u8 = new Uint8Array(f64.buffer);
+				// let exp_bin = (u8[7] << 4) | (u8[6] >> 4);
+				// let exp = exp_bin - 1023;
+
+				// let w = 10 * exp;
+
+				// colors[4 * j + 0] = w;
+				// colors[4 * j + 1] = w;
+				// colors[4 * j + 2] = w;
+				// colors[4 * j + 3] = 255;
+
+
 			}
 
 			byteOffset += 4 * numPoints;
