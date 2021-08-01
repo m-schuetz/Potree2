@@ -225,17 +225,17 @@ export class PotreeLoader{
 					return;
 				}
 
-				let attributeBuffers = data.attributeBuffers;
+				// let attributeBuffers = data.attributeBuffers;
 
-				let buffers = [];
+				// let buffers = [];
 
-				for(let attributeName in attributeBuffers){
-					buffers.push(attributeBuffers[attributeName]);
-				}
+				// for(let attributeName in attributeBuffers){
+				// 	buffers.push(attributeBuffers[attributeName]);
+				// }
 
 				let geometry = new Geometry();
 				geometry.numElements = node.numPoints;
-				geometry.buffers = buffers;
+				// geometry.buffers = buffers;
 				geometry.buffer = data.buffer;
 
 				node.loaded = true;

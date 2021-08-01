@@ -118,7 +118,6 @@ async function load(event){
 
 			for (let j = 0; j < numPoints; j++) {
 
-				// let src_index = order[j];
 				let src_index = j;
 				let pointOffset = byteOffset + src_index * 16;
 
@@ -155,17 +154,16 @@ async function load(event){
 				positions[3 * j + 1] = y;
 				positions[3 * j + 2] = z;
 
+				view.setFloat32(byteOffset + 12 * j + 0, x, true);
+				view.setFloat32(byteOffset + 12 * j + 4, y, true);
+				view.setFloat32(byteOffset + 12 * j + 8, z, true);
+
 			}
 
 			byteOffset += 16 * numPoints;
 
-			attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute, name: pointAttribute.name };
+			// attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute, name: pointAttribute.name };
 		}else if(["RGBA", "rgba"].includes(pointAttribute.name)){
-
-			// let length = numPoints * 6;
-			// let length4 = length + (4 - (length % 4));
-			// let buff = new ArrayBuffer(length4);
-			// let colors = new Uint16Array(buff);
 
 			let length = numPoints * 4;
 			let buff = new ArrayBuffer(length);
@@ -190,34 +188,28 @@ async function load(event){
 						| (dealign24b(((mc_1 >>> 24) | (mc_0 << 8)) >>> 2) << 8);
 
 
-				colors[4 * j + 0] = r | 255 ? r / 256 : r;
-				colors[4 * j + 1] = g | 255 ? g / 256 : g;
-				colors[4 * j + 2] = b | 255 ? b / 256 : b;
+				r = r | 255 ? r / 256 : r;
+				g = g | 255 ? g / 256 : g;
+				b = b | 255 ? b / 256 : b;
+
+				colors[4 * j + 0] = r;
+				colors[4 * j + 1] = g;
+				colors[4 * j + 2] = b;
 				colors[4 * j + 3] = 255;
 
-				// let float = view.getFloat64(25 * numPoints + j * 8, true);
-				// let f64 = new Float64Array([float]);
-				// let u8 = new Uint8Array(f64.buffer);
-				// let exp_bin = (u8[7] << 4) | (u8[6] >> 4);
-				// let exp = exp_bin - 1023;
-
-				// let w = 10 * exp;
-
-				// colors[4 * j + 0] = w;
-				// colors[4 * j + 1] = w;
-				// colors[4 * j + 2] = w;
-				// colors[4 * j + 3] = 255;
-
-
+				view.setUint8(byteOffset + 4 * j + 0, r, true);
+				view.setUint8(byteOffset + 4 * j + 1, g, true);
+				view.setUint8(byteOffset + 4 * j + 2, b, true);
+				view.setUint8(byteOffset + 4 * j + 3, 255, true);
 			}
 
 			byteOffset += 4 * numPoints;
 
-			attributeBuffers[pointAttribute.name] = { 
-				buffer: colors, 
-				attribute: pointAttribute, 
-				name: pointAttribute.name 
-			};
+			// attributeBuffers[pointAttribute.name] = { 
+			// 	buffer: colors, 
+			// 	attribute: pointAttribute, 
+			// 	name: pointAttribute.name 
+			// };
 		}else{
 
 			let start = byteOffset;
@@ -242,11 +234,11 @@ async function load(event){
 				continue;
 			}
 
-			attributeBuffers[pointAttribute.name] = { 
-				buffer: target, 
-				attribute: pointAttribute, 
-				name: pointAttribute.name 
-			};
+			// attributeBuffers[pointAttribute.name] = { 
+			// 	buffer: target, 
+			// 	attribute: pointAttribute, 
+			// 	name: pointAttribute.name 
+			// };
 
 		}
 
@@ -268,7 +260,7 @@ async function load(event){
 
 	return {
 		buffer: alignedBuffer, 
-		attributeBuffers
+		// attributeBuffers
 	};
 }
 
@@ -280,16 +272,16 @@ onmessage = async function (event) {
 		let message = loaded;
 		
 		let transferables = [];
-		for (let property in message.attributeBuffers) {
+		// for (let property in message.attributeBuffers) {
 
-			let buffer = message.attributeBuffers[property].buffer;
+		// 	let buffer = message.attributeBuffers[property].buffer;
 
-			if(buffer instanceof ArrayBuffer){
-				transferables.push(buffer);
-			}else{
-				transferables.push(buffer.buffer);
-			}
-		}
+		// 	if(buffer instanceof ArrayBuffer){
+		// 		transferables.push(buffer);
+		// 	}else{
+		// 		transferables.push(buffer.buffer);
+		// 	}
+		// }
 
 		transferables.push(loaded.buffer.buffer);
 

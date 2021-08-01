@@ -23,17 +23,17 @@ function createVS(args){
 
 let shader = `
 [[block]] struct Uniforms {
-	[[size(64)]] worldView : mat4x4<f32>;
-	[[size(64)]] proj : mat4x4<f32>;
-	[[size(4)]] screen_width : f32;
-	[[size(4)]] screen_height : f32;
-	[[size(4)]] hqs_flag : u32;
-	[[size(4)]] colorMode : u32;
+	worldView : mat4x4<f32>;
+	proj : mat4x4<f32>;
+	screen_width : f32;
+	screen_height : f32;
+	hqs_flag : u32;
+	colorMode : u32;
 };
 
 struct Node {
-	[[size(4)]] numPoints : u32;
-	[[size(4)]] dbg : u32;
+	numPoints : u32;
+	dbg : u32;
 };
 
 struct AttributeDescriptor{
@@ -83,8 +83,6 @@ let CLAMP_ENABLED       =  1u;
 struct VertexInput {
 	[[builtin(instance_index)]] instanceID : u32;
 	[[builtin(vertex_index)]] vertexID : u32;
-	[[location(0)]] position : vec4<f32>;
-	${strAttribute}
 };
 
 struct VertexOutput {
@@ -128,8 +126,25 @@ fn readU32(offset : u32) -> u32{
 	return value;
 }
 
+fn readF32(offset : u32) -> f32{
+	
+	var d0 = readU8(offset + 0u);
+	var d1 = readU8(offset + 1u);
+	var d2 = readU8(offset + 2u);
+	var d3 = readU8(offset + 3u);
 
-fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
+	var value_u32 = d0
+		| (d1 <<  8u)
+		| (d2 << 16u)
+		| (d3 << 24u);
+
+	var value_f32 = bitcast<f32>(value_u32);
+
+	return value_f32;
+}
+
+
+fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
 	var value : f32 = 0.0;
 
@@ -164,7 +179,7 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 
 		value = value_f32;
 	}elseif(attribute.valuetype == TYPES_ELEVATION){
-		value = vertex.position.z;
+		value = position.z;
 	}elseif(attribute.valuetype == TYPES_U16){
 		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
 		value = f32(readU16(offset));
@@ -187,7 +202,17 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
 	if(attribute.valuetype == TYPES_RGBA){
-		color = vertex.attribute;
+
+		var offset = node.numPoints * 33u + 4u * vertex.vertexID;
+		var r = readU8(offset + 0u);
+		var g = readU8(offset + 1u);
+		var b = readU8(offset + 2u);
+		var a = readU8(offset + 3u);
+
+		color.r = f32(r) / 255.0;
+		color.g = f32(g) / 255.0;
+		color.b = f32(b) / 255.0;
+		color.a = f32(a) / 255.0;
 	}
 
 	return color;
@@ -207,10 +232,22 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	}
 
 	var node = nodes.values[vertex.instanceID];
-	var viewPos : vec4<f32> = uniforms.worldView * vertex.position;
 
 	var output : VertexOutput;
-	output.position = uniforms.proj * viewPos;
+
+	var position : vec4<f32>;
+	var viewPos : vec4<f32>;
+	{
+		var offset = 12u * vertex.vertexID;
+		var x = readF32(offset + 0u);
+		var y = readF32(offset + 4u);
+		var z = readF32(offset + 8u);
+
+		position = vec4<f32>(x, y, z, 1.0);
+		viewPos = uniforms.worldView * position;
+
+		output.position = uniforms.proj * viewPos;
+	}
 
 	// in the HQS depth pass, shift points 1% further away from camera
 	if(uniforms.hqs_flag > 0u){
@@ -223,15 +260,15 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	}
 
 	{ // COLORIZE BY ATTRIBUTE DESCRIPTORS
-		var task = attributes.values[0];
+		var attribute = attributes.values[0];
 		var value : f32 = 0.0;
 
 		var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
-		if(task.numElements == 1u){
-			color = scalarToColor(vertex, task, node);
+		if(attribute.numElements == 1u){
+			color = scalarToColor(vertex, attribute, node, position);
 		}else{
-			color = vectorToColor(vertex, task, node);
+			color = vectorToColor(vertex, attribute, node);
 		}
 
 		output.color = color;

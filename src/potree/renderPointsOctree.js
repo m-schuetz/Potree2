@@ -314,33 +314,14 @@ function renderOctree(octree, drawstate, flags){
 	let i = 0;
 	for(let node of nodes){
 
-		let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "position").buffer);
-		let vboAttribute = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "rgba").buffer);
-
-		pass.passEncoder.setVertexBuffer(0, vboPosition);
-		pass.passEncoder.setVertexBuffer(1, vboAttribute);
-
-		{
-			// let buffer = node.geometry.buffer;
-			// let gpuBuffer = renderer.getGpuBuffer(buffer);
-
-			// let bufferBindGroup = renderer.device.createBindGroup({
-			// 	layout: pipeline.getBindGroupLayout(2),
-			// 	entries: [
-			// 		{binding: 0, resource: {buffer: gpuBuffer}}
-			// 	],
-			// });
-			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
-			pass.passEncoder.setBindGroup(2, bufferBindGroup);
-		}
-
+		let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
+		pass.passEncoder.setBindGroup(2, bufferBindGroup);
+		
 		if(octree.showBoundingBox === true){
 			let box = node.boundingBox.clone().applyMatrix4(octree.world);
 			let position = box.min.clone();
 			position.add(box.max).multiplyScalar(0.5);
-			// position.applyMatrix4(octree.world);
 			let size = box.size();
-			// let color = new Vector3(...SPECTRAL.get(node.level / 5));
 			let color = new Vector3(255, 255, 0);
 			renderer.drawBoundingBox(position, size, color);
 		}
