@@ -34,3 +34,6 @@ prototyping/positionf32.bin
 prototyping/ot_35120D7323B_1.las
 prototyping/ot_35120D7323B_1.laz
 prototyping/artifacts/*
+resources/pointclouds/ot_35120C7102A_1/hierarchy.bin
+resources/pointclouds/ot_35120C7102A_1/metadata.json
+resources/pointclouds/ot_35120C7102A_1/octree.bin

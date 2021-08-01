@@ -48,12 +48,13 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 
 	let {device} = renderer;
 
+
 	let attributes = octree.loader.attributes.attributes;
-	let attribute = attributes.find(a => a.name === attributeName);
+	let mapping = "rgba";
+	let attribute = attributes.find(a => a.name === mapping);
 
-	let mapping = attributeName === "rgba" ? "rgba" : "scalar";
-
-	let key = `${attribute.name}_${attribute.numElements}_${attribute.type.name}_${mapping}_${flags.join("_")}`;
+	// let key = `${attribute.name}_${attribute.numElements}_${attribute.type.name}_${mapping}_${flags.join("_")}`;
+	let key = `${flags.join("_")}`;
 
 	let state = octreeStates.get(key);
 
@@ -65,26 +66,17 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
-		const uniformBindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [
-				{binding: 0, resource: {buffer: uniformBuffer}},
-			],
-		});
-
 		let gradientTexture = getGradient(Potree.settings.gradient);
-
-		const miscBindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(1),
-			entries: [
-				{binding: 0, resource: gradientSampler},
-				{binding: 1, resource: gradientTexture.createView()},
-			],
-		});
 
 		let nodesBuffer = new ArrayBuffer(10_000 * 8);
 		let nodesGpuBuffer = device.createBuffer({
 			size: nodesBuffer.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		let attributesDescBuffer = new ArrayBuffer(1024);
+		let attributesDescGpuBuffer = device.createBuffer({
+			size: attributesDescBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
@@ -95,7 +87,27 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			],
 		});
 
-		state = {pipeline, uniformBuffer, uniformBindGroup, miscBindGroup, nodesBuffer, nodesGpuBuffer, nodesBindGroup};
+		const uniformBindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [
+				{binding: 0, resource: {buffer: uniformBuffer}},
+				{binding: 1, resource: {buffer: attributesDescGpuBuffer}},
+			],
+		});
+
+		const miscBindGroup = device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(1),
+			entries: [
+				{binding: 0, resource: gradientSampler},
+				{binding: 1, resource: gradientTexture.createView()},
+			],
+		});
+
+		state = {
+			pipeline, uniformBuffer, uniformBindGroup, 
+			miscBindGroup, nodesBuffer, nodesGpuBuffer, nodesBindGroup,
+			attributesDescBuffer, attributesDescGpuBuffer
+		};
 
 		octreeStates.set(key, state);
 	}
@@ -103,36 +115,126 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 	return state;
 }
 
+const TYPES = {
+	U8:         0,
+	U16:        1,
+	U32:        2,
+	I8:         3,
+	I16:        4,
+	I32:        5,
+	F32:        6,
+	F64:        7,
+	RGBA:      50,
+	ELEVATION: 51,
+};
+
 function updateUniforms(octree, octreeState, drawstate, flags){
 
-	let {uniformBuffer} = octreeState;
-	let {renderer} = drawstate;
-	let isHqsDepth = flags.includes("hqs-depth");
+	{
+		let {uniformBuffer} = octreeState;
+		let {renderer} = drawstate;
+		let isHqsDepth = flags.includes("hqs-depth");
 
-	let data = new ArrayBuffer(256);
-	let f32 = new Float32Array(data);
-	let view = new DataView(data);
+		let data = new ArrayBuffer(256);
+		let f32 = new Float32Array(data);
+		let view = new DataView(data);
 
-	let world = octree.world;
-	let camView = camera.view;
-	let worldView = new Matrix4().multiplyMatrices(camView, world);
+		let world = octree.world;
+		let camView = camera.view;
+		let worldView = new Matrix4().multiplyMatrices(camView, world);
 
-	f32.set(worldView.elements, 0);
-	f32.set(camera.proj.elements, 16);
+		f32.set(worldView.elements, 0);
+		f32.set(camera.proj.elements, 16);
 
-	let size = renderer.getSize();
+		let size = renderer.getSize();
 
-	view.setFloat32(128, size.width, true);
-	view.setFloat32(132, size.height, true);
-	view.setUint32(136, isHqsDepth ? 1 : 0, true);
+		view.setFloat32(128, size.width, true);
+		view.setFloat32(132, size.height, true);
+		view.setUint32(136, isHqsDepth ? 1 : 0, true);
 
-	if(Potree.settings.dbgAttribute === "rgba"){
-		view.setUint32(140, 0, true);
-	}else if(Potree.settings.dbgAttribute === "elevation"){
-		view.setUint32(140, 1, true);
+		if(Potree.settings.dbgAttribute === "rgba"){
+			view.setUint32(140, 0, true);
+		}else if(Potree.settings.dbgAttribute === "elevation"){
+			view.setUint32(140, 1, true);
+		}
+
+		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 144);
 	}
 
-	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 144);
+
+	{
+		let {attributesDescBuffer, attributesDescGpuBuffer} = octreeState;
+		let {renderer} = drawstate;
+
+		let view = new DataView(attributesDescBuffer);
+
+		let selectedAttribute = Potree.settings.attribute;
+
+		let set = (args) => {
+
+			let clampBool = args.clamp ?? false;
+			let clamp = clampBool ? 1 : 0;
+
+			view.setUint32(   0,             args.offset, true);
+			view.setUint32(   4,        args.numElements, true);
+			view.setUint32(   8,               args.type, true);
+			view.setFloat32( 12,           args.range[0], true);
+			view.setFloat32( 16,           args.range[1], true);
+			view.setUint32(  20,                   clamp, true);
+		};
+
+		if(selectedAttribute === "rgba"){
+			set({
+				offset       : 0,
+				numElements  : 3,
+				type         : TYPES.RGBA,
+				range        : [0, 255],
+			});
+		}else if(selectedAttribute === "elevation"){
+			set({
+				offset       : 0,
+				numElements  : 1,
+				type         : TYPES.ELEVATION,
+				range        : [0, 200],
+				clamp        : true,
+			});
+		}else if(selectedAttribute === "intensity"){
+			set({
+				offset       : 16,
+				numElements  : 1,
+				type         : TYPES.U16,
+				range        : [0, 255],
+			});
+		}else if(selectedAttribute === "classification"){
+			set({
+				offset       : 20,
+				numElements  : 1,
+				type         : TYPES.U8,
+				range        : [0, 32],
+			});
+		}else if(selectedAttribute === "number of returns"){
+			set({
+				offset       : 19,
+				numElements  : 1,
+				type         : TYPES.U8,
+				range        : [0, 4],
+			});
+		}else if(selectedAttribute === "gps-time"){
+			set({
+				offset       : 25,
+				numElements  : 1,
+				type         : TYPES.F64,
+				range        : [0, 10_000],
+				clamp        : false,
+			});
+		}
+
+			
+
+		renderer.device.queue.writeBuffer(
+			attributesDescGpuBuffer, 0, 
+			attributesDescBuffer, 0, 1024);
+	}
 }
 
 let bufferBindGroupCache = new Map();
@@ -213,7 +315,7 @@ function renderOctree(octree, drawstate, flags){
 	for(let node of nodes){
 
 		let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "position").buffer);
-		let vboAttribute = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === attributeName).buffer);
+		let vboAttribute = renderer.getGpuBuffer(node.geometry.buffers.find(s => s.name === "rgba").buffer);
 
 		pass.passEncoder.setVertexBuffer(0, vboPosition);
 		pass.passEncoder.setVertexBuffer(1, vboAttribute);

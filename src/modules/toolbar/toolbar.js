@@ -73,58 +73,37 @@ export async function installToolbar(element, potree){
 
 	{ // ATTRIBUTE
 		const elContainer = elToolbar.querySelector("#attributes_panel");
-		
-		{ // ELEVATION
-			let elButton = document.createElement("input");
-			elButton.classList.add("potree_toolbar_button");
-			elButton.type = "button";
-			elButton.title = "Elevation";
-			elButton.style.backgroundImage = `url(${dir}/icons/profile.svg)`;
-
-			elButton.addEventListener("click", () => {
-				Potree.settings.dbgAttribute = "elevation";
-			});
-			
-			elContainer.appendChild(elButton);
-		}
-
-		{ // RGB
-			let elButton = document.createElement("input");
-			elButton.classList.add("potree_toolbar_button");
-			elButton.type = "button";
-			elButton.title = "RGB colors";
-			elButton.style.backgroundImage = `url(${dir}/icons/rgb.svg)`;
-
-			elButton.addEventListener("click", () => {
-				Potree.settings.dbgAttribute = "rgba";
-			});
-			
-			elContainer.appendChild(elButton);
-		}
 
 		{
 			let elList = document.createElement("select");
 			elList.multiple = true;
 			elList.size = 3;
 
-			let items = ["RGB", "elevation", "intensity", "number of returns", "gps-time"];
+			let items = [
+				"rgba", 
+				"elevation", 
+				"intensity", 
+				"classification", 
+				"number of returns", 
+				"gps-time"
+			];
 
 			for(let item of items){
 				let elOption = document.createElement("option");
 				elOption.innerText = item;
+				elOption.value = item;
 
 				elList.appendChild(elOption);
 			}
 
 			elContainer.appendChild(elList);
 
-			// <select name="pets" multiple size="3">
-			// 	<option value="dog">RGB</option>
-			// 	<option value="cat">elevation</option>
-			// 	<option value="cat">intensity</option>
-			// 	<option value="cat">number of returns</option>
-			// 	<option value="cat">gps-time</option>
-			// </select>
+			elList.onchange = () => {
+				Potree.settings.attribute = elList.value;
+			};
+
+			let elRgba = elContainer.querySelector(`option[value="rgba"]`);
+			elRgba.selected = true;
 		}
 
 	}
@@ -188,11 +167,11 @@ export async function installToolbar(element, potree){
 			let stops = [];
 			let n = 16;
 			for(let i = 0; i <= n; i++){
-				let u = i / n;
+				let u = 1 - i / n;
 				let stopVal = scheme.values.get(u);
 
 				let [r, g, b, a] = stopVal.map(v => parseInt(v));
-				let percent = u * 100;
+				let percent = (1 - u) * 100;
 
 				let stopString = `rgba(${r}, ${g}, ${b}) ${percent}%`;
 				

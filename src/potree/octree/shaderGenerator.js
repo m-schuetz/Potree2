@@ -15,63 +15,10 @@ function toWgslType(attribute){
 
 }
 
-const getColor_rgba = `
-fn getColor(vertex : VertexInput) -> vec4<f32> {
-	return vertex.attribute;
-
-	// var uv : vec2<f32> = vec2<f32>(vertex.position.z * 0.2, 0.0);
-	// var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
-
-	// return color;
-}
-`;
-
-const getColor_elevation = `
-fn getColor_elevation(vertex : VertexInput) -> vec4<f32> {
-
-	var min = 3.0;
-	var max = 15.0;
-	var size = max - min;
-
-	var w = (vertex.position.z - min) / size;
-	// w = -clamp(-w, 0.0, 1.0);
-
-	var uv : vec2<f32> = vec2<f32>(w, 0.0);
-	var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
-
-	return color;
-}
-`;
-
-const getColor_scalar = `
-fn getColor(vertex : VertexInput) -> vec4<f32> {
-
-	var w : f32 = (f32(vertex.attribute) - 0.0) / 255.0;
-	w = clamp(1.0 - w, 0.0, 1.0);
-
-	// var w : f32 = f32(vertex.attribute % 10u) / 10.0;
-	// w = clamp(1.0 - w, 0.0, 1.0);
-
-	var uv : vec2<f32> = vec2<f32>(w, 0.0);
-	var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
-
-	return color;
-}
-`;
-
-
 function createVS(args){
 
 	let type = toWgslType(args.attribute);
 	let strAttribute = `[[location(${1})]] attribute : ${type};\n`;
-	
-	let fnGetColor;
-
-	if(args.mapping === "rgba"){
-		fnGetColor = getColor_rgba;
-	}else if(args.mapping === "scalar"){
-		fnGetColor = getColor_scalar;
-	}
 
 
 let shader = `
@@ -89,17 +36,45 @@ struct Node {
 	[[size(4)]] dbg : u32;
 };
 
+struct AttributeDescriptor{
+	offset      : u32;
+	numElements : u32;
+	valuetype   : u32;
+	range_min   : f32;
+	range_max   : f32;
+	clamp       : u32;
+};
+
 [[block]] struct Nodes{
 	values : [[stride(8)]] array<Node>;
+};
+
+[[block]] struct AttributeDescriptors{
+	values : [[stride(24)]] array<AttributeDescriptor>;
 };
 
 [[block]] struct U32s {
 	values : [[stride(4)]] array<u32>;
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(0), group(1)]] var mySampler: sampler;
+let TYPES_U8            =  0u;
+let TYPES_U16           =  1u;
+let TYPES_U32           =  2u;
+let TYPES_I8            =  3u;
+let TYPES_I16           =  4u;
+let TYPES_I32           =  5u;
+let TYPES_F32           =  6u;
+let TYPES_F64           =  7u;
+let TYPES_RGBA          = 50u;
+let TYPES_ELEVATION     = 51u;
 
+let CLAMP_DISABLED      =  0u;
+let CLAMP_ENABLED       =  1u;
+
+[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+[[binding(1), group(0)]] var<storage, read> attributes : AttributeDescriptors;
+
+[[binding(0), group(1)]] var mySampler: sampler;
 [[binding(1), group(1)]] var myTexture: texture_2d<f32>;
 
 [[binding(0), group(2)]] var<storage, read> buffer : U32s;
@@ -116,17 +91,6 @@ struct VertexOutput {
 	[[builtin(position)]] position : vec4<f32>;
 	[[location(0)]] color : vec4<f32>;
 };
-
-let COLOR_MODE_RGBA                    = 0u;
-let COLOR_MODE_ELEVATION               = 1u;
-let COLOR_MODE_GPS_TIME                = 2u;
-let COLOR_MODE_SOURCE_ID               = 3u;
-let COLOR_MODE_RETURN_NUMBER           = 4u;
-let COLOR_MODE_NUMBER_OF_RETURNS       = 5u;
-let COLOR_MODE_CLASSIFICATION          = 6u;
-
-${fnGetColor}
-${getColor_elevation}
 
 fn readU8(offset : u32) -> u32{
 	var ipos : u32 = offset / 4u;
@@ -165,6 +129,71 @@ fn readU32(offset : u32) -> u32{
 }
 
 
+fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
+
+	var value : f32 = 0.0;
+
+	if(attribute.valuetype == TYPES_U8){
+		var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
+		value = f32(readU8(offset));
+	}elseif(attribute.valuetype == TYPES_F64){
+		var offset = node.numPoints * attribute.offset + 8u * vertex.vertexID;
+
+		var b0 = readU8(offset + 0u);
+		var b1 = readU8(offset + 1u);
+		var b2 = readU8(offset + 2u);
+		var b3 = readU8(offset + 3u);
+		var b4 = readU8(offset + 4u);
+		var b5 = readU8(offset + 5u);
+		var b6 = readU8(offset + 6u);
+		var b7 = readU8(offset + 7u);
+
+		var exponent_f64_bin = (b7 << 4u) | (b6 >> 4u);
+		var exponent_f64 = exponent_f64_bin - 1023u;
+
+		var exponent_f32 = exponent_f64 + 127u;
+		var mantissa_f32 = (b6 & 0x0Fu) << 19u
+			| b5 << 11u
+			| b4 << 3u;
+		var sign = b7 >> 7u;
+		var value_u32 = sign << 31u
+			| exponent_f32 << 23u
+			| mantissa_f32;
+
+		var value_f32 = bitcast<f32>(value_u32);
+
+		value = value_f32;
+	}elseif(attribute.valuetype == TYPES_ELEVATION){
+		value = vertex.position.z;
+	}elseif(attribute.valuetype == TYPES_U16){
+		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
+		value = f32(readU16(offset));
+	}
+
+	var w = (value - attribute.range_min) / (attribute.range_max - attribute.range_min);
+
+	if(attribute.clamp == CLAMP_ENABLED){
+		w = clamp(w, 0.0, 1.0);
+	}
+
+	var uv : vec2<f32> = vec2<f32>(w, 0.0);
+	var color = textureSampleLevel(myTexture, mySampler, uv, 0.0);
+
+	return color;
+}
+
+fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
+
+	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+
+	if(attribute.valuetype == TYPES_RGBA){
+		color = vertex.attribute;
+	}
+
+	return color;
+}
+
+
 [[stage(vertex)]]
 fn main(vertex : VertexInput) -> VertexOutput {
 
@@ -174,6 +203,7 @@ fn main(vertex : VertexInput) -> VertexOutput {
 		ignore(myTexture);
 
 		var dbg = buffer.values[0];
+		var dbg1 = attributes.values[0];
 	}
 
 	var node = nodes.values[vertex.instanceID];
@@ -192,89 +222,21 @@ fn main(vertex : VertexInput) -> VertexOutput {
 		output.position.z = shifted.z / shifted.w;
 	}
 
-	// { // INTENSITY
-	// 	var offset = node.numPoints * 16u + 2u * vertex.vertexID;
-	// 	var value = readU16(offset);
+	{ // COLORIZE BY ATTRIBUTE DESCRIPTORS
+		var task = attributes.values[0];
+		var value : f32 = 0.0;
 
-	// 	var w = f32(value) / 60000.0;
-	// 	output.color = vec4<f32>(w, w, w, 1.0);
-	// }
+		var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
-	// { // RETURN NUMBER
-	// 	var offset = node.numPoints * 18u + vertex.vertexID;
-	// 	var value = readU8(offset);
+		if(task.numElements == 1u){
+			color = scalarToColor(vertex, task, node);
+		}else{
+			color = vectorToColor(vertex, task, node);
+		}
 
-	// 	var w = f32(value) / 4.0;
-	// 	output.color = vec4<f32>(w, w, w, 1.0);
-	// }
+		output.color = color;
+	}
 
-	// { // NUMBER OF RETURNS
-	// 	var offset = node.numPoints * 19u + vertex.vertexID;
-	// 	var value = readU8(offset);
-
-	// 	var w = f32(value) / 4.0;
-	// 	output.color = vec4<f32>(w, w, w, 1.0);
-	// }
-
-	// { // POINT SOURCE ID
-	// 	var intensityOffset = node.numPoints * 23u + 2u * vertex.vertexID;
-	// 	var intensity = readU16(intensityOffset);
-
-	// 	var w = f32(intensity) / 10.0;
-	// 	output.color = vec4<f32>(w, w, w, 1.0);
-
-	// 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
-	// 	var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
-
-	// 	output.color = color;
-	// }
-
-	// { // ELEVATION
-	// 	var min = 3.0;
-	// 	var max = 150.0;
-	// 	var size = max - min;
-
-	// 	var w = (vertex.position.z - min) / size;
-
-	// 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
-	// 	var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
-
-	// 	output.color = color;
-	// }
-
-	// { // GPS-TIME (25)
-	// 	var offset = node.numPoints * 25u + 8u * vertex.vertexID;
-
-	// 	var b0 = readU8(offset + 0u);
-	// 	var b1 = readU8(offset + 1u);
-	// 	var b2 = readU8(offset + 2u);
-	// 	var b3 = readU8(offset + 3u);
-	// 	var b4 = readU8(offset + 4u);
-	// 	var b5 = readU8(offset + 5u);
-	// 	var b6 = readU8(offset + 6u);
-	// 	var b7 = readU8(offset + 7u);
-
-	// 	var exponent_f64_bin = (b7 << 4u) | (b6 >> 4u);
-	// 	var exponent_f64 = exponent_f64_bin - 1023u;
-
-	// 	var exponent_f32 = exponent_f64 + 127u;
-	// 	var mantissa_f32 = (b6 & 0x0Fu) << 19u
-	// 		| b5 << 11u
-	// 		| b4 << 3u;
-	// 	var sign = b7 >> 7u;
-	// 	var value_u32 = sign << 31u
-	// 		| exponent_f32 << 23u
-	// 		| mantissa_f32;
-
-	// 	var value_f32 = bitcast<f32>(value_u32);
-	// 	var w = value_f32 / 6000.0;
-
-	// 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
-	// 	var color : vec4<f32> = textureSampleLevel(myTexture, mySampler, uv, 0.0);
-	// 	output.color = color;
-	// }
-
-	output.color = getColor(vertex);
 
 	return output;
 }

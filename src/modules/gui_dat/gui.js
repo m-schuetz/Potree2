@@ -16,7 +16,7 @@ let guiContent = {
 
 
 	// INPUT
-	// "show bounding box": false,
+	"show bounding box": false,
 	// "mode": "pixels",
 	// "mode": "dilate",
 	"use compute": false,
@@ -73,7 +73,7 @@ export function initGUI(potree){
 		input.add(guiContent, "dilate").listen();
 		input.add(guiContent, "Eye-Dome-Lighting").listen();
 		input.add(guiContent, "High-Quality").listen();
-		// input.add(guiContent, "show bounding box");
+		input.add(guiContent, "show bounding box").listen();
 		input.add(guiContent, "update").listen();
 		// guiAttributes = input.add(guiContent, "attribute", ["rgba", "intensity"]).listen();
 		// window.guiAttributes = guiAttributes;
@@ -115,6 +115,7 @@ export function initGUI(potree){
 		Potree.settings.edlEnabled = guiContent["Eye-Dome-Lighting"];
 		Potree.settings.hqsEnabled = guiContent["High-Quality"];
 		Potree.settings.updateEnabled = guiContent["update"];
+		Potree.settings.showBoundingBox = guiContent["show bounding box"];
 
 	
 	});
