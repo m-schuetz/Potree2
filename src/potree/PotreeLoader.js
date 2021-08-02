@@ -251,14 +251,23 @@ export class PotreeLoader{
 			let pointAttributes = this.attributes;
 			let scale = this.scale;
 			let offset = this.offset;
-			// let min = [0, 0, 0];
 			let min = this.octree.loader.metadata.boundingBox.min;
 			let numPoints = node.numPoints;
 			let name = node.name;
+			let nodeMin = [
+				node.boundingBox.min.x,// + min[0],
+				node.boundingBox.min.y,// + min[1],
+				node.boundingBox.min.z,// + min[2],
+			];
+			let nodeMax = [
+				node.boundingBox.max.x,// + min[0],
+				node.boundingBox.max.y,// + min[1],
+				node.boundingBox.max.z,// + min[2],
+			];
 
 			let message = {
 				name, url, byteOffset, byteSize, numPoints,
-				pointAttributes, scale, offset, min,
+				pointAttributes, scale, offset, min, nodeMin, nodeMax
 			};
 
 			worker.postMessage(message, []);

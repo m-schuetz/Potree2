@@ -68,7 +68,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 
 		let gradientTexture = getGradient(Potree.settings.gradient);
 
-		let nodesBuffer = new ArrayBuffer(10_000 * 8);
+		let nodesBuffer = new ArrayBuffer(10_000 * 32);
 		let nodesGpuBuffer = device.createBuffer({
 			size: nodesBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -299,13 +299,23 @@ function renderOctree(octree, drawstate, flags){
 		for(let i = 0; i < nodes.length; i++){
 			let node = nodes[i];
 
-			view.setUint32(8 * i + 0, node.geometry.numElements, true);
-			view.setUint32(8 * i + 4, i, true);
+			view.setUint32(32 * i + 0, node.geometry.numElements, true);
+			view.setUint32(32 * i + 4, i, true);
+
+			let bb = node.boundingBox;
+			let bbWorld = octree.boundingBox;
+			view.setFloat32(32 * i +  8, bbWorld.min.x + bb.min.x, true);
+			view.setFloat32(32 * i + 12, bbWorld.min.y + bb.min.y, true);
+			view.setFloat32(32 * i + 16, bbWorld.min.z + bb.min.z, true);
+			view.setFloat32(32 * i + 20, bbWorld.min.x + bb.max.x, true);
+			view.setFloat32(32 * i + 24, bbWorld.min.y + bb.max.y, true);
+			view.setFloat32(32 * i + 28, bbWorld.min.z + bb.max.z, true);
+
 		}
 
 		renderer.device.queue.writeBuffer(
 			nodesGpuBuffer, 0, 
-			nodesBuffer, 0, 8 * nodes.length
+			nodesBuffer, 0, 32 * nodes.length
 		);
 
 		pass.passEncoder.setBindGroup(3, nodesBindGroup);

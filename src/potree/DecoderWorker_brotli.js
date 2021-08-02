@@ -46,34 +46,9 @@ function dealign24b(mortoncode){
 	return x;
 }
 
-function randomInt(min, max){
-
-	let width = max - min;
-
-	let r = Math.floor(Math.random() * width + min);
-	r = Math.min(r, max - 1);
-
-	return r;
-}
-
-function getShuffleOrder(n){
-
-	let order = new Uint32Array(n).map( (a, i) => i);
-
-	for(let i = 0; i < n; i++){
-		let source_index = randomInt(i + 1, n);
-
-		let tmp = order[i];
-		order[i] = order[source_index];
-		order[source_index] = tmp;
-	}
-
-	return order;
-}
-
 async function load(event){
 
-	let {name, pointAttributes, numPoints, scale, offset, min} = event.data;
+	let {name, pointAttributes, numPoints, scale, offset, min, nodeMin, nodeMax} = event.data;
 
 	let buffer;
 	if(event.data.byteSize === 0n){
@@ -98,23 +73,11 @@ async function load(event){
 
 	let decoded = BrotliDecode(new Int8Array(buffer));
 	let view = new DataView(decoded.buffer);
-	
-	let attributeBuffers = {};
-
-	let bytesPerPoint = 0;
-	for (let pointAttribute of pointAttributes.attributes) {
-		bytesPerPoint += pointAttribute.byteSize;
-	}
-
-	// let order = getShuffleOrder(numPoints);
 
 	let byteOffset = 0;
 	for (let pointAttribute of pointAttributes.attributes) {
 		
 		if(["POSITION_CARTESIAN", "position"].includes(pointAttribute.name)){
-
-			let buff = new ArrayBuffer(numPoints * 4 * 3);
-			let positions = new Float32Array(buff);
 
 			for (let j = 0; j < numPoints; j++) {
 
@@ -150,28 +113,40 @@ async function load(event){
 				let y = parseInt(Y) * scale[1] + offset[1] - min[1];
 				let z = parseInt(Z) * scale[2] + offset[2] - min[2];
 
-				positions[3 * j + 0] = x;
-				positions[3 * j + 1] = y;
-				positions[3 * j + 2] = z;
+				view.setFloat32(byteOffset + 16 * j + 0, x, true);
+				view.setFloat32(byteOffset + 16 * j + 4, y, true);
+				view.setFloat32(byteOffset + 16 * j + 8, z, true);
 
-				view.setFloat32(byteOffset + 12 * j + 0, x, true);
-				view.setFloat32(byteOffset + 12 * j + 4, y, true);
-				view.setFloat32(byteOffset + 12 * j + 8, z, true);
+				// {
+				// 	let cubeSize = nodeMax[0] - nodeMin[0];
+				// 	// let iX = 1024 * (parseInt(X) * scale[0] + offset[0] - nodeMin[0]) / cubeSize;
+				// 	// let iY = 1024 * (parseInt(Y) * scale[1] + offset[1] - nodeMin[1]) / cubeSize;
+				// 	// let iZ = 1024 * (parseInt(Z) * scale[2] + offset[2] - nodeMin[2]) / cubeSize;
+
+				// 	let iX = 1024 * (x - nodeMin[0]) / cubeSize;
+				// 	let iY = 1024 * (y - nodeMin[1]) / cubeSize;
+				// 	let iZ = 1024 * (z - nodeMin[2]) / cubeSize;
+
+				// 	let clamp = (value, min, max) => Math.max(Math.min(value, max), min);
+
+				// 	iX = Math.floor(clamp(iX, 0, 1023));
+				// 	iY = Math.floor(clamp(iY, 0, 1023));
+				// 	iZ = Math.floor(clamp(iZ, 0, 1023));
+
+				// 	let encoded = (iX << 20) | (iY << 10) | iZ;
+
+				// 	// view.setUint32(byteOffset + 16 * j + 12, encoded, true);
+				// 	view.setUint32(byteOffset + 4 * j + 0, encoded, true);
+				// }
+
+
 
 			}
 
 			byteOffset += 16 * numPoints;
-
-			// attributeBuffers[pointAttribute.name] = { buffer: positions, attribute: pointAttribute, name: pointAttribute.name };
 		}else if(["RGBA", "rgba"].includes(pointAttribute.name)){
 
-			let length = numPoints * 4;
-			let buff = new ArrayBuffer(length);
-			let colors = new Uint8Array(buff);
-
 			for (let j = 0; j < numPoints; j++) {
-
-				// let src_index = order[j];
 				let src_index = j;
 				let pointOffset = byteOffset + src_index * 8;
 
@@ -192,11 +167,6 @@ async function load(event){
 				g = g | 255 ? g / 256 : g;
 				b = b | 255 ? b / 256 : b;
 
-				colors[4 * j + 0] = r;
-				colors[4 * j + 1] = g;
-				colors[4 * j + 2] = b;
-				colors[4 * j + 3] = 255;
-
 				view.setUint8(byteOffset + 4 * j + 0, r, true);
 				view.setUint8(byteOffset + 4 * j + 1, g, true);
 				view.setUint8(byteOffset + 4 * j + 2, b, true);
@@ -204,48 +174,14 @@ async function load(event){
 			}
 
 			byteOffset += 4 * numPoints;
-
-			// attributeBuffers[pointAttribute.name] = { 
-			// 	buffer: colors, 
-			// 	attribute: pointAttribute, 
-			// 	name: pointAttribute.name 
-			// };
 		}else{
-
-			let start = byteOffset;
-			let length = numPoints * pointAttribute.byteSize;
-			let srcData = new Uint8Array(decoded.buffer, start, length);
-			let sourceView = new DataView(srcData.buffer, start, length);
-			let src = null;
-			let target = null;
-
-			byteOffset += length;
-
-			if(pointAttribute.type.name === "uint16"){
-				target = new Uint32Array(numPoints * pointAttribute.numElements);
-
-				for(let i = 0; i < numPoints; i++){
-					let srcOffset = i * pointAttribute.byteSize;
-					let value = sourceView.getUint16(srcOffset, true);
-					target[i] = value;
-				}
-
-			}else{
-				continue;
-			}
-
-			// attributeBuffers[pointAttribute.name] = { 
-			// 	buffer: target, 
-			// 	attribute: pointAttribute, 
-			// 	name: pointAttribute.name 
-			// };
-
+			byteOffset += numPoints * pointAttribute.byteSize;
 		}
 
 	}
 
-	let duration = performance.now() - tStart;
-	let pointsPerSecond = (1000 * numPoints / duration) / 1_000_000;
+	// let duration = performance.now() - tStart;
+	// let pointsPerSecond = (1000 * numPoints / duration) / 1_000_000;
 	// console.log(`[${name}] duration: ${duration.toFixed(1)}ms, #points: ${numPoints}, points/s: ${pointsPerSecond.toFixed(1)}M`);
 
 	// pad to multiple of 4 bytes due to GPU requirements.

@@ -32,8 +32,14 @@ let shader = `
 };
 
 struct Node {
-	numPoints : u32;
-	dbg : u32;
+	numPoints   : u32;
+	dbg         : u32;
+	min_x       : f32;
+	min_y       : f32;
+	min_z       : f32;
+	max_x       : f32;
+	max_y       : f32;
+	max_z       : f32;
 };
 
 struct AttributeDescriptor{
@@ -46,7 +52,7 @@ struct AttributeDescriptor{
 };
 
 [[block]] struct Nodes{
-	values : [[stride(8)]] array<Node>;
+	values : [[stride(32)]] array<Node>;
 };
 
 [[block]] struct AttributeDescriptors{
@@ -70,6 +76,10 @@ let TYPES_ELEVATION     = 51u;
 
 let CLAMP_DISABLED      =  0u;
 let CLAMP_ENABLED       =  1u;
+
+let RED      = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+let GREEN    = vec4<f32>(0.0, 1.0, 0.0, 1.0);
+let OUTSIDE  = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 [[binding(1), group(0)]] var<storage, read> attributes : AttributeDescriptors;
@@ -166,13 +176,13 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 		var exponent_f64_bin = (b7 << 4u) | (b6 >> 4u);
 		var exponent_f64 = exponent_f64_bin - 1023u;
 
-		var exponent_f32 = exponent_f64 + 127u;
+		var exponent_f32_bin = exponent_f64 + 127u;
 		var mantissa_f32 = (b6 & 0x0Fu) << 19u
 			| b5 << 11u
 			| b4 << 3u;
-		var sign = b7 >> 7u;
+		var sign = (b7 >> 7u) & 1u;
 		var value_u32 = sign << 31u
-			| exponent_f32 << 23u
+			| exponent_f32_bin << 23u
 			| mantissa_f32;
 
 		var value_f32 = bitcast<f32>(value_u32);
@@ -204,15 +214,12 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	if(attribute.valuetype == TYPES_RGBA){
 
 		var offset = node.numPoints * 33u + 4u * vertex.vertexID;
-		var r = readU8(offset + 0u);
-		var g = readU8(offset + 1u);
-		var b = readU8(offset + 2u);
-		var a = readU8(offset + 3u);
+		var r = f32(readU8(offset + 0u));
+		var g = f32(readU8(offset + 1u));
+		var b = f32(readU8(offset + 2u));
+		var a = f32(readU8(offset + 3u));
 
-		color.r = f32(r) / 255.0;
-		color.g = f32(g) / 255.0;
-		color.b = f32(b) / 255.0;
-		color.a = f32(a) / 255.0;
+		color = vec4<f32>(r, g, b, a) / 255.0;
 	}
 
 	return color;
@@ -238,15 +245,45 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	var position : vec4<f32>;
 	var viewPos : vec4<f32>;
 	{
-		var offset = 12u * vertex.vertexID;
-		var x = readF32(offset + 0u);
-		var y = readF32(offset + 4u);
-		var z = readF32(offset + 8u);
 
-		position = vec4<f32>(x, y, z, 1.0);
-		viewPos = uniforms.worldView * position;
+		{ // 3xFLOAT
+			var offset = 16u * vertex.vertexID;
+			
+			position = vec4<f32>(
+				readF32(offset + 0u),
+				readF32(offset + 4u),
+				readF32(offset + 8u),
+				1.0,
+			);
+			
+			viewPos = uniforms.worldView * position;
+			output.position = uniforms.proj * viewPos;	
+		}
+		
 
-		output.position = uniforms.proj * viewPos;
+		// { // compressed coordinates. 1xUINT32
+		// 	// var offset = 4u * vertex.vertexID;
+		// 	var encoded = readU32( 4u * vertex.vertexID);
+
+		// 	var cubeSize = node.max_x - node.min_x;
+		// 	var X = (encoded >> 20u) & 0x3ffu;
+		// 	var Y = (encoded >> 10u) & 0x3ffu;
+		// 	var Z = (encoded >>  0u) & 0x3ffu;
+
+		// 	var x = (f32(X) / 1024.0) * cubeSize + node.min_x;
+		// 	var y = (f32(Y) / 1024.0) * cubeSize + node.min_y;
+		// 	var z = (f32(Z) / 1024.0) * cubeSize + node.min_z;
+		// 	position = vec4<f32>(x, y, z, 1.0);
+
+		// 	viewPos = uniforms.worldView * position;
+		// 	output.position = uniforms.proj * viewPos;	
+		// }
+
+		
+
+		// if(vertex.instanceID != 0u){
+		// 	output.position = OUTSIDE;
+		// }
 	}
 
 	// in the HQS depth pass, shift points 1% further away from camera
