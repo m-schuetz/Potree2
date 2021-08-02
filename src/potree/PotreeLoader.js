@@ -207,7 +207,14 @@ export class PotreeLoader{
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
 			//new Worker("./src/potree/DecoderWorker_brotli.js",);
 			//let worker = new Worker("./src/potree/DecoderWorker_brotli.js", { type: "module" });
-			let workerPath = "./src/potree/DecoderWorker_brotli.js";
+
+			let workerPath = null;
+			if(this.metadata.encoding === "default"){
+				workerPath = "./src/potree/DecoderWorker_default.js";
+			}else if(this.metadata.encoding === "BROTLI"){
+				workerPath = "./src/potree/DecoderWorker_brotli.js";
+			}
+			
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
 			worker.onmessage = function(e){

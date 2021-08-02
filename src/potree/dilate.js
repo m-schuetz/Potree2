@@ -163,8 +163,8 @@ let fs = `
 			var pixelDepth : f32 = textureLoad(myDepth, vec2<i32>(source), 0).x;
 			var d = getLinearDepthAt(input, source);
 
-			// output.depth = pixelDepth;
-			output.depth = uniforms.near / d;
+			output.depth = pixelDepth;
+			// output.depth = uniforms.near / d;
 			output.color = color;
 
 			return output;

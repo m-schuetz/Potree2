@@ -213,7 +213,8 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 
 	if(attribute.valuetype == TYPES_RGBA){
 
-		var offset = node.numPoints * 33u + 4u * vertex.vertexID;
+		// var offset = node.numPoints * 33u + 4u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
 		var r = f32(readU8(offset + 0u));
 		var g = f32(readU8(offset + 1u));
 		var b = f32(readU8(offset + 2u));
@@ -247,7 +248,7 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	{
 
 		{ // 3xFLOAT
-			var offset = 16u * vertex.vertexID;
+			var offset = 12u * vertex.vertexID;
 			
 			position = vec4<f32>(
 				readF32(offset + 0u),
@@ -311,6 +312,7 @@ fn main(vertex : VertexInput) -> VertexOutput {
 		output.color = color;
 	}
 
+	// output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 
 	return output;
 }

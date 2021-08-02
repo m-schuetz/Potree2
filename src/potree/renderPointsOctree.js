@@ -29,15 +29,21 @@ function init(renderer){
 	});
 }
 
-function getGradient(){
-
-	let gradient = Potree.settings.gradient;
+function getGradient(renderer, pipeline, gradient){
 
 	if(!gradientTextureMap.has(gradient)){
 		let texture = renderer.createTextureFromArray(
 			gradient.steps.flat(), gradient.steps.length, 1);
 
-		gradientTextureMap.set(gradient, texture);
+		let bindGroup = renderer.device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(1),
+			entries: [
+				{binding: 0, resource: gradientSampler},
+				{binding: 1, resource: texture.createView()},
+			],
+		});
+
+		gradientTextureMap.set(gradient, {texture, bindGroup});
 	}
 
 	return gradientTextureMap.get(gradient);
@@ -66,7 +72,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
-		let gradientTexture = getGradient(Potree.settings.gradient);
+		// let gradientTexture = getGradient(Potree.settings.gradient);
 
 		let nodesBuffer = new ArrayBuffer(10_000 * 32);
 		let nodesGpuBuffer = device.createBuffer({
@@ -95,17 +101,17 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			],
 		});
 
-		const miscBindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(1),
-			entries: [
-				{binding: 0, resource: gradientSampler},
-				{binding: 1, resource: gradientTexture.createView()},
-			],
-		});
+		// const miscBindGroup = device.createBindGroup({
+		// 	layout: pipeline.getBindGroupLayout(1),
+		// 	entries: [
+		// 		{binding: 0, resource: gradientSampler},
+		// 		{binding: 1, resource: gradientTexture.createView()},
+		// 	],
+		// });
 
 		state = {
 			pipeline, uniformBuffer, uniformBindGroup, 
-			miscBindGroup, nodesBuffer, nodesGpuBuffer, nodesBindGroup,
+			nodesBuffer, nodesGpuBuffer, nodesBindGroup,
 			attributesDescBuffer, attributesDescGpuBuffer
 		};
 
@@ -183,10 +189,24 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			view.setUint32(  20,                   clamp, true);
 		};
 
+		let attributes = octree.loader.attributes;
+
+		let offset = 0;
+		let offsets = new Map();
+		for(let attribute of attributes.attributes){
+			
+			offsets.set(attribute.name, offset);
+
+			offset += attribute.byteSize;
+		}
+
+		let corrector = octree.loader.metadata.encoding === "BROTLI" ? 4 : 0;
+		let attribute = attributes.attributes.find(a => a.name === selectedAttribute);
+
 		if(selectedAttribute === "rgba"){
 			set({
-				offset       : 0,
-				numElements  : 3,
+				offset       : offsets.get(selectedAttribute) + corrector,
+				numElements  : attribute.numElements,
 				type         : TYPES.RGBA,
 				range        : [0, 255],
 			});
@@ -199,30 +219,31 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				clamp        : true,
 			});
 		}else if(selectedAttribute === "intensity"){
+			
 			set({
-				offset       : 16,
-				numElements  : 1,
+				offset       : offsets.get(selectedAttribute) + corrector,
+				numElements  : attribute.numElements,
 				type         : TYPES.U16,
 				range        : [0, 255],
 			});
 		}else if(selectedAttribute === "classification"){
 			set({
-				offset       : 20,
-				numElements  : 1,
+				offset       : offsets.get(selectedAttribute) + corrector,
+				numElements  : attribute.numElements,
 				type         : TYPES.U8,
 				range        : [0, 32],
 			});
 		}else if(selectedAttribute === "number of returns"){
 			set({
-				offset       : 19,
-				numElements  : 1,
+				offset       : offsets.get(selectedAttribute) + corrector,
+				numElements  : attribute.numElements,
 				type         : TYPES.U8,
 				range        : [0, 4],
 			});
 		}else if(selectedAttribute === "gps-time"){
 			set({
-				offset       : 25,
-				numElements  : 1,
+				offset       : offsets.get(selectedAttribute) + corrector,
+				numElements  : attribute.numElements,
 				type         : TYPES.F64,
 				range        : [0, 10_000],
 				clamp        : false,
@@ -274,22 +295,14 @@ function renderOctree(octree, drawstate, flags){
 
 	updateUniforms(octree, octreeState, drawstate, flags);
 
-	let {pipeline, uniformBindGroup, miscBindGroup} = octreeState;
+	let {pipeline, uniformBindGroup} = octreeState;
 
 	pass.passEncoder.setPipeline(pipeline);
 	pass.passEncoder.setBindGroup(0, uniformBindGroup);
 
 	{
-		let gradientTexture = getGradient(Potree.settings.gradient);
-
-		let miscBindGroup = renderer.device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(1),
-			entries: [
-				{binding: 0, resource: gradientSampler},
-				{binding: 1, resource: gradientTexture.createView()},
-			],
-		});
-		pass.passEncoder.setBindGroup(1, miscBindGroup);
+		let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
+		pass.passEncoder.setBindGroup(1, bindGroup);
 	}
 
 	{

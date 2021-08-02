@@ -1,6 +1,6 @@
 
 import {Vector3, Matrix4, Box3} from "potree";
-import {Potree} from "potree";
+import {Potree, EventDispatcher} from "potree";
 
 export class OrbitControls{
 
@@ -12,21 +12,16 @@ export class OrbitControls{
 		this.pitch = 0;
 		this.pivot = new Vector3();
 		this.world = new Matrix4();
+		this.dispatcher = new EventDispatcher();
 
-		element.addEventListener('contextmenu', e => {
-			e.preventDefault();
+		this.dispatcher.add('mousemove', e => {
 
-			return true;
-		});
-
-		element.addEventListener('mousemove', e => {
-
-			let dragLeft = e.buttons === 1;
-			let dragRight = e.buttons === 2;
+			let dragLeft = e.event.buttons === 1;
+			let dragRight = e.event.buttons === 2;
 
 			if(dragLeft){
-				let diffX = e.movementX;
-				let diffY = e.movementY;
+				let diffX = e.event.movementX;
+				let diffY = e.event.movementY;
 
 				let ux = diffX / this.element.width;
 				let uy = diffY / this.element.height;
@@ -34,8 +29,8 @@ export class OrbitControls{
 				this.yaw += 6 * ux;
 				this.pitch += 6 * uy;
 			}else if(dragRight){
-				let diffX = e.movementX;
-				let diffY = e.movementY;
+				let diffX = e.event.movementX;
+				let diffY = e.event.movementY;
 
 				let ux = diffX / this.element.width;
 				let uy = diffY / this.element.height;
@@ -48,8 +43,8 @@ export class OrbitControls{
 			}
 		});
 
-		element.addEventListener('wheel', e => {
-			let diff = Math.sign(e.deltaY);
+		this.dispatcher.add('mousewheel', e => {
+			let diff = -Math.sign(e.delta);
 
 			if(diff > 0){
 				this.radius *= 1.05;

@@ -113,9 +113,9 @@ async function load(event){
 				let y = parseInt(Y) * scale[1] + offset[1] - min[1];
 				let z = parseInt(Z) * scale[2] + offset[2] - min[2];
 
-				view.setFloat32(byteOffset + 16 * j + 0, x, true);
-				view.setFloat32(byteOffset + 16 * j + 4, y, true);
-				view.setFloat32(byteOffset + 16 * j + 8, z, true);
+				view.setFloat32(byteOffset + 12 * j + 0, x, true);
+				view.setFloat32(byteOffset + 12 * j + 4, y, true);
+				view.setFloat32(byteOffset + 12 * j + 8, z, true);
 
 				// {
 				// 	let cubeSize = nodeMax[0] - nodeMin[0];

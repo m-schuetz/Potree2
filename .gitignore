@@ -37,3 +37,6 @@ prototyping/artifacts/*
 resources/pointclouds/ot_35120C7102A_1/hierarchy.bin
 resources/pointclouds/ot_35120C7102A_1/metadata.json
 resources/pointclouds/ot_35120C7102A_1/octree.bin
+resources/pointclouds/octree_cuda/hierarchy.bin
+resources/pointclouds/octree_cuda/metadata.json
+resources/pointclouds/octree_cuda/octree.bin

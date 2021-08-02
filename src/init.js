@@ -492,8 +492,8 @@ export async function init(){
 	let potree = {};
 
 	camera = new Camera();
-	// controls = new OrbitControls(renderer.canvas);
-	controls = new PotreeControls(renderer.canvas);
+	controls = new OrbitControls(renderer.canvas);
+	// controls = new PotreeControls(renderer.canvas);
 
 
 	potree.controls = controls;
