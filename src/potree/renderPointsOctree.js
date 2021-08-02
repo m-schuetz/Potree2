@@ -49,6 +49,7 @@ function getGradient(renderer, pipeline, gradient){
 	return gradientTextureMap.get(gradient);
 }
  
+ let ids = 0;
 
 function getOctreeState(renderer, octree, attributeName, flags = []){
 
@@ -60,7 +61,13 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 	let attribute = attributes.find(a => a.name === mapping);
 
 	// let key = `${attribute.name}_${attribute.numElements}_${attribute.type.name}_${mapping}_${flags.join("_")}`;
-	let key = `${flags.join("_")}`;
+
+	if(typeof octree.state_id === "undefined"){
+		octree.state_id = ids;
+		ids++;
+	}
+
+	let key = `${octree.state_id}_${flags.join("_")}`;
 
 	let state = octreeStates.get(key);
 
@@ -250,8 +257,6 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			});
 		}
 
-			
-
 		renderer.device.queue.writeBuffer(
 			attributesDescGpuBuffer, 0, 
 			attributesDescBuffer, 0, 1024);
@@ -323,7 +328,6 @@ function renderOctree(octree, drawstate, flags){
 			view.setFloat32(32 * i + 20, bbWorld.min.x + bb.max.x, true);
 			view.setFloat32(32 * i + 24, bbWorld.min.y + bb.max.y, true);
 			view.setFloat32(32 * i + 28, bbWorld.min.z + bb.max.z, true);
-
 		}
 
 		renderer.device.queue.writeBuffer(
@@ -365,6 +369,11 @@ export function render(octrees, drawstate, flags = []){
 	Timer.timestamp(drawstate.pass.passEncoder, "octree-start");
 
 	for(let octree of octrees){
+
+		if(octree.visible === false){
+			continue;
+		}
+
 		renderOctree(octree, drawstate, flags);
 	}
 
