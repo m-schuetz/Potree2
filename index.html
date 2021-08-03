@@ -77,6 +77,7 @@ td{
 
 	import {Potree} from "potree";
 	import {Vector3, Mesh, Quads, geometries, Points, PointLight} from "potree";
+	import {WireframeMaterial} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
 
@@ -93,9 +94,9 @@ td{
 	initGUI(potree);
 	guiContent["point budget (M)"] = 4;
 	guiContent["point size"] = 5;
-	guiContent["High-Quality"] = true;
+	guiContent["High-Quality"] = false;
 	guiContent["Eye-Dome-Lighting"] = false;
-	guiContent["dilate"] = true;
+	guiContent["dilate"] = false;
 	// guiContent["attribute"] = "intensity";
 
 
@@ -161,58 +162,58 @@ td{
 
 
 
-	Potree.load("./resources/pointclouds/octree_cuda/metadata.json", {name: "CA13"}).then(pointcloud => {
-	// Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
-		scene.root.children.push(pointcloud);
+	// Potree.load("./resources/pointclouds/octree_cuda/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// // Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
 		
-		controls.set({
-			position: [-2.8768227778537447, 14.02743299889709, 12.167932888490938],
-			pivot: [8.814317925142443, 7.502405843847264, 4.8142897145105827],
-		});
+	// 	controls.set({
+	// 		position: [-2.8768227778537447, 14.02743299889709, 12.167932888490938],
+	// 		pivot: [8.814317925142443, 7.502405843847264, 4.8142897145105827],
+	// 	});
 
-	});
+	// });
 
-	Potree.load("./resources/pointclouds/heidentor/metadata.json", {name: "CA13"}).then(pointcloud => {
-		scene.root.children.push(pointcloud);
+	// Potree.load("./resources/pointclouds/heidentor/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
 
-		pointcloud.position.set(3.504, 0, 0.72)
-		pointcloud.visible = false;
+	// 	pointcloud.position.set(3.504, 0, 0.72)
+	// 	pointcloud.visible = false;
 		
-		// controls.set({
-		// 	position: [-2.8768227778537447, 14.02743299889709, 12.167932888490938],
-		// 	pivot: [8.814317925142443, 7.502405843847264, 4.8142897145105827],
-		// });
+	// 	// controls.set({
+	// 	// 	position: [-2.8768227778537447, 14.02743299889709, 12.167932888490938],
+	// 	// 	pivot: [8.814317925142443, 7.502405843847264, 4.8142897145105827],
+	// 	// });
 
-		// let state = scene.root.children[2].visible;
-		// scene.root.children[2].visible = !state;
-		// scene.root.children[3].visible = state;
+	// 	// let state = scene.root.children[2].visible;
+	// 	// scene.root.children[2].visible = !state;
+	// 	// scene.root.children[3].visible = state;
 		
 
-	});
+	// });
 
-	{
-		function toggleVisibility(){
-			let state = scene.root.children[2].visible;
-			scene.root.children[2].visible = !state;
-			scene.root.children[3].visible = state;
-		}
+	// {
+	// 	function toggleVisibility(){
+	// 		let state = scene.root.children[2].visible;
+	// 		scene.root.children[2].visible = !state;
+	// 		scene.root.children[3].visible = state;
+	// 	}
 
-		let elToggle = document.createElement("input");
-		elToggle.type = "button";
-		elToggle.value = "toggle";
-		elToggle.style.position = "absolute";
-		elToggle.style.zIndex = 1000;
-		elToggle.style.left = "500px";
-		elToggle.style.bottom = "10px";
+	// 	let elToggle = document.createElement("input");
+	// 	elToggle.type = "button";
+	// 	elToggle.value = "toggle";
+	// 	elToggle.style.position = "absolute";
+	// 	elToggle.style.zIndex = 1000;
+	// 	elToggle.style.left = "500px";
+	// 	elToggle.style.bottom = "10px";
 
-		elToggle.addEventListener("click", () => {
-			toggleVisibility();
-		});
+	// 	elToggle.addEventListener("click", () => {
+	// 		toggleVisibility();
+	// 	});
 
 
-		document.body.appendChild(elToggle);
+	// 	document.body.appendChild(elToggle);
 
-	}
+	// }
 
 
 
@@ -228,23 +229,47 @@ td{
 
 	
 
+	Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
 	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 
-	// 	node.set({
-	// 		position: [5, 0, 3],
-	// 		scale: [4, 4, 4],
-	// 	});
-	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+		// node.set({
+		// 	position: [5, 0, 3],
+		// 	scale: [4, 4, 4],
+		// });
+		// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
 
-	// 	scene.root.children.push(node);
+		node.set({
+			position: [-15, -15, 4],
+			scale: [4, 4, 4],
+		});
+		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(1, 0, 0));
+
+		scene.root.children.push(node);
 
 
-	// 	let light = new PointLight();
-	// 	light.position.set(10, 10, 10);
+		let light = new PointLight();
+		light.position.set(10, 10, 10);
 
-	// 	scene.root.children.push(light);
+		scene.root.children.push(light);
 
-	// });
+
+		{ // add wireframe
+			let node2 = new Mesh("wireframe", node.geometry);
+			node2.material = new WireframeMaterial();
+			node2.material.color.set(1, 0, 0);
+			node2.position.copy(node.position);
+			node2.scale.copy(node.scale);
+			node2.rotation.copy(node.rotation);
+
+			scene.root.children.push(node2);
+		}
+
+		controls.set({
+			position: [-7.8, 4.6, 2.9],
+			pivot: [-11, -5.2, -0.7],
+		});
+
+	});
 
 
 	// potree.addEventListener("update", (e) => {

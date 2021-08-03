@@ -2,7 +2,7 @@
 import {Geometry, SceneNode, Mesh} from "potree";
 import {Box3, Vector3} from "potree";
 import {PhongMaterial, ColorMode} from "potree";
-import {NormalMaterial} from "potree";
+import {NormalMaterial, WireframeMaterial} from "potree";
 
 
 
@@ -25,8 +25,8 @@ export function load(url){
 			geometry.boundingBox.max.copy(geometryData.boundingBox.max);
 
 			let mesh = new Mesh("glb mesh", geometry);
-			let node = new SceneNode("glb node");
-			node.children.push(mesh);
+			// let node = new SceneNode("glb node");
+			// node.children.push(mesh);
 
 			if(imageBitmap){
 				mesh.material = new PhongMaterial();

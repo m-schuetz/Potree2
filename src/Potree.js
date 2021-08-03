@@ -27,6 +27,7 @@ export * from "./scene/PointLight.js";
 export * from "./modules/mesh/Mesh.js";
 export * from "./modules/mesh/NormalMaterial.js";
 export * from "./modules/mesh/PhongMaterial.js";
+export * from "./modules/mesh/WireframeMaterial.js";
 export * from "./modules/quads/Quads.js";
 export * from "./scene/Camera.js";
 export * from "./navigation/OrbitControls.js";
