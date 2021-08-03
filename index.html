@@ -76,10 +76,11 @@ td{
 <script type="module">
 
 	import {Potree} from "potree";
-	import {Vector3, Mesh, Quads, geometries, Points, PointLight} from "potree";
-	import {WireframeMaterial} from "potree";
+	import {Vector3, Mesh, Geometry, Quads, geometries, Points, PointLight} from "potree";
+	import {WireframeMaterial, TriangleColorMaterial} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
+	import {simplify} from "./src/prototyping/simplify.js"
 
 	import {installToolbar} from "toolbar";
 
@@ -227,8 +228,6 @@ td{
 	// 	});
 	// });
 
-	
-
 	Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
 	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 
@@ -244,7 +243,7 @@ td{
 		});
 		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(1, 0, 0));
 
-		scene.root.children.push(node);
+		// scene.root.children.push(node);
 
 
 		let light = new PointLight();
@@ -255,14 +254,19 @@ td{
 
 		{ // add wireframe
 			let node2 = new Mesh("wireframe", node.geometry);
+
+			// node2.material = new TriangleColorMaterial();
 			node2.material = new WireframeMaterial();
-			node2.material.color.set(1, 0, 0);
+			node2.material.color.set(0, 1, 0);
 			node2.position.copy(node.position);
 			node2.scale.copy(node.scale);
 			node2.rotation.copy(node.rotation);
 
-			scene.root.children.push(node2);
+			// scene.root.children.push(node2);
 		}
+
+		node.updateWorld();
+		simplify(node);
 
 		controls.set({
 			position: [-7.8, 4.6, 2.9],

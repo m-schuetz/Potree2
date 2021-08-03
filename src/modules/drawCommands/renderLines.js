@@ -40,11 +40,13 @@ fn main(vertex : VertexIn) -> VertexOut {
 const fs = `
 
 struct FragmentIn{
+	[[builtin(position)]] position  : vec4<f32>;
 	[[location(0)]] color : vec4<f32>;
 };
 
 struct FragmentOut{
 	[[location(0)]] color : vec4<f32>;
+	[[builtin(frag_depth)]] depth : f32;
 };
 
 [[stage(fragment)]]
@@ -52,6 +54,8 @@ fn main(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
 	fout.color = fragment.color;
+
+	fout.depth = fragment.position.z * 1.001;
 
 	return fout;
 }
@@ -63,7 +67,7 @@ let initialized = false;
 let pipeline = null;
 let uniformBuffer = null;
 let bindGroup = null;
-let capacity = 10_000;
+let capacity = 100_000;
 
 function createPipeline(renderer){
 
