@@ -149,20 +149,20 @@ canvas{
 
 	// });
 
-	Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
-		scene.root.children.push(pointcloud);
+	// Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
 		
-		// controls.set({
-		// 	position: [694333.496789461, 3915147.2756878096, 1088.4989729879585],
-		// 	pivot: [695211.9299879028, 3916448.5033958578, 95.82708962004546],
-		// });
+	// 	// controls.set({
+	// 	// 	position: [694333.496789461, 3915147.2756878096, 1088.4989729879585],
+	// 	// 	pivot: [695211.9299879028, 3916448.5033958578, 95.82708962004546],
+	// 	// });
 
-		controls.set({
-			position: [694623.2216978263, 3916163.3819058607, 141.51053932619533],
-			pivot: [694689.0157219684, 3916447.440557414, 56.51987395905676],
-		});
+	// 	controls.set({
+	// 		position: [694623.2216978263, 3916163.3819058607, 141.51053932619533],
+	// 		pivot: [694689.0157219684, 3916447.440557414, 56.51987395905676],
+	// 	});
 
-	});
+	// });
 
 
 
@@ -232,52 +232,56 @@ canvas{
 	// 	});
 	// });
 
-	// Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
-	// // Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+	Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
+	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 
-	// 	// node.set({
-	// 	// 	position: [5, 0, 3],
-	// 	// 	scale: [4, 4, 4],
-	// 	// });
-	// 	// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+		// node.set({
+		// 	position: [5, 0, 3],
+		// 	scale: [4, 4, 4],
+		// });
+		// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
 
-	// 	node.set({
-	// 		position: [-15, -15, 4],
-	// 		scale: [4, 4, 4],
-	// 	});
-	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(1, 0, 0));
+		node.set({
+			position: [-15, -15, 4],
+			scale: [4, 4, 4],
+		});
+		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(1, 0, 0));
 
-	// 	scene.root.children.push(node);
-
-
-	// 	let light = new PointLight();
-	// 	light.position.set(10, 10, 10);
-
-	// 	scene.root.children.push(light);
+		// scene.root.children.push(node);
 
 
-	// 	{ // add wireframe
-	// 		let node2 = new Mesh("wireframe", node.geometry);
+		let light = new PointLight();
+		light.position.set(10, 10, 10);
 
-	// 		// node2.material = new TriangleColorMaterial();
-	// 		node2.material = new WireframeMaterial();
-	// 		node2.material.color.set(0, 1, 0);
-	// 		node2.position.copy(node.position);
-	// 		node2.scale.copy(node.scale);
-	// 		node2.rotation.copy(node.rotation);
+		scene.root.children.push(light);
 
-	// 		scene.root.children.push(node2);
-	// 	}
 
-	// 	node.updateWorld();
-	// 	// simplify(node);
+		{ // add wireframe
+			let node2 = new Mesh("wireframe", node.geometry);
 
-	// 	controls.set({
-	// 		position: [-7.8, 4.6, 2.9],
-	// 		pivot: [-11, -5.2, -0.7],
-	// 	});
+			// node2.material = new TriangleColorMaterial();
+			node2.material = new WireframeMaterial();
+			node2.material.color.set(0, 1, 0);
+			node2.position.copy(node.position);
+			node2.scale.copy(node.scale);
+			node2.rotation.copy(node.rotation);
 
-	// });
+			// scene.root.children.push(node2);
+		}
+
+		node.updateWorld();
+		simplify(node);
+
+		controls.set({
+			position: [-7.8, 4.6, 2.9],
+			pivot: [-11, -5.2, -0.7],
+		});
+		controls.set({
+			position: [8.924371005465414, 32.71160570886811, 13.659141129344343],
+			pivot: [-5.190731328931251, -2.0177705664874344, -7.005915647885315],
+		});
+
+	});
 
 	// Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
 	// // Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
@@ -303,18 +307,18 @@ canvas{
 	// 	scene.root.children.push(light);
 
 
-	// 	{ // add wireframe
-	// 		let node2 = new Mesh("wireframe", node.geometry);
+	// 	// { // add wireframe
+	// 	// 	let node2 = new Mesh("wireframe", node.geometry);
 
-	// 		// node2.material = new TriangleColorMaterial();
-	// 		node2.material = new WireframeMaterial();
-	// 		node2.material.color.set(0, 1, 0);
-	// 		node2.position.copy(node.position);
-	// 		node2.scale.copy(node.scale);
-	// 		node2.rotation.copy(node.rotation);
+	// 	// 	// node2.material = new TriangleColorMaterial();
+	// 	// 	node2.material = new WireframeMaterial();
+	// 	// 	node2.material.color.set(0, 1, 0);
+	// 	// 	node2.position.copy(node.position);
+	// 	// 	node2.scale.copy(node.scale);
+	// 	// 	node2.rotation.copy(node.rotation);
 
-	// 		// scene.root.children.push(node2);
-	// 	}
+	// 	// 	// scene.root.children.push(node2);
+	// 	// }
 
 	// 	node.updateWorld();
 	// 	simplify(node);

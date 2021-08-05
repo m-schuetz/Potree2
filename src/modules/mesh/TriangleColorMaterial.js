@@ -39,6 +39,7 @@ struct VertexOutput {
 [[stage(vertex)]]
 fn main(vertex : VertexInput) -> VertexOutput {
 
+	var abc = triangleIDs.values[0];
 
 	var triangleIndex = vertex.vertexID / 3u;
 	var vertexIndex = indices.values[vertex.vertexID];
@@ -46,7 +47,15 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	var p = positions.values[vertexIndex];
 	var position = vec4<f32>(p.x, p.y, p.z, 1.0);
 
+	// var triangleID = 1234u * triangleIndex; 
 	var triangleID = 1234u * triangleIDs.values[triangleIndex]; 
+
+	// var inRange = triangleIndex > 403000u && triangleIndex < 404000u;
+	// inRange = triangleIndex == 403000u;
+	// if(!inRange){
+	// 	triangleID = 0u;
+	// }
+
 	var R = (triangleID >>  0u) & 0xFFu;
 	var G = (triangleID >>  8u) & 0xFFu;
 	var B = (triangleID >> 16u) & 0xFFu;
@@ -91,7 +100,8 @@ fn main(fragment : FragmentInput) -> FragmentOutput {
 
 	output.color = fragment.color;
 
-	output.depth = fragment.position.z * 1.001;
+	output.depth = fragment.position.z;
+	// output.depth = fragment.position.z * 1.001;
 
 	return output;
 }

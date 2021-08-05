@@ -34,11 +34,27 @@ export function simplify(node){
 	let triangleIDs = new Uint32Array(numTriangles);
 
 
-	// let permutation = randomPermutation(1000, numTriangles);
-	let permutation = new Uint32Array(1000);
-	for(let i = 0; i < 1000; i++){
-		permutation[i] = 1000 * i;
-	}
+	let permutation = randomPermutation(4000, numTriangles);
+	// let permutation = new Uint32Array(1000);
+	// for(let i = 0; i < 1000; i++){
+	// 	permutation[i] = 1000 * i;
+	// }
+
+	// let permutation = new Uint32Array([403000]);
+	// let permutation = new Uint32Array([
+	// 	403000,
+	// 	// 402960, 402961, 402962, 403000, 403008, 403023,
+	// 	// 402918, 402960, 402977, 402990, 402999, 403000,
+	// 	// 402999, 403000, 403022, 403023, 403052, 403053,
+	// ]);
+	// let permutation = new Uint32Array([402918, 402960, 402977, 402990, 402999, 403000]);
+
+	// triangle: 403000
+	// vertices:  232024 232001 232043
+	// neighbors(232024): 402960, 402961, 402962, 403000, 403008, 403023
+	// neighbors(232001): 402918, 402960, 402977, 402990, 402999, 403000
+	// neighbors(232043): 402999, 403000, 403022, 403023, 403052, 403053
+
 	let centers = [];
 
 	let mappings = [];
@@ -54,9 +70,10 @@ export function simplify(node){
 		let p2 = new Vector3(positions[3 * i2 + 0], positions[3 * i2 + 1], positions[3 * i2 + 2]);
 
 		let center = new Vector3().add(p0).add(p1).add(p2).multiplyScalar(0.333333);
-		center = p0;
-		center.applyMatrix4(node.world);
-		// centers.push(center);
+		centers.push(p0.applyMatrix4(node.world));
+		centers.push(p1.applyMatrix4(node.world));
+		centers.push(p2.applyMatrix4(node.world));
+		centers.push(center.applyMatrix4(node.world));
 
 		triangleIDs[triangleIndex] = triangleIndex;
 
@@ -79,21 +96,71 @@ export function simplify(node){
 		vertexNeighbors[i2].push(triangleIndex);
 	}
 
-	for(let triangleIndex of vertexNeighbors[0]){
-		let i0 = indices[3 * triangleIndex + 0];
-		let i1 = indices[3 * triangleIndex + 1];
-		let i2 = indices[3 * triangleIndex + 2];
+	// for(let triangleIndex of vertexNeighbors[0]){
+	// 	let i0 = indices[3 * triangleIndex + 0];
+	// 	let i1 = indices[3 * triangleIndex + 1];
+	// 	let i2 = indices[3 * triangleIndex + 2];
 
-		let p0 = new Vector3(positions[3 * i0 + 0], positions[3 * i0 + 1], positions[3 * i0 + 2]);
-		let p1 = new Vector3(positions[3 * i1 + 0], positions[3 * i1 + 1], positions[3 * i1 + 2]);
-		let p2 = new Vector3(positions[3 * i2 + 0], positions[3 * i2 + 1], positions[3 * i2 + 2]);
+	// 	let p0 = new Vector3(positions[3 * i0 + 0], positions[3 * i0 + 1], positions[3 * i0 + 2]);
+	// 	let p1 = new Vector3(positions[3 * i1 + 0], positions[3 * i1 + 1], positions[3 * i1 + 2]);
+	// 	let p2 = new Vector3(positions[3 * i2 + 0], positions[3 * i2 + 1], positions[3 * i2 + 2]);
 
-		let center = new Vector3().add(p0).add(p1).add(p2).multiplyScalar(0.333333);
-		center = p0;
-		center.applyMatrix4(node.world);
-		centers.push(center);
+	// 	let center = new Vector3().add(p0).add(p1).add(p2).multiplyScalar(0.333333);
+	// 	center = p0;
+	// 	center.applyMatrix4(node.world);
+	// 	centers.push(center);
 		
-	}
+	// }
+
+	let grow = (source) => {
+		let target = new Uint32Array(source);
+
+		for(let triangleIndex = 0; triangleIndex < numTriangles; triangleIndex++){
+
+			if(source[triangleIndex] > 0){
+
+				let targetTriangleID = source[triangleIndex];
+
+				let i0 = indices[3 * triangleIndex + 0];
+				let i1 = indices[3 * triangleIndex + 1];
+				let i2 = indices[3 * triangleIndex + 2];
+
+				for(let triangleID of vertexNeighbors[i0]){
+					if(target[triangleID] === 0){
+						target[triangleID] = targetTriangleID;
+					}
+				}
+
+				for(let triangleID of vertexNeighbors[i1]){
+					if(target[triangleID] === 0){
+						target[triangleID] = targetTriangleID;
+					}
+				}
+
+				for(let triangleID of vertexNeighbors[i2]){
+					if(target[triangleID] === 0){
+						target[triangleID] = targetTriangleID;
+					}
+				}
+			}
+		}
+
+		return target;
+	};
+
+	// let newTriangleIDs = grow(triangleIDs);
+	let newTriangleIDs = triangleIDs; 
+	newTriangleIDs = grow(newTriangleIDs);
+	newTriangleIDs = grow(newTriangleIDs);
+	newTriangleIDs = grow(newTriangleIDs);
+	newTriangleIDs = grow(newTriangleIDs);
+	newTriangleIDs = grow(newTriangleIDs);
+	newTriangleIDs = grow(newTriangleIDs);
+	newTriangleIDs = grow(newTriangleIDs);
+	newTriangleIDs = grow(newTriangleIDs);
+
+
+	// let newTriangleIDs = new Uint32Array(triangleIDs);
 
 	// for(let triangleIndex = 0; triangleIndex < numTriangles; triangleIndex++){
 
@@ -104,7 +171,15 @@ export function simplify(node){
 	// 		let i2 = indices[3 * triangleIndex + 2];
 
 	// 		for(let triangleID of vertexNeighbors[i0]){
-	// 			triangleIDs[triangleID] = triangleIndex;
+	// 			newTriangleIDs[triangleID] = triangleIndex;
+	// 		}
+
+	// 		for(let triangleID of vertexNeighbors[i1]){
+	// 			newTriangleIDs[triangleID] = triangleIndex;
+	// 		}
+
+	// 		for(let triangleID of vertexNeighbors[i2]){
+	// 			newTriangleIDs[triangleID] = triangleIndex;
 	// 		}
 	// 	}
 	// }
@@ -114,7 +189,7 @@ export function simplify(node){
 		let geometry = new Geometry();
 		geometry.buffers = [
 			...node.geometry.buffers,
-			{name: "triangle_ids", buffer: new Uint8Array(triangleIDs.buffer)},
+			{name: "triangle_ids", buffer: new Uint8Array(newTriangleIDs.buffer)},
 		];
 
 
@@ -135,14 +210,14 @@ export function simplify(node){
 	potree.onUpdate( () => {
 
 		for(let point of centers){
-			potree.renderer.drawBox(
-				point, 
-				new Vector3(
-					0.1, 
-					0.1, 
-					0.1),
-				new Vector3(255, 0, 0),
-			);
+			// potree.renderer.drawBox(
+			// 	point, 
+			// 	new Vector3(
+			// 		0.01, 
+			// 		0.01, 
+			// 		0.01),
+			// 	new Vector3(255, 255, 0),
+			// );
 		}
 	});
 
