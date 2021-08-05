@@ -9,20 +9,11 @@ const vs = `
 	screen_height : f32;
 };
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
-};
-
-[[block]] struct F32s {
-	values : [[stride(4)]] array<f32>;
-};
-
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var<storage, read> positions : F32s;
-[[binding(2), group(0)]] var<storage, read> colors : U32s;
 
 struct VertexIn{
-	[[builtin(vertex_index)]] vertexID : u32;
+	[[location(0)]]         position  : vec4<f32>;
+	[[location(1)]]         color     : vec4<f32>;
 };
 
 struct VertexOut{
@@ -30,44 +21,17 @@ struct VertexOut{
 	[[location(0)]]         color     : vec4<f32>;
 };
 
-fn readPosition(index : u32) -> vec4<f32> {
-	var position = vec4<f32>(
-		positions.values[3u * index + 0u],
-		positions.values[3u * index + 1u],
-		positions.values[3u * index + 2u],
-		1.0
-	);
-
-	return position;
-}
 
 [[stage(vertex)]]
 fn main(vertex : VertexIn) -> VertexOut {
 
-	var position = readPosition(vertex.vertexID);
-	var bColor = colors.values[vertex.vertexID];
-
 	var vout : VertexOut;
 	
-	var worldPos = position;
-	var viewPos = uniforms.worldView * worldPos;
-	var projPos = uniforms.proj * viewPos;
-
-	{
-		var lineWidth = 1.0;
-		var pxOffset = vec3<f32>(1.0, 0.0, 0.0);
-
-		var fx : f32 = projPos.x / projPos.w;
-		fx = fx + lineWidth * pxOffset.x / uniforms.screen_width;
-		projPos.x = fx * projPos.w;
-
-		var fy : f32 = projPos.y / projPos.w;
-		fy = fy + lineWidth * pxOffset.y / uniforms.screen_height;
-		projPos.y = fy * projPos.w;
-	}
-
-	vout.position = projPos;
-	vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	var worldPos : vec4<f32> = vertex.position;
+	var viewPos : vec4<f32> = uniforms.worldView * worldPos;
+	
+	vout.position = uniforms.proj * viewPos;
+	vout.color = vertex.color;
 
 	return vout;
 }
@@ -113,7 +77,25 @@ function createPipeline(renderer){
 		vertex: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",
-			buffers: []
+			buffers: [
+				{ // position
+					arrayStride: 3 * 4,
+					stepMode: "vertex",
+					attributes: [{ 
+						shaderLocation: 0,
+						offset: 0,
+						format: "float32x3",
+					}],
+				},{ // color
+					arrayStride: 4,
+					stepMode: "vertex",
+					attributes: [{ 
+						shaderLocation: 1,
+						offset: 0,
+						format:  "unorm8x4",
+					}],
+				}
+			]
 		},
 		fragment: {
 			module: device.createShaderModule({code: fs}),
@@ -145,7 +127,7 @@ function createBuffer(renderer, data){
 
 		let vbo = device.createBuffer({
 			size: buffer.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+			usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
 			mappedAtCreation: true,
 		});
 
@@ -198,9 +180,7 @@ function init(renderer){
 		bindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
-				{binding: 0, resource: {buffer: uniformBuffer}},
-				{binding: 1, resource: {buffer: vbo_lines[0].vbo}},
-				{binding: 2, resource: {buffer: vbo_lines[1].vbo}},
+				{binding: 0,resource: {buffer: uniformBuffer}},
 			],
 		});
 	}
@@ -229,8 +209,8 @@ function updateUniforms(drawstate){
 	{ // misc
 		let size = renderer.getSize();
 
-		view.setFloat32(128, size.width, true);
-		view.setFloat32(132, size.height, true);
+		view.setUint32(128, size.width, true);
+		view.setUint32(132, size.height, true);
 	}
 
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
@@ -287,8 +267,8 @@ export function render(lines, drawstate){
 		);
 	}
 
-	// passEncoder.setVertexBuffer(0, vbo_lines[0].vbo);
-	// passEncoder.setVertexBuffer(1, vbo_lines[1].vbo);
+	passEncoder.setVertexBuffer(0, vbo_lines[0].vbo);
+	passEncoder.setVertexBuffer(1, vbo_lines[1].vbo);
 
 	passEncoder.draw(2 * lines.length, 1, 0, 0);
 

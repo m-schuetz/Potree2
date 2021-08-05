@@ -85,6 +85,7 @@ canvas{
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
 	import {simplify} from "./src/prototyping/simplify.js"
+	import {generateLOD} from "./src/prototyping/generate_lod.js"
 
 	import {installToolbar} from "toolbar";
 
@@ -270,16 +271,17 @@ canvas{
 		}
 
 		node.updateWorld();
-		simplify(node);
+		// simplify(node);
+		generateLOD(node);
 
 		controls.set({
 			position: [-7.8, 4.6, 2.9],
 			pivot: [-11, -5.2, -0.7],
 		});
-		controls.set({
-			position: [8.924371005465414, 32.71160570886811, 13.659141129344343],
-			pivot: [-5.190731328931251, -2.0177705664874344, -7.005915647885315],
-		});
+		// controls.set({
+		// 	position: [8.924371005465414, 32.71160570886811, 13.659141129344343],
+		// 	pivot: [-5.190731328931251, -2.0177705664874344, -7.005915647885315],
+		// });
 
 	});
 
@@ -331,21 +333,21 @@ canvas{
 	// });
 
 
-	// potree.addEventListener("update", (e) => {
+	potree.addEventListener("update", (e) => {
 
-	// 	potree.renderer.drawBox(
-	// 		new Vector3(0, 0, 0),
-	// 		new Vector3(5, 5, 5),
-	// 		new Vector3(0, 100, 200),
-	// 	);
+		// potree.renderer.drawBox(
+		// 	new Vector3(0, 0, 0),
+		// 	new Vector3(5, 5, 5),
+		// 	new Vector3(0, 100, 200),
+		// );
 
-	// 	potree.renderer.drawLine(
-	// 		new Vector3(0, 0, 0),
-	// 		new Vector3(10, 10, 10),
-	// 		new Vector3(200, 0, 0),
-	// 	);
+		potree.renderer.drawLine(
+			new Vector3(-10, -10, -10),
+			new Vector3(-5, -20, 0),
+			new Vector3(0, 200, 0),
+		);
 
-	// });
+	});
 
 	// {
 	// 	let n = 1_000;
