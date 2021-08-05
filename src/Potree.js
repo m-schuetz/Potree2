@@ -50,7 +50,7 @@ export * from "./InputHandler.js";
 export {render as renderPoints} from "./prototyping/renderPoints.js";
 export {render as renderPointsCompute} from "./prototyping/renderPointsCompute.js";
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";
-export {render as renderPointsOctreeBundledVBO}  from "./potree/renderPointsOctreeBundledVBO.js";
+export {render as renderQuadsOctree}  from "./potree/renderQuadsOctree.js";
 export {dilate}  from "./potree/dilate.js";
 export {EDL}  from "./potree/EDL.js";
 export {hqs_normalize}  from "./potree/hqs_normalize.js";

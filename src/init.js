@@ -11,7 +11,7 @@ import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoad
 import {readPixels, readDepth} from "./renderer/readPixels.js";
 import {
 	renderPoints, renderMeshes, renderQuads, 
-	renderPointsCompute, renderPointsOctree, renderPointsOctreeBundledVBO
+	renderPointsCompute, renderPointsOctree, renderQuadsOctree
 } from "potree";
 import {dilate, EDL, hqs_normalize} from "potree";
 import Stats from "stats";
@@ -350,6 +350,7 @@ function render(){
 		}
 
 		renderPointsOctree(octrees, drawstate);
+		// renderQuadsOctree(octrees, drawstate);
 
 		let meshes = renderables.get("Mesh") ?? [];
 		renderMeshes(meshes, drawstate);
