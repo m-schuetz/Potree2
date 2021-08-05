@@ -48,7 +48,8 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	var position = vec4<f32>(p.x, p.y, p.z, 1.0);
 
 	// var triangleID = 1234u * triangleIndex; 
-	var triangleID = 1234u * triangleIDs.values[triangleIndex]; 
+	// var triangleID = 1234u * triangleIDs.values[triangleIndex]; 
+	var triangleID = triangleIDs.values[triangleIndex]; 
 
 	// var inRange = triangleIndex > 403000u && triangleIndex < 404000u;
 	// inRange = triangleIndex == 403000u;

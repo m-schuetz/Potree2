@@ -86,6 +86,7 @@ canvas{
 	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
 	import {simplify} from "./src/prototyping/simplify.js"
 	import {generateLOD} from "./src/prototyping/generate_lod.js"
+	import {generateVoxels} from "./src/prototyping/generate_voxels.js"
 
 	import {installToolbar} from "toolbar";
 
@@ -96,6 +97,7 @@ canvas{
 
 	window.Potree = Potree;
 	window.potree = potree;
+	window.Vector3 = Vector3;
 
 	initGUI(potree);
 	guiContent["point budget (M)"] = 2;
@@ -233,22 +235,22 @@ canvas{
 	// 	});
 	// });
 
-	Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
-	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
-
-		// node.set({
-		// 	position: [5, 0, 3],
-		// 	scale: [4, 4, 4],
-		// });
-		// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+	// Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
+	Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 
 		node.set({
-			position: [-15, -15, 4],
+			position: [5, 0, 3],
 			scale: [4, 4, 4],
 		});
-		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(1, 0, 0));
+		node.rotation.rotate(1 * Math.PI / 2, new Vector3(0, 1, 0));
 
-		scene.root.children.push(node);
+		// node.set({
+		// 	position: [-15, -15, 4],
+		// 	scale: [4, 4, 4],
+		// });
+		// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(1, 0, 0));
+
+		// scene.root.children.push(node);
 
 
 		let light = new PointLight();
@@ -267,20 +269,21 @@ canvas{
 			node2.scale.copy(node.scale);
 			node2.rotation.copy(node.rotation);
 
-			scene.root.children.push(node2);
+			// scene.root.children.push(node2);
 		}
 
 		node.updateWorld();
 		// simplify(node);
-		generateLOD(node);
+		// generateLOD(node);
+		generateVoxels(node);
 
 		controls.set({
-			position: [-7.8, 4.6, 2.9],
-			pivot: [-11, -5.2, -0.7],
+			position: [-5.7, 11.5, 4.9],
+			pivot: [-14.4, -1.8, 2.2],
 		});
 		// controls.set({
-		// 	position: [8.924371005465414, 32.71160570886811, 13.659141129344343],
-		// 	pivot: [-5.190731328931251, -2.0177705664874344, -7.005915647885315],
+		// 	position: [-14.9, -5.6, 1.5],
+		// 	pivot: [-14.9, -6.7, 1.2],
 		// });
 
 	});

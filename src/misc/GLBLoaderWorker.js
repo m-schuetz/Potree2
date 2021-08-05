@@ -91,6 +91,7 @@ onmessage = async function(e){
 	geometry.boundingBox = boundingBox;
 
 	let imageBitmap = null;
+	let imageBuffer = null;
 	if(json.images?.length > 0){
 		let image = json.images[0];
 		let buffer = bufferViews[image.bufferView].buffer;
@@ -100,11 +101,13 @@ onmessage = async function(e){
 		var blob = new Blob([u8], {type: mimeType});
 
 		imageBitmap = await createImageBitmap(blob);
+		imageBuffer = buffer;
 	}
 
 	let message = {
 		geometry: geometry,
 		imageBitmap: imageBitmap,
+		imageBuffer: imageBuffer,
 	};
 
 	let transferables = [
@@ -117,6 +120,7 @@ onmessage = async function(e){
 
 	if(imageBitmap){
 		transferables.push(imageBitmap);
+		transferables.push(imageBuffer);
 	}
 
 	let duration = performance.now() - tStart;

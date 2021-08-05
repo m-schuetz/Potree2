@@ -31,7 +31,16 @@ export function generateLOD(node){
 	let indices = geometry.indices;
 	let numVertices = positions.length / 3;
 	let numTriangles = indices.length / 3;
-	// let triangleIDs = new Uint32Array(numTriangles);
+	let triangleIDs = new Uint32Array(numTriangles);
+
+	let indexIndices = new Uint32Array(indices.length);
+	for(let i = 0; i < indexIndices.length; i++){
+		indexIndices[i] = i;
+	}
+
+	for(let i = 0; i < triangleIDs.length; i++){
+		triangleIDs[i] = i;
+	}
 
 
 	let edges = [];
@@ -46,7 +55,14 @@ export function generateLOD(node){
 	};
 
 	let indexToPosition = (index) => {
-		return new Vector3(positions[3 * index + 0], positions[3 * index + 1], positions[3 * index + 2]);
+
+		let realIndex = indexIndices[index];
+
+		return new Vector3(
+			positions[3 * realIndex + 0], 
+			positions[3 * realIndex + 1], 
+			positions[3 * realIndex + 2]
+		);
 	};
 
 	for(let triangleID = 0; triangleID < numTriangles; triangleID++){
@@ -62,7 +78,7 @@ export function generateLOD(node){
 	}
 
 	let collapsedEdges = [];
-	let threshold = 0.01;
+	let threshold = 0.015;
 	for(let edgeID = 0; edgeID < edges.length; edgeID++){
 
 		let edge = edges[edgeID];
@@ -71,21 +87,92 @@ export function generateLOD(node){
 			// collapse
 			// update adjacent
 			// add collapsed to visualization
-			let start = indexToPosition(edge.start).applyMatrix4(node.world);
-			let end = indexToPosition(edge.end).applyMatrix4(node.world);
+			let start = indexToPosition(edge.start);
+			let end = indexToPosition(edge.end);
+
+
+			// collapse
+			let center = start.clone().add(end).multiplyScalar(0.5);
+			let realStartIndex = indexIndices[edge.start];
+			let realEndIndex = indexIndices[edge.end];
+			positions[3 * realStartIndex + 0] = center.x;
+			positions[3 * realStartIndex + 1] = center.y;
+			positions[3 * realStartIndex + 2] = center.z;
+
+			positions[3 * realEndIndex + 0] = center.x;
+			positions[3 * realEndIndex + 1] = center.y;
+			positions[3 * realEndIndex + 2] = center.z;
+
+			indexIndices[edge.end] = indexIndices[edge.start];
+
+			start.applyMatrix4(node.world);
+			end.applyMatrix4(node.world);
 			collapsedEdges.push([start, end]);
 		}
 
 	}
 
 
+	// {
+	// 	let geometry = new Geometry();
+	// 	geometry.buffers = [
+	// 		...node.geometry.buffers,
+	// 		{name: "triangle_ids", buffer: new Uint8Array(triangleIDs.buffer)},
+	// 	];
+
+
+	// 	geometry.indices = node.geometry.indices;
+
+	// 	let node2 = new Mesh("wireframe", geometry);
+
+	// 	node2.material = new TriangleColorMaterial();
+	// 	node2.material.color.set(0, 1, 0);
+	// 	node2.position.copy(node.position);
+	// 	node2.scale.copy(node.scale);
+	// 	node2.rotation.copy(node.rotation);
+
+	// 	scene.root.children.push(node2);
+	// }
+
+
+	{
+		
+		let query = new Vector3(-15.1, -6.3, 1.4);
+		let pool = new Float32Array(scene.root.children[2].geometry.buffers[2].buffer.buffer);
+		let numPoints = pool.length / 3;
+		let results = [];
+
+		for(let i = 0; i < numPoints; i++){
+
+			let point = new Vector3(
+				pool[3 * i + 0],
+				pool[3 * i + 1],
+				pool[3 * i + 2],
+			);
+			point.applyMatrix4(node.world);
+
+			let distance = point.distanceTo(query);
+
+			if(distance < 0.062){
+				console.log("vertexID: ", i);
+				// console.log(distance);
+				// console.log(point);
+
+				// break;
+			}
+
+
+		}
+
+	}
+
 
 	potree.onUpdate( () => {
 
 		let color = new Vector3(255, 0, 0);
-		for(let edge of collapsedEdges){
-			potree.renderer.drawLine(edge[0], edge[1], color);
-		}
+		// for(let edge of collapsedEdges){
+		// 	potree.renderer.drawLine(edge[0], edge[1], color);
+		// }
 
 		// for(let point of centers){
 			// potree.renderer.drawBox(

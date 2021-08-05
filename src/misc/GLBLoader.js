@@ -32,6 +32,24 @@ export function load(url){
 				mesh.material = new PhongMaterial();
 				mesh.material.image = imageBitmap;
 				mesh.material.colorMode = ColorMode.TEXTURE;
+				mesh.material.imageBuffer = e.data.imageBuffer;
+
+				// let blob = new Blob([new Uint8Array(node.material.imageBuffer)], {type: "image/jpg"});
+				// var context = canvas.getContext('2d');
+				// var img = document.getElementById('myimg');
+				// canvas.width = img.width;
+				// canvas.height = img.height;
+				// context.drawImage(img, 0, 0 );
+				// var myData = context.getImageData(0, 0, img.width, img.height);
+
+				const canvas = document.createElement('canvas');
+				canvas.width = imageBitmap.width;
+				canvas.height = imageBitmap.width;
+				const context = canvas.getContext('2d');
+				context.drawImage(imageBitmap, 0, 0);
+				let imageData = context.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
+
+				mesh.material.imageData = imageData;
 			}else{
 				mesh.material = new PhongMaterial();
 				mesh.material.image = null;

@@ -165,7 +165,7 @@ let initialized = false;
 let pipeline = null;
 let uniformBuffer = null;
 let bindGroup = null;
-let capacity = 100_000;
+let capacity = 1_000_000;
 
 function createPipeline(renderer){
 

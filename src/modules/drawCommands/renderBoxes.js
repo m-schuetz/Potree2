@@ -65,7 +65,7 @@ let pipeline = null;
 let geometry_boxes = null;
 let uniformBuffer = null;
 let bindGroup = null;
-let capacity = 50_000;
+let capacity = 1_000_000;
 
 function createPipeline(renderer){
 
