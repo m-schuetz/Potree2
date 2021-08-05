@@ -248,7 +248,7 @@ canvas{
 		});
 		node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(1, 0, 0));
 
-		// scene.root.children.push(node);
+		scene.root.children.push(node);
 
 
 		let light = new PointLight();
@@ -262,12 +262,12 @@ canvas{
 
 			// node2.material = new TriangleColorMaterial();
 			node2.material = new WireframeMaterial();
-			node2.material.color.set(0, 1, 0);
+			node2.material.color.set(0, 0.5, 0);
 			node2.position.copy(node.position);
 			node2.scale.copy(node.scale);
 			node2.rotation.copy(node.rotation);
 
-			// scene.root.children.push(node2);
+			scene.root.children.push(node2);
 		}
 
 		node.updateWorld();
@@ -341,13 +341,88 @@ canvas{
 		// 	new Vector3(0, 100, 200),
 		// );
 
-		potree.renderer.drawLine(
-			new Vector3(-10, -10, -10),
-			new Vector3(-5, -20, 0),
-			new Vector3(0, 200, 0),
-		);
+		// potree.renderer.drawLine(
+		// 	new Vector3(0, 0, 0),
+		// 	new Vector3(0, 0, 10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		
+
+		// potree.renderer.drawLine(
+		// 	new Vector3(-10, -10, -10),
+		// 	new Vector3( 10, -10, -10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		// potree.renderer.drawLine(
+		// 	new Vector3(-10,  10, -10),
+		// 	new Vector3( 10,  10, -10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		// potree.renderer.drawLine(
+		// 	new Vector3( 10, -10, -10),
+		// 	new Vector3( 10,  10, -10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		// potree.renderer.drawLine(
+		// 	new Vector3(-10, -10, -10),
+		// 	new Vector3(-10,  10, -10),
+		// 	new Vector3(0, 200, 0),
+		// );
+
+
+
+
+		// potree.renderer.drawLine(
+		// 	new Vector3(-10, -10, -10),
+		// 	new Vector3(-10, -10,  10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		// potree.renderer.drawLine(
+		// 	new Vector3( 10, -10, -10),
+		// 	new Vector3( 10, -10,  10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		// potree.renderer.drawLine(
+		// 	new Vector3( 10,  10, -10),
+		// 	new Vector3( 10,  10,  10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		// potree.renderer.drawLine(
+		// 	new Vector3(-10,  10, -10),
+		// 	new Vector3(-10,  10,  10),
+		// 	new Vector3(0, 200, 0),
+		// );
+
+
+
+		// potree.renderer.drawLine(
+		// 	new Vector3(-10, -10, 10),
+		// 	new Vector3( 10, -10, 10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		// potree.renderer.drawLine(
+		// 	new Vector3(-10,  10, 10),
+		// 	new Vector3( 10,  10, 10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		// potree.renderer.drawLine(
+		// 	new Vector3( 10, -10, 10),
+		// 	new Vector3( 10,  10, 10),
+		// 	new Vector3(0, 200, 0),
+		// );
+		// potree.renderer.drawLine(
+		// 	new Vector3(-10, -10, 10),
+		// 	new Vector3(-10,  10, 10),
+		// 	new Vector3(0, 200, 0),
+		// );
 
 	});
+
+	// controls.set({
+	// 	position: [15, 11, 10],
+	// 	pivot: [0, 0, 0],
+	// });
+	
 
 	// {
 	// 	let n = 1_000;

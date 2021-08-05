@@ -30,7 +30,7 @@ struct VertexOut{
 	[[location(0)]]         color     : vec4<f32>;
 };
 
-fn readPosition(index : u32) -> vec4<f32> {
+fn loadVertex(index : u32) -> vec4<f32> {
 	var position = vec4<f32>(
 		positions.values[3u * index + 0u],
 		positions.values[3u * index + 1u],
@@ -41,11 +41,44 @@ fn readPosition(index : u32) -> vec4<f32> {
 	return position;
 }
 
+fn toScreen(worldPos : vec4<f32>) -> vec2<f32> {
+
+	var projPos = uniforms.proj * uniforms.worldView * worldPos;
+	var lineWidth = 10.0;
+
+	var fx : f32 = projPos.x / projPos.w;
+	var fy : f32 = projPos.y / projPos.w;
+
+	var screenPos = vec2<f32>(fx, fy);
+
+	return screenPos;
+}
+
 [[stage(vertex)]]
 fn main(vertex : VertexIn) -> VertexOut {
 
-	var position = readPosition(vertex.vertexID);
-	var bColor = colors.values[vertex.vertexID];
+	// A line is made of 2 triangles / 6 vertices
+	// each of the 6 vertices loads start and end of the line
+	// and then places itself according to the local index
+	var lineID = vertex.vertexID / 6u;
+	var start = loadVertex(2u * lineID + 0u);
+	var end = loadVertex(2u * lineID + 1u);
+	var localIndex = vertex.vertexID % 6u;
+
+	var position = start;
+	if(localIndex == 0u || localIndex == 3u|| localIndex == 5u){
+		position = start;
+	}else{
+		position = end;
+	}
+
+	var bColor = colors.values[2u * lineID];
+	var color = vec4<f32>(
+		f32((bColor >>  0u) & 0xFFu),
+		f32((bColor >>  8u) & 0xFFu),
+		f32((bColor >> 16u) & 0xFFu),
+		1.0
+	);
 
 	var vout : VertexOut;
 	
@@ -53,21 +86,50 @@ fn main(vertex : VertexIn) -> VertexOut {
 	var viewPos = uniforms.worldView * worldPos;
 	var projPos = uniforms.proj * viewPos;
 
+	var dirScreen : vec2<f32>;
 	{
-		var lineWidth = 1.0;
-		var pxOffset = vec3<f32>(1.0, 0.0, 0.0);
+		var projStart = uniforms.proj * uniforms.worldView * start;
+		var projEnd = uniforms.proj * uniforms.worldView * end;
 
-		var fx : f32 = projPos.x / projPos.w;
-		fx = fx + lineWidth * pxOffset.x / uniforms.screen_width;
-		projPos.x = fx * projPos.w;
+		var screenStart = projStart.xy / projStart.w;
+		var screenEnd = projEnd.xy / projEnd.w;
 
-		var fy : f32 = projPos.y / projPos.w;
-		fy = fy + lineWidth * pxOffset.y / uniforms.screen_height;
-		projPos.y = fy * projPos.w;
+		dirScreen = normalize(screenEnd - screenStart);
+	}
+
+	{ // apply pixel offsets to the 6 vertices of the quad
+
+		var lineWidth = 3.0;
+		var pxOffset = vec2<f32>(1.0, 0.0);
+
+		// move vertices of quad sidewards
+		if(localIndex == 0u || localIndex == 1u || localIndex == 3u){
+			pxOffset = vec2<f32>(dirScreen.y, -dirScreen.x);
+		}else{
+			pxOffset = vec2<f32>(-dirScreen.y, dirScreen.x);
+		}
+
+		// move vertices of quad outwards
+		if(localIndex == 0u || localIndex == 3u || localIndex == 5u){
+			pxOffset = pxOffset - dirScreen;
+		}else{
+			pxOffset = pxOffset + dirScreen;
+		}
+
+		var screenDimensions = vec2<f32>(uniforms.screen_width, uniforms.screen_height);
+		var adjusted = projPos.xy / projPos.w + lineWidth * pxOffset / screenDimensions;
+		projPos = vec4<f32>(adjusted * projPos.w, projPos.zw);
 	}
 
 	vout.position = projPos;
-	vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+
+	// if(position.z < 0.0){
+	// 	color = vec4<f32>(237.0 / 255.0 , 248.0 / 255.0 , 177.0 / 255.0, 1.0);
+	// }else{
+	// 	color = vec4<f32>(22.0 / 255.0 , 127.0 / 255.0 , 184.0 / 255.0, 1.0);
+	// }
+
+	vout.color = color;
 
 	return vout;
 }
@@ -91,7 +153,7 @@ fn main(fragment : FragmentIn) -> FragmentOut {
 	var fout : FragmentOut;
 	fout.color = fragment.color;
 
-	fout.depth = fragment.position.z * 1.001;
+	fout.depth = fragment.position.z * 1.002;
 
 	return fout;
 }
@@ -121,7 +183,7 @@ function createPipeline(renderer){
 			targets: [{format: "bgra8unorm"}],
 		},
 		primitive: {
-			topology: 'line-list',
+			topology: 'triangle-list',
 			cullMode: 'none',
 		},
 		depthStencil: {
@@ -290,6 +352,6 @@ export function render(lines, drawstate){
 	// passEncoder.setVertexBuffer(0, vbo_lines[0].vbo);
 	// passEncoder.setVertexBuffer(1, vbo_lines[1].vbo);
 
-	passEncoder.draw(2 * lines.length, 1, 0, 0);
+	passEncoder.draw(6 * lines.length, 1, 0, 0);
 
 };
