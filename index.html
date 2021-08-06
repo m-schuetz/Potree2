@@ -237,12 +237,13 @@ canvas{
 
 	// Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
 	Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// Potree.loadGLB("./resources/models/anita_mui_aligned.glb").then(node => {
 
-		node.set({
-			position: [5, 0, 3],
-			scale: [4, 4, 4],
-		});
-		node.rotation.rotate(1 * Math.PI / 2, new Vector3(0, 1, 0));
+		// node.set({
+		// 	position: [5, 0, 3],
+		// 	scale: [4, 4, 4],
+		// });
+		// node.rotation.rotate(1 * Math.PI / 2, new Vector3(0, 1, 0));
 
 		// node.set({
 		// 	position: [-15, -15, 4],
@@ -278,8 +279,13 @@ canvas{
 		generateVoxels(node);
 
 		controls.set({
-			position: [-5.7, 11.5, 4.9],
-			pivot: [-14.4, -1.8, 2.2],
+			position: [-0.8, 3.3, -3.3],
+			pivot: [0.5, -0.2, -4.7],
+		});
+		controls.set({
+			// position: [1.6, -0.2, -4.6],
+			position: [4.3, 1.5, -2.9],
+			pivot: [0.8, -0.7, -5.1],
 		});
 		// controls.set({
 		// 	position: [-14.9, -5.6, 1.5],
@@ -337,87 +343,6 @@ canvas{
 
 
 	potree.addEventListener("update", (e) => {
-
-		// potree.renderer.drawBox(
-		// 	new Vector3(0, 0, 0),
-		// 	new Vector3(5, 5, 5),
-		// 	new Vector3(0, 100, 200),
-		// );
-
-		// potree.renderer.drawLine(
-		// 	new Vector3(0, 0, 0),
-		// 	new Vector3(0, 0, 10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		
-
-		// potree.renderer.drawLine(
-		// 	new Vector3(-10, -10, -10),
-		// 	new Vector3( 10, -10, -10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		// potree.renderer.drawLine(
-		// 	new Vector3(-10,  10, -10),
-		// 	new Vector3( 10,  10, -10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		// potree.renderer.drawLine(
-		// 	new Vector3( 10, -10, -10),
-		// 	new Vector3( 10,  10, -10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		// potree.renderer.drawLine(
-		// 	new Vector3(-10, -10, -10),
-		// 	new Vector3(-10,  10, -10),
-		// 	new Vector3(0, 200, 0),
-		// );
-
-
-
-
-		// potree.renderer.drawLine(
-		// 	new Vector3(-10, -10, -10),
-		// 	new Vector3(-10, -10,  10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		// potree.renderer.drawLine(
-		// 	new Vector3( 10, -10, -10),
-		// 	new Vector3( 10, -10,  10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		// potree.renderer.drawLine(
-		// 	new Vector3( 10,  10, -10),
-		// 	new Vector3( 10,  10,  10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		// potree.renderer.drawLine(
-		// 	new Vector3(-10,  10, -10),
-		// 	new Vector3(-10,  10,  10),
-		// 	new Vector3(0, 200, 0),
-		// );
-
-
-
-		// potree.renderer.drawLine(
-		// 	new Vector3(-10, -10, 10),
-		// 	new Vector3( 10, -10, 10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		// potree.renderer.drawLine(
-		// 	new Vector3(-10,  10, 10),
-		// 	new Vector3( 10,  10, 10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		// potree.renderer.drawLine(
-		// 	new Vector3( 10, -10, 10),
-		// 	new Vector3( 10,  10, 10),
-		// 	new Vector3(0, 200, 0),
-		// );
-		// potree.renderer.drawLine(
-		// 	new Vector3(-10, -10, 10),
-		// 	new Vector3(-10,  10, 10),
-		// 	new Vector3(0, 200, 0),
-		// );
 
 	});
 

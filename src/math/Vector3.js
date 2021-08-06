@@ -52,10 +52,26 @@ export class Vector3{
 		return this;
 	}
 
+	addScalar(s){
+		this.x = this.x + s;
+		this.y = this.y + s;
+		this.z = this.z + s;
+
+		return this;
+	}
+
 	sub(b){
 		this.x = this.x - b.x;
 		this.y = this.y - b.y;
 		this.z = this.z - b.z;
+
+		return this;
+	}
+
+	subScalar(s){
+		this.x = this.x - s;
+		this.y = this.y - s;
+		this.z = this.z - s;
 
 		return this;
 	}
