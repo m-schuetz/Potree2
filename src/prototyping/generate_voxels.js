@@ -52,6 +52,24 @@ export function generateVoxels(node){
 		return Math.min(Math.max(Math.floor(I), 0), gridSize - 1);
 	}
 
+	let {width, height} = node.material.image;
+	let imgData = node.material.imageData.data;
+
+	let getColor = (index) => {
+		let u = uvs[2 * index + 0];
+		let v = uvs[2 * index + 1];
+		let px = Math.floor(u * width);
+		let py = Math.floor(v * height);
+
+		let pixelID = py * width + px;
+		let r = Math.min(Math.floor(imgData[4 * pixelID + 0]), 255);
+		let g = Math.min(Math.floor(imgData[4 * pixelID + 1]), 255);
+		let b = Math.min(Math.floor(imgData[4 * pixelID + 2]), 255);
+		let a = imgData[4 * pixelID + 3];
+
+		return [r, g, b];
+	};
+
 	let samples = [];
 	for(let i = 0; i < numTriangles; i++){
 
@@ -73,15 +91,18 @@ export function generateVoxels(node){
 		let oldVal = grid[gridIndex];
 		grid[gridIndex]++;
 
-		let {width, height} = node.material.image;
-		let imgData = node.material.imageData.data;
-		let u = uvs[2 * i2 + 0];
-		let v = uvs[2 * i2 + 1];
-		let px = Math.floor(u * width);
-		let py = Math.floor(v * height);
-		let r = imgData[4 * (height - py - 1) * width + 4 * px + 0];
-		let g = imgData[4 * (height - py - 1) * width + 4 * px + 1];
-		let b = imgData[4 * (height - py - 1) * width + 4 * px + 2];
+		
+		let [r0, g0, b0] = getColor(i0);
+		let [r1, g1, b1] = getColor(i1);
+		let [r2, g2, b2] = getColor(i2);
+		let r = (r0 + r1 + r2) / 3;
+		let g = (g0 + g1 + g2) / 3;
+		let b = (b0 + b1 + b2) / 3;
+
+		// r = r2;
+		// g = g2;
+		// b = b2;
+
 
 
 		let boxCenter = new Vector3(
@@ -96,7 +117,7 @@ export function generateVoxels(node){
 				scale: new Vector3(1, 1, 1).multiplyScalar(4 * cubeSize / gridSize),
 				// color: new Vector3(255 * u, 255 * v, 0),
 				// color: new Vector3(255 * px / width, 255 * py / height, 0),
-				color: new Vector3(255 * r, 255 * g, 255 * b),
+				color: new Vector3(r, g, b),
 			});
 		}
 

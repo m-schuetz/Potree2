@@ -118,7 +118,7 @@ function createPipeline(renderer){
 		},
 		primitive: {
 			topology: 'triangle-list',
-			cullMode: 'none',
+			cullMode: 'back',
 		},
 		depthStencil: {
 			depthWriteEnabled: true,
@@ -238,9 +238,10 @@ export function render(boxes, drawstate){
 			color[4 * i + 3] = 255;
 		}
 
-		device.queue.writeBuffer(vboPosition, 0, position.buffer, 0, position.byteLength);
-		device.queue.writeBuffer(vboScale, 0, scale.buffer, 0, scale.byteLength);
-		device.queue.writeBuffer(vboColor, 0, color.buffer, 0, color.byteLength);
+		let numBoxes = boxes.length;
+		device.queue.writeBuffer(vboPosition, 0, position.buffer, 0, 12 * numBoxes);
+		device.queue.writeBuffer(vboScale, 0, scale.buffer, 0, 12 * numBoxes);
+		device.queue.writeBuffer(vboColor, 0, color.buffer, 0, 4 * numBoxes);
 	}
 
 	{ // solid
