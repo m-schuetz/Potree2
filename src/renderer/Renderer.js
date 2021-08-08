@@ -370,15 +370,17 @@ export class Renderer{
 			for(let entry of geometry.buffers){
 				let {name, buffer} = entry;
 
-				let vbo = device.createBuffer({
-					size: buffer.byteLength,
-					usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE,
-					mappedAtCreation: true,
-				});
+				// let vbo = device.createBuffer({
+				// 	size: buffer.byteLength,
+				// 	usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE,
+				// 	mappedAtCreation: true,
+				// });
 
-				let type = buffer.constructor;
-				new type(vbo.getMappedRange()).set(buffer);
-				vbo.unmap();
+				// let type = buffer.constructor;
+				// new type(vbo.getMappedRange()).set(buffer);
+				// vbo.unmap();
+
+				let vbo = this.getGpuBuffer(buffer);
 
 				vbos.push({
 					name: name,
@@ -439,6 +441,19 @@ export class Renderer{
 	}
 
 	drawLine(start, end, color){
+
+		if(start instanceof Array){
+			start = new Vector3(...start);
+		}
+
+		if(end instanceof Array){
+			end = new Vector3(...end);
+		}
+
+		if(color instanceof Array){
+			color = new Vector3(...color);
+		}
+
 		this.draws.lines.push([start, end, color]);
 	}
 

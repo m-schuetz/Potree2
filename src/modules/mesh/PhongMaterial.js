@@ -10,9 +10,12 @@ const vs = `
 	color : vec4<f32>;
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+[[block]] struct U32s {
+	values : [[stride(4)]] array<u32>;
+};
 
 struct VertexInput {
+	[[builtin(vertex_index)]] index : u32;
 	[[location(0)]] position        : vec4<f32>;
 	[[location(1)]] normal          : vec4<f32>;
 	[[location(2)]] uv              : vec2<f32>;
@@ -27,15 +30,39 @@ struct VertexOutput {
 	[[location(3)]] color           : vec4<f32>;
 };
 
+[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+// [[binding(10), group(0)]] var<storage, read> indices : U32s;
+[[binding(10), group(0)]] var<storage, read> colors : U32s;
+
+
 [[stage(vertex)]]
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var output : VertexOutput;
 
+
 	output.position = uniforms.proj * uniforms.worldView * vertex.position;
 	output.uv = vertex.uv;
 
-	output.color = vec4<f32>(vertex.normal.xyz, 1.0);
+
+	// output.color = vec4<f32>(vertex.normal.xyz, 1.0);
+	// output.color = vertex.color;#
+
+	{
+		var triangleIndex = vertex.index / 3u;
+		var rgba = colors.values[triangleIndex];
+
+		var R = (rgba >>  0u) & 0xFFu;
+		var G = (rgba >>  8u) & 0xFFu;
+		var B = (rgba >> 16u) & 0xFFu;
+
+		output.color = vec4<f32>(
+			f32(R) / 255.0,
+			f32(G) / 255.0,
+			f32(B) / 255.0,
+			1.0
+		);
+	}
 
 	return output;
 }
@@ -103,6 +130,8 @@ fn getColor(fragment : FragmentInput) -> vec4<f32>{
 		color = textureSample(myTexture, mySampler, fragment.uv);
 
 	}
+
+	color = fragment.color;
 
 	return color;
 };
@@ -344,6 +373,9 @@ function getBindGroup(drawstate, node){
 		let lightsBuffer = getLightsBuffer(node, drawstate);
 
 		let pipeline = getPipeline(drawstate, node);
+
+		let colors = node.geometry.buffers.find(buffer => buffer.name === "color");
+		let vboColor = renderer.getGpuBuffer(colors.buffer);
 		
 		bindGroup = renderer.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
@@ -352,6 +384,7 @@ function getBindGroup(drawstate, node){
 				{binding: 1, resource: {buffer: lightsBuffer}},
 				{binding: 2, resource: sampler},
 				{binding: 3, resource: texture.createView()},
+				{binding: 10, resource: {buffer: vboColor}},
 			]
 		});
 
@@ -417,8 +450,8 @@ export function render(node, drawstate){
 
 	updateLights(node, drawstate);
 
-	let vbos = getGpuBuffers(renderer, node.geometry);
-	// let vbos = renderer.getGpuBuffers(node.geometry);
+	// let vbos = getGpuBuffers(renderer, node.geometry);
+	let vbos = renderer.getGpuBuffers(node.geometry);
 
 	if(vbos == null){
 		// buffers might not have been finished sending to GPU, yet
@@ -456,7 +489,9 @@ export function render(node, drawstate){
 		passEncoder.setIndexBuffer(indexBuffer, "uint32", 0, indexBuffer.byteLength);
 
 		let numIndices = node.geometry.indices.length;
+		// passEncoder.drawIndexed(3000);
 		passEncoder.drawIndexed(numIndices);
+		// passEncoder.draw(3000, 1, 0, 0);
 	}else{
 		let numElements = node.geometry.numElements;
 		passEncoder.draw(numElements, 1, 0, 0);

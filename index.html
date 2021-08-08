@@ -87,6 +87,7 @@ canvas{
 	import {simplify} from "./src/prototyping/simplify.js"
 	import {generateLOD} from "./src/prototyping/generate_lod.js"
 	import {generateVoxels} from "./src/prototyping/generate_voxels.js"
+	import {generateVoxelsGpu} from "./src/prototyping/generate_voxels_gpu.js"
 
 	import {installToolbar} from "toolbar";
 
@@ -251,7 +252,8 @@ canvas{
 		// });
 		// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(1, 0, 0));
 
-		// scene.root.children.push(node);
+		scene.root.children.push(node);
+		window.node = node;
 
 
 		let light = new PointLight();
@@ -276,7 +278,8 @@ canvas{
 		node.updateWorld();
 		// simplify(node);
 		// generateLOD(node);
-		generateVoxels(node);
+		// generateVoxels(node);
+		generateVoxelsGpu(potree.renderer, node);
 
 		controls.set({
 			position: [-0.8, 3.3, -3.3],
@@ -343,7 +346,7 @@ canvas{
 
 
 	potree.addEventListener("update", (e) => {
-
+		// potree.renderer.drawLine([0, 0, 0], [10, 10, 10], [255, 0, 0]);
 	});
 
 	// controls.set({

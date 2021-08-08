@@ -366,6 +366,9 @@ function render(){
 
 		renderPointsOctree(octrees, drawstate);
 
+		let meshes = renderables.get("Mesh") ?? [];
+		renderMeshes(meshes, drawstate);
+
 		renderer.renderDrawCommands(drawstate);
 
 		endPass(pass);
