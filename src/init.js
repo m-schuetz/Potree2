@@ -396,6 +396,11 @@ function render(){
 
 		EDL(fbo_source, drawstate);
 
+		if(window.fbo){
+			let texture = window.fbo.colorAttachments[0].texture;
+			drawTexture(renderer, pass, texture, 0.1, 0.1, 0.2, 0.2);
+		}
+
 		endPass(pass);
 	}
 
@@ -425,6 +430,7 @@ function render(){
 	}
 
 
+
 	{
 		let layer = layers.get(10);
 
@@ -442,6 +448,8 @@ function render(){
 		}
 
 	}
+
+
 
 	// { // MESHES
 	// 	let meshes = renderables.get("Mesh") ?? [];

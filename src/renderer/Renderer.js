@@ -369,17 +369,7 @@ export class Renderer{
 
 			for(let entry of geometry.buffers){
 				let {name, buffer} = entry;
-
-				// let vbo = device.createBuffer({
-				// 	size: buffer.byteLength,
-				// 	usage: GPUBufferUsage.VERTEX | GPUBufferUsage.INDEX | GPUBufferUsage.STORAGE,
-				// 	mappedAtCreation: true,
-				// });
-
-				// let type = buffer.constructor;
-				// new type(vbo.getMappedRange()).set(buffer);
-				// vbo.unmap();
-
+				
 				let vbo = this.getGpuBuffer(buffer);
 
 				vbos.push({
