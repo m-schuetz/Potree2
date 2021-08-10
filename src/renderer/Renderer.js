@@ -72,7 +72,7 @@ export class Renderer{
 			usage: GPUTextureUsage.RENDER_ATTACHMENT 
 				| GPUTextureUsage.COPY_DST 
 				| GPUTextureUsage.COPY_SRC
-				| GPUTextureUsage.SAMPLED,
+				| GPUTextureUsage.TEXTURE_BINDING,
 		});
 
 		this.swapChain = this.context.getCurrentTexture();
@@ -81,7 +81,7 @@ export class Renderer{
 		this.depthTexture = this.device.createTexture({
 			size: {width: size.width, height: size.height},
 			format: "depth32float",
-			usage: GPUTextureUsage.SAMPLED 
+			usage: GPUTextureUsage.TEXTURE_BINDING 
 				| GPUTextureUsage.COPY_SRC 
 				| GPUTextureUsage.COPY_DST 
 				| GPUTextureUsage.RENDER_ATTACHMENT,
@@ -103,7 +103,7 @@ export class Renderer{
 			descriptor: {
 				size: [size.width, size.height],
 				format: this.swapChainFormat,
-				usage: GPUTextureUsage.SAMPLED 
+				usage: GPUTextureUsage.TEXTURE_BINDING 
 					| GPUTextureUsage.COPY_SRC 
 					| GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.RENDER_ATTACHMENT,
@@ -114,7 +114,7 @@ export class Renderer{
 			descriptor: {
 				size: [size.width, size.height],
 				format: "depth32float",
-				usage: GPUTextureUsage.SAMPLED 
+				usage: GPUTextureUsage.TEXTURE_BINDING 
 					| GPUTextureUsage.COPY_SRC 
 					| GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.RENDER_ATTACHMENT,
@@ -150,13 +150,13 @@ export class Renderer{
 				usage: GPUTextureUsage.RENDER_ATTACHMENT 
 					| GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.COPY_SRC
-					| GPUTextureUsage.SAMPLED,
+					| GPUTextureUsage.TEXTURE_BINDING,
 			});
 
 			this.depthTexture = this.device.createTexture({
 				size: size,
 				format: "depth32float",
-				usage: GPUTextureUsage.SAMPLED 
+				usage: GPUTextureUsage.TEXTURE_BINDING 
 					| GPUTextureUsage.COPY_SRC 
 					| GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.RENDER_ATTACHMENT,
@@ -274,7 +274,7 @@ export class Renderer{
 			format: format,
 			usage: 
 				GPUTextureUsage.STORAGE
-				| GPUTextureUsage.SAMPLED 
+				| GPUTextureUsage.TEXTURE_BINDING 
 				| GPUTextureUsage.COPY_SRC 
 				| GPUTextureUsage.COPY_DST 
 				| GPUTextureUsage.RENDER_ATTACHMENT
@@ -314,7 +314,7 @@ export class Renderer{
 			gpuTexture = device.createTexture({
 				size: [width, height, 1],
 				format: "rgba8unorm",
-				usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST,
+				usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
 			});
 
 			if(image){
@@ -398,7 +398,7 @@ export class Renderer{
 				colorDescriptors: [{
 					size: size,
 					format: this.swapChainFormat,
-					usage: GPUTextureUsage.SAMPLED 
+					usage: GPUTextureUsage.TEXTURE_BINDING 
 						// | GPUTextureUsage.COPY_SRC 
 						// | GPUTextureUsage.COPY_DST 
 						| GPUTextureUsage.RENDER_ATTACHMENT,
@@ -406,7 +406,7 @@ export class Renderer{
 				depthDescriptor: {
 					size: size,
 					format: "depth32float",
-					usage: GPUTextureUsage.SAMPLED 
+					usage: GPUTextureUsage.TEXTURE_BINDING 
 						// | GPUTextureUsage.COPY_SRC 
 						// | GPUTextureUsage.COPY_DST 
 						| GPUTextureUsage.RENDER_ATTACHMENT,

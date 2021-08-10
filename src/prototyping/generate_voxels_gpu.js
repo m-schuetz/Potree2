@@ -15,8 +15,8 @@ const sourceTriangleProjection = `
 };
 
 [[block]] struct Uniforms {
-	screen_width : f32;
-	screen_height : f32;
+	screen_width     : f32;
+	screen_height    : f32;
 	bbMin            : vec3<f32>;      // offset(16)
 	bbMax            : vec3<f32>;      // offset(32)
 };
@@ -75,6 +75,20 @@ fn toIndex1D(gridSize : u32, voxelPos : vec3<u32>) -> u32{
 		+ gridSize * gridSize * voxelPos.z;
 }
 
+fn packColor(color : vec4<f32>) -> u32 {
+
+	var R = u32(255.0 * color.r);
+	var G = u32(255.0 * color.g);
+	var B = u32(255.0 * color.b);
+
+	var packed = 
+		  (R <<  0u)
+		| (G <<  8u)
+		| (B << 16u);
+
+	return packed;
+}
+
 [[stage(vertex)]]
 fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
@@ -124,7 +138,6 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 	result.color = color;
 
-
 	{
 		var bbMin = vec3<f32>(uniforms.bbMin.x, uniforms.bbMin.y, uniforms.bbMin.z);
 		var bbMax = vec3<f32>(uniforms.bbMax.x, uniforms.bbMax.y, uniforms.bbMax.z);
@@ -156,7 +169,8 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 	var voxelPos = vec3<u32>(fragment.voxelPos);
 	var voxelIndex = toIndex1D(${gridSize}u, voxelPos);
 
-	voxelGrid.values[voxelIndex] = 1u;
+	// voxelGrid.values[voxelIndex] = 1u;
+	voxelGrid.values[voxelIndex] = packColor(fragment.color);
 
 	result.color = vec4<f32>(
 		fragment.position.x / ${fboSize}.0, 
@@ -185,9 +199,21 @@ function toIndex3D(gridSize, index){
 	return [x, y, z];
 }
 
+function unpackColor(uColor){
+	let R = (uColor >>>  0) & 0xFF;
+	let G = (uColor >>>  8) & 0xFF;
+	let B = (uColor >>> 16) & 0xFF;
+
+	let color = new Vector3(R, G, B);
+
+	return color;
+}
+
 export function generateVoxelsGpu(renderer, node){
 
 	let {device} = renderer;
+
+	console.time("generating voxels");
 
 	let box = node.boundingBox;
 	let min = box.min.clone();
@@ -316,6 +342,7 @@ export function generateVoxelsGpu(renderer, node){
 				numCells++;
 
 				let [ix, iy, iz] = toIndex3D(gridSize, i);
+				let color = unpackColor(u32[i]);
 
 				let x = cubeSize * (ix / gridSize) + min.x + cellSize / 2;
 				let y = cubeSize * (iy / gridSize) + min.y + cellSize / 2;
@@ -323,7 +350,6 @@ export function generateVoxelsGpu(renderer, node){
 
 				let position = new Vector3(x, y, z);
 				let size = new Vector3(cellSize, cellSize, cellSize);
-				let color = new Vector3(255, 0, 0);
 
 				let voxel = {position, size, color};
 
@@ -332,6 +358,8 @@ export function generateVoxelsGpu(renderer, node){
 		}
 
 		console.log("numCells: ", numCells);
+
+		console.timeEnd("generating voxels");
 
 		potree.onUpdate( () => {
 			

@@ -114,7 +114,7 @@ function getGpuTexture(renderer, image){
 		gpuTexture = device.createTexture({
 			size: [image.width, image.height, 1],
 			format: "rgba8unorm",
-			usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST,
+			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
 		});
 
 		device.queue.copyImageBitmapToTexture(

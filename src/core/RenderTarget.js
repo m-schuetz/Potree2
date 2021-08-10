@@ -12,7 +12,7 @@ export class RenderTarget{
 			let descriptors = params.colorDescriptors ?? [{
 				size: this.size,
 				format: "r32uint",
-				usage: GPUTextureUsage.SAMPLED 
+				usage: GPUTextureUsage.TEXTURE_BINDING 
 					| GPUTextureUsage.COPY_SRC 
 					| GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.RENDER_ATTACHMENT,
