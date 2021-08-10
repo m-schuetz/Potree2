@@ -369,6 +369,14 @@ function render(){
 		let meshes = renderables.get("Mesh") ?? [];
 		renderMeshes(meshes, drawstate);
 
+		for(let [key, nodes] of renderables){
+			for(let node of nodes){
+				if(typeof node.render !== "undefined"){
+					node.render(drawstate);
+				}
+			}
+		}
+
 		renderer.renderDrawCommands(drawstate);
 
 		endPass(pass);
@@ -396,10 +404,10 @@ function render(){
 
 		EDL(fbo_source, drawstate);
 
-		if(window.fbo){
-			let texture = window.fbo.colorAttachments[0].texture;
-			drawTexture(renderer, pass, texture, 0.1, 0.1, 0.2, 0.2);
-		}
+		// if(window.fbo){
+		// 	let texture = window.fbo.colorAttachments[0].texture;
+		// 	drawTexture(renderer, pass, texture, 0.1, 0.1, 0.2, 0.2);
+		// }
 
 		endPass(pass);
 	}

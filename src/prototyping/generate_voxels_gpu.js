@@ -1,5 +1,6 @@
 
-import {Vector3, Box3, SPECTRAL} from "potree";
+import {SceneNode, Vector3, Box3, SPECTRAL} from "potree";
+import {render as renderVoxels} from "./generate_voxels_gpu_render.js";
 
 let gridSize = 64;
 let fboSize = 64;
@@ -382,6 +383,9 @@ class Chunk{
 		this.boundingBox = new Box3();
 		this.voxels = [];
 		this.children = [];
+		this.level = 0;
+		this.parent = null;
+		this.visible = true;
 	}
 
 	expand(){
@@ -391,9 +395,9 @@ class Chunk{
 
 		for(let i = 0; i < 8; i++){
 
-			let x = (i >> 2) & 1;
+			let x = (i >> 0) & 1;
 			let y = (i >> 1) & 1;
-			let z = (i >> 0) & 1;
+			let z = (i >> 2) & 1;
 
 			let min = new Vector3(
 				parentMin.x + x * childSize.x,
@@ -406,6 +410,8 @@ class Chunk{
 
 			let child = new Chunk();
 			child.boundingBox = childBox;
+			child.level = this.level + 1;
+			child.parent = this;
 			
 			this.children.push(child);
 		}
@@ -421,7 +427,49 @@ class Chunk{
 
 	}
 
+	
+
 };
+
+class VoxelTree extends SceneNode{
+
+	constructor(){
+		super("abc");
+
+		this.root = new Chunk();
+	}
+
+	render(drawstate){
+		renderVoxels(this, drawstate);
+		// console.log("asdf");
+	}
+
+	traverse(callback){
+		this.root.traverse(callback, 0);
+	}
+
+	traverseBreadthFirst(callback){
+
+		let stack = [this.root];
+
+		while(stack.length > 0){
+			let node = stack.shift();
+
+			callback(node);
+
+			for(let child of node.children){
+
+				if(child.visible){
+					stack.push(child);
+				}
+			}
+		}
+
+	}
+
+};
+
+
 
 export async function generateVoxelsGpu(renderer, node){
 
@@ -439,9 +487,9 @@ export async function generateVoxelsGpu(renderer, node){
 	for(let child of root.children){
 		child.expand();
 
-		for(let child1 of child.children){
-			child1.expand();
-		}
+		// for(let child1 of child.children){
+		// 	child1.expand();
+		// }
 	}
 
 	root.traverse( async (chunk) => {
@@ -470,6 +518,10 @@ export async function generateVoxelsGpu(renderer, node){
 
 	console.timeEnd("generating voxels");
 
+	let voxelTree = new VoxelTree();
+	voxelTree.root = root;
+	scene.root.children.push(voxelTree);
+
 	potree.onUpdate( () => {
 			
 		potree.renderer.drawBoundingBox(
@@ -490,21 +542,24 @@ export async function generateVoxelsGpu(renderer, node){
 				return;
 			}
 
-			// if(level >= 3){
-			// for(let voxel of chunk.voxels){
-			// 	potree.renderer.drawBox(voxel.position, voxel.size, voxel.color);
-			// }
-			// }
-
-			potree.renderer.drawQuads(chunk.quads.positions, chunk.quads.colors);
-
 			let color = new Vector3(...SPECTRAL.get(level / 4));
 
-			potree.renderer.drawBoundingBox(
-				chunk.boundingBox.center(),
-				chunk.boundingBox.size(),
-				color,
-			);
+			let center = chunk.boundingBox.center();
+			let size = chunk.boundingBox.size().length();
+			let camWorldPos = camera.getWorldPosition();
+			let distance = camWorldPos.distanceTo(center);
+
+			let expand = (size / distance) > 0.4;
+
+			if(expand){
+				potree.renderer.drawBoundingBox(
+					chunk.boundingBox.center(),
+					chunk.boundingBox.size(),
+					color,
+				);
+			}
+
+			chunk.visible = expand;
 		});
 
 
