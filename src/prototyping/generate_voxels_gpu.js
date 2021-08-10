@@ -1,5 +1,5 @@
 
-import {Vector3, Box3} from "potree";
+import {Vector3, Box3, SPECTRAL} from "potree";
 
 let gridSize = 64;
 let fboSize = 64;
@@ -163,21 +163,25 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 	result.color = fragment.color;
 
 	dbg.value = u32(3000.0 * fragment.color.x);
-	voxelGrid.values[0] = 456u;
-	voxelGrid.values[1] = 789u;
 
 	var voxelPos = vec3<u32>(fragment.voxelPos);
 	var voxelIndex = toIndex1D(${gridSize}u, voxelPos);
 
-	// voxelGrid.values[voxelIndex] = 1u;
-	voxelGrid.values[voxelIndex] = packColor(fragment.color);
+	var outsideX = fragment.voxelPos.x < 0.0 || fragment.voxelPos.x > ${gridSize}.0;
+	var outsideY = fragment.voxelPos.y < 0.0 || fragment.voxelPos.y > ${gridSize}.0;
+	var outsideZ = fragment.voxelPos.z < 0.0 || fragment.voxelPos.z > ${gridSize}.0;
+	if(outsideX || outsideY || outsideZ){
+		// voxelGrid.values[voxelIndex] = packColor(vec4<f32>(1.0, 0.0, 0.0, 1.0));
+	}else{
+		voxelGrid.values[voxelIndex] = packColor(fragment.color);
 
-	result.color = vec4<f32>(
-		fragment.position.x / ${fboSize}.0, 
-		fragment.position.y / ${fboSize}.0, 
-		0.0, 
-		1.0,
-	);
+		result.color = vec4<f32>(
+			fragment.position.x / ${fboSize}.0, 
+			fragment.position.y / ${fboSize}.0, 
+			0.0, 
+			1.0,
+		);
+	}
 
 	return result;
 }
@@ -209,21 +213,24 @@ function unpackColor(uColor){
 	return color;
 }
 
-export function generateVoxelsGpu(renderer, node){
+
+let initialized = false;
+let pipeline = null;
+let bindGroup = null;
+let fbo = null;
+let uniformBuffer = null;
+let gridBuffer = null;
+let gridResetBuffer = null;
+let dbgBuffer = null;
+
+function init(renderer, node){
 
 	let {device} = renderer;
 
-	console.time("generating voxels");
-
-	let box = node.boundingBox;
-	let min = box.min.clone();
-	let cubeSize = Math.max(...box.size().toArray());
-	let cube = new Box3(min, min.clone().addScalar(cubeSize));
-
-	let fbo = renderer.getFramebuffer("voxel_target");
+	fbo = renderer.getFramebuffer("voxel_target");
 	fbo.setSize(fboSize, fboSize);
 
-	let pipeline = device.createRenderPipeline({
+	pipeline = device.createRenderPipeline({
 		vertex: {
 			module: device.createShaderModule({code: sourceTriangleProjection}),
 			entryPoint: "main_vertex",
@@ -248,9 +255,11 @@ export function generateVoxelsGpu(renderer, node){
 	let storage_flags = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST;
 	let uniform_flags = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST;
 	
-	let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
-	let dbgBuffer = device.createBuffer({size: 256, usage: storage_flags});
-	let gridBuffer = device.createBuffer({size: 4 * (gridSize) ** 3, usage: storage_flags});
+	uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
+	dbgBuffer = device.createBuffer({size: 256, usage: storage_flags});
+	
+	gridResetBuffer = new Uint8Array(4 * (gridSize) ** 3);
+	gridBuffer = device.createBuffer({size: gridResetBuffer.byteLength, usage: storage_flags});
 
 	let indexBuffer = renderer.getGpuBuffer(node.geometry.indices);
 	let vbos = renderer.getGpuBuffers(node.geometry);
@@ -258,7 +267,7 @@ export function generateVoxelsGpu(renderer, node){
 	let vboUV = vbos.find(item => item.name === "uv").vbo;
 	let vboColor = vbos.find(item => item.name === "color").vbo;
 
-	let bindGroup = renderer.device.createBindGroup({
+	bindGroup = renderer.device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
 			{binding: 0, resource: {buffer: uniformBuffer}},
@@ -270,6 +279,18 @@ export function generateVoxelsGpu(renderer, node){
 			{binding: 100, resource: {buffer: gridBuffer}},
 		]
 	});
+
+	window.fbo = fbo;
+}
+
+async function voxelize(renderer, node, boundingBox){
+	let {device} = renderer;
+
+	let box = boundingBox.clone();
+	let min = box.min.clone();
+	let cube = box.cube();
+	let cubeSize = cube.size().x;
+	box = cube;
 
 	let renderPassDescriptor = {
 		colorAttachments: [{
@@ -290,10 +311,6 @@ export function generateVoxelsGpu(renderer, node){
 		let buffer = new ArrayBuffer(256);
 		let view = new DataView(buffer);
 
-		// view.setUint32(0, numTriangles, true);
-		// view.setUint32(4, gridSize, true);
-
-		// let box = node.boundingBox;
 		view.setFloat32(16, box.min.x, true);
 		view.setFloat32(20, box.min.y, true);
 		view.setFloat32(24, box.min.z, true);
@@ -305,36 +322,28 @@ export function generateVoxelsGpu(renderer, node){
 		device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
 	}
 
+	device.queue.writeBuffer(gridBuffer, 0, gridResetBuffer, 0, gridResetBuffer.byteLength);
+	
+
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
 
-	// passEncoder.setVertexBuffer(0, vboPosition);
-	// passEncoder.setVertexBuffer(1, vboUV);
-	// passEncoder.setVertexBuffer(2, vboColor);
-
-	// passEncoder.setIndexBuffer(indexBuffer, "uint32", 0, indexBuffer.byteLength);
-
-	let numTriangles = node.geometry.indices.length / 3;
-	let numVertices = 3;
-	// let numVertices = 900_000;
 	passEncoder.draw(node.geometry.indices.length, 1, 0, 0);
-
 
 	passEncoder.endPass();
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.queue.submit([commandBuffer]);
 
-	window.fbo = fbo;
-
 	// READ RESULTS
-	renderer.readBuffer(gridBuffer, 0, 4 * (gridSize) ** 3).then(result => {
+	let voxels = [];
+
+	let result = await renderer.readBuffer(gridBuffer, 0, 4 * (gridSize) ** 3);
+	{
 		let u32 = new Uint32Array(result);
 
-		let voxels = [];
 		let numCells = 0;
 		let cellSize = cubeSize / gridSize;
 		for(let i = 0; i < u32.length; i++){
@@ -357,39 +366,149 @@ export function generateVoxelsGpu(renderer, node){
 			}
 		}
 
-		console.log("numCells: ", numCells);
+	}
 
-		console.timeEnd("generating voxels");
+	let chunk = {
+		boundingBox: box,
+		voxels,
+	};
 
-		potree.onUpdate( () => {
+	return chunk;
+}
+
+class Chunk{
+
+	constructor(){
+		this.boundingBox = new Box3();
+		this.voxels = [];
+		this.children = [];
+	}
+
+	expand(){
+
+		let childSize = this.boundingBox.size().divideScalar(2);
+		let parentMin = this.boundingBox.min;
+
+		for(let i = 0; i < 8; i++){
+
+			let x = (i >> 2) & 1;
+			let y = (i >> 1) & 1;
+			let z = (i >> 0) & 1;
+
+			let min = new Vector3(
+				parentMin.x + x * childSize.x,
+				parentMin.y + y * childSize.y,
+				parentMin.z + z * childSize.z,
+			);
+			let max = min.clone().add(childSize);
+
+			let childBox = new Box3(min, max);
+
+			let child = new Chunk();
+			child.boundingBox = childBox;
 			
+			this.children.push(child);
+		}
+	}
 
-			potree.renderer.drawBoundingBox(
-				box.center(),
-				box.size(),
-				new Vector3(255, 255, 0),
-			);
+	traverse(callback, level = 0){
 
-			potree.renderer.drawBoundingBox(
-				cube.center(),
-				cube.size(),
-				new Vector3(255, 0, 0),
-			);
+		callback(this, level);
 
-			for(let voxel of voxels){
-				potree.renderer.drawBox(voxel.position, voxel.size, voxel.color);
-			}
-			// potree.renderer.drawBox(
-			// 	new Vector3(0, 0, 0),
-			// 	new Vector3(3, 3, 3),
-			// 	new Vector3(255, 255, 0),
-			// );
-		});
+		for(let child of this.children){
+			child.traverse(callback, level + 1);
+		}
+
+	}
+
+};
+
+export async function generateVoxelsGpu(renderer, node){
+
+	init(renderer, node);
+
+	console.time("generating voxels");
+
+	let box = node.boundingBox.clone();
+	let cube = box.cube();
+	let center = cube.center();
+
+	let root = new Chunk();
+	root.boundingBox = cube.clone();
+	root.expand();
+	for(let child of root.children){
+		child.expand();
+
+		for(let child1 of child.children){
+			child1.expand();
+		}
+	}
+
+	root.traverse( async (chunk) => {
+		let result = await voxelize(renderer, node, chunk.boundingBox);
+
+		let voxels = result.voxels;
+		chunk.voxels = voxels;
+
+		let positions = new Float32Array(3 * voxels.length);
+		let colors = new Uint8Array(4 * voxels.length);
+
+		for(let i = 0; i < voxels.length; i++){
+			positions[3 * i + 0] = voxels[i].position.x;
+			positions[3 * i + 1] = voxels[i].position.y;
+			positions[3 * i + 2] = voxels[i].position.z;
+
+			colors[4 * i + 0] = voxels[i].color.x;
+			colors[4 * i + 1] = voxels[i].color.y;
+			colors[4 * i + 2] = voxels[i].color.z;
+			colors[4 * i + 3] = 255;
+		}
+
+		chunk.quads = {positions, colors};
+
 	});
-	// renderer.readBuffer(dbgBuffer, 0, 4).then(result => {
-	// 	console.log("dbg: ", new Uint32Array(result)[0]);
-	// });
 
-	
+	console.timeEnd("generating voxels");
+
+	potree.onUpdate( () => {
+			
+		potree.renderer.drawBoundingBox(
+			box.center(),
+			box.size(),
+			new Vector3(255, 255, 0),
+		);
+
+		potree.renderer.drawBoundingBox(
+			cube.center(),
+			cube.size(),
+			new Vector3(255, 0, 0),
+		);
+
+		root.traverse( (chunk, level) => {
+
+			if(chunk.voxels.length === 0){
+				return;
+			}
+
+			// if(level >= 3){
+			// for(let voxel of chunk.voxels){
+			// 	potree.renderer.drawBox(voxel.position, voxel.size, voxel.color);
+			// }
+			// }
+
+			potree.renderer.drawQuads(chunk.quads.positions, chunk.quads.colors);
+
+			let color = new Vector3(...SPECTRAL.get(level / 4));
+
+			potree.renderer.drawBoundingBox(
+				chunk.boundingBox.center(),
+				chunk.boundingBox.size(),
+				color,
+			);
+		});
+
+
+	});
+
 
 }

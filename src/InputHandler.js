@@ -162,13 +162,13 @@ export class InputHandler extends EventDispatcher {
 		if (this.logMessages) console.log(this.constructor.name + ': onKeyDown');
 
 		// DELETE
-		if (e.keyCode === KeyCodes.DELETE && this.selection.length > 0) {
-			this.dispatch("delete", {
-				selection: this.selection
-			});
+		// if (e.keyCode === KeyCodes.DELETE && this.selection.length > 0) {
+		// 	this.dispatch("delete", {
+		// 		selection: this.selection
+		// 	});
 
-			this.deselectAll();
-		}
+		// 	this.deselectAll();
+		// }
 
 		this.dispatch("keydown", {
 			keyCode: e.keyCode,
@@ -338,31 +338,31 @@ export class InputHandler extends EventDispatcher {
 			this.drag = null;
 		}
 
-		if(!consumed){
-			if (e.button === MouseCodes.LEFT) {
-				if (noMovement) {
-					let selectable = this.hoveredElements
-						.find(el => el.object._listeners && el.object._listeners['select']);
+		// if(!consumed){
+		// 	if (e.button === MouseCodes.LEFT) {
+		// 		if (noMovement) {
+		// 			let selectable = this.hoveredElements
+		// 				.find(el => el.object._listeners && el.object._listeners['select']);
 
-					if (selectable) {
-						selectable = selectable.object;
+		// 			if (selectable) {
+		// 				selectable = selectable.object;
 
-						if (this.isSelected(selectable)) {
-							this.selection
-								.filter(e => e !== selectable)
-								.forEach(e => this.toggleSelection(e));
-						} else {
-							this.deselectAll();
-							this.toggleSelection(selectable);
-						}
-					} else {
-						this.deselectAll();
-					}
-				}
-			} else if ((e.button === MouseCodes.RIGHT) && noMovement) {
-				this.deselectAll();
-			}
-		}
+		// 				if (this.isSelected(selectable)) {
+		// 					this.selection
+		// 						.filter(e => e !== selectable)
+		// 						.forEach(e => this.toggleSelection(e));
+		// 				} else {
+		// 					this.deselectAll();
+		// 					this.toggleSelection(selectable);
+		// 				}
+		// 			} else {
+		// 				this.deselectAll();
+		// 			}
+		// 		}
+		// 	} else if ((e.button === MouseCodes.RIGHT) && noMovement) {
+		// 		this.deselectAll();
+		// 	}
+		// }
 	}
 
 	onMouseMove (e) {

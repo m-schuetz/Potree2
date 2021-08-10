@@ -184,7 +184,7 @@ function updateUniforms(drawstate){
 
 		view.setFloat32(128, size.width, true);
 		view.setFloat32(132, size.height, true);
-		view.setFloat32(136, 20.0, true);
+		view.setFloat32(136, 5.0, true);
 	}
 
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);

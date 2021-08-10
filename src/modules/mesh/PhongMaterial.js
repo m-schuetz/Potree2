@@ -131,7 +131,7 @@ fn getColor(fragment : FragmentInput) -> vec4<f32>{
 
 	}
 
-	color = fragment.color;
+	// color = fragment.color;
 
 	return color;
 };
