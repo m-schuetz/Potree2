@@ -323,7 +323,8 @@ async function voxelize(renderer, node, boundingBox){
 		device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
 	}
 
-	device.queue.writeBuffer(gridBuffer, 0, gridResetBuffer, 0, gridResetBuffer.byteLength);
+	// device.queue.writeBuffer(gridBuffer, 0, gridResetBuffer, 0, gridResetBuffer.byteLength);
+	renderer.fillBuffer(gridBuffer, 0, gridSize ** 3);
 	
 
 	const commandEncoder = renderer.device.createCommandEncoder();
@@ -339,34 +340,56 @@ async function voxelize(renderer, node, boundingBox){
 	renderer.device.queue.submit([commandBuffer]);
 
 	// READ RESULTS
-	let voxels = [];
+	let voxels = {
+		positions: null,
+		colors: null,
+		numVoxels: 0,
+	};
 
 	let result = await renderer.readBuffer(gridBuffer, 0, 4 * (gridSize) ** 3);
 	{
+
+		let numVoxels = 0;
 		let u32 = new Uint32Array(result);
 
-		let numCells = 0;
-		let cellSize = cubeSize / gridSize;
 		for(let i = 0; i < u32.length; i++){
 			if(u32[i] > 0){
-				numCells++;
+				numVoxels++;
+			}
+		}
+
+		let positions = new Float32Array(3 * numVoxels);
+		let colors = new Uint8Array(4 * numVoxels);
+
+		let cellSize = cubeSize / gridSize;
+		let numAdded = 0;
+		for(let i = 0; i < u32.length; i++){
+			if(u32[i] > 0){
+
+				numAdded++;
 
 				let [ix, iy, iz] = toIndex3D(gridSize, i);
-				let color = unpackColor(u32[i]);
+				// let color = unpackColor(u32[i]);
 
 				let x = cubeSize * (ix / gridSize) + min.x + cellSize / 2;
 				let y = cubeSize * (iy / gridSize) + min.y + cellSize / 2;
 				let z = cubeSize * (iz / gridSize) + min.z + cellSize / 2;
 
-				let position = new Vector3(x, y, z);
-				let size = new Vector3(cellSize, cellSize, cellSize);
+				positions[3 * numAdded + 0] = x;
+				positions[3 * numAdded + 1] = y;
+				positions[3 * numAdded + 2] = z;
 
-				let voxel = {position, size, color};
-
-				voxels.push(voxel);
+				let rgba = u32[i];
+				colors[4 * numAdded + 0] = (rgba >>>  0) & 0xFF;
+				colors[4 * numAdded + 1] = (rgba >>>  8) & 0xFF;
+				colors[4 * numAdded + 2] = (rgba >>> 16) & 0xFF;
+				colors[4 * numAdded + 3] = 255;
 			}
 		}
 
+		voxels.positions = positions;
+		voxels.colors = colors;
+		voxels.numVoxels = numVoxels;
 	}
 
 	let chunk = {
@@ -504,9 +527,9 @@ export async function generateVoxelsGpu(renderer, node){
 		for(let child1 of child.children){
 			child1.expand();
 
-			for(let child2 of child1.children){
-				child2.expand();
-			}
+			// for(let child2 of child1.children){
+			// 	child2.expand();
+			// }
 		}
 	}
 
@@ -521,27 +544,11 @@ export async function generateVoxelsGpu(renderer, node){
 
 			let voxels = result.voxels;
 			chunk.voxels = voxels;
-
-			let positions = new Float32Array(3 * voxels.length);
-			let colors = new Uint8Array(4 * voxels.length);
-
-			for(let i = 0; i < voxels.length; i++){
-				positions[3 * i + 0] = voxels[i].position.x;
-				positions[3 * i + 1] = voxels[i].position.y;
-				positions[3 * i + 2] = voxels[i].position.z;
-
-				colors[4 * i + 0] = voxels[i].color.x;
-				colors[4 * i + 1] = voxels[i].color.y;
-				colors[4 * i + 2] = voxels[i].color.z;
-				colors[4 * i + 3] = 255;
-			}
-
-			chunk.quads = {positions, colors};
 		});
 
 	});
 
-	// await Promise.all(promises);
+	await Promise.all(promises);
 
 	console.timeEnd("generating voxels");
 
@@ -567,7 +574,7 @@ export async function generateVoxelsGpu(renderer, node){
 
 			chunk.visible = false;
 
-			if(chunk.voxels.length === 0){
+			if(chunk.voxels.numVoxels === 0){
 				return;
 			}
 

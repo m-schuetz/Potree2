@@ -402,7 +402,7 @@ export function render(voxelTree, drawstate){
 
 	let nodes = []; 
 	voxelTree.traverseBreadthFirst( (node) => {
-		if(node.voxels.length > 0){
+		if(node.voxels.numVoxels > 0){
 			nodes.push(node);
 		}
 	});
@@ -445,7 +445,7 @@ export function render(voxelTree, drawstate){
 
 		let node = nodes[i];
 
-		if(node.voxels.length === 0){
+		if(node.voxels.numVoxels === 0){
 			return;
 		}
 
@@ -459,15 +459,15 @@ export function render(voxelTree, drawstate){
 
 		passEncoder.setBindGroup(1, nodeBindGroup.bindGroup);
 		
-		let vboPosition = renderer.getGpuBuffer(node.quads.positions);
-		let vboColor = renderer.getGpuBuffer(node.quads.colors);
+		let vboPosition = renderer.getGpuBuffer(node.voxels.positions);
+		let vboColor = renderer.getGpuBuffer(node.voxels.colors);
 
 		passEncoder.setVertexBuffer(0, vboPosition);
 		passEncoder.setVertexBuffer(1, vboColor);
 
 
 
-		let numVertices = node.quads.positions.length / 3;
+		let numVertices = node.voxels.positions.length / 3;
 		passEncoder.draw(6, numVertices, 0, 0);
 
 		// break;

@@ -9,6 +9,7 @@ import {render as renderQuads} from "../modules/drawCommands/renderQuads.js";
 import {render as renderLines} from "../modules/drawCommands/renderLines.js";
 import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
+import {fillBuffer} from "./fillBuffer.js";
 import {readPixels, readDepth} from "../renderer/readPixels.js";
 import {RenderTarget} from "potree";
 
@@ -299,6 +300,10 @@ export class Renderer{
 
 	writeBuffer(args){
 		writeBuffer(this, args);
+	}
+
+	fillBuffer(buffer, value, numU32Elements){
+		fillBuffer(this, buffer, value, numU32Elements);
 	}
 	
 	getGpuTexture(image){
