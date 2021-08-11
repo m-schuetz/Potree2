@@ -7,6 +7,7 @@ import {render as renderBoundingBoxes} from "../modules/drawCommands/renderBound
 import {render as renderPoints} from "../modules/drawCommands/renderPoints.js";
 import {render as renderQuads} from "../modules/drawCommands/renderQuads.js";
 import {render as renderLines} from "../modules/drawCommands/renderLines.js";
+import {render as renderMeshes} from "../modules/drawCommands/renderMeshes.js";
 import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
 import {fillBuffer} from "./fillBuffer.js";
@@ -23,6 +24,7 @@ class Draws{
 		this.lines = [];
 		this.points = [];
 		this.quads = [];
+		this.meshes = [];
 	}
 
 	reset(){
@@ -32,6 +34,7 @@ class Draws{
 		this.lines = [];
 		this.points = [];
 		this.quads = [];
+		this.meshes = [];
 	}
 
 };
@@ -435,6 +438,10 @@ export class Renderer{
 		this.draws.boxes.push([position, size, color]);
 	}
 
+	drawMesh(args){
+		this.draws.meshes.push(args);
+	}
+
 	drawLine(start, end, color){
 
 		if(start instanceof Array){
@@ -525,6 +532,7 @@ export class Renderer{
 		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
 		renderPoints(this.draws.points, drawstate);
 		renderQuads(this.draws.quads, drawstate);
+		renderMeshes(this.draws.meshes, drawstate);
 		renderLines(this.draws.lines, drawstate);
 	}
 

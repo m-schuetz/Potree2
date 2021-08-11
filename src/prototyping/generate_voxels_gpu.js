@@ -15,15 +15,21 @@ const sourceTriangleProjection = `
 	values : [[stride(4)]] array<u32>;
 };
 
+[[block]] struct AU32s {
+	values : [[stride(4)]] array<atomic<u32>>;
+};
+
 [[block]] struct Uniforms {
 	screen_width     : f32;
 	screen_height    : f32;
+	instance         : u32;
 	bbMin            : vec3<f32>;      // offset(16)
 	bbMax            : vec3<f32>;      // offset(32)
 };
 
 [[block]] struct Dbg {
 	value : u32;
+	triangleCount : atomic<u32>;
 };
 
 struct VertexInput {
@@ -35,12 +41,16 @@ struct VertexOutput {
 	[[builtin(position)]] position : vec4<f32>;
 	[[location(0)]] color : vec4<f32>;
 	[[location(1)]] voxelPos : vec3<f32>;
+	[[location(2)]] triangleIndex : u32;
+	[[location(3)]] objectPos : vec3<f32>;
 };
 
 struct FragmentInput {
 	[[builtin(position)]] position : vec4<f32>;
 	[[location(0)]] color : vec4<f32>;
 	[[location(1)]] voxelPos : vec3<f32>;
+	[[location(2)]] triangleIndex : u32;
+	[[location(3)]] objectPos : vec3<f32>;
 };
 
 struct FragmentOutput {
@@ -58,17 +68,9 @@ struct FragmentOutput {
 [[binding(50), group(0)]] var<storage, read_write> dbg : Dbg;
 
 [[binding(100), group(0)]] var<storage, read_write> voxelGrid : U32s;
-
-fn loadPosition(vertexIndex : u32) -> vec3<f32> {
-	
-	var position = vec3<f32>(
-		positions.values[3u * vertexIndex + 0u],
-		positions.values[3u * vertexIndex + 1u],
-		positions.values[3u * vertexIndex + 2u],
-	);
-
-	return position;
-};
+[[binding(101), group(0)]] var<storage, read_write> triangleFlagBuffer : AU32s;
+[[binding(110), group(0)]] var<storage, read_write> outPositions : F32s;
+[[binding(111), group(0)]] var<storage, read_write> outColors : U32s;
 
 fn toIndex1D(gridSize : u32, voxelPos : vec3<u32>) -> u32{
 	return voxelPos.x 
@@ -89,6 +91,42 @@ fn packColor(color : vec4<f32>) -> u32 {
 
 	return packed;
 }
+
+fn unpackColor(uColor : u32) -> vec4<f32> {
+
+	var R = (uColor >>  0u) & 0xFFu;
+	var G = (uColor >>  8u) & 0xFFu;
+	var B = (uColor >> 16u) & 0xFFu;
+
+	var color = vec4<f32>(
+		f32(R) / 255.0,
+		f32(G) / 255.0,
+		f32(B) / 255.0,
+		255.0,
+	);
+
+	return color;
+}
+
+fn loadPosition(vertexIndex : u32) -> vec3<f32> {
+	
+	var position = vec3<f32>(
+		positions.values[3u * vertexIndex + 0u],
+		positions.values[3u * vertexIndex + 1u],
+		positions.values[3u * vertexIndex + 2u],
+	);
+
+	return position;
+};
+
+// fn loadColor(vertexIndex : u32) -> vec3<f32> {
+
+// 	var rgba = colors.values[vertexIndex];
+	
+// 	return unpackColor(rgba);
+// };
+
+
 
 [[stage(vertex)]]
 fn main_vertex(vertex : VertexInput) -> VertexOutput {
@@ -118,11 +156,11 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	var p1 = loadPosition(i1);
 	var p2 = loadPosition(i2);
 
-	var length_01 = 20.0 * length(p0 - p1);
-	var length_02 = 20.0 * length(p0 - p2);
+	var length_01 = 5.0 * length(p0 - p1);
+	var length_02 = 5.0 * length(p0 - p2);
 
-	var n_length_01 = max(length_01, 1.0 / 1024.0);
-	var n_length_02 = max(length_02, 1.0 / 1024.0);
+	var n_length_01 = max(length_01, 4.0 / ${fboSize}.0);
+	var n_length_02 = max(length_02, 4.0 / ${fboSize}.0);
 
 	var vertexPosition : vec3<f32>;
 	var localIndex = vertex.index % 3u;
@@ -153,12 +191,20 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		result.voxelPos = vec3<f32>(gx, gy, gz);
 	}
 
+	result.triangleIndex = triangleIndex;
+	result.objectPos = vertexPosition;
+
 	return result;
 }
 
 
 [[stage(fragment)]]
 fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
+
+	{
+		var f240t = outPositions.values[0];
+		var f2g4q = outColors.values[0];
+	}
 
 	var result : FragmentOutput;
 	result.color = fragment.color;
@@ -174,6 +220,43 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 	if(outsideX || outsideY || outsideZ){
 		// voxelGrid.values[voxelIndex] = packColor(vec4<f32>(1.0, 0.0, 0.0, 1.0));
 	}else{
+		var oldCount = atomicAdd(&triangleFlagBuffer.values[fragment.triangleIndex], 1u);
+		if(oldCount == 0u){
+			var oldTriangleCount = atomicAdd(&dbg.triangleCount, 1u);
+
+			// outPositions.values[3u * oldTriangleCount + 0u] = fragment.objectPos.x;
+			// outPositions.values[3u * oldTriangleCount + 1u] = fragment.objectPos.y;
+			// outPositions.values[3u * oldTriangleCount + 2u] = fragment.objectPos.z;
+
+			// outColors.values[oldTriangleCount] = packColor(fragment.color);
+
+			var i0 = indices.values[3u * fragment.triangleIndex + 0u];
+			var i1 = indices.values[3u * fragment.triangleIndex + 1u];
+			var i2 = indices.values[3u * fragment.triangleIndex + 2u];
+
+			var p0 = loadPosition(i0);
+			var p1 = loadPosition(i1);
+			var p2 = loadPosition(i2);
+
+			outPositions.values[9u * oldTriangleCount + 0u] = p0.x;
+			outPositions.values[9u * oldTriangleCount + 1u] = p0.y;
+			outPositions.values[9u * oldTriangleCount + 2u] = p0.z;
+			outPositions.values[9u * oldTriangleCount + 3u] = p1.x;
+			outPositions.values[9u * oldTriangleCount + 4u] = p1.y;
+			outPositions.values[9u * oldTriangleCount + 5u] = p1.z;
+			outPositions.values[9u * oldTriangleCount + 6u] = p2.x;
+			outPositions.values[9u * oldTriangleCount + 7u] = p2.y;
+			outPositions.values[9u * oldTriangleCount + 8u] = p2.z;
+
+			outColors.values[3u * oldTriangleCount + 0u] = colors.values[i0];
+			outColors.values[3u * oldTriangleCount + 1u] = colors.values[i1];
+			outColors.values[3u * oldTriangleCount + 2u] = colors.values[i2];
+
+			// outColors.values[oldTriangleCount] = packColor(fragment.color);
+
+			
+		}
+
 		voxelGrid.values[voxelIndex] = packColor(fragment.color);
 
 		result.color = vec4<f32>(
@@ -222,7 +305,10 @@ let fbo = null;
 let uniformBuffer = null;
 let gridBuffer = null;
 let gridResetBuffer = null;
+let triangleFlagBuffer = null;
 let dbgBuffer = null;
+let outPositionsBuffer = null;
+let outColorsBuffer = null;
 
 function init(renderer, node){
 
@@ -259,8 +345,13 @@ function init(renderer, node){
 	uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
 	dbgBuffer = device.createBuffer({size: 256, usage: storage_flags});
 	
+	let numTriangles = node.geometry.indices.length / 3;
 	gridResetBuffer = new Uint8Array(4 * (gridSize) ** 3);
 	gridBuffer = device.createBuffer({size: gridResetBuffer.byteLength, usage: storage_flags});
+	triangleFlagBuffer = device.createBuffer({size: 4 * numTriangles, usage: storage_flags});
+
+	outPositionsBuffer = device.createBuffer({size: 128_000_000, usage: storage_flags});
+	outColorsBuffer = device.createBuffer({size: 128_000_000, usage: storage_flags});
 
 	let indexBuffer = renderer.getGpuBuffer(node.geometry.indices);
 	let vbos = renderer.getGpuBuffers(node.geometry);
@@ -271,20 +362,23 @@ function init(renderer, node){
 	bindGroup = renderer.device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
-			{binding: 0, resource: {buffer: uniformBuffer}},
-			{binding: 10, resource: {buffer: indexBuffer}},
-			{binding: 11, resource: {buffer: vboPosition}},
-			{binding: 12, resource: {buffer: vboUV}},
-			{binding: 13, resource: {buffer: vboColor}},
-			{binding: 50, resource: {buffer: dbgBuffer}},
+			{binding:   0, resource: {buffer: uniformBuffer}},
+			{binding:  10, resource: {buffer: indexBuffer}},
+			{binding:  11, resource: {buffer: vboPosition}},
+			{binding:  12, resource: {buffer: vboUV}},
+			{binding:  13, resource: {buffer: vboColor}},
+			{binding:  50, resource: {buffer: dbgBuffer}},
 			{binding: 100, resource: {buffer: gridBuffer}},
+			{binding: 101, resource: {buffer: triangleFlagBuffer}},
+			{binding: 110, resource: {buffer: outPositionsBuffer}},
+			{binding: 111, resource: {buffer: outColorsBuffer}},
 		]
 	});
 
 	window.fbo = fbo;
 }
 
-async function voxelize(renderer, node, boundingBox){
+async function voxelize(renderer, node, boundingBox, chunkName){
 	let {device} = renderer;
 
 	let box = boundingBox.clone();
@@ -312,6 +406,8 @@ async function voxelize(renderer, node, boundingBox){
 		let buffer = new ArrayBuffer(256);
 		let view = new DataView(buffer);
 
+		// view.setUint32( 8, Math.random() * 10, true);
+
 		view.setFloat32(16, box.min.x, true);
 		view.setFloat32(20, box.min.y, true);
 		view.setFloat32(24, box.min.z, true);
@@ -323,8 +419,11 @@ async function voxelize(renderer, node, boundingBox){
 		device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
 	}
 
-	// device.queue.writeBuffer(gridBuffer, 0, gridResetBuffer, 0, gridResetBuffer.byteLength);
+	let numTriangles = node.geometry.indices.length / 3;
+
+	renderer.fillBuffer(dbgBuffer, 0, 2);
 	renderer.fillBuffer(gridBuffer, 0, gridSize ** 3);
+	renderer.fillBuffer(triangleFlagBuffer, 0, numTriangles);
 	
 
 	const commandEncoder = renderer.device.createCommandEncoder();
@@ -346,7 +445,41 @@ async function voxelize(renderer, node, boundingBox){
 		numVoxels: 0,
 	};
 
-	let result = await renderer.readBuffer(gridBuffer, 0, 4 * (gridSize) ** 3);
+
+	let maxAccept = 18_000;
+	let p1 = renderer.readBuffer(gridBuffer, 0, 4 * (gridSize) ** 3);
+	let p2 = renderer.readBuffer(dbgBuffer, 0, 8);
+	let p3 = renderer.readBuffer(outPositionsBuffer, 0, maxAccept * 3 * 12);
+	let p4 = renderer.readBuffer(outColorsBuffer, 0, maxAccept * 3 * 4);
+
+	let result = await p1;
+	let numAcceptedTriangles = new Uint32Array(await p2)[1];
+	
+
+	let triangles = null;
+	if(numAcceptedTriangles < maxAccept){
+
+		let outPositions = new Float32Array(await p3);
+		let outColors = new Uint32Array(await p4);
+
+		let clippedPositions = new Float32Array(outPositions.buffer, 0, 9 * numAcceptedTriangles);
+		let clippedColors = new Float32Array(outColors.buffer, 0, 3 * numAcceptedTriangles);
+
+		// potree.onUpdate(() => {
+		// 	potree.renderer.drawMesh({positions: clippedPositions, colors: clippedColors});
+		// 	// potree.renderer.drawQuads(clippedPositions, clippedColors);
+		// });
+
+		triangles = {
+			positions: clippedPositions,
+			colors: clippedColors,
+		};
+
+	}
+
+	// let result = await renderer.readBuffer(gridBuffer, 0, 4 * (gridSize) ** 3);
+	// let numAcceptedTriangles = new Uint32Array(await renderer.readBuffer(dbgBuffer, 0, 8))[1];
+
 	{
 
 		let numVoxels = 0;
@@ -392,9 +525,14 @@ async function voxelize(renderer, node, boundingBox){
 		voxels.numVoxels = numVoxels;
 	}
 
+	if(voxels.numVoxels > 0){
+		console.log(`node(${chunkName}), numVoxels(${voxels.numVoxels}, numAcceptedTriangles(${numAcceptedTriangles})`);
+	}
+
 	let chunk = {
 		boundingBox: box,
 		voxels,
+		triangles: triangles,
 	};
 
 	return chunk;
@@ -405,6 +543,7 @@ class Chunk{
 	constructor(){
 		this.boundingBox = new Box3();
 		this.voxels = [];
+		this.triangles = null;
 		this.children = [];
 		this.level = 0;
 		this.parent = null;
@@ -514,6 +653,10 @@ export async function generateVoxelsGpu(renderer, node){
 	console.time("generating voxels");
 
 	let box = node.boundingBox.clone();
+	// box.min.set(1.2, -0.4, -4.8);
+	// box.max.set(1.5, 0.3, -4.1);
+
+
 	let cube = box.cube();
 	let center = cube.center();
 
@@ -521,29 +664,31 @@ export async function generateVoxelsGpu(renderer, node){
 	root.name = "r";
 	root.boundingBox = cube.clone();
 	root.expand();
+	window.root = root;
 	for(let child of root.children){
 		child.expand();
 
 		for(let child1 of child.children){
 			child1.expand();
 
-			// for(let child2 of child1.children){
-			// 	child2.expand();
-			// }
+			for(let child2 of child1.children){
+				child2.expand();
+			}
 		}
 	}
 
+	let instance = 0;
 	let promises = [];
 	root.traverse( async (chunk) => {
-		let promise = voxelize(renderer, node, chunk.boundingBox);
+		let promise = voxelize(renderer, node, chunk.boundingBox, chunk.name);
 		promises.push(promise);
 
-		promise.then(result => {
-		
-			// let result = await voxelize(renderer, node, chunk.boundingBox);
+		instance++;
 
+		promise.then(result => {
 			let voxels = result.voxels;
 			chunk.voxels = voxels;
+			chunk.triangles = result.triangles;
 		});
 
 	});
@@ -558,17 +703,17 @@ export async function generateVoxelsGpu(renderer, node){
 
 	potree.onUpdate( () => {
 			
-		potree.renderer.drawBoundingBox(
-			box.center(),
-			box.size(),
-			new Vector3(255, 255, 0),
-		);
+		// potree.renderer.drawBoundingBox(
+		// 	box.center(),
+		// 	box.size(),
+		// 	new Vector3(255, 255, 0),
+		// );
 
-		potree.renderer.drawBoundingBox(
-			cube.center(),
-			cube.size(),
-			new Vector3(255, 0, 0),
-		);
+		// potree.renderer.drawBoundingBox(
+		// 	cube.center(),
+		// 	cube.size(),
+		// 	new Vector3(255, 0, 0),
+		// );
 
 		root.traverse( (chunk, level) => {
 
@@ -590,17 +735,22 @@ export async function generateVoxelsGpu(renderer, node){
 			let camWorldPos = camera.getWorldPosition();
 			let distance = camWorldPos.distanceTo(center);
 
-			let expand = (size / distance) > 0.4;
-
-			// if(expand){
-			// 	potree.renderer.drawBoundingBox(
-			// 		chunk.boundingBox.center(),
-			// 		chunk.boundingBox.size(),
-			// 		color,
-			// 	);
-			// }
+			let expand = (size / distance) > 0.8;
 
 			chunk.visible = expand;
+
+			if(chunk.visible && chunk.triangles){
+				potree.renderer.drawMesh(chunk.triangles);
+			}
+
+			if(expand){
+				potree.renderer.drawBoundingBox(
+					chunk.boundingBox.center(),
+					chunk.boundingBox.size(),
+					color,
+				);
+			}
+
 		});
 
 

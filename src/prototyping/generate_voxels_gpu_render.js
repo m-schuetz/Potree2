@@ -468,7 +468,10 @@ export function render(voxelTree, drawstate){
 
 
 		let numVertices = node.voxels.positions.length / 3;
-		passEncoder.draw(6, numVertices, 0, 0);
+
+		if(node.triangles == null){
+			passEncoder.draw(6, numVertices, 0, 0);
+		}
 
 		// break;
 	};

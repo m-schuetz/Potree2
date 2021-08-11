@@ -47,9 +47,9 @@ export class OrbitControls{
 			let diff = -Math.sign(e.delta);
 
 			if(diff > 0){
-				this.radius *= 1.05;
+				this.radius *= 1.1;
 			}else if(diff < 0){
-				this.radius /= 1.05;
+				this.radius /= 1.1;
 			}
 
 		});
