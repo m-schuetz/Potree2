@@ -386,6 +386,7 @@ class Chunk{
 		this.level = 0;
 		this.parent = null;
 		this.visible = true;
+		this.name = "";
 	}
 
 	expand(){
@@ -412,6 +413,7 @@ class Chunk{
 			child.boundingBox = childBox;
 			child.level = this.level + 1;
 			child.parent = this;
+			child.name = this.name + i;
 			
 			this.children.push(child);
 		}
@@ -437,6 +439,17 @@ class VoxelTree extends SceneNode{
 		super("abc");
 
 		this.root = new Chunk();
+		this.root.name = "r";
+		this.gridSize = gridSize;
+	}
+
+	getRootVoxelSize(){
+		let box = this.root.boundingBox;
+		let cubeSize = box.size().x;
+
+		let voxelSize = cubeSize / this.gridSize;
+
+		return voxelSize;
 	}
 
 	render(drawstate){
@@ -482,39 +495,53 @@ export async function generateVoxelsGpu(renderer, node){
 	let center = cube.center();
 
 	let root = new Chunk();
+	root.name = "r";
 	root.boundingBox = cube.clone();
 	root.expand();
 	for(let child of root.children){
 		child.expand();
 
-		// for(let child1 of child.children){
-		// 	child1.expand();
-		// }
+		for(let child1 of child.children){
+			child1.expand();
+
+			for(let child2 of child1.children){
+				child2.expand();
+			}
+		}
 	}
 
+	let promises = [];
 	root.traverse( async (chunk) => {
-		let result = await voxelize(renderer, node, chunk.boundingBox);
+		let promise = voxelize(renderer, node, chunk.boundingBox);
+		promises.push(promise);
 
-		let voxels = result.voxels;
-		chunk.voxels = voxels;
+		promise.then(result => {
+		
+			// let result = await voxelize(renderer, node, chunk.boundingBox);
 
-		let positions = new Float32Array(3 * voxels.length);
-		let colors = new Uint8Array(4 * voxels.length);
+			let voxels = result.voxels;
+			chunk.voxels = voxels;
 
-		for(let i = 0; i < voxels.length; i++){
-			positions[3 * i + 0] = voxels[i].position.x;
-			positions[3 * i + 1] = voxels[i].position.y;
-			positions[3 * i + 2] = voxels[i].position.z;
+			let positions = new Float32Array(3 * voxels.length);
+			let colors = new Uint8Array(4 * voxels.length);
 
-			colors[4 * i + 0] = voxels[i].color.x;
-			colors[4 * i + 1] = voxels[i].color.y;
-			colors[4 * i + 2] = voxels[i].color.z;
-			colors[4 * i + 3] = 255;
-		}
+			for(let i = 0; i < voxels.length; i++){
+				positions[3 * i + 0] = voxels[i].position.x;
+				positions[3 * i + 1] = voxels[i].position.y;
+				positions[3 * i + 2] = voxels[i].position.z;
 
-		chunk.quads = {positions, colors};
+				colors[4 * i + 0] = voxels[i].color.x;
+				colors[4 * i + 1] = voxels[i].color.y;
+				colors[4 * i + 2] = voxels[i].color.z;
+				colors[4 * i + 3] = 255;
+			}
+
+			chunk.quads = {positions, colors};
+		});
 
 	});
+
+	// await Promise.all(promises);
 
 	console.timeEnd("generating voxels");
 
@@ -538,9 +565,16 @@ export async function generateVoxelsGpu(renderer, node){
 
 		root.traverse( (chunk, level) => {
 
+			chunk.visible = false;
+
 			if(chunk.voxels.length === 0){
 				return;
 			}
+
+			// let whitelist = ["r", "r4", "r42"];
+			// if(!whitelist.includes(chunk.name)){
+			// 	return;
+			// }
 
 			let color = new Vector3(...SPECTRAL.get(level / 4));
 
@@ -551,13 +585,13 @@ export async function generateVoxelsGpu(renderer, node){
 
 			let expand = (size / distance) > 0.4;
 
-			if(expand){
-				potree.renderer.drawBoundingBox(
-					chunk.boundingBox.center(),
-					chunk.boundingBox.size(),
-					color,
-				);
-			}
+			// if(expand){
+			// 	potree.renderer.drawBoundingBox(
+			// 		chunk.boundingBox.center(),
+			// 		chunk.boundingBox.size(),
+			// 		color,
+			// 	);
+			// }
 
 			chunk.visible = expand;
 		});

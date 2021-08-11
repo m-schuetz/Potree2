@@ -355,6 +355,14 @@ function render(){
 		let meshes = renderables.get("Mesh") ?? [];
 		renderMeshes(meshes, drawstate);
 
+		for(let [key, nodes] of renderables){
+			for(let node of nodes){
+				if(typeof node.render !== "undefined"){
+					node.render(drawstate);
+				}
+			}
+		}
+
 		renderer.renderDrawCommands(drawstate);
 
 		endPass(pass);
