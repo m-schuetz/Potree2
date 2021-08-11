@@ -69,6 +69,45 @@ var<private> QUAD_POS : array<vec3<f32>, 6> = array<vec3<f32>, 6>(
 	vec3<f32>(-1.0,  1.0, 0.0),
 );
 
+var<private> CUBE_POS : array<vec3<f32>, 36> = array<vec3<f32>, 36>(
+	vec3<f32>(-0.5, -0.5, -0.5),
+	vec3<f32>(0.5,  0.5, -0.5),
+	vec3<f32>(0.5, -0.5, -0.5),
+	vec3<f32>(-0.5, -0.5, -0.5),
+	vec3<f32>(-0.5,  0.5, -0.5),
+	vec3<f32>(0.5,  0.5, -0.5),
+	vec3<f32>(-0.5, -0.5,  0.5),
+	vec3<f32>(0.5, -0.5,  0.5),
+	vec3<f32>(0.5,  0.5,  0.5),
+	vec3<f32>(-0.5, -0.5,  0.5),
+	vec3<f32>(0.5,  0.5,  0.5),
+	vec3<f32>(-0.5,  0.5,  0.5),
+	vec3<f32>(-0.5, -0.5, -0.5,),
+	vec3<f32>(-0.5,  0.5,  0.5,),
+	vec3<f32>(-0.5,  0.5, -0.5,),
+	vec3<f32>(-0.5, -0.5, -0.5,),
+	vec3<f32>(-0.5, -0.5,  0.5,),
+	vec3<f32>(-0.5,  0.5,  0.5,),
+	vec3<f32>(0.5, -0.5, -0.5),
+	vec3<f32>(0.5,  0.5, -0.5),
+	vec3<f32>(0.5,  0.5,  0.5),
+	vec3<f32>(0.5, -0.5, -0.5),
+	vec3<f32>(0.5,  0.5,  0.5),
+	vec3<f32>(0.5, -0.5,  0.5),
+	vec3<f32>(-0.5, 0.5, -0.5),
+	vec3<f32>(0.5, 0.5,  0.5),
+	vec3<f32>(0.5, 0.5, -0.5),
+	vec3<f32>(-0.5, 0.5, -0.5),
+	vec3<f32>(-0.5, 0.5,  0.5),
+	vec3<f32>(0.5, 0.5,  0.5),
+	vec3<f32>(-0.5, -0.5, -0.5),
+	vec3<f32>(0.5, -0.5, -0.5),
+	vec3<f32>(0.5, -0.5,  0.5),
+	vec3<f32>(-0.5, -0.5, -0.5),
+	vec3<f32>(0.5, -0.5,  0.5),
+	vec3<f32>(-0.5, -0.5,  0.5),
+);
+
 fn toChildIndex(npos : vec3<f32>) -> u32 {
 
 	var index = 0u;
@@ -136,23 +175,39 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var abc = nodes.values[0];
 
-	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
-	var projPos : vec4<f32> = uniforms.proj * viewPos;
-
-	let quadVertexIndex : u32 = vertex.vertexID % 6u;
-	var pos_quad : vec3<f32> = QUAD_POS[quadVertexIndex];
-
 	var lod = getLOD(vertex);
+	
 
-	var pointSize = 1000.0 * uniforms.rootVoxelSize / pow(2.0, f32(lod));
-	pointSize = pointSize / (-viewPos.z);
-	var fx : f32 = projPos.x / projPos.w;
-	fx = fx + pointSize * pos_quad.x / uniforms.screen_width;
-	projPos.x = fx * projPos.w;
+	//=================================
+	// QUAD
+	//=================================
 
-	var fy : f32 = projPos.y / projPos.w;
-	fy = fy + pointSize * pos_quad.y / uniforms.screen_height;
-	projPos.y = fy * projPos.w;
+	// var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
+	// var projPos : vec4<f32> = uniforms.proj * viewPos;
+
+	// let quadVertexIndex : u32 = vertex.vertexID % 6u;
+	// var pos_quad : vec3<f32> = QUAD_POS[quadVertexIndex];
+
+	// var pointSize = 1000.0 * uniforms.rootVoxelSize / pow(2.0, f32(lod));
+	// pointSize = pointSize / (-viewPos.z);
+	// var fx : f32 = projPos.x / projPos.w;
+	// fx = fx + pointSize * pos.x / uniforms.screen_width;
+	// projPos.x = fx * projPos.w;
+
+	// var fy : f32 = projPos.y / projPos.w;
+	// fy = fy + pointSize * pos.y / uniforms.screen_height;
+	// projPos.y = fy * projPos.w;
+
+	//=================================
+	// CUBE
+	//=================================
+
+	let cubeVertexIndex : u32 = vertex.vertexID % 36u;
+	var cubeOffset : vec3<f32> = CUBE_POS[cubeVertexIndex];
+	var voxelSize = uniforms.rootVoxelSize / pow(2.0, f32(lod));
+
+	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position + voxelSize * cubeOffset, 1.0);
+	var projPos : vec4<f32> = uniforms.proj * viewPos;
 
 	var vout : VertexOut;
 	vout.position = projPos;
@@ -168,7 +223,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 		vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 	}
 
-	vout.uv = pos_quad.xy;
+	// vout.uv = pos.xy;
 	vout.lod = f32(lod);
 
 	// var shouldDiscard = vertex.position.x > -1.2;
@@ -188,22 +243,16 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 	var fout : FragmentOut;
 	fout.color = fragment.color;
 
-	var d = length(fragment.uv);
-	var radius = uniforms.rootVoxelSize / pow(2.0, f32(fragment.lod));
+	// var d = length(fragment.uv);
+	// var radius = uniforms.rootVoxelSize / pow(2.0, f32(fragment.lod));
 
-	var oldDepth = uniforms.near / fragment.position.z;
-	var newDepth = oldDepth + d * d * radius * 1.0;
+	// var oldDepth = uniforms.near / fragment.position.z;
+	// var newDepth = oldDepth + d * d * radius * 1.0;
 
-	fout.depth = uniforms.near / newDepth;
+	// fout.depth = uniforms.near / newDepth;
 
 	// keep original depth
-	// fout.depth = fragment.position.z;
-
-	// {
-	// 	var w = fragment.lod;
-
-	// 	fout.color = vec4<f32>(w / 2.0, 0.0, 0.0, 1.0);
-	// }
+	fout.depth = fragment.position.z;
 
 	return fout;
 }
@@ -470,7 +519,7 @@ export function render(voxelTree, drawstate){
 		let numVertices = node.voxels.positions.length / 3;
 
 		if(node.triangles == null){
-			passEncoder.draw(6, numVertices, 0, 0);
+			passEncoder.draw(36, numVertices, 0, 0);
 		}
 
 		// break;
