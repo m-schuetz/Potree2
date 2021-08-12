@@ -151,8 +151,21 @@ export function render(meshes, drawstate){
 		passEncoder.setVertexBuffer(0, vboPosition);
 		passEncoder.setVertexBuffer(1, vboColor);
 
-		let numVertices = batch.positions.length / 3;
-		passEncoder.draw(numVertices, 1, 0, 0);
+		if(batch.indices){
+
+			let numIndices = batch.indices.length;
+			let gpu_indices = renderer.getGpuBuffer(batch.indices);
+
+			passEncoder.setIndexBuffer(gpu_indices, "uint32", 0, batch.indices.byteLength);
+
+			passEncoder.drawIndexed(numIndices);
+
+		}else{
+			let numVertices = batch.positions.length / 3;
+			passEncoder.draw(numVertices, 1, 0, 0);
+		}
+
+		
 	}
 
 };

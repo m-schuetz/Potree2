@@ -261,10 +261,10 @@ export class Renderer{
 		return pipeline;
 	}
 
-	runCompute({code, bindGroups, dispatchGroups}){
+	runCompute({code, bindGroups, dispatchGroups, entryPoint}){
 
 		let {device} = this;
-		let pipeline = this.createComputePipeline({code});
+		let pipeline = this.createComputePipeline({code, entryPoint});
 
 		
 
