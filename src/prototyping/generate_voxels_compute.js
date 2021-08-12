@@ -37,6 +37,7 @@ let csCount = `
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 [[binding(10), group(0)]] var<storage, read_write> indices : U32s;
 [[binding(11), group(0)]] var<storage, read_write> positions : F32s;
+[[binding(12), group(0)]] var<storage, read_write> colors : U32s;
 
 // OUT
 [[binding(20), group(0)]] var<storage, read_write> counters : AU32s;
@@ -96,6 +97,7 @@ fn doIgnore(){
 	var b53 = atomicLoad(&counters.values[0]);
 	var rwg = indices.values[0];
 	var rb5 = positions.values[0];
+	var lw5 = colors.values[0];
 	var g55 = atomicLoad(&LUT.values[0]);
 	var a35 = sortedBuffer.values[0];
 	
@@ -185,12 +187,16 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 	var voxelPos = toVoxelPos(center);
 	var voxelIndex = toIndex1D(uniforms.gridSize, voxelPos);
 
-	// var triangleOffset = LUT.values[voxelIndex];
 	var triangleOffset = atomicAdd(&LUT.values[voxelIndex], 1u);
 
 	sortedBuffer.values[3u * triangleOffset + 0u] = i0;
 	sortedBuffer.values[3u * triangleOffset + 1u] = i1;
 	sortedBuffer.values[3u * triangleOffset + 2u] = i2;
+
+	colors.values[i0] = 123u * voxelIndex;
+	colors.values[i1] = 123u * voxelIndex;
+	colors.values[i2] = 123u * voxelIndex;
+
 }
 
 
@@ -233,7 +239,9 @@ export async function generateVoxelsCompute(renderer, node){
 	let gpu_LUT = device.createBuffer({size: counterGridSize, usage: storage_flags});
 	let gpu_indices = renderer.getGpuBuffer(node.geometry.indices);
 	let host_positions = node.geometry.findBuffer("position");
+	let host_colors = node.geometry.findBuffer("color");
 	let gpu_positions = renderer.getGpuBuffer(host_positions);
+	let gpu_colors = renderer.getGpuBuffer(host_colors);
 	let gpu_dbg = device.createBuffer({size: 256, usage: storage_flags});
 	let gpu_sortedIndices = device.createBuffer({size: 4 * 3 * numTriangles, usage: storage_flags});
 
@@ -244,6 +252,7 @@ export async function generateVoxelsCompute(renderer, node){
 				{binding:  0, resource: {buffer: uniformBuffer}},
 				{binding: 10, resource: {buffer: gpu_indices}},
 				{binding: 11, resource: {buffer: gpu_positions}},
+				{binding: 12, resource: {buffer: gpu_colors}},
 				{binding: 20, resource: {buffer: gpu_counters}},
 				{binding: 21, resource: {buffer: gpu_LUT}},
 				{binding: 22, resource: {buffer: gpu_sortedIndices}},
