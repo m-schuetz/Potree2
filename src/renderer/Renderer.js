@@ -245,6 +245,50 @@ export class Renderer{
 		return cloned;
 	}
 
+	createComputePipeline(args){
+
+		let {device} = this;
+		let code = args.code;
+		let entryPoint = args.entryPoint ?? "main";
+
+		let pipeline =  device.createComputePipeline({
+			compute: {
+				module: device.createShaderModule({code: code}),
+				entryPoint: entryPoint,
+			},
+		});
+
+		return pipeline;
+	}
+
+	runCompute({code, bindGroups, dispatchGroups}){
+
+		let {device} = this;
+		let pipeline = this.createComputePipeline({code});
+
+		
+
+		const commandEncoder = device.createCommandEncoder();
+		const passEncoder = commandEncoder.beginComputePass();
+
+		passEncoder.setPipeline(pipeline);
+
+		for(let bindGroupItem of bindGroups){
+
+			let bindGroup = device.createBindGroup({
+				layout: pipeline.getBindGroupLayout(bindGroupItem.location),
+				entries: bindGroupItem.entries,
+			});
+
+			passEncoder.setBindGroup(bindGroupItem.location, bindGroup);
+		}
+
+		passEncoder.dispatch(...dispatchGroups);
+		passEncoder.endPass();
+		
+		device.queue.submit([commandEncoder.finish()]);
+	}
+
 	createTextureFromArray(array, width, height){
 		let texture = this.createTexture(width, height, {format: "rgba8unorm"});
 

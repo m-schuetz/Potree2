@@ -88,6 +88,7 @@ canvas{
 	import {generateLOD} from "./src/prototyping/generate_lod.js"
 	import {generateVoxels} from "./src/prototyping/generate_voxels.js"
 	import {generateVoxelsGpu} from "./src/prototyping/generate_voxels_gpu.js"
+	import {generateVoxelsCompute } from "./src/prototyping/generate_voxels_compute.js"
 
 	import {installToolbar} from "toolbar";
 
@@ -236,8 +237,9 @@ canvas{
 	// 	});
 	// });
 
-	// Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
-	Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// Potree.loadGLB("./resources/models/lion.glb").then(node => {
+	Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
+	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 	// Potree.loadGLB("./resources/models/anita_mui_aligned.glb").then(node => {
 
 		// node.set({
@@ -280,7 +282,8 @@ canvas{
 		// simplify(node);
 		// generateLOD(node);
 		// generateVoxels(node);
-		generateVoxelsGpu(potree.renderer, node);
+		// generateVoxelsGpu(potree.renderer, node);
+		generateVoxelsCompute(potree.renderer, node);
 
 		controls.set({
 			position: [-0.8, 3.3, -3.3],

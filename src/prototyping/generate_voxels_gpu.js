@@ -446,36 +446,36 @@ async function voxelize(renderer, node, boundingBox, chunkName){
 	};
 
 
-	let maxAccept = 18_000;
+	let maxAccept = 1_000;
 	let p1 = renderer.readBuffer(gridBuffer, 0, 4 * (gridSize) ** 3);
-	let p2 = renderer.readBuffer(dbgBuffer, 0, 8);
-	let p3 = renderer.readBuffer(outPositionsBuffer, 0, maxAccept * 3 * 12);
-	let p4 = renderer.readBuffer(outColorsBuffer, 0, maxAccept * 3 * 4);
+	// let p2 = renderer.readBuffer(dbgBuffer, 0, 8);
+	// let p3 = renderer.readBuffer(outPositionsBuffer, 0, maxAccept * 3 * 12);
+	// let p4 = renderer.readBuffer(outColorsBuffer, 0, maxAccept * 3 * 4);
 
 	let result = await p1;
-	let numAcceptedTriangles = new Uint32Array(await p2)[1];
+	// let numAcceptedTriangles = new Uint32Array(await p2)[1];
 	
 
 	let triangles = null;
-	if(numAcceptedTriangles < maxAccept){
+	// if(numAcceptedTriangles < maxAccept){
 
-		let outPositions = new Float32Array(await p3);
-		let outColors = new Uint32Array(await p4);
+	// 	let outPositions = new Float32Array(await p3);
+	// 	let outColors = new Uint32Array(await p4);
 
-		let clippedPositions = new Float32Array(outPositions.buffer, 0, 9 * numAcceptedTriangles);
-		let clippedColors = new Float32Array(outColors.buffer, 0, 3 * numAcceptedTriangles);
+	// 	let clippedPositions = new Float32Array(outPositions.buffer, 0, 9 * numAcceptedTriangles);
+	// 	let clippedColors = new Float32Array(outColors.buffer, 0, 3 * numAcceptedTriangles);
 
-		// potree.onUpdate(() => {
-		// 	potree.renderer.drawMesh({positions: clippedPositions, colors: clippedColors});
-		// 	// potree.renderer.drawQuads(clippedPositions, clippedColors);
-		// });
+	// 	// potree.onUpdate(() => {
+	// 	// 	potree.renderer.drawMesh({positions: clippedPositions, colors: clippedColors});
+	// 	// 	// potree.renderer.drawQuads(clippedPositions, clippedColors);
+	// 	// });
 
-		triangles = {
-			positions: clippedPositions,
-			colors: clippedColors,
-		};
+	// 	triangles = {
+	// 		positions: clippedPositions,
+	// 		colors: clippedColors,
+	// 	};
 
-	}
+	// }
 
 	// let result = await renderer.readBuffer(gridBuffer, 0, 4 * (gridSize) ** 3);
 	// let numAcceptedTriangles = new Uint32Array(await renderer.readBuffer(dbgBuffer, 0, 8))[1];
@@ -525,9 +525,9 @@ async function voxelize(renderer, node, boundingBox, chunkName){
 		voxels.numVoxels = numVoxels;
 	}
 
-	if(voxels.numVoxels > 0){
-		console.log(`node(${chunkName}), numVoxels(${voxels.numVoxels}, numAcceptedTriangles(${numAcceptedTriangles})`);
-	}
+	// if(voxels.numVoxels > 0){
+	// 	console.log(`node(${chunkName}), numVoxels(${voxels.numVoxels}, numAcceptedTriangles(${numAcceptedTriangles})`);
+	// }
 
 	let chunk = {
 		boundingBox: box,
@@ -671,9 +671,9 @@ export async function generateVoxelsGpu(renderer, node){
 		for(let child1 of child.children){
 			child1.expand();
 
-			for(let child2 of child1.children){
-				child2.expand();
-			}
+			// for(let child2 of child1.children){
+			// 	child2.expand();
+			// }
 		}
 	}
 

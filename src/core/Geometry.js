@@ -10,4 +10,8 @@ export class Geometry{
 		this.boundingBox = new Box3();
 	}
 
+	findBuffer(name){
+		return this.buffers.find(buffer => buffer.name === name)?.buffer;
+	}
+
 }
