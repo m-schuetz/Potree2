@@ -1,7 +1,9 @@
 
-let gridSize = 16;
+import {Box3, Vector3} from "potree";
+import {chunkGridSize, toIndex1D, toIndex3D} from "./common.js";
+import {storage_flags, uniform_flags} from "./common.js";
 
-let csCount = `
+let csChunking = `
 
 [[block]] struct Uniforms {
 	numTriangles     : u32;
@@ -38,6 +40,7 @@ let csCount = `
 [[binding(10), group(0)]] var<storage, read_write> indices : U32s;
 [[binding(11), group(0)]] var<storage, read_write> positions : F32s;
 [[binding(12), group(0)]] var<storage, read_write> colors : U32s;
+// [[binding(13), group(0)]] var<storage, read_write> uvs : U32s;
 
 // OUT
 [[binding(20), group(0)]] var<storage, read_write> counters : AU32s;
@@ -98,6 +101,7 @@ fn doIgnore(){
 	var rwg = indices.values[0];
 	var rb5 = positions.values[0];
 	var lw5 = colors.values[0];
+	// var n52 = uvs.values[0];
 	var g55 = atomicLoad(&LUT.values[0]);
 	var a35 = sortedBuffer.values[0];
 	
@@ -193,19 +197,18 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 	sortedBuffer.values[3u * triangleOffset + 1u] = i1;
 	sortedBuffer.values[3u * triangleOffset + 2u] = i2;
 
-	colors.values[i0] = 123u * voxelIndex;
-	colors.values[i1] = 123u * voxelIndex;
-	colors.values[i2] = 123u * voxelIndex;
+	// colors.values[i0] = 123u * voxelIndex;
+	// colors.values[i1] = 123u * voxelIndex;
+	// colors.values[i2] = 123u * voxelIndex;
+
+
 
 }
 
 
 `;
 
-let storage_flags = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST;
-let uniform_flags = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST;
-
-export async function generateVoxelsCompute(renderer, node){
+export async function doChunking(renderer, node){
 
 	let {device} = renderer;
 
@@ -213,15 +216,13 @@ export async function generateVoxelsCompute(renderer, node){
 	let box = node.boundingBox.clone();
 	let cube = box.cube();
 
-	console.time("generate voxels");
-
 	let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
 	{
 		let buffer = new ArrayBuffer(256);
 		let view = new DataView(buffer);
 
 		view.setUint32(0, numTriangles, true);
-		view.setUint32(4, gridSize, true);
+		view.setUint32(4, chunkGridSize, true);
 
 		view.setFloat32(16, cube.min.x, true);
 		view.setFloat32(20, cube.min.y, true);
@@ -234,7 +235,7 @@ export async function generateVoxelsCompute(renderer, node){
 		device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
 	}
 
-	let counterGridSize = 4 * gridSize ** 3;
+	let counterGridSize = 4 * chunkGridSize ** 3;
 	let gpu_counters = device.createBuffer({size: counterGridSize, usage: storage_flags});
 	let gpu_LUT = device.createBuffer({size: counterGridSize, usage: storage_flags});
 	let gpu_indices = renderer.getGpuBuffer(node.geometry.indices);
@@ -253,6 +254,7 @@ export async function generateVoxelsCompute(renderer, node){
 				{binding: 10, resource: {buffer: gpu_indices}},
 				{binding: 11, resource: {buffer: gpu_positions}},
 				{binding: 12, resource: {buffer: gpu_colors}},
+				// {binding: 13, resource: {buffer: gpu_uvs}},
 				{binding: 20, resource: {buffer: gpu_counters}},
 				{binding: 21, resource: {buffer: gpu_LUT}},
 				{binding: 22, resource: {buffer: gpu_sortedIndices}},
@@ -261,86 +263,89 @@ export async function generateVoxelsCompute(renderer, node){
 		}
 	];
 
+
 	renderer.runCompute({
-		code: csCount,
+		code: csChunking,
 		entryPoint: "main_count",
 		bindGroups: bindGroups,
 		dispatchGroups: [Math.ceil(numTriangles / 128)],
 	});
 
 	renderer.runCompute({
-		code: csCount,
+		code: csChunking,
 		entryPoint: "main_create_lut",
 		bindGroups: bindGroups,
-		dispatchGroups: [Math.ceil((gridSize ** 3) / 128)],
+		dispatchGroups: [Math.ceil((chunkGridSize ** 3) / 128)],
 	});
 
 	renderer.runCompute({
-		code: csCount,
+		code: csChunking,
 		entryPoint: "main_sort_triangles",
 		bindGroups: bindGroups,
 		dispatchGroups: [Math.ceil(numTriangles / 128)],
 	});
 
+	let pDebug = renderer.readBuffer(gpu_dbg, 0, 32);
+	let pCounters = renderer.readBuffer(gpu_counters, 0, counterGridSize);
+	let pLUT = renderer.readBuffer(gpu_LUT, 0, counterGridSize);
+	let pSortedIndices = renderer.readBuffer(gpu_sortedIndices, 0, 4 * 3 * numTriangles);
 
+	let [
+		rDebug, rCounters, rLUT, rSortedIndices
+	] = await Promise.all([pDebug, pCounters, pLUT, pSortedIndices]);
 
-	renderer.readBuffer(gpu_dbg, 0, 32).then(result => {
-		console.log(new Uint32Array(result, 0, 4));
-		console.log(new Float32Array(result, 16, 4));
-	});
+	let chunks = [];
+	{
+		let u32Counters = new Uint32Array(rCounters);
+		let u32LUT = new Uint32Array(rLUT);
 
-	renderer.readBuffer(gpu_counters, 0, counterGridSize).then(result => {
-		
-		let sum = 0;
-		let numVoxels = 0;
-		let u32 = new Uint32Array(result);
-		let voxels = [];
+		for(let voxelIndex = 0; voxelIndex < chunkGridSize ** 3; voxelIndex++){
+			let coord = toIndex3D(chunkGridSize, voxelIndex);
+			let numTriangles = u32Counters[voxelIndex];
+			let triangleOffset = u32LUT[voxelIndex] - numTriangles;
 
-		for(let i = 0; i < u32.length; i++){
-			let value = u32[i];
-
-			if(value > 0){
-				sum += value;
-				numVoxels += 1;
-				voxels.push(value);
+			if(numTriangles === 0){
+				continue;
 			}
+
+			let level = Math.log2(chunkGridSize);
+			let cubeSize = cube.max.x - cube.min.x;
+			let chunkSize = cubeSize / (2 ** level);
+			let min = new Vector3(
+				cubeSize * (coord.x / chunkGridSize) + cube.min.x,
+				cubeSize * (coord.y / chunkGridSize) + cube.min.y,
+				cubeSize * (coord.z / chunkGridSize) + cube.min.z,
+			);
+			let max = min.clone().addScalar(chunkSize);
+			let boundingBox = new Box3(min, max);
+
+			let chunk = {level, boundingBox, coord, numTriangles, triangleOffset};
+
+			chunks.push(chunk);
 		}
 
-		console.log("sum: ", sum);
-		console.log("numVoxels: ", numVoxels);
-		console.log(voxels);
+		console.log("chunks: ");
+		console.log(chunks);
+	}
 
-	});
+	let result = {
+		chunks,
 
-	renderer.readBuffer(gpu_LUT, 0, counterGridSize).then(result => {
+		rDebug, 
+		rCounters, 
+		rLUT, 
+		rSortedIndices,
 
-		let lut = new Int32Array(result);
+		gpu_counters,
+		gpu_LUT,
+		gpu_indices,
+		gpu_positions,
+		gpu_colors,
+		gpu_dbg,
+		gpu_sortedIndices,
+	};
 
-		let values = Array.from(lut).filter(value => value !== -1);
-		values.sort( (a, b) => a - b);
-		console.log(values);
-
-	});
-
-	renderer.readBuffer(gpu_sortedIndices, 0, 4 * 3 * numTriangles).then(result => {
-
-		// let numTriangles = 1000_000;
-		let indices = new Int32Array(result, 0, 3 * numTriangles);
-
-		// console.log(values);
-
-		potree.onUpdate( () => {
-
-			let positions = node.geometry.findBuffer("position");
-			let colors = node.geometry.findBuffer("color");
-
-			potree.renderer.drawMesh({
-				positions, colors, indices
-			});
-		});
-
-		console.timeEnd("generate voxels");
-
-	});
-
+	return result;
 }
+
+
