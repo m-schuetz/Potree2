@@ -8,6 +8,7 @@ import {render as renderPoints} from "../modules/drawCommands/renderPoints.js";
 import {render as renderQuads} from "../modules/drawCommands/renderQuads.js";
 import {render as renderLines} from "../modules/drawCommands/renderLines.js";
 import {render as renderMeshes} from "../modules/drawCommands/renderMeshes.js";
+import {render as renderVoxels} from "../modules/drawCommands/renderVoxels.js";
 import * as Timer from "./Timer.js";
 import {writeBuffer} from "./writeBuffer.js";
 import {fillBuffer} from "./fillBuffer.js";
@@ -24,6 +25,7 @@ class Draws{
 		this.lines = [];
 		this.points = [];
 		this.quads = [];
+		this.voxels = [];
 		this.meshes = [];
 	}
 
@@ -34,6 +36,7 @@ class Draws{
 		this.lines = [];
 		this.points = [];
 		this.quads = [];
+		this.voxels = [];
 		this.meshes = [];
 	}
 
@@ -511,6 +514,10 @@ export class Renderer{
 		this.draws.quads.push({positions, colors});
 	}
 
+	drawVoxels(positions, colors, voxelSize){
+		this.draws.voxels.push({positions, colors, voxelSize});
+	}
+
 	start(){
 
 		// let scale = window.devicePixelRatio;
@@ -576,6 +583,7 @@ export class Renderer{
 		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
 		renderPoints(this.draws.points, drawstate);
 		renderQuads(this.draws.quads, drawstate);
+		renderVoxels(this.draws.voxels, drawstate);
 		renderMeshes(this.draws.meshes, drawstate);
 		renderLines(this.draws.lines, drawstate);
 	}

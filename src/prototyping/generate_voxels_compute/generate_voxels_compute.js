@@ -20,8 +20,8 @@ export async function generateVoxelsCompute(renderer, node){
 	let result_downsampling = await doDownsampling(renderer, node, result_chunking);
 
 
-	{
-		let chunk = result_chunking.chunks[322];
+	for(let chunk of result_chunking.chunks){
+		// let chunk = result_chunking.chunks[322];
 
 		let min = cube.min;
 		let max = cube.max;
@@ -29,51 +29,43 @@ export async function generateVoxelsCompute(renderer, node){
 		let coord = chunk.coord;
 		let chunkSize = size / (2 ** chunk.level);
 
-
 		{
-		
+			// potree.onUpdate( () => {
+			// 	let x = size * (coord.x / chunkGridSize) + min.x + 0.5 * chunkSize;
+			// 	let y = size * (coord.y / chunkGridSize) + min.y + 0.5 * chunkSize;
+			// 	let z = size * (coord.z / chunkGridSize) + min.z + 0.5 * chunkSize;
 
-		potree.onUpdate( () => {
-			// for(let chunk of leafNodes){
+			// 	let position = new Vector3(x, y, z); //.applyMatrix4(node.world);
+			// 	let scale = new Vector3(chunkSize, chunkSize, chunkSize);
+			// 	let color = new Vector3(255, 0, 0);
+			// 	potree.renderer.drawBoundingBox(position, scale, color);
+			// });
 
-				
-				let x = size * (coord.x / chunkGridSize) + min.x + 0.5 * chunkSize;
-				let y = size * (coord.y / chunkGridSize) + min.y + 0.5 * chunkSize;
-				let z = size * (coord.z / chunkGridSize) + min.z + 0.5 * chunkSize;
+			// {
+			// 	// chunk.triangleOffset
+			// 	// chunk.numTriangles
+			// 	let indices = new Int32Array(result_chunking.rSortedIndices, 
+			// 		3 * 4 * chunk.triangleOffset, 3 * chunk.numTriangles);
 
-				let position = new Vector3(x, y, z); //.applyMatrix4(node.world);
-				let scale = new Vector3(chunkSize, chunkSize, chunkSize);
-				let color = new Vector3(255, 0, 0);
-				potree.renderer.drawBoundingBox(position, scale, color);
+			// 	potree.onUpdate( () => {
 
+			// 		let positions = node.geometry.findBuffer("position");
+			// 		let colors = node.geometry.findBuffer("color");
+			// 		let uvs = node.geometry.findBuffer("uv");
+
+			// 		potree.renderer.drawMesh({
+			// 			positions, colors, uvs, indices, 
+			// 			image: node.material.image,
+			// 			// world: node.world,
+
+			// 		});
+			// 	});
+
+			// 	console.timeEnd("generate voxels");
 			// }
-		});
-
-		// {
-		// 	// chunk.triangleOffset
-		// 	// chunk.numTriangles
-		// 	let indices = new Int32Array(result_chunking.rSortedIndices, 
-		// 		3 * 4 * chunk.triangleOffset, 3 * chunk.numTriangles);
-
-		// 	potree.onUpdate( () => {
-
-		// 		let positions = node.geometry.findBuffer("position");
-		// 		let colors = node.geometry.findBuffer("color");
-		// 		let uvs = node.geometry.findBuffer("uv");
-
-		// 		potree.renderer.drawMesh({
-		// 			positions, colors, uvs, indices, 
-		// 			image: node.material.image,
-		// 			// world: node.world,
-
-		// 		});
-		// 	});
-
-		// 	console.timeEnd("generate voxels");
-		// }
 
 
-	}
+		}
 	}
 
 

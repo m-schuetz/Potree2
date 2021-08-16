@@ -141,18 +141,7 @@ fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 	var voxelPos = toVoxelPos(center);
 	var voxelIndex = toIndex1D(uniforms.gridSize, voxelPos);
 
-	// var color = loadColor(0u);
 	var color = (loadColor(i0) + loadColor(i1) + loadColor(i2)) / 3u;
-
-	// var uColor = colors.values[0u];
-	// var uColor = colors.values[i0];
-	// var R = (uColor >>  0u) & 0xFFu;
-	// var G = (uColor >>  8u) & 0xFFu;
-	// var B = (uColor >> 16u) & 0xFFu;
-	// var acefg1 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 0u], R);
-	// var acefg2 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 1u], G);
-	// var acefg3 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 2u], B);
-	// var acefg4 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 3u], 1u);
 
 	var acefg1 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 0u], color.x);
 	var acefg2 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 1u], color.y);
@@ -179,116 +168,132 @@ export async function doDownsampling(renderer, node, result_chunking){
 
 	let {device} = renderer;
 
-	let chunk = result_chunking.chunks[322];
-	let numTriangles = chunk.numTriangles;
-	let triangleOffset = chunk.triangleOffset;
-
-	let cube = chunk.boundingBox;
-
-
-	let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
-	{
-		let buffer = new ArrayBuffer(256);
-		let view = new DataView(buffer);
-
-		view.setUint32(0, numTriangles, true);
-		view.setUint32(4, voxelGridSize, true);
-		view.setUint32(8, triangleOffset, true);
-
-		view.setFloat32(16, cube.min.x, true);
-		view.setFloat32(20, cube.min.y, true);
-		view.setFloat32(24, cube.min.z, true);
-
-		view.setFloat32(32, cube.max.x, true);
-		view.setFloat32(36, cube.max.y, true);
-		view.setFloat32(40, cube.max.z, true);
-
-		device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
-	}
-
 	let accumulateGridSize = 16 * voxelGridSize ** 3;
 	let gpu_accumulate = device.createBuffer({size: accumulateGridSize, usage: storage_flags});
-	// let gpu_indices = renderer.getGpuBuffer(node.geometry.indices);
-	let gpu_indices = result_chunking.gpu_sortedIndices;
-	let host_positions = node.geometry.findBuffer("position");
-	let host_colors = node.geometry.findBuffer("color");
-	let gpu_positions = renderer.getGpuBuffer(host_positions);
-	let gpu_colors = renderer.getGpuBuffer(host_colors);
-	let gpu_dbg = device.createBuffer({size: 256, usage: storage_flags});
 
-	let bindGroups = [
+	for(let chunk of result_chunking.chunks){
+	// {
+	// 	let chunk = result_chunking.chunks[322];
+		let numTriangles = chunk.numTriangles;
+		let triangleOffset = chunk.triangleOffset;
+
+		let cube = chunk.boundingBox;
+
+		renderer.fillBuffer(gpu_accumulate, 0, 4 * voxelGridSize ** 3);
+
+
+		let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
 		{
-			location: 0,
-			entries: [
-				{binding:  0, resource: {buffer: uniformBuffer}},
-				{binding: 10, resource: {buffer: gpu_indices}},
-				{binding: 11, resource: {buffer: gpu_positions}},
-				{binding: 12, resource: {buffer: gpu_colors}},
-				{binding: 20, resource: {buffer: gpu_accumulate}},
-				{binding: 50, resource: {buffer: gpu_dbg}},
-			],
+			let buffer = new ArrayBuffer(256);
+			let view = new DataView(buffer);
+
+			view.setUint32(0, numTriangles, true);
+			view.setUint32(4, voxelGridSize, true);
+			view.setUint32(8, triangleOffset, true);
+
+			view.setFloat32(16, cube.min.x, true);
+			view.setFloat32(20, cube.min.y, true);
+			view.setFloat32(24, cube.min.z, true);
+
+			view.setFloat32(32, cube.max.x, true);
+			view.setFloat32(36, cube.max.y, true);
+			view.setFloat32(40, cube.max.z, true);
+
+			device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
 		}
-	];
 
-	renderer.runCompute({
-		code: csDownsampling,
-		entryPoint: "main_accumulate",
-		bindGroups: bindGroups,
-		dispatchGroups: [Math.ceil(numTriangles / 128)],
-	});
+		let gpu_indices = result_chunking.gpu_sortedIndices;
+		let host_positions = node.geometry.findBuffer("position");
+		let host_colors = node.geometry.findBuffer("color");
+		let gpu_positions = renderer.getGpuBuffer(host_positions);
+		let gpu_colors = renderer.getGpuBuffer(host_colors);
+		let gpu_dbg = device.createBuffer({size: 256, usage: storage_flags});
 
+		let bindGroups = [
+			{
+				location: 0,
+				entries: [
+					{binding:  0, resource: {buffer: uniformBuffer}},
+					{binding: 10, resource: {buffer: gpu_indices}},
+					{binding: 11, resource: {buffer: gpu_positions}},
+					{binding: 12, resource: {buffer: gpu_colors}},
+					{binding: 20, resource: {buffer: gpu_accumulate}},
+					{binding: 50, resource: {buffer: gpu_dbg}},
+				],
+			}
+		];
 
+		renderer.runCompute({
+			code: csDownsampling,
+			entryPoint: "main_accumulate",
+			bindGroups: bindGroups,
+			dispatchGroups: [Math.ceil(numTriangles / 128)],
+		});
 
-	let pDebug = renderer.readBuffer(gpu_dbg, 0, 32);
-	let pAccumulate = renderer.readBuffer(gpu_accumulate, 0, accumulateGridSize);
+		let pDebug = renderer.readBuffer(gpu_dbg, 0, 32);
+		let pAccumulate = renderer.readBuffer(gpu_accumulate, 0, accumulateGridSize);
 
-	let [rDebug, rAccumulate] = await Promise.all([pDebug, pAccumulate]);
-	
-	let u32Accumulate = new Uint32Array(rAccumulate);
-	console.log(u32Accumulate);
+		let [rDebug, rAccumulate] = await Promise.all([pDebug, pAccumulate]);
 
-	let voxels = [];
-	for(let voxelIndex = 0; voxelIndex < voxelGridSize ** 3; voxelIndex++){
-		let coord = toIndex3D(voxelGridSize, voxelIndex);
+		let u32Accumulate = new Uint32Array(rAccumulate);
+
+		let numVoxels = 0;
+		for(let voxelIndex = 0; voxelIndex < voxelGridSize ** 3; voxelIndex++){
+
+			let count = u32Accumulate[4 * voxelIndex + 3];
+
+			if(count > 0){
+				numVoxels++;
+			}
+		}
+
+		let quads = {
+			positions: new Float32Array(3 * numVoxels),
+			colors: new Uint8Array(4 * numVoxels),
+		};
+
 		let cubeSize = cube.max.x - cube.min.x;
 		let voxelSize = cubeSize / voxelGridSize;
+		let numProcessed = 0;
+		for(let voxelIndex = 0; voxelIndex < voxelGridSize ** 3; voxelIndex++){
+			let coord = toIndex3D(voxelGridSize, voxelIndex);
+			
+			let count = u32Accumulate[4 * voxelIndex + 3];
 
-		let count = u32Accumulate[4 * voxelIndex + 3];
+			if(count === 0){
+				continue;
+			}
 
-		if(count === 0){
-			continue;
+			let position = new Vector3(
+				cubeSize * (coord.x / voxelGridSize) + cube.min.x + voxelSize / 2,
+				cubeSize * (coord.y / voxelGridSize) + cube.min.y + voxelSize / 2,
+				cubeSize * (coord.z / voxelGridSize) + cube.min.z + voxelSize / 2,
+			);
+			let scale = new Vector3(voxelSize, voxelSize, voxelSize);
+			let color = new Vector3(
+				Math.floor(u32Accumulate[4 * voxelIndex + 0] / count), 
+				Math.floor(u32Accumulate[4 * voxelIndex + 1] / count), 
+				Math.floor(u32Accumulate[4 * voxelIndex + 2] / count), 
+			);
+
+			quads.positions[3 * numProcessed + 0] = position.x;
+			quads.positions[3 * numProcessed + 1] = position.y;
+			quads.positions[3 * numProcessed + 2] = position.z;
+
+			quads.colors[4 * numProcessed + 0] = color.x;
+			quads.colors[4 * numProcessed + 1] = color.y;
+			quads.colors[4 * numProcessed + 2] = color.z;
+			quads.colors[4 * numProcessed + 3] = 255;
+
+
+			numProcessed++;
 		}
 
-		let position = new Vector3(
-			cubeSize * (coord.x / voxelGridSize) + cube.min.x + voxelSize / 2,
-			cubeSize * (coord.y / voxelGridSize) + cube.min.y + voxelSize / 2,
-			cubeSize * (coord.z / voxelGridSize) + cube.min.z + voxelSize / 2,
-		);
-		let scale = new Vector3(voxelSize, voxelSize, voxelSize);
-		let color = new Vector3(
-			Math.floor(u32Accumulate[4 * voxelIndex + 0] / count), 
-			Math.floor(u32Accumulate[4 * voxelIndex + 1] / count), 
-			Math.floor(u32Accumulate[4 * voxelIndex + 2] / count), 
-		);
+		potree.onUpdate( () => {
+			potree.renderer.drawVoxels(quads.positions, quads.colors, voxelSize);
+		});
 
-		let voxel = {position, scale, color};
-		voxels.push(voxel);
 	}
-
-	potree.onUpdate( () => {
-		for(let voxel of voxels){
-			potree.renderer.drawBox(voxel.position, voxel.scale, voxel.color);
-		}
-	});
-
-	let triangleIndex = new Uint32Array(rDebug, 16, 4)[0];
-	let i0 = new Uint32Array(rDebug, 16, 4)[1];
-	let i1 = new Uint32Array(rDebug, 16, 4)[2];
-	let i2 = new Uint32Array(rDebug, 16, 4)[3];
-
-	// console.log({triangleIndex, i0, i1, i2});
-
-
 
 	
 }
