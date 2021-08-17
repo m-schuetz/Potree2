@@ -15,7 +15,6 @@ export async function generateVoxelsCompute(renderer, node){
 
 	console.time("generate voxels");
 
-
 	let result_chunking = await doChunking(renderer, node);
 	let result_downsampling = await doDownsampling(renderer, node, result_chunking);
 

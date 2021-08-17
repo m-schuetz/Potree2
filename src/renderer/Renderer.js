@@ -51,6 +51,7 @@ export class Renderer{
 		this.context = null;
 		this.swapChainFormat = null;
 		this.draws = new Draws();
+		this.drawListeners = [];
 		this.currentBindGroup = -1;
 		this.frameCounter = 0;
 
@@ -518,6 +519,10 @@ export class Renderer{
 		this.draws.voxels.push({positions, colors, voxelSize});
 	}
 
+	onDraw(callback){
+		this.drawListeners.push(callback);
+	}
+
 	start(){
 
 		// let scale = window.devicePixelRatio;
@@ -586,6 +591,10 @@ export class Renderer{
 		renderVoxels(this.draws.voxels, drawstate);
 		renderMeshes(this.draws.meshes, drawstate);
 		renderLines(this.draws.lines, drawstate);
+
+		for(let listener of this.drawListeners){
+			listener(drawstate);
+		}
 	}
 
 	update(){
