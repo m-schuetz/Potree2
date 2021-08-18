@@ -6,22 +6,23 @@ import { generateVoxelsCompute } from "./generate_voxels_compute.js";
 import {renderVoxels} from "./renderVoxels.js";
 import {SPECTRAL} from "potree";
 
-export let csDownsampling = `
+export let csVoxelizing = `
+
 
 [[block]] struct Uniforms {
-	numTriangles     : u32;
-	gridSize         : u32;
-	firstTriangle    : u32;
-	pad2             : u32;
-	bbMin            : vec4<f32>;      // offset(16)
-	bbMax            : vec4<f32>;      // offset(32)
-	chunkIndex       : u32;            // offset(48)
-	level            : u32;            // offset(52)
+	numTriangles       : u32;
+	firstTriangle      : u32;
+	chunkGridSize      : u32;
+	voxelGridSize      : u32;
+	chunkMin           : vec4<f32>;      // offset(16)
+	chunkMax           : vec4<f32>;      // offset(32)
+	nodeMin            : vec4<f32>;      // offset(48)
+	nodeMax            : vec4<f32>;      // offset(64)
 };
 
 [[block]] struct Metadata {
-	offsetCounter   : atomic<u32>;
-	numVoxelsAdded  : atomic<u32>;
+	offsetCounter : atomic<u32>;
+	pad0 : u32;
 	pad1 : u32;
 	pad2 : u32;
 	value0 : u32;
@@ -34,61 +35,37 @@ export let csDownsampling = `
 	value_f32_3 : f32;
 };
 
-struct Voxel{
-	x      : f32;
-	y      : f32;
-	z      : f32;
-	r      : u32;
-	g      : u32;
-	b      : u32;
-	count  : u32;
-	size   : f32;
-};
-
-struct Chunk{
-	level        : u32;
-	min_x        : f32;
-	min_y        : f32;
-	min_z        : f32;
-	firstVoxel   : atomic<i32>;
-	numVoxels    : atomic<u32>;
-	pad1         : u32;
-	pad2         : u32;
-};
-
 [[block]] struct F32s { values : [[stride(4)]] array<f32>; };
 [[block]] struct U32s { values : [[stride(4)]] array<u32>; };
 [[block]] struct I32s { values : [[stride(4)]] array<i32>; };
 [[block]] struct AU32s { values : [[stride(4)]] array<atomic<u32>>; };
 [[block]] struct AI32s { values : [[stride(4)]] array<atomic<i32>>; };
 
-[[block]] struct Chunks { values : [[stride(32)]] array<Chunk>; };
-[[block]] struct Voxels { values : [[stride(32)]] array<Voxel>; };
-
 // IN
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(10), group(0)]] var<storage, read_write> indices    : U32s;
-[[binding(11), group(0)]] var<storage, read_write> positions  : F32s;
-[[binding(12), group(0)]] var<storage, read_write> colors     : U32s;
+[[binding( 0), group(0)]] var<uniform> uniforms : Uniforms;
+[[binding(10), group(0)]] var<storage, read_write> indices : U32s;
+[[binding(11), group(0)]] var<storage, read_write> positions : F32s;
+[[binding(12), group(0)]] var<storage, read_write> colors : U32s;
 
 // OUT
-[[binding(20), group(0)]] var<storage, read_write> voxelGrid  : AU32s;
-[[binding(21), group(0)]] var<storage, read_write> chunks     : Chunks;
-[[binding(22), group(0)]] var<storage, read_write> voxels     : Voxels;
+[[binding(20), group(0)]] var<storage, read_write> tricountGrid : AU32s;
+[[binding(21), group(0)]] var<storage, read_write> LutGrid : AU32s;
+[[binding(22), group(0)]] var<storage, read_write> voxelGrid : AU32s;
+[[binding(23), group(0)]] var<storage, read_write> sortedIndices : U32s;
 
 [[binding(50), group(0)]] var<storage, read_write> metadata : Metadata;
 
-fn toVoxelPos(position : vec3<f32>) -> vec3<f32>{
+fn toVoxelPos(gridSize : u32, position : vec3<f32>) -> vec3<f32>{
 
-	var bbMin = vec3<f32>(uniforms.bbMin.x, uniforms.bbMin.y, uniforms.bbMin.z);
-	var bbMax = vec3<f32>(uniforms.bbMax.x, uniforms.bbMax.y, uniforms.bbMax.z);
+	var bbMin = vec3<f32>(uniforms.chunkMin.x, uniforms.chunkMin.y, uniforms.chunkMin.z);
+	var bbMax = vec3<f32>(uniforms.chunkMax.x, uniforms.chunkMax.y, uniforms.chunkMax.z);
 	var bbSize = bbMax - bbMin;
 	var cubeSize = max(max(bbSize.x, bbSize.y), bbSize.z);
-	var gridSize = f32(uniforms.gridSize);
+	var fGridSize = f32(gridSize);
 
-	var gx = gridSize * (position.x - uniforms.bbMin.x) / cubeSize;
-	var gy = gridSize * (position.y - uniforms.bbMin.y) / cubeSize;
-	var gz = gridSize * (position.z - uniforms.bbMin.z) / cubeSize;
+	var gx = fGridSize * (position.x - uniforms.chunkMin.x) / cubeSize;
+	var gy = fGridSize * (position.y - uniforms.chunkMin.y) / cubeSize;
+	var gz = fGridSize * (position.z - uniforms.chunkMin.z) / cubeSize;
 
 	return vec3<f32>(gx, gy, gz);
 }
@@ -135,27 +112,32 @@ fn loadColor(vertexIndex : u32) -> vec3<u32> {
 
 fn doIgnore(){
 	
-	var g42 = uniforms.numTriangles;
-	var kj6 = metadata.value1;
-	var rwg = indices.values[0];
-	var rb5 = positions.values[0];
-	var lw5 = colors.values[0];
-	var g55 = atomicLoad(&voxelGrid.values[0]);
-	var a10 = chunks.values[0].level;
-	var a20 = voxels.values[0];
+	ignore(uniforms);
+
+	var a00 = indices.values[0];
+	var a10 = positions.values[0];
+	var a20 = colors.values[0];
+
+	var a30 = atomicLoad(&tricountGrid.values[0]);
+	var a40 = atomicLoad(&LutGrid.values[0]);
+	var a50 = atomicLoad(&voxelGrid.values[0]);
+	var a60 = sortedIndices.values[0];
+
+	ignore(metadata);
 	
 }
 
 [[stage(compute), workgroup_size(128)]]
 fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 
-	if(GlobalInvocationID.x >= uniforms.numTriangles){
+	doIgnore();
+
+	var triangleIndex = GlobalInvocationID.x;
+
+	if(triangleIndex >= uniforms.numTriangles){
 		return;
 	}
 
-	var triangleIndex = GlobalInvocationID.x + uniforms.firstTriangle;
-
-	doIgnore();
 
 	var i0 = indices.values[3u * triangleIndex + 0u];
 	var i1 = indices.values[3u * triangleIndex + 1u];
@@ -166,232 +148,181 @@ fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 	var p2 = loadPosition(i2);
 	var center = (p0 + p1 + p2) / 3.0;
 
-	var voxelPos = toVoxelPos(center);
-	var voxelIndex = toIndex1D(uniforms.gridSize, voxelPos);
+	var voxelPos = toVoxelPos(uniforms.voxelGridSize, center);
+	var voxelIndex = toIndex1D(uniforms.voxelGridSize, voxelPos);
+	var chunkPos = toVoxelPos(uniforms.chunkGridSize, center);
+	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkPos);
 
-	var color = (loadColor(i0) + loadColor(i1) + loadColor(i2)) / 3u;
+	{ // accumulate voxels
+		var color = (loadColor(i0) + loadColor(i1) + loadColor(i2)) / 3u;
 
-	var acefg1 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 0u], color.x);
-	var acefg2 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 1u], color.y);
-	var acefg3 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 2u], color.z);
-	var acefg4 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 3u], 1u);
+		var a00 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 0u], color.x);
+		var a10 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 1u], color.y);
+		var a20 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 2u], color.z);
+		var a30 = atomicAdd(&voxelGrid.values[4u * voxelIndex + 3u], 1u);
+	}
 
+	{ // accumulate triangle counts
+		var a00 = atomicAdd(&tricountGrid.values[chunkIndex], 1u);
+	}
 }
+
+// [[stage(compute), workgroup_size(128)]]
+// fn main_gatherVoxels([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
+
+// 	var voxelIndex = GlobalInvocationID.x;
+
+// 	doIgnore();
+
+// 	var maxVoxels = uniforms.voxelGridSize * uniforms.voxelGridSize * uniforms.voxelGridSize;
+// 	if(voxelIndex >= maxVoxels){
+// 		return;
+// 	}
+
+
+// }
+
 
 
 [[stage(compute), workgroup_size(128)]]
-fn main_gather([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
+fn main_test([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 
-	var voxelIndex = GlobalInvocationID.x;
+	var triangleIndex = GlobalInvocationID.x;
+
+	atomicStore(&metadata.offsetCounter, 2355u);
 
 	doIgnore();
 
-	var maxVoxels = uniforms.gridSize * uniforms.gridSize * uniforms.gridSize;
-	if(voxelIndex >= maxVoxels){
-		return;
-	}
-	
-	var count = atomicLoad(&voxelGrid.values[4u * voxelIndex + 3u]);
-
-	if(voxelIndex == 0u){
-
-		chunks.values[uniforms.chunkIndex].level = uniforms.level;
-		chunks.values[uniforms.chunkIndex].min_x = uniforms.bbMin.x;
-		chunks.values[uniforms.chunkIndex].min_z = uniforms.bbMin.z;
-		chunks.values[uniforms.chunkIndex].min_y = uniforms.bbMin.y;
-	}
-
-
-	if(count == 0u){
+	if(triangleIndex >= uniforms.numTriangles){
 		return;
 	}
 
-	var r = atomicLoad(&voxelGrid.values[4u * voxelIndex + 0u]) / count;
-	var g = atomicLoad(&voxelGrid.values[4u * voxelIndex + 1u]) / count;
-	var b = atomicLoad(&voxelGrid.values[4u * voxelIndex + 2u]) / count;
 
-	var voxelCoord = toIndex3D(uniforms.gridSize, voxelIndex);
+}
 
-	var voxel = Voxel();
+`;
 
-	var bbMin = vec3<f32>(uniforms.bbMin.x, uniforms.bbMin.y, uniforms.bbMin.z);
-	var bbMax = vec3<f32>(uniforms.bbMax.x, uniforms.bbMax.y, uniforms.bbMax.z);
-	var bbSize = bbMax - bbMin;
-	var cubeSize = max(max(bbSize.x, bbSize.y), bbSize.z);
-	voxel.x = cubeSize * (f32(voxelCoord.x) / f32(uniforms.gridSize)) + uniforms.bbMin.x;
-	voxel.y = cubeSize * (f32(voxelCoord.y) / f32(uniforms.gridSize)) + uniforms.bbMin.y;
-	voxel.z = cubeSize * (f32(voxelCoord.z) / f32(uniforms.gridSize)) + uniforms.bbMin.z;
-	voxel.size = cubeSize / f32(uniforms.gridSize);
-	voxel.r = r;
-	voxel.g = g;
-	voxel.b = b;
-	voxel.count = count;
+let gpu_voxelGrid = null;
+let gpu_tricountGrid = null;
+let gpu_LutGrid = null;
+let gpu_sortedIndices = null;
+let gpu_metadata = null;
 
-	var voxelOffset = atomicAdd(&metadata.numVoxelsAdded, 1u);
-	voxels.values[voxelOffset] = voxel;
 
-	var fgh24 = atomicMin(&chunks.values[uniforms.chunkIndex].firstVoxel, i32(voxelOffset) - 123456789);
-	var vrw = atomicAdd(&chunks.values[uniforms.chunkIndex].numVoxels, 1u);
+function initialize(renderer, node){
+
+	let {device} = renderer;
+
+	let tricountGridSize = 4 * chunkGridSize ** 3;
+	let voxelGridByteSize = 4 * voxelGridSize ** 3;
+
+	gpu_tricountGrid = device.createBuffer({size: tricountGridSize, usage: storage_flags});
+	gpu_LutGrid = device.createBuffer({size: tricountGridSize, usage: storage_flags});
+	gpu_voxelGrid = device.createBuffer({size: voxelGridByteSize, usage: storage_flags});
+	gpu_metadata = device.createBuffer({size: 256, usage: storage_flags});
 
 }
 
 
-`;
-
-
-export async function doDownsampling(renderer, node, result_chunking){
+async function processChunk(renderer, node, chunk){
 
 	let {device} = renderer;
 
-	let accumulateGridSize = 16 * voxelGridSize ** 3;
-	let chunksSize = 32 * 100_000;
-	let voxelsSize = 32 * 4_000_000;
-	let gpu_accumulate = device.createBuffer({size: accumulateGridSize, usage: storage_flags});
-	let gpu_chunks = device.createBuffer({size: chunksSize, usage: storage_flags});
-	let gpu_voxels = device.createBuffer({size: voxelsSize, usage: storage_flags});
-	let gpu_meta = device.createBuffer({size: 256, usage: storage_flags});
-	let numVoxelsAdded = 0;
+	let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
+	{
+		let buffer = new ArrayBuffer(256);
+		let view = new DataView(buffer);
 
-	console.time("downsampling");
+		view.setUint32( 0, chunk.triangles.numIndices / 3, true);
+		view.setUint32( 4, chunk.triangles.firstIndex / 3, true);
+		view.setUint32( 8, chunkGridSize, true);
+		view.setUint32(16, voxelGridSize, true);
 
-	potree.renderer.onDraw( (drawstate) => {
-		let voxels = {gpu_meta, gpu_voxels, numVoxels: numVoxelsAdded};
+		// chunk box
+		view.setFloat32(16 +  0, chunk.boundingBox.min.x, true);
+		view.setFloat32(16 +  4, chunk.boundingBox.min.y, true);
+		view.setFloat32(16 +  8, chunk.boundingBox.min.z, true);
+		view.setFloat32(16 + 16, chunk.boundingBox.max.x, true);
+		view.setFloat32(16 + 20, chunk.boundingBox.max.y, true);
+		view.setFloat32(16 + 24, chunk.boundingBox.max.z, true);
 
-		renderVoxels(drawstate, voxels);
+		// node box
+		let nodeCube = node.boundingBox.cube();
+		view.setFloat32(48 +  0, nodeCube.min.x, true);
+		view.setFloat32(48 +  4, nodeCube.min.y, true);
+		view.setFloat32(48 +  8, nodeCube.min.z, true);
+		view.setFloat32(48 + 16, nodeCube.max.x, true);
+		view.setFloat32(48 + 20, nodeCube.max.y, true);
+		view.setFloat32(48 + 24, nodeCube.max.z, true);
+
+		device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
+	}
+
+	let gpu_sortedIndices = device.createBuffer({size: 4 * chunk.triangles.numIndices, usage: storage_flags});
+
+	let bindGroups = [
+		{
+			location: 0,
+			entries: [
+				{binding:  0, resource: {buffer: uniformBuffer}},
+				{binding: 10, resource: {buffer: chunk.triangles.gpu_indices}},
+				{binding: 11, resource: {buffer: chunk.triangles.gpu_position}},
+				{binding: 12, resource: {buffer: chunk.triangles.gpu_color}},
+
+				{binding: 20, resource: {buffer: gpu_tricountGrid}},
+				{binding: 21, resource: {buffer: gpu_LutGrid}},
+				{binding: 22, resource: {buffer: gpu_voxelGrid}},
+				{binding: 23, resource: {buffer: gpu_sortedIndices}},
+
+				{binding: 50, resource: {buffer: gpu_metadata}},
+			],
+		}
+	];
+
+	let numTriangles = chunk.triangles.numIndices / 3;
+	renderer.runCompute({
+		code: csVoxelizing,
+		entryPoint: "main_accumulate",
+		bindGroups: bindGroups,
+		dispatchGroups: [Math.ceil(numTriangles / 128)],
 	});
+
+	// renderer.runCompute({
+	// 	code: csVoxelizing,
+	// 	entryPoint: "main_gatherVoxels",
+	// 	bindGroups: bindGroups,
+	// 	dispatchGroups: [Math.ceil((voxelGridSize ** 3) / 128)],
+	// });
+
+	// let adg = await renderer.readBuffer(gpu_metadata, 0, 4);
+	// console.log(new Uint32Array(adg))
+
+	let buffer = await renderer.readBuffer(gpu_tricountGrid, 0, 4 * chunkGridSize ** 3);
+	let u32 = new Uint32Array(buffer);
+	console.log(u32);
+
+}
+
+export async function doDownsampling(renderer, node){
+
+	initialize(renderer, node);
 
 	let root = new Chunk();
 	root.boundingBox = node.boundingBox.cube();
+	root.triangles = {
+		gpu_position   : renderer.getGpuBuffer(node.geometry.findBuffer("position")),
+		gpu_uv         : renderer.getGpuBuffer(node.geometry.findBuffer("uv")),
+		gpu_color      : renderer.getGpuBuffer(node.geometry.findBuffer("color")),
+		gpu_indices    : renderer.getGpuBuffer(node.geometry.indices),
+		firstIndex     : 0,
+		numIndices     : node.geometry.indices.length,
+	};
+	root.voxels = {
+		gpu_voxels     : renderer.device.createBuffer({size: 32 * 4_000_000, usage: storage_flags}),
+		firstVoxel     : 0,
+		numVoxels      : 0,
+	};
 
-	let numChunksProcessed = 0;
-	for(let chunkIndex = 0; chunkIndex < result_chunking.chunks.length; chunkIndex++){
-		let chunk = result_chunking.chunks[chunkIndex];
-
-		let numTriangles = chunk.numTriangles;
-		let triangleOffset = chunk.triangleOffset;
-
-		let cube = chunk.boundingBox;
-		let cubeSize = cube.max.x - cube.min.x;
-
-		renderer.fillBuffer(gpu_accumulate, 0, 4 * voxelGridSize ** 3);
-
-		let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
-		{
-			let buffer = new ArrayBuffer(256);
-			let view = new DataView(buffer);
-
-			view.setUint32(0, numTriangles, true);
-			view.setUint32(4, voxelGridSize, true);
-			view.setUint32(8, triangleOffset, true);
-
-			view.setFloat32(16, cube.min.x, true);
-			view.setFloat32(20, cube.min.y, true);
-			view.setFloat32(24, cube.min.z, true);
-
-			view.setFloat32(32, cube.max.x, true);
-			view.setFloat32(36, cube.max.y, true);
-			view.setFloat32(40, cube.max.z, true);
-
-			view.setUint32(48, chunkIndex, true);
-			view.setUint32(52, chunk.level, true);
-
-			device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
-		}
-
-		let gpu_indices = result_chunking.gpu_sortedIndices;
-		let host_positions = node.geometry.findBuffer("position");
-		let host_colors = node.geometry.findBuffer("color");
-		let gpu_positions = renderer.getGpuBuffer(host_positions);
-		let gpu_colors = renderer.getGpuBuffer(host_colors);
-
-		let bindGroups = [
-			{
-				location: 0,
-				entries: [
-					{binding:  0, resource: {buffer: uniformBuffer}},
-					{binding: 10, resource: {buffer: gpu_indices}},
-					{binding: 11, resource: {buffer: gpu_positions}},
-					{binding: 12, resource: {buffer: gpu_colors}},
-
-					{binding: 20, resource: {buffer: gpu_accumulate}},
-					{binding: 21, resource: {buffer: gpu_chunks}},
-					{binding: 22, resource: {buffer: gpu_voxels}},
-
-					{binding: 50, resource: {buffer: gpu_meta}},
-				],
-			}
-		];
-
-		renderer.runCompute({
-			code: csDownsampling,
-			entryPoint: "main_accumulate",
-			bindGroups: bindGroups,
-			dispatchGroups: [Math.ceil(numTriangles / 128)],
-		});
-
-		renderer.runCompute({
-			code: csDownsampling,
-			entryPoint: "main_gather",
-			bindGroups: bindGroups,
-			dispatchGroups: [Math.ceil((voxelGridSize ** 3) / 128)],
-		});
-
-		{
-			let pMetadata = renderer.readBuffer(gpu_meta, 0, 32);
-
-			let [rMetadata] = await Promise.all([pMetadata]);
-
-			numVoxelsAdded = new Uint32Array(rMetadata)[1];
-			console.log("numVoxelsAdded: ", numVoxelsAdded);
-		}
-
-		numChunksProcessed++;
-	}
-
-	{
-		let rChunks = await renderer.readBuffer(gpu_chunks, 0, numChunksProcessed * 32);
-		let view = new DataView(rChunks);
-
-		let chunks = [];
-		for(let i = 0; i < numChunksProcessed; i++){
-			let level = view.getUint32(32 * i + 0, true);
-			let minX = view.getFloat32(32 * i + 4, true);
-			let minY = view.getFloat32(32 * i + 8, true);
-			let minZ = view.getFloat32(32 * i + 12, true);
-			let firstVoxel = view.getInt32(32 * i + 16, true);
-			let numVoxels = view.getUint32(32 * i + 20, true);
-
-			chunkSize
-
-			let chunk = {
-				position: new Vector3(minX, minY, minZ),
-				firstVoxel, numVoxels
-			};
-
-			console.log(chunk);
-
-			chunks.push(chunk);
-		}
-
-		potree.onUpdate( () => {
-
-			let cube = node.boundingBox.cube();
-			let cubeSize = cube.max.x - cube.min.x;
-			let chunkSize = cubeSize / chunkGridSize;
-
-			for(let chunk of chunks){
-				let position = chunk.position.clone().addScalar(chunkSize / 2);
-				let scale = new Vector3(1, 1, 1).multiplyScalar(chunkSize);
-				let color = new Vector3(Math.min(chunk.numVoxels / 2, 255), 0, 0);
-				// let color = new Vector3(...SPECTRAL.get(chunk.numVoxels / 255)).multiplyScalar(255);
-				potree.renderer.drawBoundingBox(position, scale, color);
-			}
-		});
-	}
-
-	console.timeEnd("downsampling");
-
-	
-
+	processChunk(renderer, node, root);
 	
 }

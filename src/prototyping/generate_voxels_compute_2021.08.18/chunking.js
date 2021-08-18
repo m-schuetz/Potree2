@@ -40,12 +40,13 @@ let csChunking = `
 [[binding(10), group(0)]] var<storage, read_write> indices : U32s;
 [[binding(11), group(0)]] var<storage, read_write> positions : F32s;
 [[binding(12), group(0)]] var<storage, read_write> colors : U32s;
-// [[binding(13), group(0)]] var<storage, read_write> uvs : U32s;
+
 
 // OUT
-[[binding(20), group(0)]] var<storage, read_write> counters : AU32s;
-[[binding(21), group(0)]] var<storage, read_write> LUT : AU32s;
-[[binding(22), group(0)]] var<storage, read_write> sortedBuffer : U32s;
+[[binding(20), group(0)]] var<storage, read_write> tricountGrid : AU32s;
+[[binding(21), group(0)]] var<storage, read_write> LutGrid : AU32s;
+[[binding(22), group(0)]] var<storage, read_write> voxelGrid : AU32s;
+[[binding(23), group(0)]] var<storage, read_write> sortedIndices : U32s;
 
 // DEBUG
 [[binding(50), group(0)]] var<storage, read_write> dbg : Dbg;
