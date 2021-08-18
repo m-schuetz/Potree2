@@ -7,34 +7,19 @@ const shaderSource = `
 	proj           : mat4x4<f32>;
 	screen_width   : f32;
 	screen_height  : f32;
-	size           : f32;
-
+	voxelSize           : f32;
 };
 
-[[block]] struct Metadata {
-	offsetCounter   : u32;
-	numVoxelsAdded  : u32;
-	pad1 : u32;
-	pad2 : u32;
-	value0 : u32;
-	value1 : u32;
-	value2 : u32;
-	value3 : u32;
-	value_f32_0 : f32;
-	value_f32_1 : f32;
-	value_f32_2 : f32;
-	value_f32_3 : f32;
-};
 
-struct Voxel{
-	x      : f32;
-	y      : f32;
-	z      : f32;
-	r      : u32;
-	g      : u32;
-	b      : u32;
-	count  : u32;
-	size   : f32;
+struct Voxel {
+	x     : f32;
+	y     : f32;
+	z     : f32;
+	r     : u32;
+	g     : u32;
+	b     : u32;
+	count : u32;
+	pad1  : f32;
 };
 
 [[block]] struct Voxels { values : [[stride(32)]] array<Voxel>; };
@@ -79,7 +64,6 @@ var<private> CUBE_POS : array<vec3<f32>, 36> = array<vec3<f32>, 36>(
 );
 
 [[binding(0), group(0)]] var<uniform> uniforms         : Uniforms;
-[[binding(1), group(0)]] var<storage, read> metadata   : Metadata;
 [[binding(2), group(0)]] var<storage, read> voxels     : Voxels;
 
 struct VertexIn{
@@ -101,7 +85,6 @@ struct FragmentOut{
 
 fn doIgnore(){
 	ignore(uniforms);
-	ignore(metadata);
 	var a10 = voxels.values[0];
 }
 
@@ -121,7 +104,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 		voxel.z, 
 	);
 
-	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(position + voxel.size * cubeOffset, 1.0);
+	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(position + uniforms.voxelSize * cubeOffset, 1.0);
 	var projPos : vec4<f32> = uniforms.proj * viewPos;
 
 	var vout : VertexOut;
@@ -149,8 +132,8 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 let stateCache = new Map();
 function getState(renderer, voxels){
 
-	if(stateCache.has(voxels.gpu_meta)){
-		return stateCache.get(voxels.gpu_meta);
+	if(stateCache.has(voxels.gpu_voxels)){
+		return stateCache.get(voxels.gpu_voxels);
 	}
 
 	let {device} = renderer;
@@ -186,14 +169,13 @@ function getState(renderer, voxels){
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
 			{binding: 0, resource: {buffer: uniformBuffer}},
-			{binding: 1, resource: {buffer: voxels.gpu_meta}},
 			{binding: 2, resource: {buffer: voxels.gpu_voxels}},
 		],
 	});
 
 	let state = {pipeline, uniformBuffer, bindGroup};
 
-	stateCache.set(voxels.gpu_meta, state);
+	stateCache.set(voxels.gpu_voxels, state);
 
 	return state;
 }
@@ -229,7 +211,7 @@ export function renderVoxels(drawstate, voxels){
 
 			view.setFloat32(128, size.width, true);
 			view.setFloat32(132, size.height, true);
-			view.setFloat32(136, 0.1, true);
+			view.setFloat32(136, voxels.voxelSize, true);
 		}
 
 		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);

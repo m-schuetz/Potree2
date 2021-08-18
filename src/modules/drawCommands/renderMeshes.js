@@ -58,8 +58,11 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
 	fout.color = fragment.color;
-	fout.color = vec4<f32>(fragment.uv, 0.0, 1.0);
-	fout.color = textureSample(myTexture, mySampler, fragment.uv);
+	// fout.color = vec4<f32>(fragment.uv, 0.0, 1.0);
+	// fout.color = textureSample(myTexture, mySampler, fragment.uv);
+
+	ignore(myTexture);
+	ignore(mySampler);
 
 	return fout;
 }
