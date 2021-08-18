@@ -361,6 +361,8 @@ export async function doDownsampling(renderer, node, result_chunking){
 			let firstVoxel = view.getInt32(32 * i + 16, true);
 			let numVoxels = view.getUint32(32 * i + 20, true);
 
+			chunkSize
+
 			let chunk = {
 				position: new Vector3(minX, minY, minZ),
 				firstVoxel, numVoxels
