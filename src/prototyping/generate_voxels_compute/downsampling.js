@@ -1,6 +1,6 @@
 
 import { Vector3 } from "../../math/Vector3.js";
-import {voxelGridSize, chunkGridSize, toIndex1D, toIndex3D} from "./common.js";
+import {Chunk, voxelGridSize, chunkGridSize, toIndex1D, toIndex3D} from "./common.js";
 import {storage_flags, uniform_flags} from "./common.js";
 import { generateVoxelsCompute } from "./generate_voxels_compute.js";
 import {renderVoxels} from "./renderVoxels.js";
@@ -260,6 +260,9 @@ export async function doDownsampling(renderer, node, result_chunking){
 		renderVoxels(drawstate, voxels);
 	});
 
+	let root = new Chunk();
+	root.boundingBox = node.boundingBox.cube();
+
 	let numChunksProcessed = 0;
 	for(let chunkIndex = 0; chunkIndex < result_chunking.chunks.length; chunkIndex++){
 		let chunk = result_chunking.chunks[chunkIndex];
@@ -271,7 +274,6 @@ export async function doDownsampling(renderer, node, result_chunking){
 		let cubeSize = cube.max.x - cube.min.x;
 
 		renderer.fillBuffer(gpu_accumulate, 0, 4 * voxelGridSize ** 3);
-
 
 		let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
 		{
@@ -301,7 +303,6 @@ export async function doDownsampling(renderer, node, result_chunking){
 		let host_colors = node.geometry.findBuffer("color");
 		let gpu_positions = renderer.getGpuBuffer(host_positions);
 		let gpu_colors = renderer.getGpuBuffer(host_colors);
-		
 
 		let bindGroups = [
 			{
@@ -335,7 +336,7 @@ export async function doDownsampling(renderer, node, result_chunking){
 			dispatchGroups: [Math.ceil((voxelGridSize ** 3) / 128)],
 		});
 
-		if((chunkIndex % 10) === 0){
+		{
 			let pMetadata = renderer.readBuffer(gpu_meta, 0, 32);
 
 			let [rMetadata] = await Promise.all([pMetadata]);
@@ -364,6 +365,8 @@ export async function doDownsampling(renderer, node, result_chunking){
 				position: new Vector3(minX, minY, minZ),
 				firstVoxel, numVoxels
 			};
+
+			console.log(chunk);
 
 			chunks.push(chunk);
 		}
