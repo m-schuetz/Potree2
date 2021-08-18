@@ -74,9 +74,9 @@ let vs = `
 
 let fs = `
 
-	[[binding(1), group(0)]] var mySampler: sampler;
-	[[binding(2), group(0)]] var myTexture: texture_2d<f32>;
-	[[binding(3), group(0)]] var myDepth: texture_2d<f32>;
+	[[binding(1), group(0)]] var mySampler   : sampler;
+	[[binding(2), group(0)]] var myTexture   : texture_2d<f32>;
+	[[binding(3), group(0)]] var myDepth     : texture_2d<f32>;
 
 	[[block]] struct Uniforms {
 		uTest   : u32;

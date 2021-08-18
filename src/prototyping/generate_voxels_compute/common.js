@@ -1,5 +1,5 @@
 
-export let chunkGridSize = 16;
+export let chunkGridSize = 4;
 export let voxelGridSize = 32;
 
 export function toIndex1D(gridSize, voxelPos){

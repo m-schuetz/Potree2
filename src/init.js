@@ -94,12 +94,14 @@ function getSumBuffer(renderer){
 		colorDescriptors: [{
 			size: size,
 			format: "rgba16float",
-			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+			usage: GPUTextureUsage.TEXTURE_BINDING 
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		}],
 		depthDescriptor: {
 			size: size,
 			format: "depth32float",
-			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+			usage: GPUTextureUsage.TEXTURE_BINDING 
+				| GPUTextureUsage.RENDER_ATTACHMENT,
 		}
 	};
 

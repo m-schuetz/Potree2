@@ -306,12 +306,7 @@ export class Renderer{
 				{texture: texture},
 				[bitmap.width, bitmap.height, 1]
 			);
-
-			// this.device.queue.copyImageBitmapToTexture(
-			// 	{imageBitmap: bitmap}, {texture: texture},
-			// 	[bitmap.width, bitmap.height, 1]
-			// );
-
+			
 		});
 
 		return texture;
@@ -325,7 +320,7 @@ export class Renderer{
 			size: [width, height, 1],
 			format: format,
 			usage: 
-				GPUTextureUsage.STORAGE
+				GPUTextureUsage.STORAGE_BINDING
 				| GPUTextureUsage.TEXTURE_BINDING 
 				| GPUTextureUsage.COPY_SRC 
 				| GPUTextureUsage.COPY_DST 
@@ -455,16 +450,16 @@ export class Renderer{
 					size: size,
 					format: this.swapChainFormat,
 					usage: GPUTextureUsage.TEXTURE_BINDING 
-						// | GPUTextureUsage.COPY_SRC 
-						// | GPUTextureUsage.COPY_DST 
+						| GPUTextureUsage.COPY_SRC 
+						| GPUTextureUsage.COPY_DST 
 						| GPUTextureUsage.RENDER_ATTACHMENT,
 				}],
 				depthDescriptor: {
 					size: size,
 					format: "depth32float",
 					usage: GPUTextureUsage.TEXTURE_BINDING 
-						// | GPUTextureUsage.COPY_SRC 
-						// | GPUTextureUsage.COPY_DST 
+						| GPUTextureUsage.COPY_SRC 
+						| GPUTextureUsage.COPY_DST 
 						| GPUTextureUsage.RENDER_ATTACHMENT,
 				}
 			};

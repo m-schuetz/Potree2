@@ -260,18 +260,15 @@ export async function doDownsampling(renderer, node, result_chunking){
 		renderVoxels(drawstate, voxels);
 	});
 
-	let chunkIndex = 0;
-	for(let chunk of result_chunking.chunks){
-	// {
-	// 	let chunk = result_chunking.chunks[322];
+	let numChunksProcessed = 0;
+	for(let chunkIndex = 0; chunkIndex < result_chunking.chunks.length; chunkIndex++){
+		let chunk = result_chunking.chunks[chunkIndex];
+
 		let numTriangles = chunk.numTriangles;
 		let triangleOffset = chunk.triangleOffset;
 
-		if(chunkIndex > 10){
-			break;
-		}
-
 		let cube = chunk.boundingBox;
+		let cubeSize = cube.max.x - cube.min.x;
 
 		renderer.fillBuffer(gpu_accumulate, 0, 4 * voxelGridSize ** 3);
 
@@ -340,7 +337,6 @@ export async function doDownsampling(renderer, node, result_chunking){
 
 		if((chunkIndex % 10) === 0){
 			let pMetadata = renderer.readBuffer(gpu_meta, 0, 32);
-			// let pAccumulate = renderer.readBuffer(gpu_accumulate, 0, accumulateGridSize);
 
 			let [rMetadata] = await Promise.all([pMetadata]);
 
@@ -348,24 +344,21 @@ export async function doDownsampling(renderer, node, result_chunking){
 			console.log("numVoxelsAdded: ", numVoxelsAdded);
 		}
 
-		chunkIndex++;
+		numChunksProcessed++;
 	}
 
 	{
-		let rChunks = await renderer.readBuffer(gpu_chunks, 0, chunkIndex * 32);
+		let rChunks = await renderer.readBuffer(gpu_chunks, 0, numChunksProcessed * 32);
 		let view = new DataView(rChunks);
 
 		let chunks = [];
-		for(let i = 0; i < 10; i++){
+		for(let i = 0; i < numChunksProcessed; i++){
 			let level = view.getUint32(32 * i + 0, true);
 			let minX = view.getFloat32(32 * i + 4, true);
 			let minY = view.getFloat32(32 * i + 8, true);
 			let minZ = view.getFloat32(32 * i + 12, true);
 			let firstVoxel = view.getInt32(32 * i + 16, true);
 			let numVoxels = view.getUint32(32 * i + 20, true);
-
-			// console.log({level, firstVoxel, numVoxels});
-			console.log({minX, minY, minZ});
 
 			let chunk = {
 				position: new Vector3(minX, minY, minZ),
@@ -384,7 +377,7 @@ export async function doDownsampling(renderer, node, result_chunking){
 			for(let chunk of chunks){
 				let position = chunk.position.clone().addScalar(chunkSize / 2);
 				let scale = new Vector3(1, 1, 1).multiplyScalar(chunkSize);
-				let color = new Vector3(chunk.numVoxels, 0, 0);
+				let color = new Vector3(Math.min(chunk.numVoxels / 2, 255), 0, 0);
 				// let color = new Vector3(...SPECTRAL.get(chunk.numVoxels / 255)).multiplyScalar(255);
 				potree.renderer.drawBoundingBox(position, scale, color);
 			}
