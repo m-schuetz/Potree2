@@ -392,6 +392,7 @@ export class Renderer{
 				usage: GPUBufferUsage.VERTEX 
 					| GPUBufferUsage.INDEX  
 					| GPUBufferUsage.COPY_DST 
+					| GPUBufferUsage.COPY_SRC 
 					| GPUBufferUsage.STORAGE,
 				mappedAtCreation: true,
 			});

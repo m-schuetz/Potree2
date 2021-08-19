@@ -40,7 +40,7 @@ export function computeChildBox(parentBox, childIndex){
 		box.max.y = parentBox.max.y;
 	}
 
-	if((childIndex & 0b010) === 0){
+	if((childIndex & 0b100) === 0){
 		box.min.z = parentBox.min.z;
 		box.max.z = center.z;
 	}else{
@@ -62,6 +62,7 @@ export class Chunk{
 		this.triangleOffset = 0;
 		this.numTriangles = 0;
 		this.boundingBox = new Box3();
+		this.level = 0;
 
 		this.children = [];
 	}
