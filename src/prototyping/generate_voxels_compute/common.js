@@ -57,15 +57,26 @@ export let uniform_flags = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST;
 export class Chunk{
 
 	constructor(){
-		this.voxelOffset = 0;
-		this.numVoxels = 0;
 		this.triangleOffset = 0;
 		this.numTriangles = 0;
 		this.boundingBox = new Box3();
 		this.level = 0;
 		this.index = 0;
+		this.parent = null;
+		this.children = new Array(8).fill(null)
+		this.visible = true;
+	}
 
-		this.children = [];
+	traverse(callback){
+
+		callback(this);
+
+		for(let child of this.children){
+			if(child){
+				child.traverse(callback);
+			}
+		}
+
 	}
 
 };
