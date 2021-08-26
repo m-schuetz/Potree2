@@ -63,6 +63,7 @@ export class Chunk{
 		this.numTriangles = 0;
 		this.boundingBox = new Box3();
 		this.level = 0;
+		this.index = 0;
 
 		this.children = [];
 	}

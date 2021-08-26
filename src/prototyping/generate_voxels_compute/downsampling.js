@@ -311,6 +311,7 @@ function initialize(renderer, node){
 }
 
 let numChunksProcessed = 0;
+let numVoxelsProcessed = 0;
 let chunkList = [];
 
 async function processChunk(renderer, node, chunk){
@@ -320,6 +321,9 @@ async function processChunk(renderer, node, chunk){
 	console.log(`=======================================================================`);
 
 	let {device} = renderer;
+
+	chunk.index = numChunksProcessed;
+	chunk.voxelBaseIndex = numVoxelsProcessed;
 
 	let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
 	{
@@ -352,9 +356,9 @@ async function processChunk(renderer, node, chunk){
 		view.setUint32(84, lutGridOffset, true);
 		view.setUint32(88, voxelGridOffset, true);
 
-		let voxelBaseIndex = 0;
-		view.setUint32(92, numChunksProcessed, true);
-		view.setUint32(96, voxelBaseIndex, true);
+		
+		view.setUint32(92, chunk.index, true);
+		view.setUint32(96, numVoxelsProcessed, true);
 
 		device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
 	}
@@ -427,14 +431,23 @@ async function processChunk(renderer, node, chunk){
 	let pIndices = renderer.readBuffer(chunk.triangles.gpu_indices, 
 		4 * chunk.triangles.firstIndex, 
 		4 * chunk.triangles.numIndices);
-	let pChunks = renderer.readBuffer(gpu_chunks, 0, (numChunksProcessed + 1) * 32);
-	let pVoxels = renderer.readBuffer(gpu_voxels, 0, (numChunksProcessed + 1) * 32);
+	let pChunks = renderer.readBuffer(gpu_chunks, 0, (chunk.index + 1) * 32);
+	let pVoxels = renderer.readBuffer(gpu_voxels, 0, 32 * 100);
 
-	let [bLutGrid, bTricountGrid, bIndices, bChunks] 
-		= await Promise.all([pLutGrid, pTricountGrid, pIndices, pChunks]);
+	let [bLutGrid, bTricountGrid, bIndices, bChunks, bVoxels] 
+		= await Promise.all([pLutGrid, pTricountGrid, pIndices, pChunks, pVoxels]);
 
 	let lutGrid = new Uint32Array(bLutGrid);
 	let tricountGrid = new Uint32Array(bTricountGrid);
+
+	{
+		let view = new DataView(bVoxels);
+		let x = view.getFloat32(0, true);
+		let y = view.getFloat32(4, true);
+		let z = view.getFloat32(8, true);
+
+		console.log({x, y, z});
+	}
 
 	// { // DEBUG
 	// 	console.log({numChunksProcessed, chunkid: chunk.id});
@@ -449,6 +462,9 @@ async function processChunk(renderer, node, chunk){
 	// }
 
 	numChunksProcessed++;
+	chunk.voxelBaseIndex = numVoxelsProcessed;
+	chunk.numVoxels = new DataView(bChunks).getUint32(32 * chunk.index + 0, true);
+	numVoxelsProcessed += chunk.numVoxels;
 
 
 	let drawChunk = async (chunk) => {
@@ -481,6 +497,24 @@ async function processChunk(renderer, node, chunk){
 		// }
 
 		{ // VOXELS
+
+			// let numVoxelsAdded = new Uint32Array(renderer.readBuffer(gpu_chunks, 32 * chunk.index, 4))[0];
+			// numVoxelsProcessed += numVoxelsAdded;
+
+			let chunkSize = chunk.boundingBox.max.x - chunk.boundingBox.min.x;
+			let voxelSize = chunkSize / voxelGridSize;
+			// let voxelSize = 0.05;
+
+			potree.renderer.onDraw( (drawstate) => {
+				let voxels = {
+					gpu_voxels, 
+					voxelBaseIndex: chunk.voxelBaseIndex, 
+					numVoxels: chunk.numVoxels,
+					voxelSize: voxelSize,
+				};
+
+				renderVoxels(drawstate, voxels);
+			});
 
 		}
 
@@ -550,16 +584,13 @@ async function processChunk(renderer, node, chunk){
 			chunk.children[i] = child;
 
 			chunkList.push(child);
-
-			// if(whitelist.includes(child.id))
-			// if(chunk.level > 1)
-			{
-				await drawChunk(child);
-			}
 		}
 		
 	}
 
+	{
+		await drawChunk(chunk);
+	}
 	
 
 	for(let child of chunk.children){
@@ -568,7 +599,7 @@ async function processChunk(renderer, node, chunk){
 			continue;
 		}
 
-		if(chunk.triangles.numIndices > 0 && child.level <= 2){
+		if(chunk.triangles.numIndices > 0 && child.level <= 1){
 			await processChunk(renderer, node, child);
 		}
 		

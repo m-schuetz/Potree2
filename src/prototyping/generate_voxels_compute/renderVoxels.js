@@ -3,11 +3,12 @@ import {Vector3, Matrix4, Geometry} from "potree";
 
 const shaderSource = `
 [[block]] struct Uniforms {
-	worldView      : mat4x4<f32>;
-	proj           : mat4x4<f32>;
-	screen_width   : f32;
-	screen_height  : f32;
-	voxelSize           : f32;
+	worldView          : mat4x4<f32>;
+	proj               : mat4x4<f32>;
+	screen_width       : f32;
+	screen_height      : f32;
+	voxelSize          : f32;
+	voxelBaseIndex     : u32;
 };
 
 
@@ -95,7 +96,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	let cubeVertexIndex : u32 = vertex.index % 36u;
 	var cubeOffset : vec3<f32> = CUBE_POS[cubeVertexIndex];
-	var voxelIndex = vertex.index / 36u;
+	var voxelIndex = vertex.index / 36u + uniforms.voxelBaseIndex;
 	var voxel = voxels.values[voxelIndex];
 
 	var position = vec3<f32>(
@@ -132,8 +133,8 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 let stateCache = new Map();
 function getState(renderer, voxels){
 
-	if(stateCache.has(voxels.gpu_voxels)){
-		return stateCache.get(voxels.gpu_voxels);
+	if(stateCache.has(voxels.voxelBaseIndex)){
+		return stateCache.get(voxels.voxelBaseIndex);
 	}
 
 	let {device} = renderer;
@@ -175,7 +176,7 @@ function getState(renderer, voxels){
 
 	let state = {pipeline, uniformBuffer, bindGroup};
 
-	stateCache.set(voxels.gpu_voxels, state);
+	stateCache.set(voxels.voxelBaseIndex, state);
 
 	return state;
 }
@@ -212,6 +213,7 @@ export function renderVoxels(drawstate, voxels){
 			view.setFloat32(128, size.width, true);
 			view.setFloat32(132, size.height, true);
 			view.setFloat32(136, voxels.voxelSize, true);
+			view.setUint32(140, voxels.voxelBaseIndex, true);
 		}
 
 		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
