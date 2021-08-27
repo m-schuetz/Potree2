@@ -2,7 +2,7 @@
 import {Box3} from "potree";
 
 export let chunkGridSize = 2;
-export let voxelGridSize = 32;
+export let voxelGridSize = 64;
 
 export function toIndex1D(gridSize, voxelPos){
 
@@ -65,11 +65,17 @@ export class Chunk{
 		this.parent = null;
 		this.children = new Array(8).fill(null)
 		this.visible = true;
+		this.processing = false;
+		this.processed = false;
 	}
 
 	traverse(callback){
 
-		callback(this);
+		let shouldContinue = callback(this) ?? true;
+
+		if(!shouldContinue){
+			return;
+		}
 
 		for(let child of this.children){
 			if(child){

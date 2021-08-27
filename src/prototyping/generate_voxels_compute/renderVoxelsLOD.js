@@ -20,7 +20,7 @@ struct Node{
 	childMask         : u32;
 	childOffset       : u32;
 	level             : u32;
-	pad2              : u32;
+	processed         : u32;
 };
 
 struct Voxel {
@@ -76,6 +76,13 @@ var<private> CUBE_POS : array<vec3<f32>, 36> = array<vec3<f32>, 36>(
 	vec3<f32>(-0.5, -0.5,  0.5),
 );
 
+var<private> GRADIENT : array<vec3<f32>, 4> = array<vec3<f32>, 4>(
+	vec3<f32>(215.0,  25.0,  28.0),
+	vec3<f32>(253.0, 174.0,  97.0),
+	vec3<f32>(171.0, 221.0, 164.0),
+	vec3<f32>( 43.0, 131.0, 186.0),
+);
+
 [[binding(0), group(0)]] var<uniform> uniforms         : Uniforms;
 [[binding(2), group(0)]] var<storage, read> voxels     : Voxels;
 [[binding(3), group(0)]] var<storage, read> nodes : Nodes;
@@ -123,11 +130,15 @@ fn getLOD(position : vec3<f32>) -> u32 {
 
 	var nodeIndex = 0u;
 	var depth = 0u;
+	var processed = true;
 
 	for(var i = 0u; i < 20u; i = i + 1u){
 
 		var node = nodes.values[nodeIndex];
 		var childIndex = toChildIndex(npos);
+		if(node.processed == 0u){
+			processed = false;
+		}
 
 		var hasChild = (node.childMask & (1u << childIndex)) != 0u;
 
@@ -154,6 +165,10 @@ fn getLOD(position : vec3<f32>) -> u32 {
 		}else{
 			break;
 		}
+	}
+
+	if(!processed){
+		depth = 100u;
 	}
 
 	return depth;
@@ -196,12 +211,12 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 		f32(voxel.b) / 255.0, 
 		1.0);
 
-	// vout.color = vec4<f32>(
-	// 	f32(lod) / 2.0,
-	// 	0.0, 0.0, 1.0
-	// );
+	// var gradientColor = GRADIENT[lod] / 255.0;
+	// vout.color = vec4<f32>(gradientColor, 1.0);
 
-	if(lod != uniforms.level){
+	if(lod == 100u){
+		vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	}elseif(lod != uniforms.level){
 		// discard!
 
 		vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
@@ -368,7 +383,14 @@ export function renderVoxelsLOD(root, drawstate){
 	window.nodes = nodes;
 
 	// sort breadth-first
-	nodes.sort((a, b) => a.id.localeCompare(b.id));
+	//nodes.sort((a, b) => a.id.localeCompare(b.id));
+	nodes.sort((a, b) => {
+		if(a.id.length !== b.id.length){
+			return a.id.length - b.id.length;
+		}else{
+			return a.id.localeCompare(b.id);
+		}
+	});
 
 	{
 
@@ -398,6 +420,7 @@ export function renderVoxelsLOD(root, drawstate){
 			view.setUint32(16 * i + 0, mask, true);
 			view.setUint32(16 * i + 4, childOffset, true);
 			view.setUint32(16 * i + 8, node.level, true);
+			view.setUint32(16 * i + 12, node.processed ? 1 : 0, true);
 
 		}
 

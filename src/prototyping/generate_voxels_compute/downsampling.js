@@ -9,6 +9,8 @@ import {SPECTRAL} from "potree";
 
 let dbglist = ["r12"];
 
+let currentlyProcessing = null;
+
 export let csVoxelizing = `
 
 
@@ -317,6 +319,12 @@ let chunkList = [];
 
 async function processChunk(renderer, node, chunk){
 
+	if(currentlyProcessing){
+		return;
+	}else{
+		currentlyProcessing = chunk;
+	}
+
 	console.log(`=======================================================================`);
 	console.log(`processing ${chunk.id}, numChunksProcessed: ${numChunksProcessed}`);
 	console.log(`=======================================================================`);
@@ -429,26 +437,26 @@ async function processChunk(renderer, node, chunk){
 
 	let pLutGrid = renderer.readBuffer(gpu_grids, 4 * lutGridOffset, 4 * lutGridCellCount);
 	let pTricountGrid = renderer.readBuffer(gpu_grids, 4 * tricountGridOffset, 4 * tricountGridCellCount);
-	let pIndices = renderer.readBuffer(chunk.triangles.gpu_indices, 
-		4 * chunk.triangles.firstIndex, 
-		4 * chunk.triangles.numIndices);
+	// let pIndices = renderer.readBuffer(chunk.triangles.gpu_indices, 
+	// 	4 * chunk.triangles.firstIndex, 
+	// 	4 * chunk.triangles.numIndices);
 	let pChunks = renderer.readBuffer(gpu_chunks, 0, (chunk.index + 1) * 32);
-	let pVoxels = renderer.readBuffer(gpu_voxels, 0, 32 * 100);
+	// let pVoxels = renderer.readBuffer(gpu_voxels, 0, 32 * 100);
 
-	let [bLutGrid, bTricountGrid, bIndices, bChunks, bVoxels] 
-		= await Promise.all([pLutGrid, pTricountGrid, pIndices, pChunks, pVoxels]);
+	let [bLutGrid, bTricountGrid, bChunks] 
+		= await Promise.all([pLutGrid, pTricountGrid, pChunks]);
 
 	let lutGrid = new Uint32Array(bLutGrid);
 	let tricountGrid = new Uint32Array(bTricountGrid);
 
-	{
-		let view = new DataView(bVoxels);
-		let x = view.getFloat32(0, true);
-		let y = view.getFloat32(4, true);
-		let z = view.getFloat32(8, true);
+	// {
+	// 	let view = new DataView(bVoxels);
+	// 	let x = view.getFloat32(0, true);
+	// 	let y = view.getFloat32(4, true);
+	// 	let z = view.getFloat32(8, true);
 
-		console.log({x, y, z});
-	}
+	// 	console.log({x, y, z});
+	// }
 
 	// { // DEBUG
 	// 	console.log({numChunksProcessed, chunkid: chunk.id});
@@ -560,17 +568,20 @@ async function processChunk(renderer, node, chunk){
 
 				chunkList.push(child);
 
-				if(chunk.triangles.numIndices > 0){
-					await processChunk(renderer, node, child);
-				}
+				// if(chunk.triangles.numIndices > 0){
+				// 	await processChunk(renderer, node, child);
+				// }
 			}
 			
 		}
 	}
 
 	{
-		await drawChunk(chunk);
+		drawChunk(chunk);
 	}
+
+	currentlyProcessing = null;
+	chunk.processed = true;
 
 }
 
@@ -597,24 +608,39 @@ export async function doDownsampling(renderer, node){
 
 	chunkList.push(root);
 
-	await processChunk(renderer, node, root);
-
 	potree.onUpdate( () => {
-		root.traverse((node) => {
+
+		root.traverse((chunk) => {
+			chunk.visible = false;
+		});
+
+		root.traverse((chunk) => {
 			
-			// let center = node.boundingBox.center();
-			// let size = node.boundingBox.size().length();
-			// let camWorldPos = camera.getWorldPosition();
-			// let distance = camWorldPos.distanceTo(center);
+			let center = chunk.boundingBox.center();
+			let size = chunk.boundingBox.size().length();
+			let camWorldPos = camera.getWorldPosition();
+			let distance = camWorldPos.distanceTo(center);
 
-			// let expand = (size / distance) > 0.5;
-			// node.visible = expand;
+			let visible = (size / distance) > 0.5;
 
-			// if(node.visible)
+			if(visible && chunk.processed === false && currentlyProcessing === null){
+				processChunk(renderer, node, chunk);
+
+				return false;
+			}
+
+			chunk.visible = visible;
+
+			if(chunk.visible)
 			{ // BOUNDING BOX
-				let position = node.boundingBox.center();
-				let scale = new Vector3(1, 1, 1).multiplyScalar(node.boundingBox.size().x);
-				let color = new Vector3(255, 0, 0);
+				let position = chunk.boundingBox.center();
+				let scale = new Vector3(1, 1, 1).multiplyScalar(chunk.boundingBox.size().x);
+				let factor = 1 + chunk.level / 200;
+				scale.multiplyScalar(1 / factor);
+
+				// let color = new Vector3(255, 0, 0);
+
+				let color = new Vector3(...SPECTRAL.get(chunk.level / 3));
 
 				potree.renderer.drawBoundingBox(position, scale, color);
 			}
@@ -622,15 +648,23 @@ export async function doDownsampling(renderer, node){
 		});
 	});
 
-	var numNodes = 0;
-	root.traverse(node => {
-		numNodes++;
-	});
-	console.log({numNodes});
-
 	potree.renderer.onDraw( (drawstate) => {
 		renderVoxelsLOD(root, drawstate);
 	});
+
+	await processChunk(renderer, node, root);
+
+	
+
+	// var numNodes = 0;
+	// root.traverse(node => {
+	// 	numNodes++;
+	// });
+	// console.log({numNodes});
+
+	// potree.renderer.onDraw( (drawstate) => {
+	// 	renderVoxelsLOD(root, drawstate);
+	// });
 
 	window.chunkList = chunkList;
 	
