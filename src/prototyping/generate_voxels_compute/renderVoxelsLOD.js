@@ -8,12 +8,12 @@ const shaderSource = `
 	proj               : mat4x4<f32>;  // 128
 	screen_width       : f32;
 	screen_height      : f32;
-	voxelSize          : f32;
+	voxelGridSize      : f32;
+	// pad_1              : u32;         // 144
 	voxelBaseIndex     : u32;         // 144
 	bbMin              : vec3<f32>;    // 16     144
 	bbMax              : vec3<f32>;    // 16     160
 	pad_0              : u32;
-	level              : u32;
 };
 
 struct Node{
@@ -21,6 +21,7 @@ struct Node{
 	childOffset       : u32;
 	level             : u32;
 	processed         : u32;
+	voxelBaseIndex    : u32;
 };
 
 struct Voxel {
@@ -35,7 +36,7 @@ struct Voxel {
 };
 
 [[block]] struct Voxels { values : [[stride(32)]] array<Voxel>; };
-[[block]] struct Nodes{ values : [[stride(16)]] array<Node>; };
+[[block]] struct Nodes{ values : [[stride(32)]] array<Node>; };
 
 var<private> CUBE_POS : array<vec3<f32>, 36> = array<vec3<f32>, 36>(
 	vec3<f32>(-0.5, -0.5, -0.5),
@@ -89,6 +90,7 @@ var<private> GRADIENT : array<vec3<f32>, 4> = array<vec3<f32>, 4>(
 
 struct VertexIn{
 	[[builtin(vertex_index)]] index : u32;
+	[[builtin(instance_index)]] instance_index : u32;
 };
 
 struct VertexOut{
@@ -185,10 +187,10 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	doIgnore();
 
+	var node = nodes.values[vertex.instance_index];
 	let cubeVertexIndex : u32 = vertex.index % 36u;
 	var cubeOffset : vec3<f32> = CUBE_POS[cubeVertexIndex];
-	var voxelIndex = vertex.index / 36u + uniforms.voxelBaseIndex;
-	// var voxelIndex = 1u;
+	var voxelIndex = vertex.index / 36u + node.voxelBaseIndex;
 	var voxel = voxels.values[voxelIndex];
 
 	var position = vec3<f32>(
@@ -199,7 +201,10 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var lod = getLOD(position);
 
-	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(position + uniforms.voxelSize * cubeOffset, 1.0);
+	var cubeSize = uniforms.bbMax.x - uniforms.bbMin.x;
+	var chunkSize = cubeSize / pow(2.0, f32(node.level));
+	var voxelSize = chunkSize / uniforms.voxelGridSize;
+	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(position + voxelSize * cubeOffset, 1.0);
 	var projPos : vec4<f32> = uniforms.proj * viewPos;
 
 	var vout : VertexOut;
@@ -216,7 +221,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	if(lod == 100u){
 		vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-	}elseif(lod != uniforms.level){
+	}elseif(lod != node.level){
 		// discard!
 
 		vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
@@ -235,39 +240,11 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 }
 `;
 
-let stateCache = new Map();
-function getState(renderer, node){
-
-	if(stateCache.has(node)){
-		return stateCache.get(node);
-	}
-
-	let {device} = renderer;
-
-	let uniformBuffer = device.createBuffer({
-		size: 256,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	});
-
-	// let bindGroup = device.createBindGroup({
-	// 	layout: pipeline.getBindGroupLayout(0),
-	// 	entries: [
-	// 		{binding: 0, resource: {buffer: uniformBuffer}},
-	// 		{binding: 2, resource: {buffer: node.voxels.gpu_voxels}},
-	// 	],
-	// });
-
-	let state = {uniformBuffer};
-
-	stateCache.set(node, state);
-
-	return state;
-}
-
 let initialized = false;
 let pipeline = null;
 let nodeBuffer = null;
 let nodeBufferHost = null;
+let uniformBuffer = null;
 
 function init(renderer){
 
@@ -306,12 +283,15 @@ function init(renderer){
 		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 	});
 
+	uniformBuffer = device.createBuffer({
+		size: 256,
+		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	});
+
 	initialized = true;
 }
 
-function updateUniforms(renderer, root, node){
-	
-	let {uniformBuffer} = getState(renderer, node);
+function updateUniforms(renderer, root){
 
 	let data = new ArrayBuffer(256);
 	let f32 = new Float32Array(data);
@@ -337,13 +317,9 @@ function updateUniforms(renderer, root, node){
 		view.setFloat32(164, box.max.y, true);
 		view.setFloat32(168, box.max.z, true);
 
-		let chunkSize = node.boundingBox.max.x - node.boundingBox.min.x;
-		let voxelSize = chunkSize / voxelGridSize;
 		view.setFloat32(128, size.width, true);
 		view.setFloat32(132, size.height, true);
-		view.setFloat32(136, voxelSize, true);
-		view.setUint32(140, node.voxels.firstVoxel, true);
-		view.setUint32(176, node.level, true);
+		view.setFloat32(136, voxelGridSize, true);
 	}
 
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
@@ -417,40 +393,37 @@ export function renderVoxelsLOD(root, drawstate){
 			let mask = childMaskOf(node);
 			let childOffset = node.childOffset ?? 0;
 
-			view.setUint32(16 * i + 0, mask, true);
-			view.setUint32(16 * i + 4, childOffset, true);
-			view.setUint32(16 * i + 8, node.level, true);
-			view.setUint32(16 * i + 12, node.processed ? 1 : 0, true);
+			view.setUint32(32 * i + 0, mask, true);
+			view.setUint32(32 * i + 4, childOffset, true);
+			view.setUint32(32 * i + 8, node.level, true);
+			view.setUint32(32 * i + 12, node.processed ? 1 : 0, true);
+			view.setUint32(32 * i + 16, node.voxels.firstVoxel, true);
 
 		}
 
-		renderer.device.queue.writeBuffer(nodeBuffer, 0, nodeBufferHost, 0, 16 * nodes.length);
+		renderer.device.queue.writeBuffer(nodeBuffer, 0, nodeBufferHost, 0, 32 * nodes.length);
 	}
 
-	for(let node of nodes){
-		updateUniforms(renderer, root, node);
-	}
+	updateUniforms(renderer, root);
 
 	passEncoder.setPipeline(pipeline);
 
+	let bindGroup = renderer.device.createBindGroup({
+		layout: pipeline.getBindGroupLayout(0),
+		entries: [
+			{binding: 0, resource: {buffer: uniformBuffer}},
+			{binding: 2, resource: {buffer: nodes[0].voxels.gpu_voxels}},
+			{binding: 3, resource: {buffer: nodeBuffer}},
+		],
+	});
+	passEncoder.setBindGroup(0, bindGroup);
+
+	let instanceIndex = 0;
 	for(let node of nodes){
-		// let {bindGroup} = getState(renderer, node);
 
-		// passEncoder.setBindGroup(0, bindGroup);
+		passEncoder.draw(36 * node.voxels.numVoxels, 1, 0, instanceIndex);
 
-		let {uniformBuffer} = getState(renderer, node);
-		let bindGroup = renderer.device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [
-				{binding: 0, resource: {buffer: uniformBuffer}},
-				{binding: 2, resource: {buffer: node.voxels.gpu_voxels}},
-				{binding: 3, resource: {buffer: nodeBuffer}},
-			],
-		});
-		passEncoder.setBindGroup(0, bindGroup);
-
-		passEncoder.draw(36 * node.voxels.numVoxels, 1, 0, 0);
-		// passEncoder.draw(36 * node.voxels.numVoxels, 1, 0, 0);
+		instanceIndex++;
 	}
 
 

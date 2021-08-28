@@ -2,7 +2,7 @@
 import {Box3} from "potree";
 
 export let chunkGridSize = 2;
-export let voxelGridSize = 64;
+export let voxelGridSize = 32;
 
 export function toIndex1D(gridSize, voxelPos){
 

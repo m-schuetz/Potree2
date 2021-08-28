@@ -347,9 +347,9 @@ async function processChunk(renderer, node, chunk){
 		currentlyProcessing = chunk;
 	}
 
-	console.log(`=======================================================================`);
-	console.log(`processing ${chunk.id}, numChunksProcessed: ${numChunksProcessed}`);
-	console.log(`=======================================================================`);
+	// console.log(`=======================================================================`);
+	// console.log(`processing ${chunk.id}, numChunksProcessed: ${numChunksProcessed}`);
+	// console.log(`=======================================================================`);
 
 	let {device} = renderer;
 
@@ -607,7 +607,7 @@ export async function doDownsampling(renderer, node){
 			let camWorldPos = camera.getWorldPosition();
 			let distance = camWorldPos.distanceTo(center);
 
-			let visible = (size / distance) > 0.5;
+			let visible = (size / distance) > 0.2;
 
 			if(visible && chunk.processed === false && currentlyProcessing === null){
 				processChunk(renderer, node, chunk);
@@ -617,19 +617,19 @@ export async function doDownsampling(renderer, node){
 
 			chunk.visible = visible;
 
-			if(chunk.visible)
-			{ // BOUNDING BOX
-				let position = chunk.boundingBox.center();
-				let scale = new Vector3(1, 1, 1).multiplyScalar(chunk.boundingBox.size().x);
-				let factor = 1 + chunk.level / 200;
-				scale.multiplyScalar(1 / factor);
+			// if(chunk.visible)
+			// { // BOUNDING BOX
+			// 	let position = chunk.boundingBox.center();
+			// 	let scale = new Vector3(1, 1, 1).multiplyScalar(chunk.boundingBox.size().x);
+			// 	let factor = 1 + chunk.level / 200;
+			// 	scale.multiplyScalar(1 / factor);
 
-				// let color = new Vector3(255, 0, 0);
+			// 	// let color = new Vector3(255, 0, 0);
 
-				let color = new Vector3(...SPECTRAL.get(chunk.level / 3));
+			// 	let color = new Vector3(...SPECTRAL.get(chunk.level / 3));
 
-				potree.renderer.drawBoundingBox(position, scale, color);
-			}
+			// 	potree.renderer.drawBoundingBox(position, scale, color);
+			// }
 
 		});
 	});
