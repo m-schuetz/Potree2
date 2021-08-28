@@ -270,8 +270,6 @@ export class Renderer{
 		let {device} = this;
 		let pipeline = this.createComputePipeline({code, entryPoint});
 
-		
-
 		const commandEncoder = device.createCommandEncoder();
 		const passEncoder = commandEncoder.beginComputePass();
 

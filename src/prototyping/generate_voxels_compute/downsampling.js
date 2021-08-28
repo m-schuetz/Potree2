@@ -295,9 +295,10 @@ let voxelGridByteSize = 16 * voxelGridCellCount;
 let allGridsSize = 2 * tricountGridSize + voxelGridByteSize;
 
 let gpu_grids = null;
-let gpu_metadata = null;
 let gpu_chunks = null;
 let gpu_voxels = null;
+
+let passes = {};
 
 
 function initialize(renderer, node){
@@ -305,11 +306,32 @@ function initialize(renderer, node){
 	let {device} = renderer;
 
 	gpu_grids = device.createBuffer({size: allGridsSize, usage: storage_flags});
-
-	gpu_metadata = device.createBuffer({size: 256, usage: storage_flags});
-
 	gpu_chunks = device.createBuffer({size: 32 * 10_000, usage: storage_flags});
 	gpu_voxels = device.createBuffer({size: 128_000_000, usage: storage_flags});
+
+	{ // PASS - ACCUMULATE
+		let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_accumulate"});
+
+		passes["accumulate"] = {pipeline};
+	}
+
+	{ // PASS - GATHER VOXELS
+		let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_gatherVoxels"});
+
+		passes["gather_voxels"] = {pipeline};
+	}
+
+	{ // PASS - CREATE LUT
+		let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_createLUT"});
+
+		passes["create_lut"] = {pipeline};
+	}
+
+	{ // PASS - SORT TRIANGLES
+		let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_sortTriangles"});
+
+		passes["sort_triangles"] = {pipeline};
+	}
 
 }
 
@@ -385,7 +407,6 @@ async function processChunk(renderer, node, chunk){
 	chunk.triangles.gpu_sortedIndices = gpu_sortedIndices;
 
 	renderer.fillBuffer(gpu_grids, 0, tricountGridCellCount + lutGridCellCount + 4 * voxelGridCellCount);
-	// gpu_grids = device.createBuffer({size: allGridsSize, usage: storage_flags});
 
 	let bindGroups = [
 		{
@@ -405,43 +426,96 @@ async function processChunk(renderer, node, chunk){
 	];
 
 	let numTriangles = chunk.triangles.numIndices / 3;
-	renderer.runCompute({
-		code: csVoxelizing,
-		entryPoint: "main_accumulate",
-		bindGroups: bindGroups,
-		dispatchGroups: [Math.ceil(numTriangles / 128)],
-	});
 
-	renderer.runCompute({
-		code: csVoxelizing,
-		entryPoint: "main_gatherVoxels",
-		bindGroups: bindGroups,
-		dispatchGroups: [Math.ceil((voxelGridSize ** 3) / 128)],
-	});
+	{
 
-	renderer.runCompute({
-		code: csVoxelizing,
-		entryPoint: "main_createLUT",
-		bindGroups: bindGroups,
-		dispatchGroups: [Math.ceil((chunkGridSize ** 3) / 128)],
-	});
+		const commandEncoder = device.createCommandEncoder();
+		const passEncoder = commandEncoder.beginComputePass();
+
+		for(let bindGroupItem of bindGroups){
+
+			let bindGroup = device.createBindGroup({
+				layout: passes["accumulate"].pipeline.getBindGroupLayout(bindGroupItem.location),
+				entries: bindGroupItem.entries,
+			});
+
+			passEncoder.setBindGroup(bindGroupItem.location, bindGroup);
+		}
+
+		{ // ACCUMULATE
+			let {pipeline} = passes["accumulate"];
+
+			passEncoder.setPipeline(pipeline);
+
+			let dispatchGroups = [Math.ceil(numTriangles / 128)];
+			passEncoder.dispatch(...dispatchGroups);
+		}
+
+		{ // GATHER VOXELS
+			let {pipeline} = passes["gather_voxels"];
+
+			passEncoder.setPipeline(pipeline);
+
+			let dispatchGroups = [Math.ceil((voxelGridSize ** 3) / 128)];
+			passEncoder.dispatch(...dispatchGroups);
+		}
+
+		{ // CREATE LUT
+			let {pipeline} = passes["create_lut"];
+			passEncoder.setPipeline(pipeline);
+
+			let dispatchGroups = [Math.ceil((chunkGridSize ** 3) / 128)];
+			passEncoder.dispatch(...dispatchGroups);
+		}
+
+		{ // SORT TRIANGLES
+			let {pipeline} = passes["sort_triangles"];
+			passEncoder.setPipeline(pipeline);
+
+			let dispatchGroups = [Math.ceil(numTriangles / 128)];
+			passEncoder.dispatch(...dispatchGroups);
+		}
 
 
-	renderer.runCompute({
-		code: csVoxelizing,
-		entryPoint: "main_sortTriangles",
-		bindGroups: bindGroups,
-		dispatchGroups: [Math.ceil(numTriangles / 128)],
-	});
+		passEncoder.endPass();
+		
+		device.queue.submit([commandEncoder.finish()]);
+
+	}
+
+	// let numTriangles = chunk.triangles.numIndices / 3;
+	// renderer.runCompute({
+	// 	code: csVoxelizing,
+	// 	entryPoint: "main_accumulate",
+	// 	bindGroups: bindGroups,
+	// 	dispatchGroups: [Math.ceil(numTriangles / 128)],
+	// });
+
+	// renderer.runCompute({
+	// 	code: csVoxelizing,
+	// 	entryPoint: "main_gatherVoxels",
+	// 	bindGroups: bindGroups,
+	// 	dispatchGroups: [Math.ceil((voxelGridSize ** 3) / 128)],
+	// });
+
+	// renderer.runCompute({
+	// 	code: csVoxelizing,
+	// 	entryPoint: "main_createLUT",
+	// 	bindGroups: bindGroups,
+	// 	dispatchGroups: [Math.ceil((chunkGridSize ** 3) / 128)],
+	// });
+
+	// renderer.runCompute({
+	// 	code: csVoxelizing,
+	// 	entryPoint: "main_sortTriangles",
+	// 	bindGroups: bindGroups,
+	// 	dispatchGroups: [Math.ceil(numTriangles / 128)],
+	// });
 
 
 	let pLutGrid = renderer.readBuffer(gpu_grids, 4 * lutGridOffset, 4 * lutGridCellCount);
 	let pTricountGrid = renderer.readBuffer(gpu_grids, 4 * tricountGridOffset, 4 * tricountGridCellCount);
-	// let pIndices = renderer.readBuffer(chunk.triangles.gpu_indices, 
-	// 	4 * chunk.triangles.firstIndex, 
-	// 	4 * chunk.triangles.numIndices);
 	let pChunks = renderer.readBuffer(gpu_chunks, 0, (chunk.index + 1) * 32);
-	// let pVoxels = renderer.readBuffer(gpu_voxels, 0, 32 * 100);
 
 	let [bLutGrid, bTricountGrid, bChunks] 
 		= await Promise.all([pLutGrid, pTricountGrid, pChunks]);
@@ -449,93 +523,12 @@ async function processChunk(renderer, node, chunk){
 	let lutGrid = new Uint32Array(bLutGrid);
 	let tricountGrid = new Uint32Array(bTricountGrid);
 
-	// {
-	// 	let view = new DataView(bVoxels);
-	// 	let x = view.getFloat32(0, true);
-	// 	let y = view.getFloat32(4, true);
-	// 	let z = view.getFloat32(8, true);
-
-	// 	console.log({x, y, z});
-	// }
-
-	// { // DEBUG
-	// 	console.log({numChunksProcessed, chunkid: chunk.id});
-	// 	let view = new DataView(bChunks);
-	// 	for(let i = 0; i <= numChunksProcessed; i++){
-	// 		let numVoxels = view.getUint32(32 * i + 0, true);
-	// 		let numTriangles = view.getUint32(32 * i + 4, true);
-	// 		let lutCounter = view.getUint32(32 * i + 8, true);
-
-	// 		console.log(`chunk[${i}]: `, {numVoxels, numTriangles, lutCounter});
-	// 	}
-	// }
-
 	numChunksProcessed++;
 	chunk.voxels.firstVoxel = numVoxelsProcessed;
 	chunk.voxels.numVoxels = new DataView(bChunks).getUint32(32 * chunk.index + 0, true);
 	numVoxelsProcessed += chunk.voxels.numVoxels;
 
-
-	let drawChunk = async (chunk) => {
-		// { // MESH
-		// 	let positions = node.geometry.findBuffer("position");
-		// 	let colors = node.geometry.findBuffer("color");
-		// 	let uvs = node.geometry.findBuffer("uv");
-
-		// 	let firstIndex = chunk.triangles.firstIndex;
-		// 	let numIndices = chunk.triangles.numIndices;
-		// 	// let indexBuffer = await renderer.readBuffer(
-		// 	// 	chunk.triangles.gpu_indices, 
-		// 	// 	4 * firstIndex, 
-		// 	// 	4 * numIndices);
-		// 	let indices = new Uint32Array(bIndices);
-
-		// 	console.log({
-		// 		firstIndex, numIndices
-		// 	});
-
-		// 	potree.onUpdate( () => {
-		// 		potree.renderer.drawMesh({
-		// 			positions, 
-		// 			colors, 
-		// 			uvs,
-		// 			indices,
-		// 			image: node.material.image,
-		// 		});
-		// 	});
-		// }
-
-		// { // VOXELS
-
-		// 	let chunkSize = chunk.boundingBox.max.x - chunk.boundingBox.min.x;
-		// 	let voxelSize = chunkSize / voxelGridSize;
-		// 	// let voxelSize = 0.05;
-
-		// 	potree.renderer.onDraw( (drawstate) => {
-		// 		let voxels = {
-		// 			gpu_voxels, 
-		// 			voxelBaseIndex: chunk.voxels.firstVoxel, 
-		// 			numVoxels: chunk.voxels.numVoxels,
-		// 			voxelSize: voxelSize,
-		// 		};
-
-		// 		renderVoxels(drawstate, voxels);
-		// 	});
-
-		// }
-
-		// { // BOUNDING BOX
-		// 	let position = chunk.boundingBox.center();
-		// 	let scale = new Vector3(1, 1, 1).multiplyScalar(chunk.boundingBox.size().x);
-		// 	let color = new Vector3(255, 0, 0);
-
-		// 	potree.onUpdate( async () => {
-		// 		potree.renderer.drawBoundingBox(position, scale, color);
-		// 	});
-		// }
-	};
-
-	if(chunk.level <= 2){
+	if(chunk.level <= 3){
 		for(let i = 0; i < 8; i++){
 			let numTriangles = tricountGrid[i]
 			let triangleOffset = lutGrid[i] - numTriangles;
@@ -568,16 +561,9 @@ async function processChunk(renderer, node, chunk){
 
 				chunkList.push(child);
 
-				// if(chunk.triangles.numIndices > 0){
-				// 	await processChunk(renderer, node, child);
-				// }
 			}
 			
 		}
-	}
-
-	{
-		drawChunk(chunk);
 	}
 
 	currentlyProcessing = null;
