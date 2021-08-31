@@ -9,7 +9,7 @@ export let csChunking = `
 [[block]] struct Uniforms {
 	chunkGridSize      : u32;
 	tricountGridOffset : u32;
-	LutGridOffset      : u32;
+	lutGridOffset      : u32;
 	batchIndex         : u32;
 	boxMin             : vec4<f32>;      // offset(16)
 	boxMax             : vec4<f32>;      // offset(32)
@@ -18,6 +18,7 @@ export let csChunking = `
 struct Batch {
 	numTriangles      : u32;
 	firstTriangle     : u32;
+	lutCounter        : atomic<u32>;
 };
 
 [[block]] struct F32s { values : [[stride(4)]] array<f32>; };
@@ -36,7 +37,8 @@ struct Batch {
 [[binding(20), group(0)]] var<storage, read_write> grids     : AU32s;
 
 [[binding(30), group(0)]] var<storage, read_write> batches   : Batches;
-[[binding(32), group(0)]] var<storage, read_write> sortedIndices : U32s;
+
+[[binding(50), group(0)]] var<storage, read_write> sortedTriangles : U32s;
 
 fn toCellPos(gridSize : u32, position : vec3<f32>) -> vec3<f32>{
 
@@ -102,7 +104,7 @@ fn doIgnore(){
 	ignore(colors);
 	ignore(grids);
 	ignore(batches);
-	ignore(sortedIndices);
+	ignore(sortedTriangles);
 }
 
 [[stage(compute), workgroup_size(128)]]
@@ -110,14 +112,13 @@ fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 
 	doIgnore();
 
+	let batch = &batches.values[uniforms.batchIndex];
 
-	var batch = batches.values[uniforms.batchIndex];
-
-	if(GlobalInvocationID.x >= batch.numTriangles){
+	if(GlobalInvocationID.x >= (*batch).numTriangles){
 		return;
 	}
 
-	var triangleIndex = batch.firstTriangle + GlobalInvocationID.x;
+	var triangleIndex = (*batch).firstTriangle + GlobalInvocationID.x;
 
 	var i0 = indices.values[3u * triangleIndex + 0u];
 	var i1 = indices.values[3u * triangleIndex + 1u];
@@ -135,10 +136,100 @@ fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 
 }
 
+[[stage(compute), workgroup_size(128)]]
+fn main_create_lut([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
+
+	doIgnore();
+
+	var childIndex = GlobalInvocationID.x;
+
+	var maxChildChunks = uniforms.chunkGridSize * uniforms.chunkGridSize * uniforms.chunkGridSize;
+	if(childIndex >= maxChildChunks){
+		return;
+	}
+
+	var numTriangles = atomicLoad(&grids.values[uniforms.tricountGridOffset + childIndex]);
+
+	var offset = 0u;
+	if(numTriangles > 0u){
+		offset = atomicAdd(&batches.values[uniforms.batchIndex].lutCounter, numTriangles);
+	}
+
+	var a10 = atomicExchange(&grids.values[uniforms.lutGridOffset + childIndex], offset);
+
+}
+
+[[stage(compute), workgroup_size(128)]]
+fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
+
+	doIgnore();
+
+	let batch = &batches.values[uniforms.batchIndex];
+	var numTriangles = (*batch).numTriangles;
+	var firstTriangle = (*batch).firstTriangle;
+
+	if(GlobalInvocationID.x >= numTriangles){
+		return;
+	}
+
+	var triangleIndex = firstTriangle + GlobalInvocationID.x;
+
+	var i0 = indices.values[3u * triangleIndex + 0u];
+	var i1 = indices.values[3u * triangleIndex + 1u];
+	var i2 = indices.values[3u * triangleIndex + 2u];
+
+	var p0 = loadPosition(i0);
+	var p1 = loadPosition(i1);
+	var p2 = loadPosition(i2);
+	var center = (p0 + p1 + p2) / 3.0;
+
+	var chunkPos = toCellPos(uniforms.chunkGridSize, center);
+	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkPos);
+
+	var triangleOffset = atomicAdd(&grids.values[uniforms.lutGridOffset + chunkIndex], 1u);
+
+	// 3 vertices, 9 float values per triangle
+	var offset_pos = 0u;
+	var offset_color = 9u * numTriangles;
+
+	var X0 = bitcast<u32>(p0.x);
+	var Y0 = bitcast<u32>(p0.y);
+	var Z0 = bitcast<u32>(p0.z);
+	var X1 = bitcast<u32>(p1.x);
+	var Y1 = bitcast<u32>(p1.y);
+	var Z1 = bitcast<u32>(p1.z);
+	var X2 = bitcast<u32>(p2.x);
+	var Y2 = bitcast<u32>(p2.y);
+	var Z2 = bitcast<u32>(p2.z);
+
+	sortedTriangles.values[offset_pos + 9u * triangleOffset + 0u] = X0;
+	sortedTriangles.values[offset_pos + 9u * triangleOffset + 1u] = Y0;
+	sortedTriangles.values[offset_pos + 9u * triangleOffset + 2u] = Z0;
+	sortedTriangles.values[offset_pos + 9u * triangleOffset + 3u] = X1;
+	sortedTriangles.values[offset_pos + 9u * triangleOffset + 4u] = Y1;
+	sortedTriangles.values[offset_pos + 9u * triangleOffset + 5u] = Z1;
+	sortedTriangles.values[offset_pos + 9u * triangleOffset + 6u] = X2;
+	sortedTriangles.values[offset_pos + 9u * triangleOffset + 7u] = Y2;
+	sortedTriangles.values[offset_pos + 9u * triangleOffset + 8u] = Z2;
+
+	
+
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = colors.values[i0];
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = colors.values[i1];
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = colors.values[i2];
+
+	var color = 12345u * chunkIndex;
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = color;
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = color;
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = color;
+
+
+}
+
 `;
 
 const maxBatchSize = 1_000_000;
-const chunkGridSize = 2;
+const chunkGridSize = 8;
 const tricountGridCellCount = chunkGridSize ** 3;
 const lutGridCellCount = chunkGridSize ** 3;
 const allGridsCellCount = tricountGridCellCount + lutGridCellCount;
@@ -203,8 +294,8 @@ async function process(renderer, node, chunk){
 				numTriangles  : batchNumTriangles,
 			};
 
-			view.setUint32(stride * i + 0, batch.numTriangles);
-			view.setUint32(stride * i + 4, batch.firstTriangle);
+			view.setUint32(stride * i + 0, batch.numTriangles, true);
+			view.setUint32(stride * i + 4, batch.firstTriangle, true);
 
 			batches.push(batch);
 		}
@@ -215,6 +306,8 @@ async function process(renderer, node, chunk){
 	// PASS 1: Sort triangles into buckets batch-wise
 	for(let batchIndex = 0; batchIndex < numBatches; batchIndex++){
 		let batch = batches[batchIndex];
+
+		console.log(batch);
 
 		// INIT UNIFORMS
 		let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
@@ -236,6 +329,10 @@ async function process(renderer, node, chunk){
 			device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
 		}
 
+		// 3 vertices; 12 bytes XYZ per vertex; 4 bytes RGB per vertex
+		let sortedTrianglesByteSize = 3 * 16 * batch.numTriangles;
+		let gpu_sortedTriangles = device.createBuffer({size: sortedTrianglesByteSize, usage: storage_flags});
+
 		let bindGroups = [{
 			location: 0,
 			entries: [
@@ -246,7 +343,7 @@ async function process(renderer, node, chunk){
 
 				{binding: 20, resource: {buffer: gpu_grids}},
 				{binding: 30, resource: {buffer: gpu_batches}},
-				{binding: 32, resource: {buffer: gpu_empty}},
+				{binding: 50, resource: {buffer: gpu_sortedTriangles}},
 			],
 		}];
 
@@ -262,20 +359,57 @@ async function process(renderer, node, chunk){
 		});
 
 		// create LUT
+		renderer.runCompute({
+			code: csChunking,
+			entryPoint: "main_create_lut",
+			bindGroups: bindGroups,
+			dispatchGroups: [Math.ceil((chunkGridSize ** 3) / 128)],
+		});
 
 		// partition triangles
-		break;
+		renderer.runCompute({
+			code: csChunking,
+			entryPoint: "main_sort_triangles",
+			bindGroups: bindGroups,
+			dispatchGroups: [Math.ceil(batch.numTriangles / 128)],
+		});
+
+		batch.gpu_sortedTriangles = gpu_sortedTriangles;
+
+		renderer.readBuffer(gpu_sortedTriangles, 0, 3 * 16 * batch.numTriangles).then(result => {
+			let positions = new Float32Array(result, 0, 9 * batch.numTriangles);
+			let colors = new Uint32Array(result, 4 * 9 * batch.numTriangles, 3 * batch.numTriangles);
+
+			let mesh = {
+				positions, 
+				colors,
+				image: node.material.image,
+			};
+
+			batch.mesh = mesh;
+
+			
+		});
+
+		// break;
 	}
 
-	renderer.readBuffer(gpu_grids, 0, 4 * 8).then(result => {
-		console.log(new Uint32Array(result));
+	potree.onUpdate( () => {
+		for(let batch of batches){
+			if(batch.mesh){
+				potree.renderer.drawMesh(batch.mesh);
+			}
+		}
 	});
+
+	
 
 	// PASS 2: create chunks
 	// - compute occupied chunks
 	// - each chunk may have triangles in any of the batches.
 	//   Figure out how many triangles, then run through 
 	//   batches and copy them to a single buffer per chunk
+
 
 	// PASS 3: Finalize by turning the chunks into scene nodes
 
