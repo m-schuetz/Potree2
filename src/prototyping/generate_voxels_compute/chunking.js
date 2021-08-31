@@ -2,14 +2,14 @@
 import { Vector3 } from "../../math/Vector3.js";
 import {Chunk, voxelGridSize, toIndex1D, toIndex3D, computeChildBox} from "./common.js";
 import {storage_flags, uniform_flags} from "./common.js";
-import {SPECTRAL} from "potree";
+import { transferTriangles } from "./transferTriangles.js";
 
 export let csChunking = `
 
 [[block]] struct Uniforms {
 	chunkGridSize      : u32;
-	tricountGridOffset : u32;
-	lutGridOffset      : u32;
+	pad_1              : u32;
+	pad_0              : u32;
 	batchIndex         : u32;
 	boxMin             : vec4<f32>;      // offset(16)
 	boxMax             : vec4<f32>;      // offset(32)
@@ -95,6 +95,33 @@ fn loadColor(vertexIndex : u32) -> vec3<u32> {
 	return color;
 };
 
+fn getNumChunkGridCells() -> u32 {
+	var chunkGridSize = uniforms.chunkGridSize;
+	var numChunkGridCells = chunkGridSize * chunkGridSize * chunkGridSize;
+
+	return numChunkGridCells;
+};
+
+fn getTricountGridOffset() -> u32 {
+	return 0u;
+};
+
+fn getLutGridOffset() -> u32 {
+	return getNumChunkGridCells();
+};
+
+fn getSortedCounterGridOffset() -> u32 {
+	return 2u * getNumChunkGridCells();
+};
+
+fn getBatchGridOffset() -> u32 {
+	var numChunkGridCells = getNumChunkGridCells();
+	var numBatchGridElements = 3u * numChunkGridCells;
+	var batchGridOffset = uniforms.batchIndex * numBatchGridElements;
+
+	return batchGridOffset;
+};
+
 fn doIgnore(){
 	
 	ignore(uniforms);
@@ -132,7 +159,9 @@ fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 	var chunkPos = toCellPos(uniforms.chunkGridSize, center);
 	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkPos);
 
-	var a00 = atomicAdd(&grids.values[uniforms.tricountGridOffset + chunkIndex], 1u);
+	var batchGridOffset = getBatchGridOffset();
+
+	var a00 = atomicAdd(&grids.values[batchGridOffset + getTricountGridOffset() + chunkIndex], 1u);
 
 }
 
@@ -148,14 +177,16 @@ fn main_create_lut([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 		return;
 	}
 
-	var numTriangles = atomicLoad(&grids.values[uniforms.tricountGridOffset + childIndex]);
+	var batchGridOffset = getBatchGridOffset();
+
+	var numTriangles = atomicLoad(&grids.values[batchGridOffset + getTricountGridOffset() + childIndex]);
 
 	var offset = 0u;
 	if(numTriangles > 0u){
 		offset = atomicAdd(&batches.values[uniforms.batchIndex].lutCounter, numTriangles);
 	}
 
-	var a10 = atomicExchange(&grids.values[uniforms.lutGridOffset + childIndex], offset);
+	var a10 = atomicExchange(&grids.values[batchGridOffset + getLutGridOffset() + childIndex], offset);
 
 }
 
@@ -186,7 +217,11 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 	var chunkPos = toCellPos(uniforms.chunkGridSize, center);
 	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkPos);
 
-	var triangleOffset = atomicAdd(&grids.values[uniforms.lutGridOffset + chunkIndex], 1u);
+	var batchGridOffset = getBatchGridOffset();
+
+	// var triangleOffset = atomicAdd(&grids.values[batchGridOffset + getLutGridOffset() + chunkIndex], 1u);
+	var lutOffset = atomicLoad(&grids.values[batchGridOffset + getLutGridOffset() + chunkIndex]);
+	var triangleOffset = lutOffset + atomicAdd(&grids.values[batchGridOffset + getSortedCounterGridOffset() + chunkIndex], 1u);
 
 	// 3 vertices, 9 float values per triangle
 	var offset_pos = 0u;
@@ -212,8 +247,6 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 	sortedTriangles.values[offset_pos + 9u * triangleOffset + 7u] = Y2;
 	sortedTriangles.values[offset_pos + 9u * triangleOffset + 8u] = Z2;
 
-	
-
 	sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = colors.values[i0];
 	sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = colors.values[i1];
 	sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = colors.values[i2];
@@ -222,23 +255,22 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 	sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = color;
 	sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = color;
 	sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = color;
+}
 
+[[stage(compute), workgroup_size(128)]]
+fn main_copy_to_chunk([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 
+	doIgnore();
+
+	
 }
 
 `;
 
 const maxBatchSize = 1_000_000;
-const chunkGridSize = 8;
-const tricountGridCellCount = chunkGridSize ** 3;
-const lutGridCellCount = chunkGridSize ** 3;
-const allGridsCellCount = tricountGridCellCount + lutGridCellCount;
-const tricountGridOffset = 0;
-const lutGridOffset = tricountGridCellCount;
-const allGridsByteSize = 4 * allGridsCellCount;
+const chunkGridSize = 4;
+const chunkGridCellCount = chunkGridSize ** 3;
 
-let gpu_grids = null;
-// let gpu_batches = null;
 let gpu_empty = null;
 
 const passes = {};
@@ -247,7 +279,7 @@ function initialize(renderer, node){
 
 	let {device} = renderer;
 
-	gpu_grids = device.createBuffer({size: allGridsByteSize, usage: storage_flags});
+	// gpu_grids = device.createBuffer({size: allGridsByteSize, usage: storage_flags});
 	// gpu_batches = device.createBuffer({size: 32 * 10_000, usage: storage_flags});
 	gpu_empty = device.createBuffer({size: 32, usage: storage_flags});
 
@@ -277,6 +309,11 @@ async function process(renderer, node, chunk){
 
 	let numTriangles = buffers.indices.length / 3;
 	let numBatches = Math.ceil(numTriangles / maxBatchSize);
+
+	let gpu_grids = device.createBuffer({
+		size: numBatches * (3 * 4 * chunkGridCellCount), 
+		usage: storage_flags
+	});
 
 	// INIT BATCH DATA
 	let batches = [];
@@ -316,8 +353,6 @@ async function process(renderer, node, chunk){
 			let view = new DataView(buffer);
 
 			view.setUint32 (  0, chunkGridSize, true);
-			view.setUint32 (  4, tricountGridOffset, true);
-			view.setUint32 (  8, lutGridOffset, true);
 			view.setUint32 ( 12, batchIndex, true);
 			view.setFloat32( 16, cube.min.x, true);
 			view.setFloat32( 20, cube.min.y, true);
@@ -348,7 +383,7 @@ async function process(renderer, node, chunk){
 		}];
 
 		// reset counters and LUT
-		renderer.fillBuffer(gpu_grids, 0, (tricountGridCellCount + lutGridCellCount));
+		// renderer.fillBuffer(gpu_grids, 0, (tricountGridCellCount + lutGridCellCount));
 
 		// accumulate
 		renderer.runCompute({
@@ -394,24 +429,128 @@ async function process(renderer, node, chunk){
 		// break;
 	}
 
-	potree.onUpdate( () => {
-		for(let batch of batches){
-			if(batch.mesh){
-				potree.renderer.drawMesh(batch.mesh);
-			}
-		}
-	});
+	// potree.onUpdate( () => {
+	// 	for(let batch of batches){
+	// 		if(batch.mesh){
+	// 			potree.renderer.drawMesh(batch.mesh);
+	// 		}
+	// 	}
+	// });
 
 	
 
-	// PASS 2: create chunks
+	// PASS 2: compute chunks
 	// - compute occupied chunks
 	// - each chunk may have triangles in any of the batches.
-	//   Figure out how many triangles, then run through 
-	//   batches and copy them to a single buffer per chunk
+	let chunks = [];
+	{
+		let gridBuffers = await potree.renderer.readBuffer(gpu_grids, 0, numBatches * (3 * 4 * chunkGridCellCount));
+		let view = new DataView(gridBuffers);
+		for(let i = 0; i < chunkGridCellCount; i++){
+			let chunk = {
+				numTriangles: 0,
+				fragments: [],
+			};
+			chunks[i] = chunk;
+		}
+
+		for(let batchIndex = 0; batchIndex < batches.length; batchIndex++){
+			let batch = batches[batchIndex];
+
+			let numTrianglesInBatch = 0;
+			for(let chunkIndex = 0; chunkIndex < chunkGridCellCount; chunkIndex++){
+				let batchGridOffset = 4 * batchIndex * 3 * chunkGridCellCount;
+				let numTrianglesInChunk = view.getUint32(batchGridOffset + 4 * chunkIndex, true);
+				let firstTriangleInChunk = view.getUint32(batchGridOffset + 4 * chunkGridCellCount + 4 * chunkIndex, true);
+
+				if(numTrianglesInChunk > 0){
+					chunks[chunkIndex].numTriangles += numTrianglesInChunk;
+
+					let fragment = {
+						batchIndex: batchIndex, 
+						numTriangles: numTrianglesInChunk, 
+						firstTriangle: firstTriangleInChunk,
+					}
+					chunks[chunkIndex].fragments.push(fragment);
+				}
 
 
-	// PASS 3: Finalize by turning the chunks into scene nodes
+				numTrianglesInBatch += numTrianglesInChunk;
+			}
+
+			console.log(numTrianglesInBatch);
+
+		}
+
+		console.log(chunks);
+
+	}
+
+	// PASS 3: Copy triangles from all batches to chunks
+	{
+		for(let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++){
+			let chunk = chunks[chunkIndex];
+
+			if(chunk.numTriangles === 0){
+				continue;
+			}
+
+			let gpu_positions = device.createBuffer({size: 12 * 3 * chunk.numTriangles, usage: storage_flags});
+			let gpu_colors = device.createBuffer({size: 4 * 3 * chunk.numTriangles, usage: storage_flags});
+
+			chunk.gpu_positions = gpu_positions;
+			chunk.gpu_colors = gpu_colors;
+
+			let numTransfered = 0;
+			for(let fragment of chunk.fragments){
+				
+				let {batchIndex, numTriangles, firstTriangle} = fragment;
+				let batch = batches[batchIndex];
+
+				// copy triangles from batch to chunk
+				transferTriangles(
+					renderer, 
+					batch, 
+					chunk, 
+					chunkGridSize, 
+					numTriangles, 
+					firstTriangle,
+					numTransfered
+				);
+
+				numTransfered += numTriangles;
+			}
+
+		}
+	}
+
+	chunks = chunks.filter( chunk => chunk.numTriangles > 0 );
+
+	// for(let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++){
+	// 	let chunk = chunks[chunkIndex];
+
+	// 	if(chunk.numTriangles === 0){
+	// 		continue;
+	// 	}
+	{
+		let chunk = chunks[3];
+
+		let bPositions = await potree.renderer.readBuffer(chunk.gpu_positions, 0, 4 * 9 * chunk.numTriangles);
+		let bColors = await potree.renderer.readBuffer(chunk.gpu_colors, 0, 4 * 3 * chunk.numTriangles);
+		let positions = new Float32Array(bPositions);
+		let colors = new Uint32Array(bColors);
+
+		let mesh = {positions, colors, image: node.material.image};
+
+		potree.onUpdate( () => {
+			potree.renderer.drawMesh(mesh);
+		});
+
+		// break;
+	}
+
+
+	// PASS 4: Finalize by turning the chunks into scene nodes
 
 
 }
