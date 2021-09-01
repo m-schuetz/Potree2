@@ -68,6 +68,8 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 }
 `;
 
+let defaultTexture = null;
+
 let sampler = null;
 function getSampler(renderer){
 
@@ -87,6 +89,16 @@ function getSampler(renderer){
 	return sampler;
 }
 
+function init(renderer){
+
+	if(defaultTexture == null){
+		let array = new ArrayBuffer(4);
+
+		defaultTexture = renderer.createTextureFromArray(array, 1, 1);
+	}
+
+}
+
 export function render(meshes, drawstate){
 
 	if(meshes.length === 0){
@@ -96,6 +108,8 @@ export function render(meshes, drawstate){
 	let {renderer} = drawstate;
 	let {device} = renderer;
 	let {passEncoder} = drawstate.pass;
+
+	init(renderer);
 
 	let pipeline = device.createRenderPipeline({
 		vertex: {
@@ -189,7 +203,7 @@ export function render(meshes, drawstate){
 		passEncoder.setVertexBuffer(0, vboPosition);
 		passEncoder.setVertexBuffer(1, vboColor);
 
-		let texture = null;
+		let texture = defaultTexture;
 		if(batch.image){
 			texture = renderer.getGpuTexture(batch.image);
 		}

@@ -57,7 +57,7 @@ fn main_transfer_triangles([[builtin(global_invocation_id)]] GlobalInvocationID 
 	var offset_pos = 0u;
 	var offset_color = 9u * uniforms.batchTriangleCount;
 
-	var trianglePosOffset = offset_pos + 9u * (uniforms.firstTriangle + triangleIndex);
+	var trianglePosOffset = offset_pos + 9u * triangleIndex;
 	var x0 = bitcast<f32>(sortedTriangles.values[trianglePosOffset + 0u]);
 	var y0 = bitcast<f32>(sortedTriangles.values[trianglePosOffset + 1u]);
 	var z0 = bitcast<f32>(sortedTriangles.values[trianglePosOffset + 2u]);
@@ -78,7 +78,7 @@ fn main_transfer_triangles([[builtin(global_invocation_id)]] GlobalInvocationID 
 	positions.values[9u * outTriangleIndex + 7u] = y2;
 	positions.values[9u * outTriangleIndex + 8u] = z2;
 
-	var triangleColorOffset = offset_color + 3u * (uniforms.firstTriangle + triangleIndex);
+	var triangleColorOffset = offset_color + 3u * triangleIndex;
 	var c0 = sortedTriangles.values[triangleColorOffset + 0u];
 	var c1 = sortedTriangles.values[triangleColorOffset + 1u];
 	var c2 = sortedTriangles.values[triangleColorOffset + 2u];

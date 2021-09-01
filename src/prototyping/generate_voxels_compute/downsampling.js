@@ -1,18 +1,11 @@
 
-import { Vector3 } from "../../math/Vector3.js";
 import {Chunk, voxelGridSize, chunkGridSize, toIndex1D, toIndex3D, computeChildBox} from "./common.js";
 import {storage_flags, uniform_flags} from "./common.js";
-import { generateVoxelsCompute } from "./generate_voxels_compute.js";
-import {renderVoxels} from "./renderVoxels.js";
 import {renderVoxelsLOD} from "./renderVoxelsLOD.js";
-import {SPECTRAL} from "potree";
-
-let dbglist = ["r12"];
 
 let currentlyProcessing = null;
 
 export let csVoxelizing = `
-
 
 [[block]] struct Uniforms {
 	numTriangles       : u32;
@@ -283,7 +276,6 @@ fn main_sortTriangles([[builtin(global_invocation_id)]] GlobalInvocationID : vec
 
 `;
 
-
 let tricountGridCellCount = chunkGridSize ** 3;
 let lutGridCellCount = chunkGridSize ** 3;
 let voxelGridCellCount = voxelGridSize ** 3;
@@ -300,8 +292,7 @@ let gpu_voxels = null;
 
 let passes = {};
 
-
-function initialize(renderer, node){
+function initialize(renderer){
 
 	let {device} = renderer;
 
@@ -392,13 +383,6 @@ async function processChunk(renderer, node, chunk){
 		view.setUint32(96, numVoxelsProcessed, true);
 
 		device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
-	}
-
-	if(dbglist.includes(chunk.id)){
-		console.log({
-			id: chunk.id,
-			"sizeof(gpu_indices)": 4 * chunk.triangles.numIndices,
-		});
 	}
 
 	let gpu_sortedIndices = device.createBuffer({
@@ -545,7 +529,7 @@ async function processChunk(renderer, node, chunk){
 				child.parent = chunk;
 				child.triangles = {
 					gpu_position   : chunk.triangles.gpu_position,
-					gpu_uv         : chunk.triangles.gpu_uv,
+					// gpu_uv         : chunk.triangles.gpu_uv,
 					gpu_color      : chunk.triangles.gpu_color,
 					gpu_indices    : gpu_sortedIndices,
 					firstIndex     : 3 * triangleOffset,
@@ -580,7 +564,7 @@ export async function doDownsampling(renderer, node){
 	root.boundingBox = node.boundingBox.cube();
 	root.triangles = {
 		gpu_position   : renderer.getGpuBuffer(node.geometry.findBuffer("position")),
-		gpu_uv         : renderer.getGpuBuffer(node.geometry.findBuffer("uv")),
+		// gpu_uv         : renderer.getGpuBuffer(node.geometry.findBuffer("uv")),
 		gpu_color      : renderer.getGpuBuffer(node.geometry.findBuffer("color")),
 		gpu_indices    : renderer.getGpuBuffer(node.geometry.indices),
 		firstIndex     : 0,

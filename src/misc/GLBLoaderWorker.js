@@ -111,10 +111,11 @@ onmessage = async function(e){
 	};
 
 	let transferables = [
-		geometry.buffers[0].buffer.buffer,
-		geometry.buffers[1].buffer.buffer,
-		geometry.buffers[2].buffer.buffer,
-		geometry.buffers[3].buffer.buffer,
+		// geometry.buffers[0].buffer.buffer,
+		// geometry.buffers[1].buffer.buffer,
+		// geometry.buffers[2].buffer.buffer,
+		// geometry.buffers[3].buffer.buffer,
+		...geometry.buffers.map(b => b.buffer.buffer),
 		geometry.indices.buffer,
 	];
 

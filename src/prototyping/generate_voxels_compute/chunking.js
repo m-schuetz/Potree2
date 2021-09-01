@@ -3,6 +3,7 @@ import { Vector3 } from "../../math/Vector3.js";
 import {Chunk, voxelGridSize, toIndex1D, toIndex3D, computeChildBox} from "./common.js";
 import {storage_flags, uniform_flags} from "./common.js";
 import { transferTriangles } from "./transferTriangles.js";
+import {Geometry, Mesh, Box3} from "potree";
 
 export let csChunking = `
 
@@ -190,6 +191,39 @@ fn main_create_lut([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 
 }
 
+fn mixColors(chunkIndex : u32, color : u32) -> u32 {
+
+	var SPECTRAL : array<vec3<u32>, 6> = array<vec3<u32>, 6>(
+		vec3<u32>(213u,  62u,  79u),
+		vec3<u32>(252u, 141u,  89u),
+		vec3<u32>(254u, 224u, 139u),
+		vec3<u32>(230u, 245u, 152u),
+		vec3<u32>(153u, 213u, 148u),
+		vec3<u32>( 50u, 136u, 189u),
+	);
+
+	var gradIndex = (chunkIndex * 5u) % 6u;
+	var cR = f32(SPECTRAL[gradIndex].x);
+	var cG = f32(SPECTRAL[gradIndex].y);
+	var cB = f32(SPECTRAL[gradIndex].z);
+
+	var R = (color >>  0u) & 0xFFu;
+	var G = (color >>  8u) & 0xFFu;
+	var B = (color >> 16u) & 0xFFu;
+
+	var w = 0.3;
+	R = u32((1.0 - w) * f32(R) + w * cR);
+	G = u32((1.0 - w) * f32(R) + w * cG);
+	B = u32((1.0 - w) * f32(R) + w * cB);
+
+	var newColor = 
+		(R <<  0u) |
+		(G <<  8u) |
+		(B << 16u);
+
+	return newColor;
+};
+
 [[stage(compute), workgroup_size(128)]]
 fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 
@@ -247,14 +281,18 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 	sortedTriangles.values[offset_pos + 9u * triangleOffset + 7u] = Y2;
 	sortedTriangles.values[offset_pos + 9u * triangleOffset + 8u] = Z2;
 
-	sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = colors.values[i0];
-	sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = colors.values[i1];
-	sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = colors.values[i2];
+	
+	// sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = colors.values[i0];
+	// sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = colors.values[i1];
+	// sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = colors.values[i2];
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = mixColors(chunkIndex, colors.values[i0]);
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = mixColors(chunkIndex, colors.values[i1]);
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = mixColors(chunkIndex, colors.values[i2]);
 
-	var color = 12345u * chunkIndex;
-	sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = color;
-	sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = color;
-	sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = color;
+	// var color = 12345u * (chunkIndex + 1u);
+	// sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = color;
+	// sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = color;
+	// sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = color;
 }
 
 [[stage(compute), workgroup_size(128)]]
@@ -268,20 +306,22 @@ fn main_copy_to_chunk([[builtin(global_invocation_id)]] GlobalInvocationID : vec
 `;
 
 const maxBatchSize = 1_000_000;
-const chunkGridSize = 4;
+const chunkGridSize = 2;
 const chunkGridCellCount = chunkGridSize ** 3;
 
-let gpu_empty = null;
+// function toIndex3D(gridSize, cellIndex){
+// 	var z = Math.floor(cellIndex / (gridSize * gridSize));
+// 	var y = Math.floor((cellIndex - gridSize * gridSize * z) / gridSize);
+// 	var x = cellIndex % gridSize;
+
+// 	return new Vector3(x, y, z);
+// }
 
 const passes = {};
 
 function initialize(renderer, node){
 
 	let {device} = renderer;
-
-	// gpu_grids = device.createBuffer({size: allGridsByteSize, usage: storage_flags});
-	// gpu_batches = device.createBuffer({size: 32 * 10_000, usage: storage_flags});
-	gpu_empty = device.createBuffer({size: 32, usage: storage_flags});
 
 	{ // PASS - ACCUMULATE
 		let pipeline = renderer.createComputePipeline({code: csChunking, entryPoint: "main_accumulate"});
@@ -303,7 +343,7 @@ async function process(renderer, node, chunk){
 		indices      : node.geometry.indices,
 	};
 	let gpu_indices   = renderer.getGpuBuffer(buffers.indices);
-	let gpu_uvs       = renderer.getGpuBuffer(buffers.uv);
+	// let gpu_uvs       = renderer.getGpuBuffer(buffers.uv);
 	let gpu_positions = renderer.getGpuBuffer(buffers.position);
 	let gpu_colors    = renderer.getGpuBuffer(buffers.color);
 
@@ -486,6 +526,34 @@ async function process(renderer, node, chunk){
 
 	}
 
+	// if(false)
+	// { // DEBUG: check the results of the batch-wise sorting
+	// 	let chunkIndex = 1;
+	// 	let chunk = chunks[chunkIndex];
+	// 	let fragment = chunk.fragments[0];
+	// 	let batch = batches[fragment.batchIndex];
+
+	// 	// let numTriangles = batch.numTriangles;
+	// 	// let firstTriangle = 0;
+	// 	let pPositions = renderer.readBuffer(batch.gpu_sortedTriangles, 
+	// 		4 * 9 * fragment.firstTriangle, 
+	// 		4 * 9 * fragment.numTriangles);
+	// 	let pColors = renderer.readBuffer(batch.gpu_sortedTriangles, 
+	// 		4 * 9 * batch.numTriangles + 4 * 3 * fragment.firstTriangle, 
+	// 		4 * 3 * fragment.numTriangles);
+
+	// 	let [bPositions, bColors] = await Promise.all([pPositions, pColors]);
+	// 	let positions = new Float32Array(bPositions);
+	// 	let colors = new Uint32Array(bColors);
+
+	// 	let mesh = {positions, colors, image: node.material.image};
+
+	// 	potree.onUpdate( () => {
+	// 		potree.renderer.drawMesh(mesh);
+	// 	});
+
+	// }
+
 	// PASS 3: Copy triangles from all batches to chunks
 	{
 		for(let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++){
@@ -495,6 +563,10 @@ async function process(renderer, node, chunk){
 				continue;
 			}
 
+			// if(chunkIndex !== 1){
+			// 	continue;
+			// }
+
 			let gpu_positions = device.createBuffer({size: 12 * 3 * chunk.numTriangles, usage: storage_flags});
 			let gpu_colors = device.createBuffer({size: 4 * 3 * chunk.numTriangles, usage: storage_flags});
 
@@ -503,6 +575,8 @@ async function process(renderer, node, chunk){
 
 			let numTransfered = 0;
 			for(let fragment of chunk.fragments){
+			// {
+				// let fragment = chunk.fragments[3];
 				
 				let {batchIndex, numTriangles, firstTriangle} = fragment;
 				let batch = batches[batchIndex];
@@ -524,41 +598,80 @@ async function process(renderer, node, chunk){
 		}
 	}
 
-	chunks = chunks.filter( chunk => chunk.numTriangles > 0 );
+	// PASS 4: Finalize by turning the chunks into scene nodes
+	let nodes = [];
+	for(let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++){
+		let chunk = chunks[chunkIndex];
 
-	// for(let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++){
-	// 	let chunk = chunks[chunkIndex];
-
-	// 	if(chunk.numTriangles === 0){
-	// 		continue;
-	// 	}
-	{
-		let chunk = chunks[3];
+		if(chunk.numTriangles === 0){
+			continue;
+		}
 
 		let bPositions = await potree.renderer.readBuffer(chunk.gpu_positions, 0, 4 * 9 * chunk.numTriangles);
 		let bColors = await potree.renderer.readBuffer(chunk.gpu_colors, 0, 4 * 3 * chunk.numTriangles);
 		let positions = new Float32Array(bPositions);
 		let colors = new Uint32Array(bColors);
+		let indices = new Uint32Array(chunk.numTriangles);
+		for(let i = 0; i < chunk.numTriangles; i++){
+			indices[i] = i;
+		}
 
-		let mesh = {positions, colors, image: node.material.image};
+		let geometry = new Geometry();
+		geometry.buffers = [
+			{name: "position", buffer: positions},
+			{name: "color", buffer: colors},
+		];
+		geometry.indices = indices;
 
-		potree.onUpdate( () => {
-			potree.renderer.drawMesh(mesh);
-		});
+		let mesh = new Mesh(`chunk_${chunkIndex}`, geometry);
+		// TODO BOUNDING BOX
+		{
+			let chunkCoord = toIndex3D(chunkGridSize, chunkIndex);
+			let cubeSize = cube.max.x - cube.min.x;
+			let chunkSize = cube.size().divideScalar(chunkGridSize);
+			let chunkMin = new Vector3(
+				cubeSize * chunkCoord.x / chunkGridSize + cube.min.x,
+				cubeSize * chunkCoord.y / chunkGridSize + cube.min.y,
+				cubeSize * chunkCoord.z / chunkGridSize + cube.min.z,
+			);
+			let chunkMax = chunkMin.clone().add(chunkSize);
+			
+			mesh.boundingBox = new Box3(chunkMin, chunkMax);
 
-		// break;
+		}
+
+		nodes.push(mesh);
+
+		// potree.onUpdate( () => {
+		// 	{
+		// 		let mesh = {positions, colors};
+		// 		potree.renderer.drawMesh(mesh);
+		// 	}
+
+		// 	{
+		// 		let position = cube.center();
+		// 		let size = cube.size();
+		// 		let color = new Vector3(255, 0, 0);
+		// 		potree.renderer.drawBoundingBox(position, size, color);
+		// 	}
+
+		// 	{
+		// 		let chunkPos = mesh.boundingBox.center();
+		// 		let chunkSize = mesh.boundingBox.size();
+		// 		let color = new Vector3(0, 255, 0);
+		// 		potree.renderer.drawBoundingBox(chunkPos, chunkSize, color);
+		// 	}
+		// });
 	}
 
-
-	// PASS 4: Finalize by turning the chunks into scene nodes
-
-
+	return nodes;
 }
 
 export async function doChunking(renderer, node){
 
 	initialize(renderer, node);
 
-	await process(renderer, node);
+	let nodes = await process(renderer, node);
 	
+	return nodes;
 }
