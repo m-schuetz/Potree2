@@ -11,8 +11,12 @@ export async function generateVoxelsCompute(renderer, node){
 	let meshes = await doChunking(renderer, node);
 
 	// doDownsampling(renderer, node);
-	doDownsampling(renderer, meshes[0]);
-	doDownsampling(renderer, meshes[1]);
+	// doDownsampling(renderer, meshes[0]);
+	// doDownsampling(renderer, meshes[1]);
+
+	for(let mesh of meshes){
+		doDownsampling(renderer, mesh);
+	}
 
 	// for(let mesh of meshes){
 	// 	potree.onUpdate( () => {

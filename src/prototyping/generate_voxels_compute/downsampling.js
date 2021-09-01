@@ -3,8 +3,6 @@ import {Chunk, voxelGridSize, chunkGridSize, toIndex1D, toIndex3D, computeChildB
 import {storage_flags, uniform_flags} from "./common.js";
 import {renderVoxelsLOD} from "./renderVoxelsLOD.js";
 
-let currentlyProcessing = null;
-
 export let csVoxelizing = `
 
 [[block]] struct Uniforms {
@@ -286,56 +284,70 @@ let tricountGridSize = 4 * tricountGridCellCount;
 let voxelGridByteSize = 16 * voxelGridCellCount;
 let allGridsSize = 2 * tricountGridSize + voxelGridByteSize;
 
-let gpu_grids = null;
-let gpu_chunks = null;
-let gpu_voxels = null;
+let stateCache = new Map();
+function getState(renderer, node){
 
-let passes = {};
+	if(stateCache.has(node)){
+		return stateCache.get(node);
+	}else{
+		let {device} = renderer;
 
-function initialize(renderer){
+		let currentlyProcessing = null;
+		let gpu_grids = device.createBuffer({size: allGridsSize, usage: storage_flags});
+		let gpu_chunks = device.createBuffer({size: 32 * 10_000, usage: storage_flags});
+		let gpu_voxels = device.createBuffer({size: 128_000_000, usage: storage_flags});
 
-	let {device} = renderer;
+		let passes = {};
 
-	gpu_grids = device.createBuffer({size: allGridsSize, usage: storage_flags});
-	gpu_chunks = device.createBuffer({size: 32 * 10_000, usage: storage_flags});
-	gpu_voxels = device.createBuffer({size: 128_000_000, usage: storage_flags});
+		{ // PASS - ACCUMULATE
+			let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_accumulate"});
 
-	{ // PASS - ACCUMULATE
-		let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_accumulate"});
+			passes["accumulate"] = {pipeline};
+		}
 
-		passes["accumulate"] = {pipeline};
-	}
+		{ // PASS - GATHER VOXELS
+			let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_gatherVoxels"});
 
-	{ // PASS - GATHER VOXELS
-		let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_gatherVoxels"});
+			passes["gather_voxels"] = {pipeline};
+		}
 
-		passes["gather_voxels"] = {pipeline};
-	}
+		{ // PASS - CREATE LUT
+			let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_createLUT"});
 
-	{ // PASS - CREATE LUT
-		let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_createLUT"});
+			passes["create_lut"] = {pipeline};
+		}
 
-		passes["create_lut"] = {pipeline};
-	}
+		{ // PASS - SORT TRIANGLES
+			let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_sortTriangles"});
 
-	{ // PASS - SORT TRIANGLES
-		let pipeline = renderer.createComputePipeline({code: csVoxelizing, entryPoint: "main_sortTriangles"});
+			passes["sort_triangles"] = {pipeline};
+		}
 
-		passes["sort_triangles"] = {pipeline};
+		let numChunksProcessed = 0;
+		let numVoxelsProcessed = 0;
+		let chunkList = [];
+
+		let state = {
+			currentlyProcessing, gpu_grids, gpu_chunks, gpu_voxels,
+			passes, numChunksProcessed, numVoxelsProcessed, chunkList,
+		};
+
+		stateCache.set(node, state);
+
+		return state;
 	}
 
 }
 
-let numChunksProcessed = 0;
-let numVoxelsProcessed = 0;
-let chunkList = [];
 
 async function processChunk(renderer, node, chunk){
 
-	if(currentlyProcessing){
+	let state = getState(renderer, node);
+
+	if(state.currentlyProcessing){
 		return;
 	}else{
-		currentlyProcessing = chunk;
+		state.currentlyProcessing = chunk;
 	}
 
 	// console.log(`=======================================================================`);
@@ -344,8 +356,8 @@ async function processChunk(renderer, node, chunk){
 
 	let {device} = renderer;
 
-	chunk.index = numChunksProcessed;
-	chunk.voxels.firstVoxel = numVoxelsProcessed;
+	chunk.index = state.numChunksProcessed;
+	chunk.voxels.firstVoxel = state.numVoxelsProcessed;
 
 	let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
 	{
@@ -380,7 +392,7 @@ async function processChunk(renderer, node, chunk){
 
 		
 		view.setUint32(92, chunk.index, true);
-		view.setUint32(96, numVoxelsProcessed, true);
+		view.setUint32(96, state.numVoxelsProcessed, true);
 
 		device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, buffer.byteLength);
 	}
@@ -390,28 +402,27 @@ async function processChunk(renderer, node, chunk){
 		usage: storage_flags});
 	chunk.triangles.gpu_sortedIndices = gpu_sortedIndices;
 
-	renderer.fillBuffer(gpu_grids, 0, tricountGridCellCount + lutGridCellCount + 4 * voxelGridCellCount);
+	renderer.fillBuffer(state.gpu_grids, 0, tricountGridCellCount + lutGridCellCount + 4 * voxelGridCellCount);
 
-	let bindGroups = [
-		{
-			location: 0,
-			entries: [
-				{binding:  0, resource: {buffer: uniformBuffer}},
-				{binding: 10, resource: {buffer: chunk.triangles.gpu_indices}},
-				{binding: 11, resource: {buffer: chunk.triangles.gpu_position}},
-				{binding: 12, resource: {buffer: chunk.triangles.gpu_color}},
+	let bindGroups = [{
+		location: 0,
+		entries: [
+			{binding:  0, resource: {buffer: uniformBuffer}},
+			{binding: 10, resource: {buffer: chunk.triangles.gpu_indices}},
+			{binding: 11, resource: {buffer: chunk.triangles.gpu_position}},
+			{binding: 12, resource: {buffer: chunk.triangles.gpu_color}},
 
-				{binding: 20, resource: {buffer: gpu_grids}},
-				{binding: 30, resource: {buffer: gpu_chunks}},
-				{binding: 31, resource: {buffer: gpu_voxels}},
-				{binding: 32, resource: {buffer: gpu_sortedIndices}},
-			],
-		}
-	];
+			{binding: 20, resource: {buffer: state.gpu_grids}},
+			{binding: 30, resource: {buffer: state.gpu_chunks}},
+			{binding: 31, resource: {buffer: state.gpu_voxels}},
+			{binding: 32, resource: {buffer: gpu_sortedIndices}},
+		],
+	}];
 
 	let numTriangles = chunk.triangles.numIndices / 3;
 
 	{
+		let passes = state.passes;
 
 		const commandEncoder = device.createCommandEncoder();
 		const passEncoder = commandEncoder.beginComputePass();
@@ -467,39 +478,9 @@ async function processChunk(renderer, node, chunk){
 
 	}
 
-	// let numTriangles = chunk.triangles.numIndices / 3;
-	// renderer.runCompute({
-	// 	code: csVoxelizing,
-	// 	entryPoint: "main_accumulate",
-	// 	bindGroups: bindGroups,
-	// 	dispatchGroups: [Math.ceil(numTriangles / 128)],
-	// });
-
-	// renderer.runCompute({
-	// 	code: csVoxelizing,
-	// 	entryPoint: "main_gatherVoxels",
-	// 	bindGroups: bindGroups,
-	// 	dispatchGroups: [Math.ceil((voxelGridSize ** 3) / 128)],
-	// });
-
-	// renderer.runCompute({
-	// 	code: csVoxelizing,
-	// 	entryPoint: "main_createLUT",
-	// 	bindGroups: bindGroups,
-	// 	dispatchGroups: [Math.ceil((chunkGridSize ** 3) / 128)],
-	// });
-
-	// renderer.runCompute({
-	// 	code: csVoxelizing,
-	// 	entryPoint: "main_sortTriangles",
-	// 	bindGroups: bindGroups,
-	// 	dispatchGroups: [Math.ceil(numTriangles / 128)],
-	// });
-
-
-	let pLutGrid = renderer.readBuffer(gpu_grids, 4 * lutGridOffset, 4 * lutGridCellCount);
-	let pTricountGrid = renderer.readBuffer(gpu_grids, 4 * tricountGridOffset, 4 * tricountGridCellCount);
-	let pChunks = renderer.readBuffer(gpu_chunks, 0, (chunk.index + 1) * 32);
+	let pLutGrid = renderer.readBuffer(state.gpu_grids, 4 * lutGridOffset, 4 * lutGridCellCount);
+	let pTricountGrid = renderer.readBuffer(state.gpu_grids, 4 * tricountGridOffset, 4 * tricountGridCellCount);
+	let pChunks = renderer.readBuffer(state.gpu_chunks, 0, (chunk.index + 1) * 32);
 
 	let [bLutGrid, bTricountGrid, bChunks] 
 		= await Promise.all([pLutGrid, pTricountGrid, pChunks]);
@@ -507,10 +488,10 @@ async function processChunk(renderer, node, chunk){
 	let lutGrid = new Uint32Array(bLutGrid);
 	let tricountGrid = new Uint32Array(bTricountGrid);
 
-	numChunksProcessed++;
-	chunk.voxels.firstVoxel = numVoxelsProcessed;
+	state.numChunksProcessed++;
+	chunk.voxels.firstVoxel = state.numVoxelsProcessed;
 	chunk.voxels.numVoxels = new DataView(bChunks).getUint32(32 * chunk.index + 0, true);
-	numVoxelsProcessed += chunk.voxels.numVoxels;
+	state.numVoxelsProcessed += chunk.voxels.numVoxels;
 
 	if(chunk.level <= 3){
 		for(let i = 0; i < 8; i++){
@@ -543,40 +524,39 @@ async function processChunk(renderer, node, chunk){
 
 				chunk.children[i] = child;
 
-				chunkList.push(child);
+				state.chunkList.push(child);
 
 			}
 			
 		}
 	}
 
-	currentlyProcessing = null;
+	state.currentlyProcessing = null;
 	chunk.processed = true;
 
 }
 
 export async function doDownsampling(renderer, node){
 
-	initialize(renderer, node);
+	let state = getState(renderer, node);
 
 	let root = new Chunk();
 	root.id = "r";
 	root.boundingBox = node.boundingBox.cube();
 	root.triangles = {
 		gpu_position   : renderer.getGpuBuffer(node.geometry.findBuffer("position")),
-		// gpu_uv         : renderer.getGpuBuffer(node.geometry.findBuffer("uv")),
 		gpu_color      : renderer.getGpuBuffer(node.geometry.findBuffer("color")),
 		gpu_indices    : renderer.getGpuBuffer(node.geometry.indices),
 		firstIndex     : 0,
 		numIndices     : node.geometry.indices.length,
 	};
 	root.voxels = {
-		gpu_voxels     : gpu_voxels,
+		gpu_voxels     : state.gpu_voxels,
 		firstVoxel     : 0,
 		numVoxels      : 0,
 	};
 
-	chunkList.push(root);
+	state.chunkList.push(root);
 
 	potree.onUpdate( () => {
 
@@ -592,28 +572,17 @@ export async function doDownsampling(renderer, node){
 			let distance = camWorldPos.distanceTo(center);
 
 			let visible = (size / distance) > 0.2;
+			if(chunk.id === "r"){
+				visible = true;
+			} 
 
-			if(visible && chunk.processed === false && currentlyProcessing === null){
+			if(visible && chunk.processed === false && state.currentlyProcessing === null){
 				processChunk(renderer, node, chunk);
 
 				return false;
 			}
 
 			chunk.visible = visible;
-
-			// if(chunk.visible)
-			// { // BOUNDING BOX
-			// 	let position = chunk.boundingBox.center();
-			// 	let scale = new Vector3(1, 1, 1).multiplyScalar(chunk.boundingBox.size().x);
-			// 	let factor = 1 + chunk.level / 200;
-			// 	scale.multiplyScalar(1 / factor);
-
-			// 	// let color = new Vector3(255, 0, 0);
-
-			// 	let color = new Vector3(...SPECTRAL.get(chunk.level / 3));
-
-			// 	potree.renderer.drawBoundingBox(position, scale, color);
-			// }
 
 		});
 	});
@@ -623,19 +592,5 @@ export async function doDownsampling(renderer, node){
 	});
 
 	await processChunk(renderer, node, root);
-
-	
-
-	// var numNodes = 0;
-	// root.traverse(node => {
-	// 	numNodes++;
-	// });
-	// console.log({numNodes});
-
-	// potree.renderer.onDraw( (drawstate) => {
-	// 	renderVoxelsLOD(root, drawstate);
-	// });
-
-	window.chunkList = chunkList;
 	
 }

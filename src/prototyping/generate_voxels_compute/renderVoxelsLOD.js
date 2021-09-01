@@ -240,58 +240,63 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 }
 `;
 
-let initialized = false;
-let pipeline = null;
-let nodeBuffer = null;
-let nodeBufferHost = null;
-let uniformBuffer = null;
 
-function init(renderer){
+let stateCache = new Map();
+function getState(renderer, node){
 
-	if(initialized){
-		return;
+	if(stateCache.has(node)){
+		return stateCache.get(node);
+	}else{
+		let {device} = renderer;
+
+		let pipeline = device.createRenderPipeline({
+			vertex: {
+				module: device.createShaderModule({code: shaderSource}),
+				entryPoint: "main_vertex",
+				buffers: []
+			},
+			fragment: {
+				module: device.createShaderModule({code: shaderSource}),
+				entryPoint: "main_fragment",
+				targets: [{format: "bgra8unorm"}],
+			},
+			primitive: {
+				topology: 'triangle-list',
+				cullMode: 'back',
+			},
+			depthStencil: {
+				depthWriteEnabled: true,
+				depthCompare: 'greater',
+				format: "depth32float",
+			},
+		});
+
+		let maxNodes = 10_000;
+		let nodeBufferHost = new ArrayBuffer(maxNodes * 16);
+		let nodeBuffer = device.createBuffer({
+			size: nodeBufferHost.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		let uniformBuffer = device.createBuffer({
+			size: 256,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		let state = {
+			pipeline, nodeBufferHost, nodeBuffer, uniformBuffer,
+		};
+
+		stateCache.set(node, state);
+
+		return state;
 	}
-
-	let {device} = renderer;
-
-	pipeline = device.createRenderPipeline({
-		vertex: {
-			module: device.createShaderModule({code: shaderSource}),
-			entryPoint: "main_vertex",
-			buffers: []
-		},
-		fragment: {
-			module: device.createShaderModule({code: shaderSource}),
-			entryPoint: "main_fragment",
-			targets: [{format: "bgra8unorm"}],
-		},
-		primitive: {
-			topology: 'triangle-list',
-			cullMode: 'back',
-		},
-		depthStencil: {
-			depthWriteEnabled: true,
-			depthCompare: 'greater',
-			format: "depth32float",
-		},
-	});
-
-	let maxNodes = 10_000;
-	nodeBufferHost = new ArrayBuffer(maxNodes * 16);
-	nodeBuffer = device.createBuffer({
-		size: nodeBufferHost.byteLength,
-		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-	});
-
-	uniformBuffer = device.createBuffer({
-		size: 256,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	});
-
-	initialized = true;
 }
 
-function updateUniforms(renderer, root){
+
+function updateUniforms(renderer, node){
+
+	let state = getState(renderer, node);
 
 	let data = new ArrayBuffer(256);
 	let f32 = new Float32Array(data);
@@ -309,7 +314,7 @@ function updateUniforms(renderer, root){
 	{ // misc
 		let size = renderer.getSize();
 
-		let box = root.boundingBox;
+		let box = node.boundingBox;
 		view.setFloat32(144, box.min.x, true);
 		view.setFloat32(148, box.min.y, true);
 		view.setFloat32(152, box.min.z, true);
@@ -322,7 +327,7 @@ function updateUniforms(renderer, root){
 		view.setFloat32(136, voxelGridSize, true);
 	}
 
-	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
+	renderer.device.queue.writeBuffer(state.uniformBuffer, 0, data, 0, data.byteLength);
 	
 }
 
@@ -345,7 +350,7 @@ export function renderVoxelsLOD(root, drawstate){
 	let {renderer, camera} = drawstate;
 	let {passEncoder} = drawstate.pass;
 
-	init(renderer);
+	let state = getState(renderer, root);
 
 	let numVoxels = 0;
 	let nodes = [];
@@ -356,7 +361,6 @@ export function renderVoxelsLOD(root, drawstate){
 			numVoxels += node.voxels.numVoxels;
 		}
 	});
-	window.nodes = nodes;
 
 	// sort breadth-first
 	//nodes.sort((a, b) => a.id.localeCompare(b.id));
@@ -386,7 +390,7 @@ export function renderVoxelsLOD(root, drawstate){
 			}
 		}
 
-		let view = new DataView(nodeBufferHost);
+		let view = new DataView(state.nodeBufferHost);
 		for(let i = 0; i < nodes.length; i++){
 			let node = nodes[i];
 
@@ -401,19 +405,19 @@ export function renderVoxelsLOD(root, drawstate){
 
 		}
 
-		renderer.device.queue.writeBuffer(nodeBuffer, 0, nodeBufferHost, 0, 32 * nodes.length);
+		renderer.device.queue.writeBuffer(state.nodeBuffer, 0, state.nodeBufferHost, 0, 32 * nodes.length);
 	}
 
 	updateUniforms(renderer, root);
 
-	passEncoder.setPipeline(pipeline);
+	passEncoder.setPipeline(state.pipeline);
 
 	let bindGroup = renderer.device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
+		layout: state.pipeline.getBindGroupLayout(0),
 		entries: [
-			{binding: 0, resource: {buffer: uniformBuffer}},
+			{binding: 0, resource: {buffer: state.uniformBuffer}},
 			{binding: 2, resource: {buffer: nodes[0].voxels.gpu_voxels}},
-			{binding: 3, resource: {buffer: nodeBuffer}},
+			{binding: 3, resource: {buffer: state.nodeBuffer}},
 		],
 	});
 	passEncoder.setBindGroup(0, bindGroup);

@@ -282,12 +282,12 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 	sortedTriangles.values[offset_pos + 9u * triangleOffset + 8u] = Z2;
 
 	
-	// sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = colors.values[i0];
-	// sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = colors.values[i1];
-	// sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = colors.values[i2];
-	sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = mixColors(chunkIndex, colors.values[i0]);
-	sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = mixColors(chunkIndex, colors.values[i1]);
-	sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = mixColors(chunkIndex, colors.values[i2]);
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = colors.values[i0];
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = colors.values[i1];
+	sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = colors.values[i2];
+	// sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = mixColors(chunkIndex, colors.values[i0]);
+	// sortedTriangles.values[offset_color + 3u * triangleOffset + 1u] = mixColors(chunkIndex, colors.values[i1]);
+	// sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = mixColors(chunkIndex, colors.values[i2]);
 
 	// var color = 12345u * (chunkIndex + 1u);
 	// sortedTriangles.values[offset_color + 3u * triangleOffset + 0u] = color;
@@ -306,7 +306,7 @@ fn main_copy_to_chunk([[builtin(global_invocation_id)]] GlobalInvocationID : vec
 `;
 
 const maxBatchSize = 1_000_000;
-const chunkGridSize = 2;
+const chunkGridSize = 4;
 const chunkGridCellCount = chunkGridSize ** 3;
 
 // function toIndex3D(gridSize, cellIndex){
@@ -611,8 +611,8 @@ async function process(renderer, node, chunk){
 		let bColors = await potree.renderer.readBuffer(chunk.gpu_colors, 0, 4 * 3 * chunk.numTriangles);
 		let positions = new Float32Array(bPositions);
 		let colors = new Uint32Array(bColors);
-		let indices = new Uint32Array(chunk.numTriangles);
-		for(let i = 0; i < chunk.numTriangles; i++){
+		let indices = new Uint32Array(3 * chunk.numTriangles);
+		for(let i = 0; i < 3 * chunk.numTriangles; i++){
 			indices[i] = i;
 		}
 
