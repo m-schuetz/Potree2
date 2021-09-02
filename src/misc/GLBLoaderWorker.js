@@ -71,13 +71,69 @@ onmessage = async function(e){
 		}
 	}
 
-	console.log(geometry);
+	if(true)
+	{ // DEBUG: de-indexing
+
+		let indices = geometry.indices;
+		let numTriangles = indices.length / 3;
+		let inPositions = new Float32Array(geometry.buffers.find(b => b.name === "position").buffer.buffer);
+		let inColors = new Uint32Array(geometry.buffers.find(b => b.name === "color").buffer.buffer);
+
+		let hasUVs = geometry.buffers.find(b => b.name === "uv") ? true : false;
+		let hasNormals = geometry.buffers.find(b => b.name === "normal") ? true : false;
+
+		let inUVs = hasUVs ? new Uint32Array(geometry.buffers.find(b => b.name === "uv").buffer.buffer) : null;
+		let inNormals = hasNormals ? new Uint32Array(geometry.buffers.find(b => b.name === "normal").buffer.buffer) : null;
+		let outPositions = new Float32Array(9 * numTriangles);
+		let outColors = new Uint32Array(3 * numTriangles);
+		let outIndices = new Uint32Array(indices.length);
+		let outUVs = new Float32Array(2 * 3 * numTriangles);
+		let outNormals = new Float32Array(3 * 3 * numTriangles);
+
+		for(let i = 0; i < indices.length; i++){
+
+			let inIndex = indices[i];
+
+			outPositions[3 * i + 0] = inPositions[3 * inIndex + 0];
+			outPositions[3 * i + 1] = inPositions[3 * inIndex + 1];
+			outPositions[3 * i + 2] = inPositions[3 * inIndex + 2];
+
+			outColors[i] = inColors[inIndex];
+
+			if(hasUVs){
+				outUVs[2 * i + 0] = inUVs[2 * inIndex + 0];
+				outUVs[2 * i + 1] = inUVs[2 * inIndex + 1];
+			}
+
+			if(hasNormals){
+				outNormals[3 * i + 0] = inNormals[3 * inIndex + 0];
+				outNormals[3 * i + 1] = inNormals[3 * inIndex + 1];
+				outNormals[3 * i + 2] = inNormals[3 * inIndex + 2];
+			}
+
+			outIndices[i] = i;
+		}
+
+		// geometry.buffers.find(b => b.name === "position").buffer = new Uint8Array(outPositions.buffer);
+		geometry.buffers.find(b => b.name === "position").buffer = new Float32Array(outPositions.buffer);
+		geometry.buffers.find(b => b.name === "color").buffer = new Uint32Array(outColors.buffer);
+
+		if(hasUVs){
+			geometry.buffers.find(b => b.name === "uv").buffer = new Uint8Array(outUVs.buffer);
+		}
+
+		if(hasNormals){
+			geometry.buffers.find(b => b.name === "normal").buffer = new Uint8Array(outNormals.buffer);
+		}
+
+		geometry.indices = outIndices;
+	}
 
 	// BOUNDING BOX
 	let boundingBox = new Box3(); {
 
-		let buffer = geometry.buffers.find(b => b.name === "position").buffer;
-		let f32 = new Float32Array(buffer.buffer);
+		let f32 = geometry.buffers.find(b => b.name === "position").buffer;
+		// let f32 = new Float32Array(buffer.buffer);
 
 		let tmp = new Vector3();
 		for(let i = 0; i < f32.length / 3; i++){
@@ -111,10 +167,6 @@ onmessage = async function(e){
 	};
 
 	let transferables = [
-		// geometry.buffers[0].buffer.buffer,
-		// geometry.buffers[1].buffer.buffer,
-		// geometry.buffers[2].buffer.buffer,
-		// geometry.buffers[3].buffer.buffer,
 		...geometry.buffers.map(b => b.buffer.buffer),
 		geometry.indices.buffer,
 	];

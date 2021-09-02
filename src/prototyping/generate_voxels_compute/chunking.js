@@ -146,11 +146,15 @@ fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 		return;
 	}
 
-	var triangleIndex = (*batch).firstTriangle + GlobalInvocationID.x;
+	// for batch-wise buffer binding
+	var triangleIndex = GlobalInvocationID.x;
+	// for full buffer binding
+	var firstTriangle = (*batch).firstTriangle;
+	// var triangleIndex = (*batch).firstTriangle + GlobalInvocationID.x;
 
-	var i0 = indices.values[3u * triangleIndex + 0u];
-	var i1 = indices.values[3u * triangleIndex + 1u];
-	var i2 = indices.values[3u * triangleIndex + 2u];
+	var i0 = indices.values[3u * triangleIndex + 0u] - 3u * firstTriangle;
+	var i1 = indices.values[3u * triangleIndex + 1u] - 3u * firstTriangle;
+	var i2 = indices.values[3u * triangleIndex + 2u] - 3u * firstTriangle;
 
 	var p0 = loadPosition(i0);
 	var p1 = loadPosition(i1);
@@ -237,11 +241,12 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 		return;
 	}
 
-	var triangleIndex = firstTriangle + GlobalInvocationID.x;
+	// var triangleIndex = firstTriangle + GlobalInvocationID.x;
+	var triangleIndex = GlobalInvocationID.x;
 
-	var i0 = indices.values[3u * triangleIndex + 0u];
-	var i1 = indices.values[3u * triangleIndex + 1u];
-	var i2 = indices.values[3u * triangleIndex + 2u];
+	var i0 = indices.values[3u * triangleIndex + 0u] - 3u * firstTriangle;
+	var i1 = indices.values[3u * triangleIndex + 1u] - 3u * firstTriangle;
+	var i2 = indices.values[3u * triangleIndex + 2u] - 3u * firstTriangle;
 
 	var p0 = loadPosition(i0);
 	var p1 = loadPosition(i1);
@@ -295,18 +300,18 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 	// sortedTriangles.values[offset_color + 3u * triangleOffset + 2u] = color;
 }
 
-[[stage(compute), workgroup_size(128)]]
-fn main_copy_to_chunk([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
+// [[stage(compute), workgroup_size(128)]]
+// fn main_copy_to_chunk([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 
-	doIgnore();
+// 	doIgnore();
 
 	
-}
+// }
 
 `;
 
 const maxBatchSize = 1_000_000;
-const chunkGridSize = 4;
+const chunkGridSize = 5;
 const chunkGridCellCount = chunkGridSize ** 3;
 
 // function toIndex3D(gridSize, cellIndex){
@@ -384,8 +389,6 @@ async function process(renderer, node, chunk){
 	for(let batchIndex = 0; batchIndex < numBatches; batchIndex++){
 		let batch = batches[batchIndex];
 
-		console.log(batch);
-
 		// INIT UNIFORMS
 		let uniformBuffer = device.createBuffer({size: 256, usage: uniform_flags});
 		{
@@ -408,13 +411,24 @@ async function process(renderer, node, chunk){
 		let sortedTrianglesByteSize = 3 * 16 * batch.numTriangles;
 		let gpu_sortedTriangles = device.createBuffer({size: sortedTrianglesByteSize, usage: storage_flags});
 
+
+		let batchIndexByteOffset         = 4 * 3 * batch.firstTriangle;
+		let batchIndexByteSize           = 4 * 3 * batch.numTriangles;
+		let batchPositionsByteOffset     = 4 * 9 * batch.firstTriangle;
+		let batchPositionsByteSize       = 4 * 9 * batch.numTriangles;
+		let batchColorsByteOffset        = 4 * 3 * batch.firstTriangle;
+		let batchColorsByteSize          = 4 * 3 * batch.numTriangles;
+
 		let bindGroups = [{
 			location: 0,
 			entries: [
 				{binding:  0, resource: {buffer: uniformBuffer}},
-				{binding: 10, resource: {buffer: gpu_indices}},
-				{binding: 11, resource: {buffer: gpu_positions}},
-				{binding: 12, resource: {buffer: gpu_colors}},
+				{binding: 10, resource: {buffer: gpu_indices, offset: batchIndexByteOffset, size: batchIndexByteSize}},
+				{binding: 11, resource: {buffer: gpu_positions, offset: batchPositionsByteOffset, size: batchPositionsByteSize}},
+				{binding: 12, resource: {buffer: gpu_colors, offset: batchColorsByteOffset, size: batchColorsByteSize}},
+				// {binding: 10, resource: {buffer: gpu_indices}},
+				// {binding: 11, resource: {buffer: gpu_positions}},
+				// {binding: 12, resource: {buffer: gpu_colors}},
 
 				{binding: 20, resource: {buffer: gpu_grids}},
 				{binding: 30, resource: {buffer: gpu_batches}},
@@ -643,17 +657,17 @@ async function process(renderer, node, chunk){
 		nodes.push(mesh);
 
 		// potree.onUpdate( () => {
-		// 	{
-		// 		let mesh = {positions, colors};
-		// 		potree.renderer.drawMesh(mesh);
-		// 	}
+		// 	// {
+		// 	// 	let mesh = {positions, colors};
+		// 	// 	potree.renderer.drawMesh(mesh);
+		// 	// }
 
-		// 	{
-		// 		let position = cube.center();
-		// 		let size = cube.size();
-		// 		let color = new Vector3(255, 0, 0);
-		// 		potree.renderer.drawBoundingBox(position, size, color);
-		// 	}
+		// 	// {
+		// 	// 	let position = cube.center();
+		// 	// 	let size = cube.size();
+		// 	// 	let color = new Vector3(255, 0, 0);
+		// 	// 	potree.renderer.drawBoundingBox(position, size, color);
+		// 	// }
 
 		// 	{
 		// 		let chunkPos = mesh.boundingBox.center();

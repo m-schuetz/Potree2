@@ -239,10 +239,10 @@ canvas{
 
 	// Potree.loadGLB("./resources/models/lion.glb").then(node => {
 	// Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
-	// Potree.loadGLB("./resources/models/australia_gas_30M.glb").then(node => {
+	Potree.loadGLB("./resources/models/australia_gas_30M.glb").then(node => {
 	// Potree.loadGLB("./resources/models/sitnmesh.glb").then(node => {
 	// Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
-	Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 	// Potree.loadGLB("./resources/models/anita_mui_aligned.glb").then(node => {
 
 		// node.set({
@@ -295,6 +295,10 @@ canvas{
 		controls.set({
 			position: [-5.3, -5.9, -4.2],
 			pivot: [0.4, 0.4, -6.3],
+		});
+		controls.set({
+			position: [1.5, -8.1, 15.3],
+			pivot: [0.4, -0.3, -3.6],
 		});
 
 	});

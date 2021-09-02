@@ -10,13 +10,39 @@ export async function generateVoxelsCompute(renderer, node){
 
 	let meshes = await doChunking(renderer, node);
 
-	// doDownsampling(renderer, node);
-	// doDownsampling(renderer, meshes[0]);
+	// potree.onUpdate( () => {
+	// 	let positions = node.geometry.buffers.find(b => b.name === "position").buffer;
+	// 	let colors = node.geometry.buffers.find(b => b.name === "color").buffer;
+	// 	let indices = node.geometry.indices;
+	// 	potree.renderer.drawMesh({positions, colors, indices});
+	// });
+
 	// doDownsampling(renderer, meshes[1]);
 
 	for(let mesh of meshes){
 		doDownsampling(renderer, mesh);
 	}
+
+	// potree.onUpdate( () => {
+	// 	// {
+	// 	// 	let mesh = {positions, colors};
+	// 	// 	potree.renderer.drawMesh(mesh);
+	// 	// }
+
+	// 	// {
+	// 	// 	let position = cube.center();
+	// 	// 	let size = cube.size();
+	// 	// 	let color = new Vector3(255, 0, 0);
+	// 	// 	potree.renderer.drawBoundingBox(position, size, color);
+	// 	// }
+
+	// 	{
+	// 		let chunkPos = node.boundingBox.center();
+	// 		let chunkSize = node.boundingBox.size();
+	// 		let color = new Vector3(0, 255, 0);
+	// 		potree.renderer.drawBoundingBox(chunkPos, chunkSize, color);
+	// 	}
+	// });
 
 	// for(let mesh of meshes){
 	// 	potree.onUpdate( () => {

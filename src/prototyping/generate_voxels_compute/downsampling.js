@@ -493,7 +493,7 @@ async function processChunk(renderer, node, chunk){
 	chunk.voxels.numVoxels = new DataView(bChunks).getUint32(32 * chunk.index + 0, true);
 	state.numVoxelsProcessed += chunk.voxels.numVoxels;
 
-	if(chunk.level <= 3){
+	if(chunk.level <= 4){
 		for(let i = 0; i < 8; i++){
 			let numTriangles = tricountGrid[i]
 			let triangleOffset = lutGrid[i] - numTriangles;
