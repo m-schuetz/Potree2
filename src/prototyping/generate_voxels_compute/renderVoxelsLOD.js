@@ -35,6 +35,11 @@ struct Voxel {
 	pad1  : f32;
 };
 
+struct LOD {
+	depth : u32;
+	processed : bool;
+};
+
 [[block]] struct Voxels { values : [[stride(32)]] array<Voxel>; };
 [[block]] struct Nodes{ values : [[stride(32)]] array<Node>; };
 
@@ -125,7 +130,7 @@ fn toChildIndex(npos : vec3<f32>) -> u32 {
 	return index;
 }
 
-fn getLOD(position : vec3<f32>) -> u32 {
+fn getLOD(position : vec3<f32>) -> LOD {
 
 	var cubeSize = uniforms.bbMax.x - uniforms.bbMin.x;
 	var npos = (position - uniforms.bbMin) / cubeSize;
@@ -169,11 +174,11 @@ fn getLOD(position : vec3<f32>) -> u32 {
 		}
 	}
 
-	if(!processed){
-		depth = 100u;
-	}
+	var result = LOD();
+	result.depth = depth;
+	result.processed = processed;
 
-	return depth;
+	return result;
 }
 
 fn doIgnore(){
@@ -216,12 +221,17 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 		f32(voxel.b) / 255.0, 
 		1.0);
 
-	// var gradientColor = GRADIENT[lod] / 255.0;
+	// var gradientColor = GRADIENT[lod.depth] / 255.0;
 	// vout.color = vec4<f32>(gradientColor, 1.0);
 
-	if(lod == 100u){
-		vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-	}elseif(lod != node.level){
+	if(!lod.processed && lod.depth == node.level + 1u){
+
+		var red = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+		
+		vout.color = 0.5 * vout.color + 0.5 * red;
+		vout.color.w = 1.0;
+
+	}elseif(lod.depth != node.level){
 		// discard!
 
 		vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
