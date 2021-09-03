@@ -29,14 +29,11 @@ struct Batch {
 [[block]] struct AI32s { values : [[stride(4)]] array<atomic<i32>>; };
 [[block]] struct Batches { values : [[stride(32)]] array<Batch>; };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var mySampler: sampler;
-[[binding(2), group(0)]] var myTexture: texture_2d<f32>;
+[[binding( 0), group(0)]] var<uniform> uniforms : Uniforms;
 
 [[binding(10), group(0)]] var<storage, read_write> indices   : U32s;
 [[binding(11), group(0)]] var<storage, read_write> positions : F32s;
 [[binding(12), group(0)]] var<storage, read_write> colors    : U32s;
-[[binding(13), group(0)]] var<storage, read_write> uvs       : F32s;
 
 [[binding(20), group(0)]] var<storage, read_write> grids     : AU32s;
 
@@ -133,12 +130,9 @@ fn doIgnore(){
 	ignore(indices);
 	ignore(positions);
 	ignore(colors);
-	ignore(uvs);
 	ignore(grids);
 	ignore(batches);
 	ignore(sortedTriangles);
-	ignore(mySampler);
-	ignore(myTexture);
 }
 
 [[stage(compute), workgroup_size(128)]]
@@ -328,7 +322,6 @@ async function process(renderer, node, chunk){
 	let gpu_indices   = renderer.getGpuBuffer(buffers.indices);
 	let gpu_positions = renderer.getGpuBuffer(buffers.position);
 	let gpu_colors    = renderer.getGpuBuffer(buffers.color);
-	let gpu_uvs       = renderer.getGpuBuffer(buffers.uv);
 
 	let numTriangles = buffers.indices.length / 3;
 	let numBatches = Math.ceil(numTriangles / maxBatchSize);
@@ -395,21 +388,14 @@ async function process(renderer, node, chunk){
 		let batchPositionsByteSize       = 4 * 9 * batch.numTriangles;
 		let batchColorsByteOffset        = 4 * 3 * batch.firstTriangle;
 		let batchColorsByteSize          = 4 * 3 * batch.numTriangles;
-		let batchUVsByteOffset           = 4 * 6 * batch.firstTriangle;
-		let batchUVsByteSize             = 4 * 6 * batch.numTriangles;
-
 
 		let bindGroups = [{
 			location: 0,
 			entries: [
 				{binding:  0, resource: {buffer: uniformBuffer}},
-				{binding:  1, resource: renderer.getDefaultSampler()},
-				{binding:  2, resource: renderer.getGpuTexture(node.material.image)},
-
 				{binding: 10, resource: {buffer: gpu_indices, offset: batchIndexByteOffset, size: batchIndexByteSize}},
 				{binding: 11, resource: {buffer: gpu_positions, offset: batchPositionsByteOffset, size: batchPositionsByteSize}},
 				{binding: 12, resource: {buffer: gpu_colors, offset: batchColorsByteOffset, size: batchColorsByteSize}},
-				{binding: 13, resource: {buffer: gpu_uvs, offset: batchUVsByteOffset, size: batchUVsByteSize}},
 				// {binding: 10, resource: {buffer: gpu_indices}},
 				// {binding: 11, resource: {buffer: gpu_positions}},
 				// {binding: 12, resource: {buffer: gpu_colors}},

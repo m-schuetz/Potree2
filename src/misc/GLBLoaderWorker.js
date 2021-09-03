@@ -71,7 +71,7 @@ onmessage = async function(e){
 		}
 	}
 
-	if(true)
+	if(false)
 	{ // DEBUG: de-indexing
 
 		let indices = geometry.indices;

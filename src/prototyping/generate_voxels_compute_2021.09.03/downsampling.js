@@ -46,20 +46,18 @@ struct Voxel {
 [[block]] struct Chunks { values : [[stride(32)]] array<Chunk>; };
 [[block]] struct Voxels { values : [[stride(32)]] array<Voxel>; };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var mySampler: sampler;
-[[binding(2), group(0)]] var myTexture: texture_2d<f32>;
-
+[[binding( 0), group(0)]] var<uniform> uniforms : Uniforms;
 [[binding(10), group(0)]] var<storage, read_write> indices : U32s;
 [[binding(11), group(0)]] var<storage, read_write> positions : F32s;
 [[binding(12), group(0)]] var<storage, read_write> colors : U32s;
-[[binding(13), group(0)]] var<storage, read_write> uvs : F32s;
 
 [[binding(20), group(0)]] var<storage, read_write> grids : AU32s;
 
 [[binding(30), group(0)]] var<storage, read_write> chunks : Chunks;
 [[binding(31), group(0)]] var<storage, read_write> voxels : Voxels;
 [[binding(32), group(0)]] var<storage, read_write> sortedIndices : U32s;
+
+// [[binding(50), group(0)]] var<storage, read_write> metadata : Metadata;
 
 fn toVoxelPos(gridSize : u32, position : vec3<f32>) -> vec3<f32>{
 
@@ -120,17 +118,17 @@ fn doIgnore(){
 	
 	ignore(uniforms);
 
-	ignore(mySampler);
-	ignore(myTexture);
+	var a00 = indices.values[0];
+	var a10 = positions.values[0];
+	var a20 = colors.values[0];
 
-	ignore(indices);
-	ignore(positions);
-	ignore(colors);
-	ignore(uvs);
-	ignore(grids);
-	ignore(chunks);
-	ignore(voxels);
-	ignore(sortedIndices);	
+	var a30 = atomicLoad(&grids.values[0]);
+	var a40 = atomicLoad(&chunks.values[0].numVoxels);
+	var a50 = voxels.values[0];
+	var a60 = sortedIndices.values[0];
+
+	// ignore(metadata);
+	
 }
 
 [[stage(compute), workgroup_size(128)]]
@@ -159,23 +157,8 @@ fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkPos);
 
 	{ // accumulate voxels
-		// var color = (loadColor(i0) + loadColor(i1) + loadColor(i2)) / 3u;
-		
-		var u = uvs.values[2u * i0 + 0u];
-		var v = uvs.values[2u * i0 + 1u];
+		var color = (loadColor(i0) + loadColor(i1) + loadColor(i2)) / 3u;
 
-		var dimensions = textureDimensions(myTexture);
-		var U = i32(f32(dimensions.x) * u);
-		var V = i32(f32(dimensions.y) * v);
-
-		// var colorf32 = textureSampleLevel(myTexture, mySampler, vec2<f32>(u, v), 0.0);
-		var colorf32 = textureLoad(myTexture, vec2<i32>(U, V), 0);
-		var color = vec4<u32>(colorf32 * 255.0);
-
-		// var a00 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 0u], U);
-		// var a10 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 1u], V);
-		// var a20 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 2u], 0u);
-		// var a30 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 3u], 1u);
 		
 		var a00 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 0u], color.x);
 		var a10 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 1u], color.y);
@@ -282,6 +265,10 @@ fn main_sortTriangles([[builtin(global_invocation_id)]] GlobalInvocationID : vec
 	sortedIndices.values[3u * triangleOffset + 0u] = i0;
 	sortedIndices.values[3u * triangleOffset + 1u] = i1;
 	sortedIndices.values[3u * triangleOffset + 2u] = i2;
+
+	// colors.values[i0] = (255u * chunkIndex) / 7u;
+	// colors.values[i1] = (255u * chunkIndex) / 7u;
+	// colors.values[i2] = (255u * chunkIndex) / 7u;
 
 }
 
@@ -423,13 +410,9 @@ async function processChunk(renderer, node, chunk){
 		location: 0,
 		entries: [
 			{binding:  0, resource: {buffer: uniformBuffer}},
-			{binding:  1, resource: renderer.getDefaultSampler()},
-			{binding:  2, resource: renderer.getGpuTexture(node.material.image).createView()},
-
 			{binding: 10, resource: {buffer: chunk.triangles.gpu_indices}},
 			{binding: 11, resource: {buffer: chunk.triangles.gpu_position}},
 			{binding: 12, resource: {buffer: chunk.triangles.gpu_color}},
-			{binding: 13, resource: {buffer: chunk.triangles.gpu_uv}},
 
 			{binding: 20, resource: {buffer: state.gpu_grids}},
 			{binding: 30, resource: {buffer: state.gpu_chunks}},
@@ -512,6 +495,7 @@ async function processChunk(renderer, node, chunk){
 	chunk.voxels.numVoxels = new DataView(bChunks).getUint32(32 * chunk.index + 0, true);
 	state.numVoxelsProcessed += chunk.voxels.numVoxels;
 
+	// if(chunk.level <= 2){
 	if((chunk.triangles.numIndices / 3) >= maxTrianglesPerNode){
 		for(let i = 0; i < 8; i++){
 			let numTriangles = tricountGrid[i]
@@ -529,12 +513,11 @@ async function processChunk(renderer, node, chunk){
 				child.parent = chunk;
 				child.triangles = {
 					gpu_position   : chunk.triangles.gpu_position,
+					// gpu_uv         : chunk.triangles.gpu_uv,
 					gpu_color      : chunk.triangles.gpu_color,
-					gpu_uv         : chunk.triangles.gpu_uv,
 					gpu_indices    : gpu_sortedIndices,
 					firstIndex     : 3 * triangleOffset,
 					numIndices     : 3 * numTriangles,
-					image          : chunk.triangles.image,
 				};
 				child.voxels = {
 					gpu_voxels     : chunk.voxels.gpu_voxels,
@@ -568,11 +551,9 @@ export async function doDownsampling(renderer, node){
 	root.triangles = {
 		gpu_position   : renderer.getGpuBuffer(node.geometry.findBuffer("position")),
 		gpu_color      : renderer.getGpuBuffer(node.geometry.findBuffer("color")),
-		gpu_uv         : renderer.getGpuBuffer(node.geometry.findBuffer("uv")),
 		gpu_indices    : renderer.getGpuBuffer(node.geometry.indices),
 		firstIndex     : 0,
 		numIndices     : node.geometry.indices.length,
-		image          : node.material.image,
 	};
 	root.voxels = {
 		gpu_voxels     : state.gpu_voxels,

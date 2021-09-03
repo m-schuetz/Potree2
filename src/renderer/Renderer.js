@@ -55,6 +55,8 @@ export class Renderer{
 		this.currentBindGroup = -1;
 		this.frameCounter = 0;
 
+		this.defaultSampler = null;
+
 		this.swapChain = null;
 		this.depthTexture = null;
 		this.screenbuffer = null;
@@ -434,6 +436,23 @@ export class Renderer{
 		}
 
 		return buffers;
+	}
+
+	getDefaultSampler(){
+		if(this.defaultSampler){
+			return this.defaultSampler;
+		}
+
+		this.defaultSampler = this.device.createSampler({
+			magFilter: 'nearest',
+			minFilter: 'nearest',
+			mipmapFilter : 'nearest',
+			addressModeU: "repeat",
+			addressModeV: "repeat",
+			maxAnisotropy: 1,
+		});
+
+		return this.defaultSampler;
 	}
 
 	getFramebuffer(id){

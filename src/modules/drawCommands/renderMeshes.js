@@ -57,9 +57,9 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
-	fout.color = fragment.color;
+	// fout.color = fragment.color;
 	// fout.color = vec4<f32>(fragment.uv, 0.0, 1.0);
-	// fout.color = textureSample(myTexture, mySampler, fragment.uv);
+	fout.color = textureSample(myTexture, mySampler, fragment.uv);
 
 	ignore(myTexture);
 	ignore(mySampler);
@@ -219,7 +219,9 @@ export function render(meshes, drawstate){
 
 		passEncoder.setBindGroup(0, bindGroup);
 
-		if(batch.uvs){
+		if(batch.gpu_uv){
+			passEncoder.setVertexBuffer(2, batch.gpu_uv);
+		}else if(batch.uvs){
 			let vboUV = renderer.getGpuBuffer(batch.uvs);
 			passEncoder.setVertexBuffer(2, vboUV);
 		}else{
