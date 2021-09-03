@@ -41,3 +41,4 @@ resources/pointclouds/octree_cuda/hierarchy.bin
 resources/pointclouds/octree_cuda/metadata.json
 resources/pointclouds/octree_cuda/octree.bin
 resources/models/australia_gas_30M.glb
+resources/models/sitnmesh.glb

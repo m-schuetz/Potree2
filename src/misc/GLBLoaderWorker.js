@@ -23,7 +23,7 @@ onmessage = async function(e){
 	let jsonText = decoder.decode(jsonBuffer);
 	let json = JSON.parse(jsonText);
 
-	console.log(json);
+	// console.log(json);
 
 	let binaryChunkOffset = 12 + 8 + chunkSize + 8;
 	let binaryChunkSize = view.getUint32(20 + chunkSize, true);

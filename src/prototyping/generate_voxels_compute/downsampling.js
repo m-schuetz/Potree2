@@ -342,6 +342,8 @@ function getState(renderer, node){
 
 async function processChunk(renderer, node, chunk){
 
+	console.log("processChunk start", (performance.now() / 1000).toFixed(3));
+
 	let state = getState(renderer, node);
 
 	if(state.currentlyProcessing){
@@ -493,7 +495,7 @@ async function processChunk(renderer, node, chunk){
 	chunk.voxels.numVoxels = new DataView(bChunks).getUint32(32 * chunk.index + 0, true);
 	state.numVoxelsProcessed += chunk.voxels.numVoxels;
 
-	if(chunk.level <= 4){
+	if(chunk.level <= 2){
 		for(let i = 0; i < 8; i++){
 			let numTriangles = tricountGrid[i]
 			let triangleOffset = lutGrid[i] - numTriangles;
@@ -537,6 +539,8 @@ async function processChunk(renderer, node, chunk){
 }
 
 export async function doDownsampling(renderer, node){
+
+	console.log("doDownsampling start", (performance.now() / 1000).toFixed(3));
 
 	let state = getState(renderer, node);
 
@@ -592,5 +596,7 @@ export async function doDownsampling(renderer, node){
 	});
 
 	await processChunk(renderer, node, root);
+
+	console.log("doDownsampling end", (performance.now() / 1000).toFixed(3));
 	
 }
