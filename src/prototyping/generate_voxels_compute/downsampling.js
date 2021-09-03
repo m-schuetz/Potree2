@@ -1,6 +1,6 @@
 
 import {Chunk, voxelGridSize, chunkGridSize, toIndex1D, toIndex3D, computeChildBox} from "./common.js";
-import {storage_flags, uniform_flags} from "./common.js";
+import {storage_flags, uniform_flags, maxTrianglesPerNode} from "./common.js";
 import {renderVoxelsLOD} from "./renderVoxelsLOD.js";
 
 export let csVoxelizing = `
@@ -495,7 +495,8 @@ async function processChunk(renderer, node, chunk){
 	chunk.voxels.numVoxels = new DataView(bChunks).getUint32(32 * chunk.index + 0, true);
 	state.numVoxelsProcessed += chunk.voxels.numVoxels;
 
-	if(chunk.level <= 2){
+	// if(chunk.level <= 2){
+	if((chunk.triangles.numIndices / 3) >= maxTrianglesPerNode){
 		for(let i = 0; i < 8; i++){
 			let numTriangles = tricountGrid[i]
 			let triangleOffset = lutGrid[i] - numTriangles;
@@ -575,7 +576,7 @@ export async function doDownsampling(renderer, node){
 			let camWorldPos = camera.getWorldPosition();
 			let distance = camWorldPos.distanceTo(center);
 
-			let visible = (size / distance) > 0.2;
+			let visible = (size / distance) > 0.3 * Potree.settings.debugU;
 			if(chunk.id === "r"){
 				visible = true;
 			} 
@@ -584,6 +585,12 @@ export async function doDownsampling(renderer, node){
 				processChunk(renderer, node, chunk);
 
 				return false;
+			}
+
+			let numTriangles = chunk.triangles.numIndices / 3;
+			if(visible && numTriangles < maxTrianglesPerNode){
+				let mesh = chunk.triangles;
+				potree.renderer.drawMesh(mesh);
 			}
 
 			chunk.visible = visible;

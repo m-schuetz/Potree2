@@ -197,8 +197,8 @@ export function render(meshes, drawstate){
 	passEncoder.setPipeline(pipeline);
 
 	for(let batch of meshes){
-		let vboPosition = renderer.getGpuBuffer(batch.positions);
-		let vboColor = renderer.getGpuBuffer(batch.colors);
+		let vboPosition = batch.gpu_position ?? renderer.getGpuBuffer(batch.positions);
+		let vboColor = batch.gpu_color ?? renderer.getGpuBuffer(batch.colors);
 
 		passEncoder.setVertexBuffer(0, vboPosition);
 		passEncoder.setVertexBuffer(1, vboColor);
@@ -232,6 +232,18 @@ export function render(meshes, drawstate){
 			let gpu_indices = renderer.getGpuBuffer(batch.indices);
 
 			passEncoder.setIndexBuffer(gpu_indices, "uint32", 0, batch.indices.byteLength);
+
+			passEncoder.drawIndexed(numIndices);
+
+		}else if(batch.gpu_indices){
+
+			let numIndices = batch.numIndices;
+			let gpu_indices = batch.gpu_indices;
+
+			passEncoder.setIndexBuffer(gpu_indices, "uint32", 
+				4 * batch.firstIndex, 
+				4 * numIndices
+			);
 
 			passEncoder.drawIndexed(numIndices);
 

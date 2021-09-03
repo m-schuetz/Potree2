@@ -1,6 +1,6 @@
 
 import {Vector3, Matrix4, Geometry} from "potree";
-import { voxelGridSize } from "./common.js";
+import { voxelGridSize, maxTrianglesPerNode } from "./common.js";
 
 const shaderSource = `
 [[block]] struct Uniforms {
@@ -22,6 +22,8 @@ struct Node{
 	level             : u32;
 	processed         : u32;
 	voxelBaseIndex    : u32;
+	numTriangles      : u32;
+	isLeaf            : u32;
 };
 
 struct Voxel {
@@ -36,8 +38,9 @@ struct Voxel {
 };
 
 struct LOD {
-	depth : u32;
+	depth     : u32;
 	processed : bool;
+	isLeaf    : bool;
 };
 
 [[block]] struct Voxels { values : [[stride(32)]] array<Voxel>; };
@@ -138,10 +141,11 @@ fn getLOD(position : vec3<f32>) -> LOD {
 	var nodeIndex = 0u;
 	var depth = 0u;
 	var processed = true;
+	var node : Node;
 
 	for(var i = 0u; i < 20u; i = i + 1u){
 
-		var node = nodes.values[nodeIndex];
+		node = nodes.values[nodeIndex];
 		var childIndex = toChildIndex(npos);
 		if(node.processed == 0u){
 			processed = false;
@@ -177,6 +181,7 @@ fn getLOD(position : vec3<f32>) -> LOD {
 	var result = LOD();
 	result.depth = depth;
 	result.processed = processed;
+	result.isLeaf = node.isLeaf != 0u;
 
 	return result;
 }
@@ -233,6 +238,14 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	}elseif(lod.depth != node.level){
 		// discard!
+
+		vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
+	}
+
+	if(lod.isLeaf){
+		var blue = vec4<f32>(0.0, 0.0, 1.0, 1.0);
+		vout.color = 0.5 * vout.color + 0.5 * blue;
+		vout.color.w = 1.0;
 
 		vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 	}
@@ -407,11 +420,15 @@ export function renderVoxelsLOD(root, drawstate){
 			let mask = childMaskOf(node);
 			let childOffset = node.childOffset ?? 0;
 
+			let numTriangles = node.triangles.numIndices / 3;
+			let isLeaf = numTriangles < maxTrianglesPerNode ? 1 : 0;
 			view.setUint32(32 * i + 0, mask, true);
 			view.setUint32(32 * i + 4, childOffset, true);
 			view.setUint32(32 * i + 8, node.level, true);
 			view.setUint32(32 * i + 12, node.processed ? 1 : 0, true);
 			view.setUint32(32 * i + 16, node.voxels.firstVoxel, true);
+			view.setUint32(32 * i + 20, numTriangles, true);
+			view.setUint32(32 * i + 24, isLeaf, true);
 
 		}
 

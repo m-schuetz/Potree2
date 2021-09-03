@@ -132,8 +132,10 @@ onmessage = async function(e){
 	// BOUNDING BOX
 	let boundingBox = new Box3(); {
 
-		let f32 = geometry.buffers.find(b => b.name === "position").buffer;
-		// let f32 = new Float32Array(buffer.buffer);
+		// let f32 = geometry.buffers.find(b => b.name === "position").buffer;
+
+		let buffer = geometry.buffers.find(b => b.name === "position").buffer;
+		let f32 = new Float32Array(buffer.buffer);
 
 		let tmp = new Vector3();
 		for(let i = 0; i < f32.length / 3; i++){

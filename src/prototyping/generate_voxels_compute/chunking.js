@@ -302,8 +302,8 @@ fn main_sort_triangles([[builtin(global_invocation_id)]] GlobalInvocationID : ve
 
 `;
 
-const maxBatchSize = 2_000_000;
-const chunkGridSize = 2;
+const maxBatchSize = 1_000_000;
+const chunkGridSize = 3;
 const chunkGridCellCount = chunkGridSize ** 3;
 
 async function process(renderer, node, chunk){

@@ -8,7 +8,6 @@ export async function generateVoxelsCompute(renderer, node){
 
 	console.time("generate voxels");
 
-	let meshes = await doChunking(renderer, node);
 
 	// potree.onUpdate( () => {
 	// 	let positions = node.geometry.buffers.find(b => b.name === "position").buffer;
@@ -17,8 +16,9 @@ export async function generateVoxelsCompute(renderer, node){
 	// 	potree.renderer.drawMesh({positions, colors, indices});
 	// });
 
-	// doDownsampling(renderer, meshes[1]);
+	// doDownsampling(renderer, node);
 
+	let meshes = await doChunking(renderer, node);
 	for(let mesh of meshes){
 		doDownsampling(renderer, mesh);
 	}

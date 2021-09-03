@@ -1,8 +1,9 @@
 
 import {Box3} from "potree";
 
-export let chunkGridSize = 2;
-export let voxelGridSize = 32;
+export const chunkGridSize = 2;
+export const voxelGridSize = 32;
+export const maxTrianglesPerNode = 10_000;
 
 export function toIndex1D(gridSize, voxelPos){
 
@@ -51,7 +52,11 @@ export function computeChildBox(parentBox, childIndex){
 	return box;
 }
 
-export let storage_flags = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST;
+export let storage_flags = GPUBufferUsage.STORAGE 
+	| GPUBufferUsage.COPY_SRC 
+	| GPUBufferUsage.COPY_DST 
+	| GPUBufferUsage.VERTEX
+	| GPUBufferUsage.INDEX;
 export let uniform_flags = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST;
 
 export class Chunk{

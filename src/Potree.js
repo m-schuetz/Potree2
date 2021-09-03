@@ -74,6 +74,7 @@ const settings = {
 	pointBudget: 1_000_000,
 	attribute: "rgba",
 	dbgAttribute: "rgba",
+	debugU: 1,
 	showBoundingBox: false,
 	// mode: "pixels",
 	useCompute: false,
