@@ -455,6 +455,21 @@ export class Renderer{
 		return this.defaultSampler;
 	}
 
+	getEmptyBuffer(){
+		if(this.emptyBuffer){
+			return this.emptyBuffer;
+		}else{
+			let flags = GPUBufferUsage.STORAGE 
+				| GPUBufferUsage.COPY_SRC 
+				| GPUBufferUsage.COPY_DST 
+				| GPUBufferUsage.VERTEX
+				| GPUBufferUsage.INDEX;
+			this.emptyBuffer = this.device.createBuffer({size: 32, usage: flags});
+
+			return this.emptyBuffer;
+		}
+	}
+
 	getFramebuffer(id){
 
 		if(this.framebuffers.has(id)){

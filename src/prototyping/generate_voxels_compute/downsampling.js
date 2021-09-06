@@ -133,6 +133,41 @@ fn doIgnore(){
 	ignore(sortedIndices);	
 }
 
+fn loadTextureSample(vertexIndex : u32) -> vec4<f32> {
+	var u = uvs.values[2u * vertexIndex + 0u];
+	var v = uvs.values[2u * vertexIndex + 1u];
+
+	var dimensions = textureDimensions(myTexture);
+	var U = i32(f32(dimensions.x) * u);
+	var V = i32(f32(dimensions.y) * v);
+
+	var color = textureLoad(myTexture, vec2<i32>(U, V), 0);
+
+	return color;
+};
+
+fn accumulateVoxel(position : vec3<f32>, color : vec4<f32>, i0 : u32, i1 : u32, i2 : u32){
+
+	var voxelPos = toVoxelPos(uniforms.voxelGridSize, position);
+	var voxelIndex = toIndex1D(uniforms.voxelGridSize, voxelPos);
+	var chunkPos = toVoxelPos(uniforms.chunkGridSize, position);
+	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkPos);
+
+	var color_u32 = vec4<u32>(255.0 * color);
+
+	var a00 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 0u], color_u32.x);
+	var a10 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 1u], color_u32.y);
+	var a20 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 2u], color_u32.z);
+	var a30 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 3u], 1u);
+}
+
+fn getVoxelSize() -> f32 {
+	var cubeSize = uniforms.chunkMax.x - uniforms.chunkMin.x;
+	var voxelSize = cubeSize / f32(uniforms.voxelGridSize);
+
+	return voxelSize;
+}
+
 [[stage(compute), workgroup_size(128)]]
 fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 
@@ -151,40 +186,51 @@ fn main_accumulate([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u
 	var p0 = loadPosition(i0);
 	var p1 = loadPosition(i1);
 	var p2 = loadPosition(i2);
+	var c0 = loadTextureSample(i0);
+	var c1 = loadTextureSample(i1);
+	var c2 = loadTextureSample(i2);
+	
 	var center = (p0 + p1 + p2) / 3.0;
 
-	var voxelPos = toVoxelPos(uniforms.voxelGridSize, center);
-	var voxelIndex = toIndex1D(uniforms.voxelGridSize, voxelPos);
-	var chunkPos = toVoxelPos(uniforms.chunkGridSize, center);
-	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkPos);
+	for(var ui = 0u; ui <= 5u; ui = ui + 1u){
+	for(var vi = 0u; vi <= 5u; vi = vi + 1u){
 
-	{ // accumulate voxels
-		// var color = (loadColor(i0) + loadColor(i1) + loadColor(i2)) / 3u;
-		
-		var u = uvs.values[2u * i0 + 0u];
-		var v = uvs.values[2u * i0 + 1u];
+		var u = f32(ui) / 5.0;
+		var v = f32(vi) / 5.0;
+		var w = 1.0 - u - v;
 
-		var dimensions = textureDimensions(myTexture);
-		var U = i32(f32(dimensions.x) * u);
-		var V = i32(f32(dimensions.y) * v);
+		if((u + v + w) <= 1.0 && w >= 0.0){
+			var p = u * p0 + v * p1 + w * p2;
+			var c = u * c0 + v * c1 + w * c2;
 
-		// var colorf32 = textureSampleLevel(myTexture, mySampler, vec2<f32>(u, v), 0.0);
-		var colorf32 = textureLoad(myTexture, vec2<i32>(U, V), 0);
-		var color = vec4<u32>(colorf32 * 255.0);
+			accumulateVoxel(p, c, i0, i1, i2);
+		}
 
-		// var a00 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 0u], U);
-		// var a10 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 1u], V);
-		// var a20 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 2u], 0u);
-		// var a30 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 3u], 1u);
-		
-		var a00 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 0u], color.x);
-		var a10 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 1u], color.y);
-		var a20 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 2u], color.z);
-		var a30 = atomicAdd(&grids.values[uniforms.voxelGridOffset + 4u * voxelIndex + 3u], 1u);
+	}
 	}
 
+	// accumulate voxels
+	// accumulateVoxel(center, i0, i1, i2);
+
 	{ // accumulate triangle counts
-		var a00 = atomicAdd(&grids.values[uniforms.tricountGridOffset + chunkIndex], 1u);
+		var trueChunkPos = toVoxelPos(uniforms.chunkGridSize, center);
+		var trueChunkIndex = toIndex1D(uniforms.chunkGridSize, trueChunkPos);
+
+		var a00 = atomicAdd(&grids.values[uniforms.tricountGridOffset + trueChunkIndex], 1u);
+
+		// for(var ox = -1.0; ox <= 1.0; ox = ox + 1.0){
+		// 	var dx = ox * getVoxelSize();
+
+		// 	var vp = center + vec3<f32>(dx, 0.0, 0.0);
+		// 	var chunkPos = toVoxelPos(uniforms.chunkGridSize, vp);
+		// 	chunkPos.x = clamp(chunkPos.x, 0.0, 1.999999);
+		// 	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkPos);
+
+		// 	if(chunkIndex != trueChunkIndex){
+		// 		var a10 = atomicAdd(&grids.values[uniforms.tricountGridOffset + chunkIndex], 1u);
+		// 	}
+
+		// }
 	}
 }
 
@@ -274,14 +320,35 @@ fn main_sortTriangles([[builtin(global_invocation_id)]] GlobalInvocationID : vec
 	var p2 = loadPosition(i2);
 	var center = (p0 + p1 + p2) / 3.0;
 
-	var chunkCoord = toVoxelPos(uniforms.chunkGridSize, center);
-	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkCoord);
+	var trueChunkCoord = toVoxelPos(uniforms.chunkGridSize, center);
+	var trueChunkIndex = toIndex1D(uniforms.chunkGridSize, trueChunkCoord);
 
-	var triangleOffset = atomicAdd(&grids.values[uniforms.LutGridOffset + chunkIndex], 1u);
+	{
+		var triangleOffset = atomicAdd(&grids.values[uniforms.LutGridOffset + trueChunkIndex], 1u);
 
-	sortedIndices.values[3u * triangleOffset + 0u] = i0;
-	sortedIndices.values[3u * triangleOffset + 1u] = i1;
-	sortedIndices.values[3u * triangleOffset + 2u] = i2;
+		sortedIndices.values[3u * triangleOffset + 0u] = i0;
+		sortedIndices.values[3u * triangleOffset + 1u] = i1;
+		sortedIndices.values[3u * triangleOffset + 2u] = i2;
+	}
+
+	// for(var ox = -1.0; ox <= 1.0; ox = ox + 1.0){
+	// 	var dx = ox * getVoxelSize();
+
+	// 	var vp = center + vec3<f32>(dx, 0.0, 0.0);
+	// 	var chunkPos = toVoxelPos(uniforms.chunkGridSize, vp);
+	// 	chunkPos.x = clamp(chunkPos.x, 0.0, 1.999999);
+	// 	var chunkIndex = toIndex1D(uniforms.chunkGridSize, chunkPos);
+
+	// 	if(chunkIndex != trueChunkIndex){
+	// 		var triangleOffset = atomicAdd(&grids.values[uniforms.LutGridOffset + chunkIndex], 1u);
+
+	// 		sortedIndices.values[3u * triangleOffset + 0u] = i0;
+	// 		sortedIndices.values[3u * triangleOffset + 1u] = i1;
+	// 		sortedIndices.values[3u * triangleOffset + 2u] = i2;
+	// 	}
+
+	// }
+
 
 }
 
@@ -413,7 +480,7 @@ async function processChunk(renderer, node, chunk){
 	}
 
 	let gpu_sortedIndices = device.createBuffer({
-		size: 4 * chunk.triangles.numIndices, 
+		size: 4 * Math.ceil(2 * chunk.triangles.numIndices), 
 		usage: storage_flags});
 	chunk.triangles.gpu_sortedIndices = gpu_sortedIndices;
 
@@ -567,7 +634,8 @@ export async function doDownsampling(renderer, node){
 	root.boundingBox = node.boundingBox.cube();
 	root.triangles = {
 		gpu_position   : renderer.getGpuBuffer(node.geometry.findBuffer("position")),
-		gpu_color      : renderer.getGpuBuffer(node.geometry.findBuffer("color")),
+		gpu_color      : renderer.getEmptyBuffer(),
+		// gpu_color      : renderer.getGpuBuffer(node.geometry.findBuffer("color")),
 		gpu_uv         : renderer.getGpuBuffer(node.geometry.findBuffer("uv")),
 		gpu_indices    : renderer.getGpuBuffer(node.geometry.indices),
 		firstIndex     : 0,
@@ -588,7 +656,9 @@ export async function doDownsampling(renderer, node){
 			chunk.visible = false;
 		});
 
+		let index = 0;
 		root.traverse((chunk) => {
+			index++;
 			
 			let center = chunk.boundingBox.center();
 			let size = chunk.boundingBox.size().length();
@@ -609,6 +679,7 @@ export async function doDownsampling(renderer, node){
 			let numTriangles = chunk.triangles.numIndices / 3;
 			if(visible && numTriangles < maxTrianglesPerNode){
 				let mesh = chunk.triangles;
+				mesh.index = index;
 				potree.renderer.drawMesh(mesh);
 			}
 
@@ -618,7 +689,7 @@ export async function doDownsampling(renderer, node){
 	});
 
 	potree.renderer.onDraw( (drawstate) => {
-		renderVoxelsLOD(root, drawstate);
+		// renderVoxelsLOD(root, drawstate);
 	});
 
 	await processChunk(renderer, node, root);

@@ -3,11 +3,12 @@ import {Vector3, Matrix4, Geometry} from "potree";
 
 const shaderSource = `
 [[block]] struct Uniforms {
-	view : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
-	point_size : f32;
+	view                : mat4x4<f32>;
+	proj                : mat4x4<f32>;
+	screen_width        : f32;
+	screen_height       : f32;
+	point_size          : f32;
+	index               : u32;
 };
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
@@ -53,6 +54,13 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
+var<private> GRADIENT : array<vec3<f32>, 4> = array<vec3<f32>, 4>(
+	vec3<f32>(215.0,  25.0,  28.0),
+	vec3<f32>(253.0, 174.0,  97.0),
+	vec3<f32>(171.0, 221.0, 164.0),
+	vec3<f32>( 43.0, 131.0, 186.0),
+);
+
 [[stage(fragment)]]
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
@@ -60,6 +68,12 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 	// fout.color = fragment.color;
 	// fout.color = vec4<f32>(fragment.uv, 0.0, 1.0);
 	fout.color = textureSample(myTexture, mySampler, fragment.uv);
+
+	{
+		var gIndex = uniforms.index % 4u;
+
+		fout.color = vec4<f32>(GRADIENT[gIndex] / 255.0, 1.0);
+	}
 
 	ignore(myTexture);
 	ignore(mySampler);
@@ -159,49 +173,58 @@ export function render(meshes, drawstate){
 		},
 	});
 
-	let uniformBuffer = device.createBuffer({
-		size: 256,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	});
-
-	{ // update uniforms
-
-		let {renderer, camera} = drawstate;
-
-		let data = new ArrayBuffer(256);
-		let f32 = new Float32Array(data);
-		let view = new DataView(data);
-
-		{ // transform
-
-			// TODO: need set world on a per-mesh basis
-			let world = meshes[0].world ?? new Matrix4();
-			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
-
-			f32.set(worldView.elements, 0);
-			f32.set(camera.proj.elements, 16);
-		}
-
-		{ // misc
-			let size = renderer.getSize();
-
-			view.setFloat32(128, size.width, true);
-			view.setFloat32(132, size.height, true);
-			view.setFloat32(136, 5.0, true);
-		}
-
-		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
-	}
-
 	passEncoder.setPipeline(pipeline);
 
 	for(let batch of meshes){
-		let vboPosition = batch.gpu_position ?? renderer.getGpuBuffer(batch.positions);
-		let vboColor = batch.gpu_color ?? renderer.getGpuBuffer(batch.colors);
 
+		let uniformBuffer = device.createBuffer({
+			size: 256,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		{ // update uniforms
+
+			let {renderer, camera} = drawstate;
+
+			let data = new ArrayBuffer(256);
+			let f32 = new Float32Array(data);
+			let view = new DataView(data);
+
+			{ // transform
+
+				// TODO: need set world on a per-mesh basis
+				let world = meshes[0].world ?? new Matrix4();
+				let view = camera.view;
+				let worldView = new Matrix4().multiplyMatrices(view, world);
+
+				f32.set(worldView.elements, 0);
+				f32.set(camera.proj.elements, 16);
+			}
+
+			{ // misc
+				let size = renderer.getSize();
+
+				view.setFloat32(128, size.width, true);
+				view.setFloat32(132, size.height, true);
+				view.setFloat32(136, 5.0, true);
+				view.setUint32(140, batch.index ?? 0, true);
+			}
+
+			renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
+		}
+
+		let vboPosition = batch.gpu_position ?? renderer.getGpuBuffer(batch.positions);
 		passEncoder.setVertexBuffer(0, vboPosition);
-		passEncoder.setVertexBuffer(1, vboColor);
+
+		if(batch.gpu_color){
+			passEncoder.setVertexBuffer(1, batch.gpu_color);
+		}else if(batch.colors){
+			let vboColor = renderer.getGpuBuffer(batch.colors);
+			passEncoder.setVertexBuffer(1, vboColor);
+		}else{
+			passEncoder.setVertexBuffer(1, vboPosition);
+		}
+		
 
 		let texture = defaultTexture;
 		if(batch.image){

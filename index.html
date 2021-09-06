@@ -237,12 +237,12 @@ canvas{
 	// 	});
 	// });
 
-	Potree.loadGLB("./resources/models/lion.glb").then(node => {
+	// Potree.loadGLB("./resources/models/lion.glb").then(node => {
 	// Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
 	// Potree.loadGLB("./resources/models/australia_gas_30M.glb").then(node => {
 	// Potree.loadGLB("./resources/models/sitnmesh.glb").then(node => {
 	// Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
-	// Potree.loadGLB("./resources/models/sitnmesh.glb").then(node => {
+	Potree.loadGLB("./resources/models/sitnmesh.glb").then(node => {
 	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
 	// Potree.loadGLB("./resources/models/anita_mui_aligned.glb").then(node => {
 
@@ -303,10 +303,15 @@ canvas{
 			pivot: [-0.8, -0.2, -5.0],
 		});
 
-		// controls.set({
-		// 	position: [-7.9, -0.9, -0.7],
-		// 	pivot: [0.4, -0.3, -3.0],
-		// });
+		controls.set({
+			position: [2330.1, 1403.6, 933.9],
+			pivot: [2330.5, 1383.9, 914.1],
+		});
+
+		controls.set({
+			position: [2334.5, 1408.7, 954.4],
+			pivot: [2335.0, 1377.2, 910.0],
+		});
 
 
 	});
@@ -322,12 +327,17 @@ canvas{
 		elSlider.style.transform = "scale(2, 2)";
 		elSlider.min = 0;
 		elSlider.max = 200;
-		elSlider.value = 100;
+		elSlider.value = 200;
+		// elSlider.value = 195;
 
-		elSlider.oninput = () => {
+		let onInput = () => {
 			let u = elSlider.value / 100;
 			Potree.settings.debugU = u * u;
 		};
+
+		onInput();
+
+		elSlider.oninput = onInput;
 
 		document.body.appendChild(elSlider);
 	}
