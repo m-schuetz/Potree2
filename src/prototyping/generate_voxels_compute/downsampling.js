@@ -689,7 +689,7 @@ export async function doDownsampling(renderer, node){
 	});
 
 	potree.renderer.onDraw( (drawstate) => {
-		// renderVoxelsLOD(root, drawstate);
+		renderVoxelsLOD(root, drawstate);
 	});
 
 	await processChunk(renderer, node, root);

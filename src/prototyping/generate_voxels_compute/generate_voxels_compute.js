@@ -16,43 +16,30 @@ export async function generateVoxelsCompute(renderer, node){
 		let uvs = node.geometry.buffers.find(b => b.name === "uv").buffer;
 		let indices = node.geometry.indices;
 
-		let s = 1.1;
+		let s = 1;
 		let world = new Matrix4().set(
 			s, 0, 0, 0,
 			0, s, 0, 0,
 			0, 0, s, 0,
 			0, 0, 0, 1,
 		);
-		// potree.renderer.drawMesh({positions, uvs, indices, world, image: node.material.image});
+		potree.renderer.drawMesh({positions, uvs, indices, world, image: node.material.image});
+
+		{
+			let cube = node.boundingBox.cube();
+			let position = cube.center();
+			let size = cube.size();
+			let color = new Vector3(255, 0, 0);
+			potree.renderer.drawBoundingBox(position, size, color);
+		}
 	});
 
-	doDownsampling(renderer, node);
+	// doDownsampling(renderer, node);
 
 	// let meshes = await doChunking(renderer, node);
 	// for(let mesh of meshes){
 	// 	doDownsampling(renderer, mesh);
 	// }
-
-	// potree.onUpdate( () => {
-	// 	// {
-	// 	// 	let mesh = {positions, colors};
-	// 	// 	potree.renderer.drawMesh(mesh);
-	// 	// }
-
-	// 	// {
-	// 	// 	let position = cube.center();
-	// 	// 	let size = cube.size();
-	// 	// 	let color = new Vector3(255, 0, 0);
-	// 	// 	potree.renderer.drawBoundingBox(position, size, color);
-	// 	// }
-
-	// 	{
-	// 		let chunkPos = node.boundingBox.center();
-	// 		let chunkSize = node.boundingBox.size();
-	// 		let color = new Vector3(0, 255, 0);
-	// 		potree.renderer.drawBoundingBox(chunkPos, chunkSize, color);
-	// 	}
-	// });
 
 	// for(let mesh of meshes){
 	// 	potree.onUpdate( () => {

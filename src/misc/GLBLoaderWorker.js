@@ -67,7 +67,12 @@ onmessage = async function(e){
 			let accessor = json.accessors[glbPrimitive.indices];
 			let bufferView = bufferViews[accessor.bufferView];
 
-			geometry.indices = new Uint32Array(bufferView.buffer);
+			if(accessor.componentType == 5123){
+				geometry.indices = new Uint32Array(new Uint16Array(bufferView.buffer))
+			}else{
+				geometry.indices = new Uint32Array(bufferView.buffer);
+			}
+
 		}
 	}
 

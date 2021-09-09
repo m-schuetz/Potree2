@@ -25,22 +25,12 @@ export function load(url){
 			geometry.boundingBox.max.copy(geometryData.boundingBox.max);
 
 			let mesh = new Mesh("glb mesh", geometry);
-			// let node = new SceneNode("glb node");
-			// node.children.push(mesh);
 
 			if(imageBitmap){
 				mesh.material = new PhongMaterial();
 				mesh.material.image = imageBitmap;
 				mesh.material.colorMode = ColorMode.TEXTURE;
 				mesh.material.imageBuffer = e.data.imageBuffer;
-
-				// let blob = new Blob([new Uint8Array(node.material.imageBuffer)], {type: "image/jpg"});
-				// var context = canvas.getContext('2d');
-				// var img = document.getElementById('myimg');
-				// canvas.width = img.width;
-				// canvas.height = img.height;
-				// context.drawImage(img, 0, 0 );
-				// var myData = context.getImageData(0, 0, img.width, img.height);
 
 				const canvas = document.createElement('canvas');
 				canvas.width = imageBitmap.width;
