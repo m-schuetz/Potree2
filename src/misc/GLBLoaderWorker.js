@@ -2,57 +2,20 @@
 // import {Vector3, Box3} from "potree";
 import {Vector3, Box3} from "../math/math.js";
 
-onmessage = async function(e){
-
-	let {url} = e.data;
-
-	let response = await fetch(url);
-	let buffer = await response.arrayBuffer();
-	let view = new DataView(buffer);
-
-	let tStart = performance.now();
-
-	let magic = view.getUint32(0, true);
-	let version = view.getUint32(4, true);
-	let length = view.getUint32(8, true);
-	let chunkSize = view.getUint32(12, true);
-	let chunkType = view.getUint32(16, true);
-
-	let jsonBuffer = buffer.slice(20, 20 + chunkSize);
-	let decoder = new TextDecoder();
-	let jsonText = decoder.decode(jsonBuffer);
-	let json = JSON.parse(jsonText);
-
-	// console.log(json);
-
-	let binaryChunkOffset = 12 + 8 + chunkSize + 8;
-	let binaryChunkSize = view.getUint32(20 + chunkSize, true);
-	
-	let bufferViews = [];
-	for(let glbBufferView of json.bufferViews){
-
-		let offset = glbBufferView.byteOffset;
-		let size = glbBufferView.byteLength;
-
-		let data = buffer.slice(binaryChunkOffset + offset, binaryChunkOffset + offset + size);
-
-		bufferViews.push({buffer: data});
-	}
+async function loadMesh(mesh, json, bufferViews, meshIndex){
 
 	let numIndices = 0;
-	for(let mesh of json.meshes){
-		for(let primitive of mesh.primitives){
-			if(typeof primitive.indices !== "undefined"){
-				let indices_accessor = json.accessors[primitive.indices];
+	for(let primitive of mesh.primitives){
+		if(typeof primitive.indices !== "undefined"){
+			let indices_accessor = json.accessors[primitive.indices];
 
-				numIndices += indices_accessor.count;
-			}else{
-				// skip for now
-			}
-			
+			numIndices += indices_accessor.count;
+		}else{
+			// skip for now
 		}
 	}
 	let numTriangles = numIndices / 3;
+	let numTrianglesProcessed = 0;
 
 	let positions = new Float32Array(9 * numTriangles);
 	let uvs = new Float32Array(6 * numTriangles);
@@ -67,171 +30,73 @@ onmessage = async function(e){
 		numElement: 0,
 	};
 
-	let numTrianglesProcessed = 0;
-	for(let mesh of json.meshes){
-		console.log(mesh);
-		for(let primitive of mesh.primitives){
-			console.log(primitive);
+	for(let primitive of mesh.primitives){
 
-			if(typeof primitive.indices === "undefined"){
-				continue;
-			}
+		if(typeof primitive.indices === "undefined"){
+			continue;
+		}
 
-			let prim_indices; 
-			{
-				let accessor = json.accessors[primitive.indices];
-				let bufferView = bufferViews[accessor.bufferView];
+		let prim_indices; 
+		{
+			let accessor = json.accessors[primitive.indices];
+			let bufferView = bufferViews[accessor.bufferView];
 
-				if(accessor.componentType == 5123){
-					prim_indices = new Uint32Array(new Uint16Array(bufferView.buffer))
-				}else{
-					prim_indices = new Uint32Array(bufferView.buffer);
-				}
-			}
-
-			let numTriangles_primitive = prim_indices.length / 3;
-
-			if(typeof primitive.attributes.POSITION !== "undefined")
-			{
-				let accessorRef = primitive.attributes.POSITION ?? null;
-				let accessor = json.accessors[accessorRef];
-				let bufferView = bufferViews[accessor.bufferView];
-				let prim_positions = new Float32Array(bufferView.buffer)
-
-				for(let i = 0; i < prim_indices.length; i++){
-					let index = prim_indices[i];
-					let x = prim_positions[3 * index + 0];
-					let y = prim_positions[3 * index + 1];
-					let z = prim_positions[3 * index + 2];
-
-					positions[9 * numTrianglesProcessed + 3 * i + 0] = x;
-					positions[9 * numTrianglesProcessed + 3 * i + 1] = y;
-					positions[9 * numTrianglesProcessed + 3 * i + 2] = z;
-				}
+			if(accessor.componentType == 5123){
+				prim_indices = new Uint32Array(new Uint16Array(bufferView.buffer))
 			}else{
-				throw "wat?";
+				prim_indices = new Uint32Array(bufferView.buffer);
 			}
-
-			if(typeof primitive.attributes.TEXCOORD_0 !== "undefined")
-			{
-				let accessorRef = primitive.attributes.TEXCOORD_0 ?? null;
-				let accessor = json.accessors[accessorRef];
-				let bufferView = bufferViews[accessor.bufferView];
-				let prim_uvs = new Float32Array(bufferView.buffer);
-
-				for(let i = 0; i < prim_indices.length; i++){
-					let index = prim_indices[i];
-					let u = prim_uvs[2 * index + 0];
-					let v = prim_uvs[2 * index + 1];
-
-					uvs[6 * numTrianglesProcessed + 2 * i + 0] = u;
-					uvs[6 * numTrianglesProcessed + 2 * i + 1] = v;
-				}
-			}else{
-				for(let i = 0; i < prim_indices.length; i++){
-					let u = 0;
-					let v = 0;
-
-					uvs[6 * numTrianglesProcessed + 2 * i + 0] = u;
-					uvs[6 * numTrianglesProcessed + 2 * i + 1] = v;
-				}
-			}
-
-			numIndices += prim_indices.length;
-			numTrianglesProcessed += numTriangles_primitive;
-		}
-	}
-
-	for(let i = 0; i < indices.length; i++){
-		indices[i] = i;
-	}
-
-	// let glbMesh = json.meshes[0];
-	// let glbPrimitive = glbMesh.primitives[0];
-	// for(let attributeName of Object.keys(glbPrimitive.attributes)){
-	// 	let accessorRef = glbPrimitive.attributes[attributeName];
-	// 	let accessor = json.accessors[accessorRef];
-	// 	let bufferView = bufferViews[accessor.bufferView];
-
-	// 	let mappedName = {
-	// 		"COLOR_0": "color",
-	// 		"NORMAL": "normal",
-	// 		"POSITION": "position",
-	// 		"TEXCOORD_0": "uv",
-	// 	}[attributeName] ?? attributeName;
-
-	// 	let geomBuffer = {name: mappedName, buffer: new Uint8Array(bufferView.buffer)};
-	// 	geometry.buffers.push(geomBuffer);
-
-	// 	if(glbPrimitive.indices){
-	// 		let accessor = json.accessors[glbPrimitive.indices];
-	// 		let bufferView = bufferViews[accessor.bufferView];
-
-	// 		if(accessor.componentType == 5123){
-	// 			geometry.indices = new Uint32Array(new Uint16Array(bufferView.buffer))
-	// 		}else{
-	// 			geometry.indices = new Uint32Array(bufferView.buffer);
-	// 		}
-
-	// 	}
-	// }
-
-	if(false)
-	{ // DEBUG: de-indexing
-
-		let indices = geometry.indices;
-		let numTriangles = indices.length / 3;
-		let inPositions = new Float32Array(geometry.buffers.find(b => b.name === "position").buffer.buffer);
-		let inColors = new Uint32Array(geometry.buffers.find(b => b.name === "color").buffer.buffer);
-
-		let hasUVs = geometry.buffers.find(b => b.name === "uv") ? true : false;
-		let hasNormals = geometry.buffers.find(b => b.name === "normal") ? true : false;
-
-		let inUVs = hasUVs ? new Uint32Array(geometry.buffers.find(b => b.name === "uv").buffer.buffer) : null;
-		let inNormals = hasNormals ? new Uint32Array(geometry.buffers.find(b => b.name === "normal").buffer.buffer) : null;
-		let outPositions = new Float32Array(9 * numTriangles);
-		let outColors = new Uint32Array(3 * numTriangles);
-		let outIndices = new Uint32Array(indices.length);
-		let outUVs = new Float32Array(2 * 3 * numTriangles);
-		let outNormals = new Float32Array(3 * 3 * numTriangles);
-
-		for(let i = 0; i < indices.length; i++){
-
-			let inIndex = indices[i];
-
-			outPositions[3 * i + 0] = inPositions[3 * inIndex + 0];
-			outPositions[3 * i + 1] = inPositions[3 * inIndex + 1];
-			outPositions[3 * i + 2] = inPositions[3 * inIndex + 2];
-
-			outColors[i] = inColors[inIndex];
-
-			if(hasUVs){
-				outUVs[2 * i + 0] = inUVs[2 * inIndex + 0];
-				outUVs[2 * i + 1] = inUVs[2 * inIndex + 1];
-			}
-
-			if(hasNormals){
-				outNormals[3 * i + 0] = inNormals[3 * inIndex + 0];
-				outNormals[3 * i + 1] = inNormals[3 * inIndex + 1];
-				outNormals[3 * i + 2] = inNormals[3 * inIndex + 2];
-			}
-
-			outIndices[i] = i;
 		}
 
-		// geometry.buffers.find(b => b.name === "position").buffer = new Uint8Array(outPositions.buffer);
-		geometry.buffers.find(b => b.name === "position").buffer = new Float32Array(outPositions.buffer);
-		geometry.buffers.find(b => b.name === "color").buffer = new Uint32Array(outColors.buffer);
+		let numTriangles_primitive = prim_indices.length / 3;
 
-		if(hasUVs){
-			geometry.buffers.find(b => b.name === "uv").buffer = new Uint8Array(outUVs.buffer);
+		if(typeof primitive.attributes.POSITION !== "undefined")
+		{
+			let accessorRef = primitive.attributes.POSITION ?? null;
+			let accessor = json.accessors[accessorRef];
+			let bufferView = bufferViews[accessor.bufferView];
+			let prim_positions = new Float32Array(bufferView.buffer)
+
+			for(let i = 0; i < prim_indices.length; i++){
+				let index = prim_indices[i];
+				let x = prim_positions[3 * index + 0];
+				let y = prim_positions[3 * index + 1];
+				let z = prim_positions[3 * index + 2];
+
+				positions[9 * numTrianglesProcessed + 3 * i + 0] = x;
+				positions[9 * numTrianglesProcessed + 3 * i + 1] = y;
+				positions[9 * numTrianglesProcessed + 3 * i + 2] = z;
+			}
+		}else{
+			throw "wat?";
 		}
 
-		if(hasNormals){
-			geometry.buffers.find(b => b.name === "normal").buffer = new Uint8Array(outNormals.buffer);
+		if(typeof primitive.attributes.TEXCOORD_0 !== "undefined")
+		{
+			let accessorRef = primitive.attributes.TEXCOORD_0 ?? null;
+			let accessor = json.accessors[accessorRef];
+			let bufferView = bufferViews[accessor.bufferView];
+			let prim_uvs = new Float32Array(bufferView.buffer);
+
+			for(let i = 0; i < prim_indices.length; i++){
+				let index = prim_indices[i];
+				let u = prim_uvs[2 * index + 0];
+				let v = prim_uvs[2 * index + 1];
+
+				uvs[6 * numTrianglesProcessed + 2 * i + 0] = u;
+				uvs[6 * numTrianglesProcessed + 2 * i + 1] = v;
+			}
+		}else{
+			for(let i = 0; i < prim_indices.length; i++){
+				let u = 0;
+				let v = 0;
+
+				uvs[6 * numTrianglesProcessed + 2 * i + 0] = u;
+				uvs[6 * numTrianglesProcessed + 2 * i + 1] = v;
+			}
 		}
 
-		geometry.indices = outIndices;
+		numTrianglesProcessed += numTriangles_primitive;
 	}
 
 	// BOUNDING BOX
@@ -256,7 +121,11 @@ onmessage = async function(e){
 	let imageBitmap = null;
 	let imageBuffer = null;
 	if(json.images?.length > 0){
-		let image = json.images[0];
+		let materialRef = mesh.primitives[0].material;
+		let material = json.materials[materialRef];
+		let imageRef = material.pbrMetallicRoughness.baseColorTexture.index;
+
+		let image = json.images[imageRef];
 		let buffer = bufferViews[image.bufferView].buffer;
 		let mimeType = image.mimeType;
 
@@ -267,24 +136,81 @@ onmessage = async function(e){
 		imageBuffer = buffer;
 	}
 
-	let message = {
-		geometry: geometry,
-		imageBitmap: imageBitmap,
-		imageBuffer: imageBuffer,
-	};
-
-	let transferables = [
-		...geometry.buffers.map(b => b.buffer.buffer),
-		geometry.indices.buffer,
-	];
-
-	if(imageBitmap){
-		transferables.push(imageBitmap);
-		transferables.push(imageBuffer);
+	for(let i = 0; i < indices.length; i++){
+		indices[i] = i;
 	}
 
-	let duration = performance.now() - tStart;
-	console.log("duration: " + duration  + "ms");
+	return {
+		geometry: geometry,
+		imageBitmap, imageBuffer,
+	};
+}
 
-	postMessage(message, transferables);
+onmessage = async function(e){
+
+	let {url} = e.data;
+
+	let response = await fetch(url);
+	let buffer = await response.arrayBuffer();
+	let view = new DataView(buffer);
+
+	let tStart = performance.now();
+
+	let magic = view.getUint32(0, true);
+	let version = view.getUint32(4, true);
+	let length = view.getUint32(8, true);
+	let chunkSize = view.getUint32(12, true);
+	let chunkType = view.getUint32(16, true);
+
+	let jsonBuffer = buffer.slice(20, 20 + chunkSize);
+	let decoder = new TextDecoder();
+	let jsonText = decoder.decode(jsonBuffer);
+	let json = JSON.parse(jsonText);
+
+	let binaryChunkOffset = 12 + 8 + chunkSize + 8;
+	let binaryChunkSize = view.getUint32(20 + chunkSize, true);
+	
+	let bufferViews = [];
+	for(let glbBufferView of json.bufferViews){
+
+		let offset = glbBufferView.byteOffset;
+		let size = glbBufferView.byteLength;
+
+		let data = buffer.slice(binaryChunkOffset + offset, binaryChunkOffset + offset + size);
+
+		bufferViews.push({buffer: data});
+	}
+
+	let meshIndex = 0;
+	for(let glbMesh of json.meshes){
+
+		let mesh = await loadMesh(glbMesh, json, bufferViews, meshIndex);
+
+		if(glbMesh.primitives.length > 1){
+			continue;
+		}
+
+		let message = {
+			geometry: mesh.geometry,
+			imageBitmap: mesh.imageBitmap,
+			imageBuffer: mesh.imageBuffer,
+		};
+
+		let transferables = [
+			...mesh.geometry.buffers.map(b => b.buffer.buffer),
+			mesh.geometry.indices.buffer,
+		];
+
+		if(mesh.imageBitmap){
+			transferables.push(mesh.imageBitmap);
+			transferables.push(mesh.imageBuffer);
+		}
+
+		let duration = performance.now() - tStart;
+		console.log("duration: " + duration  + "ms");
+
+		postMessage(message, transferables);
+		meshIndex++;
+	}
+	
 };

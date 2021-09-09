@@ -237,84 +237,49 @@ canvas{
 	// 	});
 	// });
 
-	// Potree.loadGLB("./resources/models/lion.glb").then(node => {
-	// Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
-	// Potree.loadGLB("./resources/models/australia_gas_30M.glb").then(node => {
-	// Potree.loadGLB("./resources/models/sitnmesh.glb").then(node => {
-	// Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
-	Potree.loadGLB("./resources/models/Big5M.glb").then(node => {
-	// Potree.loadGLB("./resources/models/sitnmesh.glb").then(node => {
-	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
-	// Potree.loadGLB("./resources/models/anita_mui_aligned.glb").then(node => {
-
-		// node.set({
-		// 	position: [5, 0, 3],
-		// 	scale: [4, 4, 4],
-		// });
-		node.rotation.rotate(1 * Math.PI / 2, new Vector3(0, 1, 0));
-
-		// node.set({
-		// 	position: [-15, -15, 4],
-		// 	scale: [4, 4, 4],
-		// });
-		// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(1, 0, 0));
-
-		// node.material = new WireframeMaterial();
-		// scene.root.children.push(node);
-		window.node = node;
-
-
+	{
 		let light = new PointLight();
 		light.position.set(10, 10, 10);
 
 		scene.root.children.push(light);
 
-
-		{ // add wireframe
-			let node2 = new Mesh("wireframe", node.geometry);
-
-			// node2.material = new TriangleColorMaterial();
-			node2.material = new WireframeMaterial();
-			node2.material.color.set(0, 0.5, 0);
-			node2.position.copy(node.position);
-			node2.scale.copy(node.scale);
-			node2.rotation.copy(node.rotation);
-
-			// scene.root.children.push(node2);
-		}
-
-		node.updateWorld();
-		// simplify(node);
-		// generateLOD(node);
-		// generateVoxels(node);
-		// generateVoxelsGpu(potree.renderer, node);
-		generateVoxelsCompute(potree.renderer, node);
-
-		controls.set({
-			position: [-3.4, -4.3, -8.9],
-			pivot: [-0.4, -0.9, -5.9],
-		});
-		controls.set({
-			position: [-5.3, -5.9, -4.2],
-			pivot: [0.4, 0.4, -6.3],
-		});
-
-		controls.set({
-			position: [-2.7, -1.7, -7.9],
-			pivot: [-0.8, -0.2, -5.0],
-		});
-
-		// controls.set({
-		// 	position: [2332.8, 1184.1, 1042.0],
-		// 	pivot: [2371.5, 1374.0, 922.7],
-		// });
-
 		controls.set({
 			position: [2334.5, 1408.7, 954.4],
 			pivot: [2335.0, 1377.2, 910.0],
 		});
+	}
 
+	// Potree.loadGLB("./resources/models/lion.glb").then(node => {
+	// Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {
+	// Potree.loadGLB("./resources/models/australia_gas_30M.glb").then(node => {
+	// Potree.loadGLB("./resources/models/sitnmesh.glb").then(node => {
+	// Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
+	// Potree.loadGLB("./resources/models/sitnmesh.glb").then(node => {
+	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+	// Potree.loadGLB("./resources/models/anita_mui_aligned.glb").then(node => {
+	Potree.loadGLB("./resources/models/Big5M.glb", {
+		onStart: root => {
+			root.rotation.rotate(1 * Math.PI / 2, new Vector3(0, 1, 0));
+			root.updateWorld();
 
+			// scene.root.children.push(root);
+
+			console.log("mesh root loaded");
+		},
+		onNode: node => {
+			console.log("subnode loaded");
+
+			potree.onUpdate( () => {
+				let positions = node.geometry.findBuffer("position");
+				let uvs = node.geometry.findBuffer("uv");
+				let image = node.material.image;
+				
+				potree.renderer.drawMesh({positions, uvs, image});
+			});
+		},
+		onFinish: () => {
+			console.log("finished");
+		}
 	});
 
 	{
