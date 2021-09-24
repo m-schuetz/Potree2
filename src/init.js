@@ -192,11 +192,68 @@ function endPass(pass){
 	renderer.device.queue.submit([commandBuffer]);
 }
 
-function render(){
-	Timer.setEnabled(true);
+function renderBasic(){
+	let layers = new Map();
+
+	let stack = [scene.root];
+	while(stack.length > 0){
+		let node = stack.pop();
+
+		if(!node.visible){
+			continue;
+		}
+
+		let layer = layers.get(node.renderLayer);
+		if(!layer){
+			layer = {renderables: new Map()};
+			layers.set(node.renderLayer, layer);
+		}
+
+		let renderables = layer.renderables;
+
+		let nodeType = node.constructor.name;
+		if(!renderables.has(nodeType)){
+			renderables.set(nodeType, []);
+		}
+		renderables.get(nodeType).push(node);
+
+		for(let child of node.children){
+
+			child.updateWorld();
+			child.world.multiplyMatrices(node.world, child.world);
+
+			stack.push(child);
+		}
+	}
+
+	let renderables = layers.get(0).renderables;
+
+	renderer.start();
+
+	let screenbuffer = renderer.screenbuffer;
+
+	let pass = startPass(renderer, screenbuffer);
+	let drawstate = {renderer, camera, renderables, pass};
+
+	for(let [key, nodes] of renderables){
+		for(let node of nodes){
+			if(typeof node.render !== "undefined"){
+				node.render(drawstate);
+			}
+		}
+	}
+
+	renderer.renderDrawCommands(drawstate);
+
+	endPass(pass);
+
+	renderer.finish();
+}
+
+function renderNotSoBasic(){
+	// Timer.setEnabled(true);
 
 	let layers = new Map();
-	// let renderables = new Map();
 
 	let stack = [scene.root];
 	while(stack.length > 0){
@@ -467,16 +524,6 @@ function render(){
 
 	}
 
-
-
-	// { // MESHES
-	// 	let meshes = renderables.get("Mesh") ?? [];
-
-	// 	renderMeshes(meshes, drawstate);
-	// }
-
-	// renderer.renderDrawCommands(drawstate);
-
 	renderer.finish();
 
 	Timer.frameEnd(renderer);
@@ -488,7 +535,7 @@ function loop(){
 	stats.begin();
 
 	update();
-	render();
+	renderBasic();
 
 	stats.end();
 

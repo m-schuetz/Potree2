@@ -8,7 +8,7 @@ let index = 0;
 let unresolvedIndex = 0;
 let frame = 0;
 
-let enabled = true;
+let enabled = false;
 
 let counters = {};
 
@@ -23,7 +23,7 @@ function init(renderer){
 	});
 
 	queryBuffer = renderer.device.createBuffer({
-		size: 8 * capacity,
+		size: 256 * capacity,
 		usage: GPUBufferUsage.QUERY_RESOLVE 
 			| GPUBufferUsage.STORAGE
 			| GPUBufferUsage.COPY_SRC
@@ -60,7 +60,7 @@ function frameEnd(renderer){
 
 	let localStamps = stamps
 
-	renderer.readBuffer(queryBuffer, 0, 8 * index).then( buffer => {
+	renderer.readBuffer(queryBuffer, 0, 256 * index).then( buffer => {
 
 		// if((frame % 30) !== 0){
 		// 	return;
@@ -76,7 +76,7 @@ function frameEnd(renderer){
 		for(let i = 0; i < Math.min(u64.length, localStamps.length); i++){
 
 			let label = localStamps[i].label;
-			let current = Number(u64[i] - tStart) / 1_000_000;
+			// let current = Number(u64[i] - tStart) / 1_000_000;
 			
 			if(label.endsWith("-start")){
 				starts.set(label, u64[i]);
@@ -171,7 +171,7 @@ function resolve(renderer, commandEncoder){
 
 	let first = unresolvedIndex;
 	let count = index - unresolvedIndex;
-	commandEncoder.resolveQuerySet(querySet, first, count, queryBuffer, 8 * first);
+	commandEncoder.resolveQuerySet(querySet, first, count, queryBuffer, 256 * first);
 
 	unresolvedIndex = index;
 }
