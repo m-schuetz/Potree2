@@ -36,9 +36,21 @@ canvas{
 	image-rendering: pixelated;
 }
 
+#code{
+	position: absolute;
+	left: 10px;
+	bottom: 10px;
+	width: calc(100% - 20px);
+	height: 400px;
+	font-size: 2em;
+	font-family: monospace;
+	tab-size : 4;
+}
+
 </style>
 </head>
 <body style="padding: 0; margin: 0">
+
 
 
 <canvas id="canvas" width="800" height="600" 
@@ -47,30 +59,13 @@ canvas{
 		grid-column: 1; grid-row: 1">
 </canvas>
 
-<!-- <span style="position: absolute; left: 10px; top: 70px; 
-	background-color: white; opacity: 0.7; padding: 10px;">
-	
-	<span style="font-weight: bold">Rewriting Potree in WebGPU:</span>
-
-	<ul>
-		<li>Highly experimental and crashy.</li>
-		<li>Requires <a href="https://www.google.com/intl/de/chrome/canary/">Chrome Canary 92</a></li>
-		<li>To enable WebGPU, open this URL: <pre>chrome://flags/#enable-unsafe-webgpu</pre></li>
-		<li>Github: <a href="https://github.com/m-schuetz/Potree2">https://github.com/m-schuetz/Potree2</a></li>
-	</ul>
-
-</span> -->
-
-<span id="big_message"></span>
-<span id="msg_dbg"></span>
+<textarea id="code" rows="5"></textarea>
 
 <script type="importmap">
 {
 	"imports": {
 		"potree":      "./src/Potree.js",
-		"toolbar":     "./src/modules/toolbar/toolbar.js",
 		"dat.gui":     "./libs/dat.gui/dat.gui.module.js",
-		"glslang":     "./libs/glslang/glslang.js",
 		"stats":       "./libs/stats.js/stats.module.js",
 		"BinaryHeap":  "./libs/BinaryHeap/BinaryHeap.js"
 	}
@@ -80,58 +75,42 @@ canvas{
 <script type="module">
 
 	import {Potree} from "potree";
-	import {Vector3, Mesh, Geometry, geometries, PointLight} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	import {ParametricFunction} from "./src/modules/parametric_functions/ParametricFunction.js";
-
-	import {installToolbar} from "toolbar";
 
 	let canvas = document.getElementById("canvas");
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
-	installToolbar(potree.renderer.canvas, potree);
-
-	window.Potree = Potree;
-	window.potree = potree;
-	window.Vector3 = Vector3;
 
 	initGUI(potree);
-	guiContent["point budget (M)"] = 2;
-	guiContent["point size"] = 5;
-	guiContent["High-Quality"] = false;
-	guiContent["Eye-Dome-Lighting"] = false;
-	guiContent["dilate"] = false;
-	// guiContent["attribute"] = "intensity";
-
-	// default, if not overriden later on
+	
 	controls.set({
-		yaw: -0.2,
-		pitch: 0.8,
-		radius: 10,
+		position: [-2.1, -1.2, 1.0],
+		pivot: [-0.0, -0.1, -1.1],
 	});
-
-	{
-		let light = new PointLight();
-		light.position.set(10, 10, 10);
-
-		scene.root.children.push(light);
-
-		controls.set({
-			position: [1.7, 0.9, 0.9],
-			pivot: [0, 0, 0],
-		});
-	}
-
+	
 	let parametric = new ParametricFunction();
 	scene.root.children.push(parametric);
 
-	potree.onUpdate( () => {
-		potree.renderer.drawBoundingBox(
-			new Vector3(0, 0, 0),
-			new Vector3(1, 1, 1),
-			new Vector3(255, 0, 0),
-		);
-	});
+	{// from https://stackoverflow.com/questions/6637341/use-tab-to-indent-in-textarea
+		document.getElementById("code").addEventListener('keydown', function(e) {
+
+			if (e.key === "Tab") {
+				e.preventDefault();
+				var start = this.selectionStart;
+				var end = this.selectionEnd;
+
+				// set textarea value to: text before caret + tab + text after caret
+				this.value = this.value.substring(0, start) +
+				"\t" + this.value.substring(end);
+
+				// put caret at right position again
+				this.selectionStart =
+				this.selectionEnd = start + 1;
+			}
+
+		});
+	}
 
 </script>
 

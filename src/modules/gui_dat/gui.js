@@ -51,37 +51,36 @@ export function initGUI(potree){
 	{
 		let stats = gui.addFolder("stats");
 		stats.open();
-		stats.add(guiContent, "#points").listen();
-		stats.add(guiContent, "#nodes").listen();
+		// stats.add(guiContent, "#points").listen();
+		// stats.add(guiContent, "#nodes").listen();
 		stats.add(guiContent, "fps").listen();
-		stats.add(guiContent, "duration(update)").listen();
 		stats.add(guiContent, "cam.pos").listen();
 		stats.add(guiContent, "cam.target").listen();
 		stats.add(guiContent, "cam.dir").listen();
 	}
 
-	{
-		let input = gui.addFolder("input");
-		input.open();
+	// {
+	// 	let input = gui.addFolder("input");
+	// 	input.open();
 
-		// input.add(guiContent, "mode", [
-		// 	"pixels", 
-		// 	"dilate",
-		// 	"HQS",
-		// ]);
-		input.add(guiContent, "use compute").listen();
-		input.add(guiContent, "dilate").listen();
-		input.add(guiContent, "Eye-Dome-Lighting").listen();
-		input.add(guiContent, "High-Quality").listen();
-		input.add(guiContent, "show bounding box").listen();
-		input.add(guiContent, "update").listen();
-		// guiAttributes = input.add(guiContent, "attribute", ["rgba", "intensity"]).listen();
-		// window.guiAttributes = guiAttributes;
+	// 	// input.add(guiContent, "mode", [
+	// 	// 	"pixels", 
+	// 	// 	"dilate",
+	// 	// 	"HQS",
+	// 	// ]);
+	// 	input.add(guiContent, "use compute").listen();
+	// 	input.add(guiContent, "dilate").listen();
+	// 	input.add(guiContent, "Eye-Dome-Lighting").listen();
+	// 	input.add(guiContent, "High-Quality").listen();
+	// 	input.add(guiContent, "show bounding box").listen();
+	// 	input.add(guiContent, "update").listen();
+	// 	// guiAttributes = input.add(guiContent, "attribute", ["rgba", "intensity"]).listen();
+	// 	// window.guiAttributes = guiAttributes;
 
-		// slider
-		input.add(guiContent, 'point budget (M)', 0.01, 5);
-		input.add(guiContent, 'point size', 1, 5);
-	}
+	// 	// slider
+	// 	input.add(guiContent, 'point budget (M)', 0.01, 5);
+	// 	input.add(guiContent, 'point size', 1, 5);
+	// }
 
 	// {
 	// 	let input = gui.addFolder("Color Adjustments");

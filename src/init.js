@@ -11,7 +11,7 @@ import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoad
 import {readPixels, readDepth} from "./renderer/readPixels.js";
 import {
 	renderPoints, renderMeshes, renderQuads, 
-	renderPointsCompute, renderPointsOctree, renderQuadsOctree
+	renderPointsOctree, renderQuadsOctree
 } from "potree";
 import {dilate, EDL, hqs_normalize} from "potree";
 import Stats from "stats";

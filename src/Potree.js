@@ -48,7 +48,6 @@ export * from "./misc/EventDispatcher.js";
 export * from "./InputHandler.js";
 
 export {render as renderPoints} from "./prototyping/renderPoints.js";
-export {render as renderPointsCompute} from "./prototyping/renderPointsCompute.js";
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";
 export {render as renderQuadsOctree}  from "./potree/renderQuadsOctree.js";
 export {dilate}  from "./potree/dilate.js";
