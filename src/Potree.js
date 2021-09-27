@@ -81,6 +81,8 @@ const settings = {
 	edlEnabled: false,
 	updateEnabled: true,
 	gradient: Gradients.SPECTRAL,
+	resolution: 1_000,
+	primitive: "triangles",
 };
 
 const state = {

@@ -1,5 +1,5 @@
 
-import {SceneNode, Matrix4} from "potree";
+import {Potree, SceneNode, Matrix4} from "potree";
 
 //====================================================
 //====================================================
@@ -33,27 +33,29 @@ import {SceneNode, Matrix4} from "potree";
 
 
 const shaderSource = `
-// - modify sampleFunction() down below to specify the shape of your parametric function
+// - modify samplePosition() to specify the shape of your parametric function
 // - compilation is automatically done while typing
-// - if you encounter compilation errors (red background), check the dev console for details
+// - if you encounter compilation errors (red background), 
+//   check the dev console for details
 
 [[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
-	time : f32;
+	worldView          : mat4x4<f32>;
+	proj               : mat4x4<f32>;
+	screen_width       : f32;
+	screen_height      : f32;
+	time               : f32;
+	resolution         : u32;
 };
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
 
 // see https://in.mathworks.com/help/symbolic/ezsurf.html
-fn sampleFunction(u : f32, v : f32) -> vec4<f32> {
+fn samplePosition(u : f32, v : f32) -> vec4<f32> {
 
 	var s = u * 2.0 * 3.1415;
 	var t = v * 3.1415;
 
-	var time = cos(2.5 * uniforms.time);
+	var time = cos(uniforms.time);
 	time = pow(abs(time), 0.8) * sign(time);
 	var r = 0.3 * (1.0 + sin(5.0 * s + 10.0 * t * time));
 	var x = r * cos(s) * sin(t);
@@ -63,20 +65,27 @@ fn sampleFunction(u : f32, v : f32) -> vec4<f32> {
 	return vec4<f32>(x, y, z, 1.0);
 }
 
-fn sampleNormal(u : f32, v : f32, spacing : f32) -> vec4<f32> {
+fn sampleColor(u : f32, v : f32, spacing : f32) -> vec4<f32> {
 
-	var epsilon = spacing * 0.1;
+	var delta = 40.0 / 1000.0;
 
-	var x_0 = sampleFunction(u - epsilon, v);
-	var x_1 = sampleFunction(u + epsilon, v);
-	var y_0 = sampleFunction(u, v - epsilon);
-	var y_1 = sampleFunction(u, v + epsilon);
+	var x_0 = samplePosition(u - delta, v);
+	var x_1 = samplePosition(u + delta, v);
+	var y_0 = samplePosition(u, v - delta);
+	var y_1 = samplePosition(u, v + delta);
 
 	var a = normalize(x_1 - x_0).xyz;
 	var b = normalize(y_1 - y_0).xyz;
 	var N = cross(a, b);
 
-	return vec4<f32>(N, 1.0);
+	var color = vec4<f32>(
+		pow(1.0 * abs(N.x), 0.7),
+		pow(1.0 * abs(N.y), 1.1),
+		pow(abs(N.z), 0.2),
+		1.0,
+	);
+
+	return color;
 }
 
 struct VertexIn{
@@ -96,29 +105,7 @@ struct FragmentOut{
 	[[location(0)]] color : vec4<f32>;
 };
 
-[[stage(vertex)]]
-fn main_vertex_points(vertex : VertexIn) -> VertexOut {
-
-	ignore(uniforms);
-
-	var u = f32(vertex.index) / 1000000.0;
-	var z = 2.0 * u - 1.0;
-	var r_xy = sqrt(1.0 - z * z);
-	var x = r_xy * sin(500.0 * u);
-	var y = r_xy * cos(500.0 * u);
-
-	var worldPos = vec4<f32>(x, y, z, 1.0);
-	var viewPos = uniforms.worldView * worldPos;
-	var projPos = uniforms.proj * viewPos;
-
-	var vout : VertexOut;
-	vout.pos = projPos;
-	vout.color = vec4<f32>(u, 0.0, 0.0, 1.0);
-
-	return vout;
-}
-
-
+// vertex shader for triangle primitives
 [[stage(vertex)]]
 fn main_vertex_triangles(vertex : VertexIn) -> VertexOut {
 
@@ -133,17 +120,17 @@ fn main_vertex_triangles(vertex : VertexIn) -> VertexOut {
 		vec3<f32>( 1.0, 1.0, 0.0),
 		vec3<f32>( 0.0, 1.0, 0.0),
 	);
-
-	var spacing = 1.0 / 1000.0;
+	
+	var spacing = 1.0 / f32(uniforms.resolution);
 
 	var localVertexIndex = vertex.index % 6u;
-	var ix = (vertex.index / 6u) % 1000u;
-	var iy = (vertex.index / 6u) / 1000u;
+	var ix = (vertex.index / 6u) % uniforms.resolution;
+	var iy = (vertex.index / 6u) / uniforms.resolution;
 
-	var u = f32(ix) / 1000.0;
-	var v = f32(iy) / 1000.0;
+	var u = f32(ix) / f32(uniforms.resolution);
+	var v = f32(iy) / f32(uniforms.resolution);
 
-	var worldPos = sampleFunction(
+	var worldPos = samplePosition(
 		u + QUAD_OFFSETS[localVertexIndex].x * spacing,
 		v + QUAD_OFFSETS[localVertexIndex].y * spacing
 	);
@@ -153,10 +140,33 @@ fn main_vertex_triangles(vertex : VertexIn) -> VertexOut {
 
 	var vout : VertexOut;
 	vout.pos = projPos;
-	// vout.color = vec4<f32>(u, v, 0.0, 1.0);
-	var N = sampleNormal(u, v, spacing);
-	N.b = 0.5;
-	vout.color = N;
+	vout.color = sampleColor(u, v, spacing);
+
+	return vout;
+}
+
+// vertex shader for point primitives
+[[stage(vertex)]]
+fn main_vertex_points(vertex : VertexIn) -> VertexOut {
+
+	ignore(uniforms);
+	
+	var spacing = 1.0 / f32(uniforms.resolution);
+
+	var localVertexIndex = vertex.index % 6u;
+	var ix = vertex.index % uniforms.resolution;
+	var iy = vertex.index / uniforms.resolution;
+
+	var u = f32(ix) / f32(uniforms.resolution);
+	var v = f32(iy) / f32(uniforms.resolution);
+
+	var worldPos = samplePosition(u, v);
+	var viewPos = uniforms.worldView * worldPos;
+	var projPos = uniforms.proj * viewPos;
+
+	var vout : VertexOut;
+	vout.pos = projPos;
+	vout.color = sampleColor(u, v, spacing);
 
 	return vout;
 }
@@ -180,16 +190,20 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 
 let initialized = null;
-let pipeline = null;
+let pipeline_triangles = null;
+let pipeline_points = null;
+
 let uniformBuffer = null;
-let bindGroup = null;
+
+let bindGroup_triangles = null;
+let bindGroup_points = null;
 
 function updatePipeline(renderer, code){
 	let {device} = renderer;
 
 	let shaderModule = device.createShaderModule({code: code});
 
-	pipeline = device.createRenderPipeline({
+	pipeline_triangles = device.createRenderPipeline({
 		vertex: {
 			module: shaderModule,
 			entryPoint: "main_vertex_triangles",
@@ -202,6 +216,28 @@ function updatePipeline(renderer, code){
 		},
 		primitive: {
 			topology: 'triangle-list',
+			cullMode: 'none',
+		},
+		depthStencil: {
+			depthWriteEnabled: true,
+			depthCompare: 'greater',
+			format: "depth32float",
+		},
+	});
+
+	pipeline_points = device.createRenderPipeline({
+		vertex: {
+			module: shaderModule,
+			entryPoint: "main_vertex_points",
+			buffers: []
+		},
+		fragment: {
+			module: shaderModule,
+			entryPoint: "main_fragment",
+			targets: [{format: "bgra8unorm"}],
+		},
+		primitive: {
+			topology: 'point-list',
 			cullMode: 'none',
 		},
 		depthStencil: {
@@ -229,13 +265,18 @@ function initialize(renderer){
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	});
 
-	bindGroup = device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
+	bindGroup_triangles = device.createBindGroup({
+		layout: pipeline_triangles.getBindGroupLayout(0),
 		entries: [
 			{binding: 0,resource: {buffer: uniformBuffer}},
 		],
 	});
-
+	bindGroup_points = device.createBindGroup({
+		layout: pipeline_points.getBindGroupLayout(0),
+		entries: [
+			{binding: 0,resource: {buffer: uniformBuffer}},
+		],
+	});
 	
 	{
 		let elCode = document.getElementById("code");
@@ -262,8 +303,14 @@ function initialize(renderer){
 
 					updatePipeline(renderer, elCode.value);
 
-					bindGroup = device.createBindGroup({
-						layout: pipeline.getBindGroupLayout(0),
+					bindGroup_triangles = device.createBindGroup({
+						layout: pipeline_triangles.getBindGroupLayout(0),
+						entries: [
+							{binding: 0,resource: {buffer: uniformBuffer}},
+						],
+					});
+					bindGroup_points = device.createBindGroup({
+						layout: pipeline_points.getBindGroupLayout(0),
 						entries: [
 							{binding: 0,resource: {buffer: uniformBuffer}},
 						],
@@ -296,6 +343,8 @@ export class ParametricFunction extends SceneNode {
 
 		let {passEncoder} = drawstate.pass;
 
+		let primitive = Potree.settings.primitive;
+
 		{ // update uniforms
 			let data = new ArrayBuffer(256);
 			let f32 = new Float32Array(data);
@@ -316,16 +365,27 @@ export class ParametricFunction extends SceneNode {
 				view.setFloat32(128, size.width, true);
 				view.setFloat32(132, size.height, true);
 				view.setFloat32(136, performance.now() / 1000, true);
+				view.setUint32(140, Potree.settings.resolution, true);
 			}
 
 			renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
 		}
 
-		passEncoder.setPipeline(pipeline);
-		passEncoder.setBindGroup(0, bindGroup);
+		if(primitive === "triangles"){
+			passEncoder.setPipeline(pipeline_triangles);
+			passEncoder.setBindGroup(0, bindGroup_triangles);
 
-		passEncoder.draw(6 * 1_000_000, 1, 0, 0);
+			let numPoints = (1 + Potree.settings.resolution) ** 2;
+		
+			passEncoder.draw(6 * numPoints, 1, 0, 0);
+		}else if(primitive === "points"){
+			passEncoder.setPipeline(pipeline_points);
+			passEncoder.setBindGroup(0, bindGroup_points);
 
+			let numPoints = (1 + Potree.settings.resolution) ** 2;
+		
+			passEncoder.draw(numPoints, 1, 0, 0);
+		}
 
 	}
 
