@@ -1,7 +1,7 @@
 
-import {Vector3, Matrix4, Frustum} from "potree";
+import {Vector3, Matrix4, Frustum, math} from "potree";
 import {SceneNode, PointCloudOctreeNode} from "potree";
-import {math} from "potree";
+import {renderPointsOctree} from "potree";
 import {BinaryHeap} from "BinaryHeap";
 
 export class PointCloudOctree extends SceneNode{
@@ -171,6 +171,10 @@ export class PointCloudOctree extends SceneNode{
 		this.visibleNodes = visibleNodes;
 
 		
+	}
+
+	render(drawstate){
+		renderPointsOctree([this], drawstate);
 	}
 
 }

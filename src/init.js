@@ -402,18 +402,6 @@ function renderNotSoBasic(){
 		let pass = startPass(renderer, screenbuffer);
 		let drawstate = {renderer, camera, renderables, pass};
 
-		if(!Potree.settings.useCompute){
-			renderPoints(points, drawstate);
-		}else{
-			renderPointsCompute(points, drawstate);
-		}
-
-		renderPointsOctree(octrees, drawstate);
-		// renderQuadsOctree(octrees, drawstate);
-
-		let meshes = renderables.get("Mesh") ?? [];
-		renderMeshes(meshes, drawstate);
-
 		for(let [key, nodes] of renderables){
 			for(let node of nodes){
 				if(typeof node.render !== "undefined"){
@@ -431,11 +419,6 @@ function renderNotSoBasic(){
 		let pass = startPass(renderer, fbo_0);
 		let drawstate = {renderer, camera, renderables, pass};
 
-		renderPointsOctree(octrees, drawstate);
-
-		let meshes = renderables.get("Mesh") ?? [];
-		renderMeshes(meshes, drawstate);
-
 		for(let [key, nodes] of renderables){
 			for(let node of nodes){
 				if(typeof node.render !== "undefined"){
@@ -452,77 +435,77 @@ function renderNotSoBasic(){
 	}
 
 
-	if(dilateEnabled){ // dilate
-		let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
+	// if(dilateEnabled){ // dilate
+	// 	let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
 
-		let pass = startPass(renderer, fboTarget);
-		let drawstate = {renderer, camera, renderables, pass};
+	// 	let pass = startPass(renderer, fboTarget);
+	// 	let drawstate = {renderer, camera, renderables, pass};
 
-		dilate(fbo_source, drawstate);
+	// 	dilate(fbo_source, drawstate);
 
-		endPass(pass);
+	// 	endPass(pass);
 
-		fbo_source = fboTarget;
-	}
+	// 	fbo_source = fboTarget;
+	// }
 
-	if(edlEnabled){ // EDL
-		let pass = startPass(renderer, screenbuffer);
-		let drawstate = {renderer, camera, renderables, pass};
+	// if(edlEnabled){ // EDL
+	// 	let pass = startPass(renderer, screenbuffer);
+	// 	let drawstate = {renderer, camera, renderables, pass};
 
-		EDL(fbo_source, drawstate);
+	// 	EDL(fbo_source, drawstate);
 
-		// if(window.fbo){
-		// 	let texture = window.fbo.colorAttachments[0].texture;
-		// 	drawTexture(renderer, pass, texture, 0.1, 0.1, 0.2, 0.2);
-		// }
+	// 	// if(window.fbo){
+	// 	// 	let texture = window.fbo.colorAttachments[0].texture;
+	// 	// 	drawTexture(renderer, pass, texture, 0.1, 0.1, 0.2, 0.2);
+	// 	// }
 
-		endPass(pass);
-	}
+	// 	endPass(pass);
+	// }
 
 
-	{ // HANDLE PICKING
-		for(let {x, y, callback} of Potree.pickQueue){
+	// { // HANDLE PICKING
+	// 	for(let {x, y, callback} of Potree.pickQueue){
 
-			let u = x / renderer.canvas.clientWidth;
-			let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
-			let pos = camera.getWorldPosition();
-			let dir = camera.mouseToUnormalizedDirection(u, v);
-			let near = camera.near;
+	// 		let u = x / renderer.canvas.clientWidth;
+	// 		let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
+	// 		let pos = camera.getWorldPosition();
+	// 		let dir = camera.mouseToUnormalizedDirection(u, v);
+	// 		let near = camera.near;
 
-			let window = 2;
-			let wh = 1;
-			readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
+	// 		let window = 2;
+	// 		let wh = 1;
+	// 		readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
 				
-				let depth = near / d;
+	// 			let depth = near / d;
 				
-				dir.multiplyScalar(depth);
-				let position = pos.add(dir);
+	// 			dir.multiplyScalar(depth);
+	// 			let position = pos.add(dir);
 
-				callback({depth, position});
-			});
-		}
-		Potree.pickQueue.length = 0;
-	}
+	// 			callback({depth, position});
+	// 		});
+	// 	}
+	// 	Potree.pickQueue.length = 0;
+	// }
 
 
 
-	{
-		let layer = layers.get(10);
+	// {
+	// 	let layer = layers.get(10);
 
-		if(layer){
+	// 	if(layer){
 
-			let renderables = layer.renderables;
+	// 		let renderables = layer.renderables;
 
-			let pass = revisitPass(renderer, fbo_source);
-			let drawstate = {renderer, camera, renderables, pass};
+	// 		let pass = revisitPass(renderer, fbo_source);
+	// 		let drawstate = {renderer, camera, renderables, pass};
 
-			let meshes = renderables.get("Mesh") ?? [];
-			renderMeshes(meshes, drawstate);
+	// 		let meshes = renderables.get("Mesh") ?? [];
+	// 		renderMeshes(meshes, drawstate);
 
-			endPass(pass);
-		}
+	// 		endPass(pass);
+	// 	}
 
-	}
+	// }
 
 	renderer.finish();
 
@@ -535,7 +518,7 @@ function loop(){
 	stats.begin();
 
 	update();
-	renderBasic();
+	renderNotSoBasic();
 
 	stats.end();
 

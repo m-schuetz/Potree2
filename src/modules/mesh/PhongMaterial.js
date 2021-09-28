@@ -31,8 +31,7 @@ struct VertexOutput {
 };
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-// [[binding(10), group(0)]] var<storage, read> indices : U32s;
-[[binding(10), group(0)]] var<storage, read> colors : U32s;
+// [[binding(10), group(0)]] var<storage, read> colors : U32s;
 
 
 [[stage(vertex)]]
@@ -48,21 +47,21 @@ fn main(vertex : VertexInput) -> VertexOutput {
 	// output.color = vec4<f32>(vertex.normal.xyz, 1.0);
 	// output.color = vertex.color;#
 
-	{
-		var triangleIndex = vertex.index / 3u;
-		var rgba = colors.values[triangleIndex];
+	// {
+	// 	var triangleIndex = vertex.index / 3u;
+	// 	var rgba = colors.values[triangleIndex];
 
-		var R = (rgba >>  0u) & 0xFFu;
-		var G = (rgba >>  8u) & 0xFFu;
-		var B = (rgba >> 16u) & 0xFFu;
+	// 	var R = (rgba >>  0u) & 0xFFu;
+	// 	var G = (rgba >>  8u) & 0xFFu;
+	// 	var B = (rgba >> 16u) & 0xFFu;
 
-		output.color = vec4<f32>(
-			f32(R) / 255.0,
-			f32(G) / 255.0,
-			f32(B) / 255.0,
-			1.0
-		);
-	}
+	// 	output.color = vec4<f32>(
+	// 		f32(R) / 255.0,
+	// 		f32(G) / 255.0,
+	// 		f32(B) / 255.0,
+	// 		1.0
+	// 	);
+	// }
 
 	return output;
 }
@@ -127,7 +126,10 @@ fn getColor(fragment : FragmentInput) -> vec4<f32>{
 	}elseif(uniforms.color_source == 3u){
 		// TEXTURE
 
-		color = textureSample(myTexture, mySampler, fragment.uv);
+		ignore(myTexture);
+		ignore(mySampler);
+		// color = textureSample(myTexture, mySampler, fragment.uv);
+		color = vec4<f32>(0.0, 1.0, 0.0, 1.0);
 
 	}
 
@@ -251,7 +253,7 @@ function init(renderer){
 
 	let {device} = renderer;
 
-	
+
 
 	sampler = device.createSampler({
 		magFilter: 'linear',
@@ -303,7 +305,7 @@ let uniformsMap = new Map();
 function getUniformsBuffer(renderer, node){
 
 	if(!uniformsMap.has(node)){
-		const uniformBufferSize = 256; 
+		const uniformBufferSize = 256;
 
 		let uniformsBuffer = renderer.device.createBuffer({
 			size: uniformBufferSize,
@@ -321,7 +323,7 @@ let lightsBufferCache = new Map();
 function getLightsBuffer(node, drawstate){
 
 	if(!lightsBufferCache.has(node)){
-		
+
 		let maxLights = 100;
 		let buffer = drawstate.renderer.createBuffer(maxLights * 16);
 
@@ -332,7 +334,7 @@ function getLightsBuffer(node, drawstate){
 }
 
 function updateLights(node, drawstate){
-	
+
 	let device = drawstate.renderer.device;
 	let pointLights = drawstate.renderables.get("PointLight") ?? [];
 
@@ -349,7 +351,7 @@ function updateLights(node, drawstate){
 			data[4 * i + 2] = lightPos.z;
 			data[4 * i + 3] = 0.0;
 		}
-		
+
 		let lightsBuffer = getLightsBuffer(node, drawstate);
 		device.queue.writeBuffer(
 			lightsBuffer, 0,
@@ -374,9 +376,6 @@ function getBindGroup(drawstate, node){
 
 		let pipeline = getPipeline(drawstate, node);
 
-		let colors = node.geometry.buffers.find(buffer => buffer.name === "color");
-		let vboColor = renderer.getGpuBuffer(colors.buffer);
-		
 		bindGroup = renderer.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
@@ -384,13 +383,12 @@ function getBindGroup(drawstate, node){
 				{binding: 1, resource: {buffer: lightsBuffer}},
 				{binding: 2, resource: sampler},
 				{binding: 3, resource: texture.createView()},
-				{binding: 10, resource: {buffer: vboColor}},
 			]
 		});
 
 		bindGroupCache.set(node, bindGroup);
 	}
-	
+
 	return bindGroup;
 }
 
@@ -415,10 +413,10 @@ function getGpuBuffers(renderer, geometry){
 		let {name, buffer} = entry;
 
 		let size = buffer.byteLength;
-		let usage = GPUBufferUsage.VERTEX 
-			| GPUBufferUsage.INDEX 
-			| GPUBufferUsage.COPY_DST 
-			| GPUBufferUsage.STORAGE; 
+		let usage = GPUBufferUsage.VERTEX
+			| GPUBufferUsage.INDEX
+			| GPUBufferUsage.COPY_DST
+			| GPUBufferUsage.STORAGE;
 		let vbo = device.createBuffer({size, usage});
 
 		renderer.device.queue.writeBuffer(vbo, 0, buffer, 0, buffer.byteLength);
@@ -437,7 +435,7 @@ function getGpuBuffers(renderer, geometry){
 }
 
 export function render(node, drawstate){
-	
+
 	let {renderer, pass} = drawstate;
 	let {device} = renderer;
 	let {passEncoder} = pass;
@@ -458,8 +456,6 @@ export function render(node, drawstate){
 		return;
 	}
 
-	let texture = renderer.getGpuTexture(node.material.image);
-
 	let pipeline = getPipeline(drawstate, node);
 	let bindGroup = getBindGroup(drawstate, node);
 
@@ -467,21 +463,38 @@ export function render(node, drawstate){
 	passEncoder.setBindGroup(0, bindGroup);
 
 	let vboPosition = vbos.find(item => item.name === "position").vbo;
-	let vboNormal = vbos.find(item => item.name === "normal").vbo;
-	let vboColor = vbos.find(item => item.name === "color").vbo;
+	passEncoder.setVertexBuffer(0, vboPosition);
 
-	if(material.colorMode === ColorMode.TEXTURE){
+	if(vbos.find(item => item.name === "normal")){
+		let vboNormal = vbos.find(item => item.name === "normal").vbo;
+		passEncoder.setVertexBuffer(1, vboNormal);
+	}else{
+		passEncoder.setVertexBuffer(1, vboPosition);
+	}
+
+	if(vbos.find(item => item.name === "uv")){
 		let vboUV = vbos.find(item => item.name === "uv").vbo;
 		passEncoder.setVertexBuffer(2, vboUV);
 	}else{
-		// TODO: set garbage data since it's not used but required
-		// TODO: could we just set this buffer empty somehow?
 		passEncoder.setVertexBuffer(2, vboPosition);
 	}
 
-	passEncoder.setVertexBuffer(0, vboPosition);
-	passEncoder.setVertexBuffer(1, vboNormal);
-	passEncoder.setVertexBuffer(3, vboColor);
+	if(vbos.find(item => item.name === "color")){
+		let vboColor = vbos.find(item => item.name === "color").vbo;
+		passEncoder.setVertexBuffer(3, vboColor);
+	}else{
+		passEncoder.setVertexBuffer(3, vboPosition);
+	}
+
+	// if(material.colorMode === ColorMode.TEXTURE){
+	// 	let vboUV = vbos.find(item => item.name === "uv").vbo;
+	// 	passEncoder.setVertexBuffer(2, vboUV);
+	// }else{
+	// 	// TODO: set garbage data since it's not used but required
+	// 	// TODO: could we just set this buffer empty somehow?
+	// 	passEncoder.setVertexBuffer(2, vboPosition);
+	// }
+
 
 	if(node.geometry.indices){
 		let indexBuffer = renderer.getGpuBuffer(node.geometry.indices);
@@ -516,5 +529,5 @@ export class PhongMaterial{
 		this.uniformBufferData = new ArrayBuffer(256);
 		this.depthWrite = true;
 	}
-	
+
 }

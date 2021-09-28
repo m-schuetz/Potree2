@@ -33,6 +33,7 @@ export function load(url, callbacks){
 		let geometry = new Geometry();
 		geometry.buffers = geometryData.buffers;
 		geometry.indices = geometryData.indices;
+		geometry.numElements = geometryData.numElements;
 		geometry.boundingBox.min.copy(geometryData.boundingBox.min);
 		geometry.boundingBox.max.copy(geometryData.boundingBox.max);
 
@@ -43,16 +44,6 @@ export function load(url, callbacks){
 			mesh.material.image = imageBitmap;
 			mesh.material.colorMode = ColorMode.TEXTURE;
 			mesh.material.imageBuffer = e.data.imageBuffer;
-
-			// const canvas = document.createElement('canvas');
-			// canvas.width = imageBitmap.width;
-			// canvas.height = imageBitmap.width;
-			// const context = canvas.getContext('2d');
-			let context = getTmpContext();
-			context.drawImage(imageBitmap, 0, 0);
-			let imageData = context.getImageData(0, 0, imageBitmap.width, imageBitmap.height);
-
-			mesh.material.imageData = imageData;
 		}else{
 			mesh.material = new PhongMaterial();
 			mesh.material.image = null;

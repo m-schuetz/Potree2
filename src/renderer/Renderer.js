@@ -365,13 +365,18 @@ export class Renderer{
 			gpuTexture = device.createTexture({
 				size: [width, height, 1],
 				format: "rgba8unorm",
-				usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+				usage: GPUTextureUsage.TEXTURE_BINDING 
+					| GPUTextureUsage.COPY_DST
+					| GPUTextureUsage.RENDER_ATTACHMENT
+					| GPUTextureUsage.COPY_DST,
 			});
 
 			if(image){
-				device.queue.copyImageBitmapToTexture(
-					{imageBitmap: image}, {texture: gpuTexture},
-					[image.width, image.height, 1]
+				device.queue.copyExternalImageToTexture(
+					{source: image},
+					{texture: gpuTexture},
+					// [image.width, image.height, 1]
+					[128, 128, 1]
 				);
 			}
 

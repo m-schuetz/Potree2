@@ -2,7 +2,22 @@
 // import {Vector3, Box3} from "potree";
 import {Vector3, Box3} from "../math/math.js";
 
-async function loadMesh(mesh, json, bufferViews, meshIndex){
+function makeGeometry(numVertices){
+	let positions = new Float32Array(3 * numVertices);
+	let uvs = new Float32Array(2 * numVertices);
+
+	let geometry = {
+		buffers: [
+			{name: "position", buffer: positions},
+			{name: "uv", buffer: uvs},
+		],
+		numElements: numVertices,
+	};
+
+	return geometry;
+}
+
+async function loadMesh(mesh, json, bufferViews, onBatchLoaded){
 
 	let numIndices = 0;
 	for(let primitive of mesh.primitives){
@@ -14,109 +29,39 @@ async function loadMesh(mesh, json, bufferViews, meshIndex){
 			// skip for now
 		}
 	}
-	let numTriangles = numIndices / 3;
-	let numTrianglesProcessed = 0;
 
-	let positions = new Float32Array(9 * numTriangles);
-	let uvs = new Float32Array(6 * numTriangles);
-	let indices = new Uint32Array(numIndices);
+	let maxTrianglesPerBatch = 500_000;
 
-	let geometry = {
-		buffers: [
-			{name: "position", buffer: positions},
-			{name: "uv", buffer: uvs},
-		],
-		indices: indices,
-		numElement: 0,
-	};
-
+	let batches = [];
 	for(let primitive of mesh.primitives){
 
 		if(typeof primitive.indices === "undefined"){
 			continue;
 		}
 
-		let prim_indices; 
-		{
-			let accessor = json.accessors[primitive.indices];
-			let bufferView = bufferViews[accessor.bufferView];
+		let accessor = json.accessors[primitive.indices];
+		let bufferView = bufferViews[accessor.bufferView];
 
-			if(accessor.componentType == 5123){
-				prim_indices = new Uint32Array(new Uint16Array(bufferView.buffer))
-			}else{
-				prim_indices = new Uint32Array(bufferView.buffer);
-			}
-		}
-
-		let numTriangles_primitive = prim_indices.length / 3;
-
-		if(typeof primitive.attributes.POSITION !== "undefined")
-		{
-			let accessorRef = primitive.attributes.POSITION ?? null;
-			let accessor = json.accessors[accessorRef];
-			let bufferView = bufferViews[accessor.bufferView];
-			let prim_positions = new Float32Array(bufferView.buffer)
-
-			for(let i = 0; i < prim_indices.length; i++){
-				let index = prim_indices[i];
-				let x = prim_positions[3 * index + 0];
-				let y = prim_positions[3 * index + 1];
-				let z = prim_positions[3 * index + 2];
-
-				positions[9 * numTrianglesProcessed + 3 * i + 0] = x;
-				positions[9 * numTrianglesProcessed + 3 * i + 1] = y;
-				positions[9 * numTrianglesProcessed + 3 * i + 2] = z;
-			}
+		let num_indices = 0;
+		if(accessor.componentType == 5123){
+			num_indices = bufferView.buffer.byteLength / 2;
 		}else{
-			throw "wat?";
+			num_indices = bufferView.buffer.byteLength / 4;
 		}
 
-		if(typeof primitive.attributes.TEXCOORD_0 !== "undefined")
-		{
-			let accessorRef = primitive.attributes.TEXCOORD_0 ?? null;
-			let accessor = json.accessors[accessorRef];
-			let bufferView = bufferViews[accessor.bufferView];
-			let prim_uvs = new Float32Array(bufferView.buffer);
+		let numTriangles_primitive = num_indices / 3;
+		let numBatches = Math.ceil(numTriangles_primitive / maxTrianglesPerBatch);
+		for(let i = 0; i < numBatches; i++){
 
-			for(let i = 0; i < prim_indices.length; i++){
-				let index = prim_indices[i];
-				let u = prim_uvs[2 * index + 0];
-				let v = prim_uvs[2 * index + 1];
+			let firstTriangle = i * maxTrianglesPerBatch;
+			let numTriangles = Math.min(numTriangles_primitive - firstTriangle, maxTrianglesPerBatch);
 
-				uvs[6 * numTrianglesProcessed + 2 * i + 0] = u;
-				uvs[6 * numTrianglesProcessed + 2 * i + 1] = v;
-			}
-		}else{
-			for(let i = 0; i < prim_indices.length; i++){
-				let u = 0;
-				let v = 0;
+			let batch = {primitive, firstTriangle, numTriangles};
 
-				uvs[6 * numTrianglesProcessed + 2 * i + 0] = u;
-				uvs[6 * numTrianglesProcessed + 2 * i + 1] = v;
-			}
-		}
+			batches.push(batch);
 
-		numTrianglesProcessed += numTriangles_primitive;
-	}
-
-	// BOUNDING BOX
-	let boundingBox = new Box3(); {
-
-		// let f32 = geometry.buffers.find(b => b.name === "position").buffer;
-
-		let buffer = geometry.buffers.find(b => b.name === "position").buffer;
-		let f32 = new Float32Array(buffer.buffer);
-
-		let tmp = new Vector3();
-		for(let i = 0; i < f32.length / 3; i++){
-			tmp.x = f32[3 * i + 0];
-			tmp.y = f32[3 * i + 1];
-			tmp.z = f32[3 * i + 2];
-			boundingBox.expandByPoint(tmp);
 		}
 	}
-
-	geometry.boundingBox = boundingBox;
 
 	let imageBitmap = null;
 	let imageBuffer = null;
@@ -136,14 +81,128 @@ async function loadMesh(mesh, json, bufferViews, meshIndex){
 		imageBuffer = buffer;
 	}
 
-	for(let i = 0; i < indices.length; i++){
-		indices[i] = i;
+	for(let batch of batches){
+
+		let {primitive, firstTriangle, numTriangles} = batch;
+
+		let boundingBox = new Box3();
+
+		let positions = new Float32Array(9 * numTriangles);
+		let uvs = new Float32Array(6 * numTriangles);
+
+		let prim_indices;
+		{
+			let accessor = json.accessors[primitive.indices];
+			let bufferView = bufferViews[accessor.bufferView];
+
+			if(accessor.componentType == 5123){
+				prim_indices = new Uint32Array(new Uint16Array(bufferView.buffer))
+			}else{
+				prim_indices = new Uint32Array(bufferView.buffer);
+			}
+		}
+
+		if(typeof primitive.attributes.POSITION !== "undefined"){
+			let accessorRef = primitive.attributes.POSITION ?? null;
+			let accessor = json.accessors[accessorRef];
+			let bufferView = bufferViews[accessor.bufferView];
+			let prim_positions = new Float32Array(bufferView.buffer)
+
+			for(let i = 0; i < numTriangles; i++){
+				let i0 = prim_indices[3 * (firstTriangle + i) + 0];
+				let i1 = prim_indices[3 * (firstTriangle + i) + 1];
+				let i2 = prim_indices[3 * (firstTriangle + i) + 2];
+
+				positions[9 * i + 0] = prim_positions[3 * i0 + 0];
+				positions[9 * i + 1] = prim_positions[3 * i0 + 1];
+				positions[9 * i + 2] = prim_positions[3 * i0 + 2];
+				positions[9 * i + 3] = prim_positions[3 * i1 + 0];
+				positions[9 * i + 4] = prim_positions[3 * i1 + 1];
+				positions[9 * i + 5] = prim_positions[3 * i1 + 2];
+				positions[9 * i + 6] = prim_positions[3 * i2 + 0];
+				positions[9 * i + 7] = prim_positions[3 * i2 + 1];
+				positions[9 * i + 8] = prim_positions[3 * i2 + 2];
+
+				boundingBox.expandByXYZ(
+					prim_positions[3 * i0 + 0],
+					prim_positions[3 * i0 + 1],
+					prim_positions[3 * i0 + 2],
+				);
+				boundingBox.expandByXYZ(
+					prim_positions[3 * i1 + 0],
+					prim_positions[3 * i1 + 1],
+					prim_positions[3 * i1 + 2],
+				);
+				boundingBox.expandByXYZ(
+					prim_positions[3 * i2 + 0],
+					prim_positions[3 * i2 + 1],
+					prim_positions[3 * i2 + 2],
+				);
+			}
+		}else{
+			throw "wat?";
+		}
+
+		if(typeof primitive.attributes.TEXCOORD_0 !== "undefined"){
+			let accessorRef = primitive.attributes.TEXCOORD_0 ?? null;
+			let accessor = json.accessors[accessorRef];
+			let bufferView = bufferViews[accessor.bufferView];
+			let prim_uvs = new Float32Array(bufferView.buffer);
+
+			for(let i = 0; i < numTriangles; i++){
+				let i0 = prim_indices[3 * (firstTriangle + i) + 0];
+				let i1 = prim_indices[3 * (firstTriangle + i) + 1];
+				let i2 = prim_indices[3 * (firstTriangle + i) + 2];
+
+				uvs[6 * i + 0] = prim_uvs[2 * i0 + 0];
+				uvs[6 * i + 1] = prim_uvs[2 * i0 + 1];
+				uvs[6 * i + 2] = prim_uvs[2 * i1 + 0];
+				uvs[6 * i + 3] = prim_uvs[2 * i1 + 1];
+				uvs[6 * i + 4] = prim_uvs[2 * i2 + 0];
+				uvs[6 * i + 5] = prim_uvs[2 * i2 + 1];
+			}
+		}else{
+			// no uvs
+		}
+
+		let geometry = {
+			buffers: [
+				{name: "position", buffer: positions},
+				{name: "uv", buffer: uvs},
+			],
+			numElements: 3 * numTriangles,
+			boundingBox: boundingBox,
+		};
+
+		onBatchLoaded({geometry, imageBitmap, imageBuffer});
 	}
 
-	return {
-		geometry: geometry,
-		imageBitmap, imageBuffer,
-	};
+	// let imageBitmap = null;
+	// let imageBuffer = null;
+	// if(json.images?.length > 0){
+	// 	let materialRef = mesh.primitives[0].material;
+	// 	let material = json.materials[materialRef];
+	// 	let imageRef = material.pbrMetallicRoughness.baseColorTexture.index;
+
+	// 	let image = json.images[imageRef];
+	// 	let buffer = bufferViews[image.bufferView].buffer;
+	// 	let mimeType = image.mimeType;
+
+	// 	var u8 = new Uint8Array(buffer);
+	// 	var blob = new Blob([u8], {type: mimeType});
+
+	// 	imageBitmap = await createImageBitmap(blob);
+	// 	imageBuffer = buffer;
+	// }
+
+	// for(let i = 0; i < indices.length; i++){
+	// 	indices[i] = i;
+	// }
+
+	// return {
+	// 	geometry: geometry,
+	// 	imageBitmap, imageBuffer,
+	// };
 }
 
 onmessage = async function(e){
@@ -184,33 +243,31 @@ onmessage = async function(e){
 	let meshIndex = 0;
 	for(let glbMesh of json.meshes){
 
-		let mesh = await loadMesh(glbMesh, json, bufferViews, meshIndex);
+		loadMesh(glbMesh, json, bufferViews, (result) => {
 
-		if(glbMesh.primitives.length > 1){
-			continue;
-		}
+			let message = {
+				geometry: result.geometry,
+				// imageBitmap: result.imageBitmap,
+				// imageBuffer: result.imageBuffer,
+			};
 
-		let message = {
-			geometry: mesh.geometry,
-			imageBitmap: mesh.imageBitmap,
-			imageBuffer: mesh.imageBuffer,
-		};
+			let transferables = [
+				...result.geometry.buffers.map(b => b.buffer.buffer),
+			];
 
-		let transferables = [
-			...mesh.geometry.buffers.map(b => b.buffer.buffer),
-			mesh.geometry.indices.buffer,
-		];
+			// if(result.imageBitmap){
+			// 	transferables.push(result.imageBitmap);
+			// 	transferables.push(result.imageBuffer);
+			// }
 
-		if(mesh.imageBitmap){
-			transferables.push(mesh.imageBitmap);
-			transferables.push(mesh.imageBuffer);
-		}
+			let duration = performance.now() - tStart;
+			console.log("duration: " + duration  + "ms");
 
-		let duration = performance.now() - tStart;
-		console.log("duration: " + duration  + "ms");
+			postMessage(message, transferables);
 
-		postMessage(message, transferables);
-		meshIndex++;
+		});
+
+		
 	}
 	
 };

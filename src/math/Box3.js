@@ -42,6 +42,16 @@ export class Box3{
 		return cube;
 	}
 
+	expandByXYZ(x, y, z){
+		this.min.x = Math.min(this.min.x, x);
+		this.min.y = Math.min(this.min.y, y);
+		this.min.z = Math.min(this.min.z, z);
+
+		this.max.x = Math.max(this.max.x, x);
+		this.max.y = Math.max(this.max.y, y);
+		this.max.z = Math.max(this.max.z, z);
+	}
+
 	expandByPoint(point){
 		this.min.x = Math.min(this.min.x, point.x);
 		this.min.y = Math.min(this.min.y, point.y);
