@@ -25,10 +25,20 @@ export function load(url, callbacks){
 
 	let root = new SceneNode("glb root");
 
-	worker.onmessage = (e) => {
-		
+	let images = new Map();
+
+	let image_loaded = (e) => {
+		images.set(e.data.imageRef, e.data.imageBitmap);
+	};
+
+	let mesh_batch_loaded = (e) => {
+
+		let imageBitmap = null;
+		if(images.has(e.data.imageRef)){
+			imageBitmap = images.get(e.data.imageRef);
+		}
+
 		let geometryData = e.data.geometry;
-		let imageBitmap = e.data.imageBitmap;
 
 		let geometry = new Geometry();
 		geometry.buffers = geometryData.buffers;
@@ -57,6 +67,17 @@ export function load(url, callbacks){
 			callbacks.onNode(mesh);
 		}else{
 			callbacks.onNode(mesh);
+		}
+	};
+
+	
+
+	worker.onmessage = (e) => {
+
+		if(e.data.type === "mesh_batch_loaded"){
+			mesh_batch_loaded(e);
+		}else if(e.data.type === "image_loaded"){
+			image_loaded(e);
 		}
 
 	};

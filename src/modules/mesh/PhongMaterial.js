@@ -128,8 +128,8 @@ fn getColor(fragment : FragmentInput) -> vec4<f32>{
 
 		ignore(myTexture);
 		ignore(mySampler);
-		// color = textureSample(myTexture, mySampler, fragment.uv);
-		color = vec4<f32>(0.0, 1.0, 0.0, 1.0);
+		color = textureSample(myTexture, mySampler, fragment.uv);
+		// color = vec4<f32>(fragment.uv, 0.0, 1.0);
 
 	}
 

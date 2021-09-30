@@ -375,8 +375,8 @@ export class Renderer{
 				device.queue.copyExternalImageToTexture(
 					{source: image},
 					{texture: gpuTexture},
-					// [image.width, image.height, 1]
-					[128, 128, 1]
+					[image.width, image.height, 1]
+					// [128, 128, 1]
 				);
 			}
 

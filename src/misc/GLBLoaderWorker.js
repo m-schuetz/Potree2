@@ -17,6 +17,40 @@ function makeGeometry(numVertices){
 	return geometry;
 }
 
+let imageMap = new Map();
+
+async function loadImage(imageRef, json, bufferViews, onImageLoaded){
+
+	let image = json.images[imageRef];
+
+	if(imageMap.has(image.bufferView)){
+		return null;
+	}else{
+
+		let buffer = bufferViews[image.bufferView].buffer;
+		let mimeType = image.mimeType;
+
+		var u8 = new Uint8Array(buffer);
+		var blob = new Blob([u8], {type: mimeType});
+
+		let imageBitmap = await createImageBitmap(blob);
+
+		let message = {
+			type: "image_loaded",
+			imageBitmap: imageBitmap,
+			imageRef: imageRef
+		};
+
+		let transferables = [];
+
+		postMessage(message, transferables);
+
+		imageMap.set(image.bufferView, "loaded");
+
+		return imageBitmap;
+	}
+}
+
 async function loadMesh(mesh, json, bufferViews, onBatchLoaded){
 
 	let numIndices = 0;
@@ -33,6 +67,8 @@ async function loadMesh(mesh, json, bufferViews, onBatchLoaded){
 	let maxTrianglesPerBatch = 500_000;
 
 	let batches = [];
+	let images = [];
+
 	for(let primitive of mesh.primitives){
 
 		if(typeof primitive.indices === "undefined"){
@@ -59,31 +95,43 @@ async function loadMesh(mesh, json, bufferViews, onBatchLoaded){
 			let batch = {primitive, firstTriangle, numTriangles};
 
 			batches.push(batch);
+		}
 
+		let materialRef = primitive.material;
+		let material = json.materials[materialRef];
+		if(material.pbrMetallicRoughness.baseColorTexture){
+			let imageRef = material.pbrMetallicRoughness.baseColorTexture.index;
 		}
 	}
 
-	let imageBitmap = null;
-	let imageBuffer = null;
-	if(json.images?.length > 0){
-		let materialRef = mesh.primitives[0].material;
-		let material = json.materials[materialRef];
-		let imageRef = material.pbrMetallicRoughness.baseColorTexture.index;
+	// let imageBitmap = null;
+	// if(json.images?.length > 0){
+	// 	let materialRef = mesh.primitives[0].material;
+	// 	let material = json.materials[materialRef];
+	// 	let imageRef = material.pbrMetallicRoughness.baseColorTexture.index;
 
-		let image = json.images[imageRef];
-		let buffer = bufferViews[image.bufferView].buffer;
-		let mimeType = image.mimeType;
+	// 	let image = json.images[imageRef];
+	// 	let buffer = bufferViews[image.bufferView].buffer;
+	// 	let mimeType = image.mimeType;
 
-		var u8 = new Uint8Array(buffer);
-		var blob = new Blob([u8], {type: mimeType});
+	// 	var u8 = new Uint8Array(buffer);
+	// 	var blob = new Blob([u8], {type: mimeType});
 
-		imageBitmap = await createImageBitmap(blob);
-		imageBuffer = buffer;
-	}
+	// 	imageBitmap = await createImageBitmap(blob);
+	// }
 
 	for(let batch of batches){
 
 		let {primitive, firstTriangle, numTriangles} = batch;
+
+		let imageRef = null;
+		{ // load image, if available
+			let materialRef = mesh.primitives[0].material;
+			let material = json.materials[materialRef];
+			imageRef = material.pbrMetallicRoughness.baseColorTexture.index;
+
+			await loadImage(imageRef, json, bufferViews);
+		}
 
 		let boundingBox = new Box3();
 
@@ -174,11 +222,10 @@ async function loadMesh(mesh, json, bufferViews, onBatchLoaded){
 			boundingBox: boundingBox,
 		};
 
-		onBatchLoaded({geometry, imageBitmap, imageBuffer});
+		onBatchLoaded({geometry, imageRef});
 	}
 
 	// let imageBitmap = null;
-	// let imageBuffer = null;
 	// if(json.images?.length > 0){
 	// 	let materialRef = mesh.primitives[0].material;
 	// 	let material = json.materials[materialRef];
@@ -192,7 +239,6 @@ async function loadMesh(mesh, json, bufferViews, onBatchLoaded){
 	// 	var blob = new Blob([u8], {type: mimeType});
 
 	// 	imageBitmap = await createImageBitmap(blob);
-	// 	imageBuffer = buffer;
 	// }
 
 	// for(let i = 0; i < indices.length; i++){
@@ -201,7 +247,7 @@ async function loadMesh(mesh, json, bufferViews, onBatchLoaded){
 
 	// return {
 	// 	geometry: geometry,
-	// 	imageBitmap, imageBuffer,
+	// 	imageBitmap,
 	// };
 }
 
@@ -240,25 +286,19 @@ onmessage = async function(e){
 		bufferViews.push({buffer: data});
 	}
 
-	let meshIndex = 0;
 	for(let glbMesh of json.meshes){
 
 		loadMesh(glbMesh, json, bufferViews, (result) => {
 
 			let message = {
+				type: "mesh_batch_loaded",
 				geometry: result.geometry,
-				// imageBitmap: result.imageBitmap,
-				// imageBuffer: result.imageBuffer,
+				imageRef: result.imageRef,
 			};
 
 			let transferables = [
 				...result.geometry.buffers.map(b => b.buffer.buffer),
 			];
-
-			// if(result.imageBitmap){
-			// 	transferables.push(result.imageBitmap);
-			// 	transferables.push(result.imageBuffer);
-			// }
 
 			let duration = performance.now() - tStart;
 			console.log("duration: " + duration  + "ms");
@@ -267,7 +307,10 @@ onmessage = async function(e){
 
 		});
 
-		
 	}
+
+	// for(let imageRef of json.images){
+	// 	loadImage(imageRef, json, bufferViews);
+	// }
 	
 };
