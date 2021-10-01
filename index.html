@@ -84,6 +84,7 @@ canvas{
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	import {loadGLB} from "./src/prototyping/glbloader/loadGLB.js";
+	import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 
 	import {installToolbar} from "toolbar";
 
@@ -113,6 +114,12 @@ canvas{
 		pitch: 0.8,
 		radius: 10,
 	});
+
+	controls.set({
+		position: [1.9, -7.6, -2.4],
+		pivot: [0.5, 0.6, -6.0],
+	});
+	
 
 	{
 		let light = new PointLight();
@@ -152,6 +159,11 @@ canvas{
 			new Vector3(0, 0, 10),
 			new Vector3(0, 0, 255),
 		);
+	});
+
+	GlbVoxelLoader.load("./resources/models/lion.glb", () => {
+	// GlbVoxelLoader.load("./resources/models/Big5M.glb", () => {
+		
 	});
 
 	// Potree.loadGLB("./resources/models/lion.glb", {

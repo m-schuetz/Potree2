@@ -104,22 +104,6 @@ async function loadMesh(mesh, json, bufferViews, onBatchLoaded){
 		}
 	}
 
-	// let imageBitmap = null;
-	// if(json.images?.length > 0){
-	// 	let materialRef = mesh.primitives[0].material;
-	// 	let material = json.materials[materialRef];
-	// 	let imageRef = material.pbrMetallicRoughness.baseColorTexture.index;
-
-	// 	let image = json.images[imageRef];
-	// 	let buffer = bufferViews[image.bufferView].buffer;
-	// 	let mimeType = image.mimeType;
-
-	// 	var u8 = new Uint8Array(buffer);
-	// 	var blob = new Blob([u8], {type: mimeType});
-
-	// 	imageBitmap = await createImageBitmap(blob);
-	// }
-
 	for(let batch of batches){
 
 		let {primitive, firstTriangle, numTriangles} = batch;
@@ -225,30 +209,6 @@ async function loadMesh(mesh, json, bufferViews, onBatchLoaded){
 		onBatchLoaded({geometry, imageRef});
 	}
 
-	// let imageBitmap = null;
-	// if(json.images?.length > 0){
-	// 	let materialRef = mesh.primitives[0].material;
-	// 	let material = json.materials[materialRef];
-	// 	let imageRef = material.pbrMetallicRoughness.baseColorTexture.index;
-
-	// 	let image = json.images[imageRef];
-	// 	let buffer = bufferViews[image.bufferView].buffer;
-	// 	let mimeType = image.mimeType;
-
-	// 	var u8 = new Uint8Array(buffer);
-	// 	var blob = new Blob([u8], {type: mimeType});
-
-	// 	imageBitmap = await createImageBitmap(blob);
-	// }
-
-	// for(let i = 0; i < indices.length; i++){
-	// 	indices[i] = i;
-	// }
-
-	// return {
-	// 	geometry: geometry,
-	// 	imageBitmap,
-	// };
 }
 
 onmessage = async function(e){
@@ -286,9 +246,11 @@ onmessage = async function(e){
 		bufferViews.push({buffer: data});
 	}
 
+	let promises = [];
+	
 	for(let glbMesh of json.meshes){
 
-		loadMesh(glbMesh, json, bufferViews, (result) => {
+		let promise = loadMesh(glbMesh, json, bufferViews, (result) => {
 
 			let message = {
 				type: "mesh_batch_loaded",
@@ -304,13 +266,18 @@ onmessage = async function(e){
 			console.log("duration: " + duration  + "ms");
 
 			postMessage(message, transferables);
-
 		});
 
+		promises.push(promise);
 	}
 
-	// for(let imageRef of json.images){
-	// 	loadImage(imageRef, json, bufferViews);
-	// }
-	
+	{
+		await Promise.all(promises);
+
+		let message = {
+			type: "finished",
+		};
+		
+		postMessage(message);
+	}
 };

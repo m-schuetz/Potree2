@@ -15,7 +15,7 @@ export class Box3{
 
 	clone(){
 		return new Box3(
-			this.min.clone(), 
+			this.min.clone(),
 			this.max.clone()
 		);
 	}
