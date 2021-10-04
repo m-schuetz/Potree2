@@ -1,9 +1,11 @@
 
 import {Vector3, Matrix4, Geometry} from "potree";
-import {cube_wireframe} from "../geometries/cube.js";
 
+const shaderSource = `
 
-const vs = `
+[[block]] struct U32s {values : [[stride(4)]] array<u32>;};
+[[block]] struct F32s {values : [[stride(4)]] array<f32>;};
+
 [[block]] struct Uniforms {
 	worldView : mat4x4<f32>;
 	proj : mat4x4<f32>;
@@ -11,40 +13,25 @@ const vs = `
 	screen_height : f32;
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+struct Box{
+	position    : vec3<f32>;
+	size        : vec3<f32>;
+	color       : vec3<f32>;
+};
+
+[[binding(0), group(0)]] var<uniform> uniforms              : Uniforms;
+[[binding(1), group(0)]] var<storage, read> boxPositions    : F32s;
+[[binding(2), group(0)]] var<storage, read> boxSizes        : F32s;
+[[binding(3), group(0)]] var<storage, read> boxColors       : U32s;
 
 struct VertexIn{
-	[[location(0)]] box_pos : vec3<f32>;
-	[[location(1)]] box_scale : vec3<f32>;
-	[[location(2)]] point_pos : vec3<f32>;
-	[[location(3)]] box_color : vec4<f32>;
-	[[location(4)]] in_dir : vec3<f32>;
-	[[builtin(vertex_index)]] vertexID : u32;
+	[[builtin(vertex_index)]] index : u32;
 };
 
 struct VertexOut{
 	[[builtin(position)]] pos : vec4<f32>;
 	[[location(0)]] color : vec4<f32>;
 };
-
-
-
-[[stage(vertex)]]
-fn main(vertex : VertexIn) -> VertexOut {
-
-	var worldPos : vec4<f32> = vec4<f32>(vertex.box_pos + vertex.point_pos * vertex.box_scale, 1.0);
-	worldPos.w = 1.0;
-	var viewPos : vec4<f32> = uniforms.worldView * worldPos;
-
-	var vout : VertexOut;
-	vout.pos = uniforms.proj * viewPos;
-	vout.color = vertex.box_color;
-
-	return vout;
-}
-`;
-
-const fs = `
 
 struct FragmentIn{
 	[[location(0)]] color : vec4<f32>;
@@ -54,8 +41,131 @@ struct FragmentOut{
 	[[location(0)]] color : vec4<f32>;
 };
 
+fn loadBox(boxIndex : u32) -> Box {
+
+	var box = Box();
+
+	box.position = vec3<f32>(
+		boxPositions.values[3u * boxIndex + 0u],
+		boxPositions.values[3u * boxIndex + 1u],
+		boxPositions.values[3u * boxIndex + 2u],
+	);
+
+	box.size = vec3<f32>(
+		boxSizes.values[3u * boxIndex + 0u],
+		boxSizes.values[3u * boxIndex + 1u],
+		boxSizes.values[3u * boxIndex + 2u],
+	);
+
+	box.color = vec3<f32>(
+		f32((boxColors.values[boxIndex] >>  0u) & 0xFFu) / 255.0,
+		f32((boxColors.values[boxIndex] >>  8u) & 0xFFu) / 255.0,
+		f32((boxColors.values[boxIndex] >> 16u) & 0xFFu) / 255.0,
+	);
+
+	return box;
+};
+
+
+[[stage(vertex)]]
+fn main_vertex(vertex : VertexIn) -> VertexOut {
+
+	var boxIndex = vertex.index / 72u;
+	var vertIndex = vertex.index % 72u;
+	var lineIndex = vertIndex / 6u;
+	var localIndex = vertex.index % 6u;
+
+	var box = loadBox(boxIndex);
+	
+	ignore(uniforms);
+	ignore(boxPositions);
+	ignore(boxSizes);
+	ignore(boxColors);
+
+	var LINES : array<vec3<f32>, 24> = array<vec3<f32>, 24>(
+		// BOTTOM
+		vec3<f32>(-1.0, -1.0, -1.0), vec3<f32>( 1.0, -1.0, -1.0),
+		vec3<f32>( 1.0, -1.0, -1.0), vec3<f32>( 1.0,  1.0, -1.0),
+		vec3<f32>( 1.0,  1.0, -1.0), vec3<f32>(-1.0,  1.0, -1.0),
+		vec3<f32>(-1.0,  1.0, -1.0), vec3<f32>(-1.0, -1.0, -1.0),
+
+		// TOP
+		vec3<f32>(-1.0, -1.0,  1.0), vec3<f32>( 1.0, -1.0,  1.0),
+		vec3<f32>( 1.0, -1.0,  1.0), vec3<f32>( 1.0,  1.0,  1.0),
+		vec3<f32>( 1.0,  1.0,  1.0), vec3<f32>(-1.0,  1.0,  1.0),
+		vec3<f32>(-1.0,  1.0,  1.0), vec3<f32>(-1.0, -1.0,  1.0),
+
+		// VERTICAL
+		vec3<f32>(-1.0, -1.0, -1.0), vec3<f32>(-1.0, -1.0,  1.0),
+		vec3<f32>( 1.0, -1.0, -1.0), vec3<f32>( 1.0, -1.0,  1.0),
+		vec3<f32>( 1.0,  1.0, -1.0), vec3<f32>( 1.0,  1.0,  1.0),
+		vec3<f32>(-1.0,  1.0, -1.0), vec3<f32>(-1.0,  1.0,  1.0),
+	);
+
+	var start = vec4<f32>(LINES[2u * lineIndex + 0u] * box.size / 2.0 + box.position, 1.0);
+	var end = vec4<f32>(LINES[2u * lineIndex + 1u] * box.size / 2.0 + box.position, 1.0);
+
+	var position : vec4<f32>;
+	if(localIndex == 0u || localIndex == 3u|| localIndex == 5u){
+		position = start;
+	}else{
+		position = end;
+	}
+
+	var worldPos = position;
+	var viewPos = uniforms.worldView * worldPos;
+	var projPos = uniforms.proj * viewPos;
+
+	var dirScreen : vec2<f32>;
+	{
+		var projStart = uniforms.proj * uniforms.worldView * start;
+		var projEnd = uniforms.proj * uniforms.worldView * end;
+
+		var screenStart = projStart.xy / projStart.w;
+		var screenEnd = projEnd.xy / projEnd.w;
+
+		dirScreen = normalize(screenEnd - screenStart);
+	}
+
+	{ // apply pixel offsets to the 6 vertices of the quad
+
+		var lineWidth = 2.0;
+		var pxOffset = vec2<f32>(1.0, 0.0);
+
+		// move vertices of quad sidewards
+		if(localIndex == 0u || localIndex == 1u || localIndex == 3u){
+			pxOffset = vec2<f32>(dirScreen.y, -dirScreen.x);
+		}else{
+			pxOffset = vec2<f32>(-dirScreen.y, dirScreen.x);
+		}
+
+		// move vertices of quad outwards
+		if(localIndex == 0u || localIndex == 3u || localIndex == 5u){
+			pxOffset = pxOffset - dirScreen;
+		}else{
+			pxOffset = pxOffset + dirScreen;
+		}
+
+		var screenDimensions = vec2<f32>(uniforms.screen_width, uniforms.screen_height);
+		var adjusted = projPos.xy / projPos.w + lineWidth * pxOffset / screenDimensions;
+		projPos = vec4<f32>(adjusted * projPos.w, projPos.zw);
+	}
+
+
+	var vout : VertexOut;
+	vout.pos = projPos;
+	vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+
+	return vout;
+}
+
 [[stage(fragment)]]
-fn main(fragment : FragmentIn) -> FragmentOut {
+fn main_fragment(fragment : FragmentIn) -> FragmentOut {
+
+	ignore(uniforms);
+	ignore(boxPositions);
+	ignore(boxSizes);
+	ignore(boxColors);
 
 	var fout : FragmentOut;
 	fout.color = fragment.color;
@@ -77,59 +187,17 @@ function createPipeline(renderer){
 	
 	pipeline = device.createRenderPipeline({
 		vertex: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
-			buffers: [
-				{ // box position
-					arrayStride: 3 * 4,
-					stepMode: "instance",
-					attributes: [{ 
-						shaderLocation: 0,
-						offset: 0,
-						format: "float32x3",
-					}],
-				},{ // box scale
-					arrayStride: 3 * 4,
-					stepMode: "instance",
-					attributes: [{ 
-						shaderLocation: 1,
-						offset: 0,
-						format: "float32x3",
-					}],
-				},{ // box-vertices position
-					arrayStride: 3 * 4,
-					stepMode: "vertex",
-					attributes: [{ 
-						shaderLocation: 2,
-						offset: 0,
-						format: "float32x3",
-					}],
-				},{ // box color
-					arrayStride: 4,
-					stepMode: "instance",
-					attributes: [{ 
-						shaderLocation: 3,
-						offset: 0,
-						format: "unorm8x4",
-					}],
-				},{ // box line directions
-					arrayStride: 3 * 4,
-					stepMode: "vertex",
-					attributes: [{ 
-						shaderLocation: 4,
-						offset: 0,
-						format: "float32x3",
-					}],
-				}
-			]
+			module: device.createShaderModule({code: shaderSource}),
+			entryPoint: "main_vertex",
+			buffers: []
 		},
 		fragment: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
+			module: device.createShaderModule({code: shaderSource}),
+			entryPoint: "main_fragment",
 			targets: [{format: "bgra8unorm"}],
 		},
 		primitive: {
-			topology: 'line-list',
+			topology: 'triangle-list',
 			cullMode: 'back',
 		},
 		depthStencil: {
@@ -172,10 +240,20 @@ function init(renderer){
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
+		let position = geometry_boxes.buffers.find(g => g.name === "position").buffer;
+		let scale = geometry_boxes.buffers.find(g => g.name === "scale").buffer;
+		let color = geometry_boxes.buffers.find(g => g.name === "color").buffer;
+		let vboPosition = renderer.getGpuBuffer(position);
+		let vboScale = renderer.getGpuBuffer(scale);
+		let vboColor = renderer.getGpuBuffer(color);
+
 		bindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
-				{binding: 0,resource: {buffer: uniformBuffer}},
+				{binding: 0, resource: {buffer: uniformBuffer}},
+				{binding: 1, resource: {buffer: vboPosition}},
+				{binding: 2, resource: {buffer: vboScale}},
+				{binding: 3, resource: {buffer: vboColor}},
 			],
 		});
 	}
@@ -256,21 +334,9 @@ export function render(boxes, drawstate){
 	}
 
 	{ // wireframe
-		let boxVertices = cube_wireframe.buffers.find(b => b.name === "position").buffer;
-		let boxLineDirections = cube_wireframe.buffers.find(b => b.name === "direction").buffer;
-		let vboBoxVertices = renderer.getGpuBuffer(boxVertices);
-		let vboBoxLineDirections = renderer.getGpuBuffer(boxLineDirections);
-
-		passEncoder.setVertexBuffer(0, vboPosition);
-		passEncoder.setVertexBuffer(1, vboScale);
-		passEncoder.setVertexBuffer(2, vboBoxVertices);
-		passEncoder.setVertexBuffer(3, vboColor);
-		passEncoder.setVertexBuffer(4, vboBoxLineDirections);
-		// passEncoder.setIndexBuffer(vboBoxIndices, "uint32");
-
 		let numBoxes = boxes.length;
-		let numVertices = cube_wireframe.numElements;
-		passEncoder.draw(numVertices, numBoxes, 0, 0);
+		let numVertices = 72 * numBoxes;
+		passEncoder.draw(numVertices, 1, 0, 0);
 	}
 
 };
