@@ -77,6 +77,7 @@ class Node{
 		this.cubeSize = boundingBox.max.x - boundingBox.min.x;
 		this.voxels = [];
 		this.childTriangleCounters = new Uint32Array(8);
+		this.batches = [];
 	}
 
 	addPoint(x, y, z, r, g, b){
@@ -139,9 +140,13 @@ class Node{
 			}
 
 		}
+
+		this.batches.push(batch);
 	}
 
 	split(){
+
+		let childBatches = new Array(8).fill(null);
 
 		for(let childIndex = 0; childIndex < 8; childIndex++){
 
@@ -157,10 +162,112 @@ class Node{
 			this.children[childIndex] = child;
 
 			// create batch from triangles in child node boundary
+			let childPositions = new Float32Array(3 * numTriangles);
+			let childUvs = new Float32Array(2 * numTriangles);
 
-			// child.addBatch(batch);
+			let geometry = {
+				buffers: [
+					{name: "position", buffer: childPositions},
+					{name: "uv", buffer: childUvs},
+				],
+				buffersByName: {
+					position: childPositions,
+					uv: childUvs,
+				},
+				numElements: 3 * numTriangles,
+				boundingBox: childCube,
+			};
+
+			// HACK
+			let {imageBitmap, imageData} = this.batches[0];
+
+			let childBatch = {
+				numProcessed: 0,
+				geometry, imageBitmap, imageData
+			};
+
+			childBatches[childIndex] = childBatch;
+		}
+
+		let addToChildBatch = (batch_position, batch_uv, childBatchIndex, triangleIndex) => {
+			let childBatch = childBatches[childBatchIndex];
+
+			let sourcePos = batch_position;
+			let sourceUV = batch_uv;
+			let targetPos = childBatch.geometry.buffersByName.position;
+			let targetUV = childBatch.geometry.buffersByName.uv;
+
+			let sourceIndex = triangleIndex;
+			let targetIndex = childBatch.numProcessed;
+
+			targetPos.buffer[9 * targetIndex + 0] = sourcePos[9 * sourceIndex + 0];
+			targetPos.buffer[9 * targetIndex + 1] = sourcePos[9 * sourceIndex + 1];
+			targetPos.buffer[9 * targetIndex + 2] = sourcePos[9 * sourceIndex + 2];
+			targetPos.buffer[9 * targetIndex + 3] = sourcePos[9 * sourceIndex + 3];
+			targetPos.buffer[9 * targetIndex + 4] = sourcePos[9 * sourceIndex + 4];
+			targetPos.buffer[9 * targetIndex + 5] = sourcePos[9 * sourceIndex + 5];
+			targetPos.buffer[9 * targetIndex + 6] = sourcePos[9 * sourceIndex + 6];
+			targetPos.buffer[9 * targetIndex + 7] = sourcePos[9 * sourceIndex + 7];
+			targetPos.buffer[9 * targetIndex + 8] = sourcePos[9 * sourceIndex + 8];
+
+			targetUV.buffer[6 * targetIndex + 0] = sourceUV[6 * sourceIndex + 0];
+			targetUV.buffer[6 * targetIndex + 1] = sourceUV[6 * sourceIndex + 1];
+			targetUV.buffer[6 * targetIndex + 2] = sourceUV[6 * sourceIndex + 2];
+			targetUV.buffer[6 * targetIndex + 3] = sourceUV[6 * sourceIndex + 3];
+			targetUV.buffer[6 * targetIndex + 4] = sourceUV[6 * sourceIndex + 4];
+			targetUV.buffer[6 * targetIndex + 5] = sourceUV[6 * sourceIndex + 5];
+
+			childBatch.numProcessed++;
+
+		};
+
+		for(let batch of this.batches){
+
+			let position = batch.geometry.buffers.find(b => b.name === "position").buffer;
+			let uv = batch.geometry.buffers.find(b => b.name === "uv").buffer;
+			let numVertices = position.length / 3;
+
+			let child_index_0 = -1;
+			let child_index_1 = -1;
+			for(let i = 0; i < numVertices; i++){
+				let x = position[3 * i + 0];
+				let y = position[3 * i + 1];
+				let z = position[3 * i + 2];
+
+				let childIndex = toVoxelIndex(x, y, z, this.boundingBox.min, 2, this.cubeSize);
+				let triangleIndex = Math.floor(i / 3);
+
+				if(!childBatches[childIndex]){
+					continue;
+				}
+
+				if((i % 3) === 0){
+					addToChildBatch(position, uv, childIndex, triangleIndex);
+
+					child_index_0 = childIndex;
+				}else if((i % 3) === 1){
+					if(child_index_0 !== childIndex){
+						addToChildBatch(position, uv, childIndex, triangleIndex);
+					}
+
+					child_index_1 = childIndex;
+				}else{
+					if(child_index_0 !== childIndex && child_index_1 !== childIndex){
+						addToChildBatch(position, uv, childIndex, triangleIndex);
+					}
+
+					child_index_0 = -1;
+					child_index_1 = -1;
+				}
+			}
+
 
 		}
+
+
+
+
+		
 
 	}
 

@@ -161,9 +161,42 @@ canvas{
 		);
 	});
 
-	GlbVoxelLoader.load("./resources/models/lion.glb", () => {
-	// GlbVoxelLoader.load("./resources/models/Big5M.glb", () => {
+	// GlbVoxelLoader.load("./resources/models/lion.glb", () => {
+	// // GlbVoxelLoader.load("./resources/models/Big5M.glb", () => {
 		
+	// });
+
+	import {Potree3Loader} from "./src/misc/potree3loader/Potree3Loader.js";
+	Potree3Loader.load("./temp").then(result => {
+
+		console.log(result);
+		
+		potree.onUpdate(() => {
+			
+			let numVoxels = result.positions.length / 3;
+
+			for(let i = 0; i < numVoxels; i++){
+				potree.renderer.drawBox(
+					new Vector3(
+						result.positions[3 * i + 0],
+						result.positions[3 * i + 1],
+						result.positions[3 * i + 2],
+					),
+					new Vector3(
+						0.1,
+						0.1,
+						0.1,
+					),
+					new Vector3(
+						result.colors[4 * i + 0],
+						result.colors[4 * i + 1],
+						result.colors[4 * i + 2],
+					),
+				);
+			}
+
+		});
+
 	});
 
 	// Potree.loadGLB("./resources/models/lion.glb", {

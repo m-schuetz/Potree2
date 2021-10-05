@@ -1,5 +1,6 @@
 pointclouds/test/
 nocommit/
+temp/
 resources/pointclouds/heidentor/hierarchy.bin
 resources/pointclouds/heidentor/metadata.json
 resources/pointclouds/heidentor/octree.bin

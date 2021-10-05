@@ -129,7 +129,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	{ // apply pixel offsets to the 6 vertices of the quad
 
-		var lineWidth = 2.0;
+		var lineWidth = 3.0;
 		var pxOffset = vec2<f32>(1.0, 0.0);
 
 		// move vertices of quad sidewards
@@ -154,7 +154,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var vout : VertexOut;
 	vout.pos = projPos;
-	vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	vout.color = vec4<f32>(box.color, 1.0);
 
 	return vout;
 }
