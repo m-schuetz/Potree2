@@ -65,9 +65,9 @@ var<private> GRADIENT : array<vec3<f32>, 4> = array<vec3<f32>, 4>(
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
-	// fout.color = fragment.color;
+	fout.color = fragment.color;
 	// fout.color = vec4<f32>(fragment.uv, 0.0, 1.0);
-	fout.color = textureSample(myTexture, mySampler, fragment.uv);
+	// fout.color = textureSample(myTexture, mySampler, fragment.uv);
 
 	// {
 	// 	var gIndex = uniforms.index % 4u;

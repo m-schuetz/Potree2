@@ -29,8 +29,10 @@ export class RenderTarget{
 			let descriptor = params.depthDescriptor ?? {
 				size: this.size,
 				format: "depth32float",
-				usage: GPUTextureUsage.RENDER_ATTACHMENT
-					| GPUTextureUsage.COPY_SRC,
+				usage: GPUTextureUsage.TEXTURE_BINDING 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
 			};
 
 			let texture = renderer.device.createTexture(descriptor);

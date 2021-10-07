@@ -76,7 +76,7 @@ let fs = `
 
 	[[binding(1), group(0)]] var mySampler   : sampler;
 	[[binding(2), group(0)]] var myTexture   : texture_2d<f32>;
-	[[binding(3), group(0)]] var myDepth     : texture_2d<f32>;
+	[[binding(3), group(0)]] var myDepth     : texture_depth_2d;
 
 	[[block]] struct Uniforms {
 		uTest   : u32;
@@ -111,7 +111,8 @@ let fs = `
 		var fCoord : vec2<f32> = vec2<f32>(fragXY.x + offsetX, fragXY.y + offsetY);
 		var iCoord : vec2<i32> = vec2<i32>(fCoord);
 
-		var d : f32 = textureLoad(myDepth, iCoord, 0).x;
+		var d : f32 = textureLoad(myDepth, iCoord, 0);
+		// var d : f32 = textureLoad(myDepth, iCoord, 0).x;
 		var dl : f32 = toLinear(d, uniforms.near);
 
 		// Artificially reduce depth precision to visualize artifacts
@@ -178,7 +179,7 @@ let fs = `
 			c.b * shade, 
 			1.0);
 
-		var d : f32 = textureLoad(myDepth, coords, 0).x;
+		var d : f32 = textureLoad(myDepth, coords, 0);
 		output.depth = d;
 
 		return output;

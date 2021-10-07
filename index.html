@@ -101,7 +101,7 @@ canvas{
 	guiContent["point budget (M)"] = 2;
 	guiContent["point size"] = 5;
 	guiContent["High-Quality"] = false;
-	guiContent["Eye-Dome-Lighting"] = false;
+	guiContent["Eye-Dome-Lighting"] = true;
 	guiContent["dilate"] = false;
 	// guiContent["attribute"] = "intensity";
 
@@ -118,6 +118,11 @@ canvas{
 	controls.set({
 		position: [1.9, -7.6, -2.4],
 		pivot: [0.5, 0.6, -6.0],
+	});
+
+	controls.set({
+		position: [-2.2, -4.7, -6.0],
+		pivot: [0.3, -0.2, -5.5],
 	});
 	
 
@@ -167,37 +172,118 @@ canvas{
 	// });
 
 	import {Potree3Loader} from "./src/misc/potree3loader/Potree3Loader.js";
-	Potree3Loader.load("./temp").then(result => {
+	Potree3Loader.load("./temp").then(() => {
+		console.log("abc");
+	});
 
-		console.log(result);
-		
-		potree.onUpdate(() => {
-			
-			let numVoxels = result.positions.length / 3;
+	import {SPECTRAL, PhongMaterial} from "potree";
 
-			for(let i = 0; i < numVoxels; i++){
-				potree.renderer.drawBox(
-					new Vector3(
-						result.positions[3 * i + 0],
-						result.positions[3 * i + 1],
-						result.positions[3 * i + 2],
-					),
-					new Vector3(
-						0.1,
-						0.1,
-						0.1,
-					),
-					new Vector3(
-						result.colors[4 * i + 0],
-						result.colors[4 * i + 1],
-						result.colors[4 * i + 2],
-					),
-				);
+	if(true)
+	{
+
+		let rMetadata = await fetch(`./temp/metadata.json`);
+		let jsMetadata = await rMetadata.json();
+
+		let items = [];
+
+		for(let nodeName of jsMetadata.nodes){
+			let basename = `./temp/${nodeName}_voxels`;
+
+			items.push(basename);
+
+			break;
+		}
+
+
+		let i = 0;
+		for(let item of items){
+
+			let rPositions = await fetch(`${item}_positions.bin`);
+			let rColors = await fetch(`${item}_colors.bin`);
+
+			let bPositions = await rPositions.arrayBuffer();
+			let bColors = await rColors.arrayBuffer();
+
+			let positions = new Float32Array(bPositions);
+			let colors = new Uint8Array(bColors);
+
+			// potree.onUpdate(() => {
+
+			// 	let level = item.length - 14;
+			// 	// let voxelSize = (1 / 8) / Math.pow(2, level);
+			// 	// let voxelSize = 0.05;
+			// 	let voxelSize = 5.539963245391846 / jsMetadata.gridSize;
+			// 	potree.renderer.drawVoxels(positions, colors, voxelSize);
+				
+			// 	let numVoxels = positions.length / 3;
+			// });
+
+		}
+	}
+
+	if(false)
+	{
+		let url = "./temp";
+
+		let items = [
+			// `./temp/r073_mesh`,
+			`./temp/r125_mesh`,
+		];
+
+		let i = 0;
+		for(let item of items){
+
+			let rPositions = await fetch(`${item}_positions.bin`);
+			let rUVs = await fetch(`${item}_uvs.bin`);
+
+			let bPositions = await rPositions.arrayBuffer();
+			let bUVs = await rUVs.arrayBuffer();
+
+			let positions = new Float32Array(bPositions);
+			let uvs = new Float32Array(bUVs);
+
+			let numVertices = positions.length / 3;
+			let colors_u8 = new Uint8Array(4 * numVertices);
+
+			let color = SPECTRAL.get(10 * i / items.length);
+
+			for(let j = 0; j < numVertices; j++){
+				colors_u8[4 * j + 0] = color[0],
+				colors_u8[4 * j + 1] = color[1],
+				colors_u8[4 * j + 2] = color[2],
+				colors_u8[4 * j + 3] = 255;
+
+				uvs[2 * j + 0] = i / items.length;
+				uvs[2 * j + 1] = i / items.length;
 			}
 
-		});
+			let colors = new Uint32Array(colors_u8.buffer);
 
-	});
+			// potree.onUpdate( () => {
+			// 	potree.renderer.drawMesh({positions, colors, uvs});
+			// });
+
+			console.log(`#triangles: ${numVertices / 3}`);
+
+			{
+				let geometry = new Geometry();
+				geometry.buffers = [
+					{name: "position", buffer: positions},
+					{name: "uv", buffer: uvs},
+					{name: "color", buffer: colors},
+				];
+				geometry.numElements = numVertices;
+
+				let node = new Mesh("abc", geometry);
+				node.material = new PhongMaterial();
+				node.material.colorMode = 0;
+				scene.root.children.push(node);
+			}
+
+			i++;
+		}
+
+	}
 
 	// Potree.loadGLB("./resources/models/lion.glb", {
 	// // Potree.loadGLB("./resources/models/australia_gas.glb").then(node => {

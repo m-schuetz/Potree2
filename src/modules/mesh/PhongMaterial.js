@@ -31,37 +31,16 @@ struct VertexOutput {
 };
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-// [[binding(10), group(0)]] var<storage, read> colors : U32s;
-
 
 [[stage(vertex)]]
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var output : VertexOutput;
 
-
 	output.position = uniforms.proj * uniforms.worldView * vertex.position;
 	output.uv = vertex.uv;
 
-
-	// output.color = vec4<f32>(vertex.normal.xyz, 1.0);
-	// output.color = vertex.color;#
-
-	// {
-	// 	var triangleIndex = vertex.index / 3u;
-	// 	var rgba = colors.values[triangleIndex];
-
-	// 	var R = (rgba >>  0u) & 0xFFu;
-	// 	var G = (rgba >>  8u) & 0xFFu;
-	// 	var B = (rgba >> 16u) & 0xFFu;
-
-	// 	output.color = vec4<f32>(
-	// 		f32(R) / 255.0,
-	// 		f32(G) / 255.0,
-	// 		f32(B) / 255.0,
-	// 		1.0
-	// 	);
-	// }
+	output.color = vertex.color;
 
 	return output;
 }
@@ -134,6 +113,7 @@ fn getColor(fragment : FragmentInput) -> vec4<f32>{
 	}
 
 	// color = fragment.color;
+	// color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 
 	return color;
 };

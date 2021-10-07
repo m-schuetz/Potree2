@@ -448,19 +448,19 @@ function renderNotSoBasic(){
 	// 	fbo_source = fboTarget;
 	// }
 
-	// if(edlEnabled){ // EDL
-	// 	let pass = startPass(renderer, screenbuffer);
-	// 	let drawstate = {renderer, camera, renderables, pass};
+	if(edlEnabled){ // EDL
+		let pass = startPass(renderer, screenbuffer);
+		let drawstate = {renderer, camera, renderables, pass};
 
-	// 	EDL(fbo_source, drawstate);
+		EDL(fbo_source, drawstate);
 
-	// 	// if(window.fbo){
-	// 	// 	let texture = window.fbo.colorAttachments[0].texture;
-	// 	// 	drawTexture(renderer, pass, texture, 0.1, 0.1, 0.2, 0.2);
-	// 	// }
+		// if(window.fbo){
+		// 	let texture = window.fbo.colorAttachments[0].texture;
+		// 	drawTexture(renderer, pass, texture, 0.1, 0.1, 0.2, 0.2);
+		// }
 
-	// 	endPass(pass);
-	// }
+		endPass(pass);
+	}
 
 
 	// { // HANDLE PICKING
