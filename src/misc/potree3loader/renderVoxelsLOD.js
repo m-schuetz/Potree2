@@ -145,12 +145,26 @@ fn getLOD(position : vec3<f32>) -> LOD {
 	var depth = 0u;
 	var node : Node;
 
+	var result = LOD();
+
 	for(var i = 0u; i < 20u; i = i + 1u){
 
 		node = nodes.values[nodeIndex];
 		var childIndex = toChildIndex(npos);
 
 		var hasChild = (node.childMask & (1u << childIndex)) != 0u;
+
+		// result.npos = vec3<f32>(f32(childIndex) / 7.0, 0.0, 0.0);
+
+		// if(i == 1u){
+
+		// 	// if(node.childMask == 2u){
+		// 	if(nodeIndex == 1u){
+		// 		result.npos = vec3<f32>(0.0, 1.0, 0.0);
+		// 	}
+
+		// 	break;
+		// }
 
 		if(hasChild){
 
@@ -173,14 +187,17 @@ fn getLOD(position : vec3<f32>) -> LOD {
 			npos = npos * 2.0;
 
 		}else{
+			// if(i == 1u && node.childMask == 2u){
+			// 	result.npos = npos;
+			// 	result.npos = vec3<f32>(1.0, 0.0, 0.0);
+			// }
 			break;
 		}
 	}
 
-	var result = LOD();
+	
 	result.depth = depth;
 	result.isLeaf = node.isLeaf != 0u;
-	result.npos = npos;
 
 	return result;
 }
@@ -240,15 +257,6 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	// var gradientColor = GRADIENT[lod.depth] / 255.0;
 	// vout.color = vec4<f32>(gradientColor, 1.0);
-
-	// if(lod.depth == 0u){
-	// 	vout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-	// }else{
-	// 	vout.color = vec4<f32>(0.0, 1.0, 0.0, 1.0);
-	// }
-
-	// vout.color = vec4<f32>(f32(lod.depth) / 2.0, 0.0, 0.0, 1.0);
-	vout.color = vec4<f32>(lod.npos, 1.0);
 
 	return vout;
 }
@@ -375,13 +383,13 @@ export function renderVoxelsLOD(root, drawstate){
 
 	let state = getState(renderer, root);
 
-	let numVoxels = 0;
+	// let numVoxels = 0;
 	let nodes = [];
 	root.traverse((node) => {
 
 		if(node.visible){
 			nodes.push(node);
-			numVoxels += node.voxels.numVoxels;
+			// numVoxels += node.voxels.numVoxels;
 		}
 	});
 
@@ -418,9 +426,10 @@ export function renderVoxelsLOD(root, drawstate){
 			let node = nodes[i];
 
 			let mask = childMaskOf(node);
+			let childOffset = node.childOffset ?? 0;
 
 			view.setUint32(32 * i + 0, mask, true);
-			view.setUint32(32 * i + 4, 0, true);
+			view.setUint32(32 * i + 4, childOffset, true);
 			view.setUint32(32 * i + 8, node.level, true);
 			view.setUint32(32 * i + 12, 1, true);
 			view.setUint32(32 * i + 16, 0, true);
@@ -437,6 +446,10 @@ export function renderVoxelsLOD(root, drawstate){
 
 	let instanceIndex = 0;
 	for(let node of nodes){
+
+		if(!node.voxels){
+			continue;
+		}
 
 		let vboPositions = renderer.getGpuBuffer(node.voxels.positions);
 		let vboColors = renderer.getGpuBuffer(node.voxels.colors);

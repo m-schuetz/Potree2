@@ -416,6 +416,10 @@ function getGpuBuffers(renderer, geometry){
 
 export function render(node, drawstate){
 
+	if(!node.visible){
+		return;
+	}
+
 	let {renderer, pass} = drawstate;
 	let {device} = renderer;
 	let {passEncoder} = pass;

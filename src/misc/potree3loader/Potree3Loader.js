@@ -1,5 +1,5 @@
 
-import {Box3, Vector3} from "potree";
+import {Box3, Vector3, Mesh, PhongMaterial} from "potree";
 import {renderVoxelsLOD} from "./renderVoxelsLOD.js";
 
 let tmpVec3 = new Vector3();
@@ -42,6 +42,7 @@ class Node{
 		this.level = 0;
 		this.voxelGridSize = 0;
 		this.visible = false;
+		this.loaded = false;
 	}
 
 	traverse(callback){
@@ -121,50 +122,120 @@ export class Potree3Loader{
 			console.log(node);
 
 			if(!node.isLeaf){
-				// load voxels
-				let pPositions = fetch(`${url}/${node.name}_voxels_positions.bin`);
-				let pColors = fetch(`${url}/${node.name}_voxels_colors.bin`);
 
-				Promise.all([pPositions, pColors]).then(async result => {
-					let [rPositions, rColors] = result;
+				node.load = async () => {
+					// load voxels
+					let pPositions = fetch(`${url}/${node.name}_voxels_positions.bin`);
+					let pColors = fetch(`${url}/${node.name}_voxels_colors.bin`);
 
-					let bPositions = await rPositions.arrayBuffer();
-					let bColors = await rColors.arrayBuffer();
+					Promise.all([pPositions, pColors]).then(async result => {
+						let [rPositions, rColors] = result;
 
-					let positions = new Float32Array(bPositions);
-					let colors = new Uint8Array(bColors);
+						let bPositions = await rPositions.arrayBuffer();
+						let bColors = await rColors.arrayBuffer();
 
-					let numVoxels = positions.length / 3;
+						let positions = new Float32Array(bPositions);
+						let colors = new Uint8Array(bColors);
 
-					node.voxels = {positions, colors, numVoxels};
+						let numVoxels = positions.length / 3;
 
-				});
+						node.voxels = {positions, colors, numVoxels};
+
+					});
+
+					node.loaded = true;
+
+					node.load = () => {};
+				}
+				
 			}else{
 				// load mesh
-				// TODO
+				
+				node.load = async () => {
+					let pPositions = fetch(`${url}/${node.name}_mesh_positions.bin`);
+					let pUVs = fetch(`${url}/${node.name}_mesh_uvs.bin`);
+					let pColors = fetch(`${url}/${node.name}_mesh_colors.bin`);
+
+					Promise.all([pPositions, pUVs, pColors]).then(async result => {
+						let [rPositions, rUVs, rColors] = result;
+
+						let bPositions = await rPositions.arrayBuffer();
+						let bUVs = await rUVs.arrayBuffer();
+						let bColors = await rColors.arrayBuffer();
+
+						let positions = new Float32Array(bPositions);
+						let uvs = new Float32Array(bUVs);
+						let colors = new Uint8Array(bColors);
+
+						let numVertices = positions.length / 3;
+
+						let geometry = {
+							buffers: [
+								{name: "position", buffer: positions},
+								{name: "uv", buffer: uvs},
+								{name: "color", buffer: colors},
+							],
+							numElements: numVertices,
+						};
+						let mesh = new Mesh("abc", geometry);
+						mesh.material = new PhongMaterial();
+						mesh.material.colorMode = 0;
+
+						// node.mesh = {positions, uvs, colors};
+						node.mesh = mesh;
+
+						scene.root.children.push(mesh);
+
+
+					});
+					
+					node.loaded = true;
+
+					node.load = () => {};
+				}
+
+
 			}
 		});
 
 		potree.onUpdate( () => {
 			root.traverse( (node) => {
 
-				if(node.voxels){
+				{
 
-					if(["r", "r1", "r12"].includes(node.name)){
-						node.visible = true;
+					let center = node.boundingBox.center();
+					let size = node.boundingBox.size().length();
+					let camWorldPos = camera.getWorldPosition();
+					let distance = camWorldPos.distanceTo(center);
+					let visible = (size / distance) > 0.3 / Potree.settings.debugU;
+
+					if(visible && !node.loaded){
+						node.load();
+						node.visible = false;
+
+						return;
 					}
 
-					if(node.visible){
-						potree.renderer.drawBoundingBox(
-							node.boundingBox.center(),
-							node.boundingBox.size(),
-							new Vector3(255, 255, 0),
-						);
+					if(node.name === "r"){
+						visible = true;
+					} 
+
+					node.visible = visible;
+
+					if(node.mesh){
+						node.mesh.visible = visible;
 					}
 
-					// let {positions, colors} = node.voxels;
-					// let voxelSize = 5.539963245391846 / jsMetadata.gridSize;
-					// potree.renderer.drawVoxels(positions, colors, voxelSize);
+					// if(node.visible){
+					// 	potree.renderer.drawBoundingBox(
+					// 		node.boundingBox.center(),
+					// 		node.boundingBox.size(),
+					// 		new Vector3(255, 255, 0),
+					// 	);
+					// }
+
+
+
 				}
 
 			});

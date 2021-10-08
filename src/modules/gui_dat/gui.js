@@ -17,17 +17,14 @@ let guiContent = {
 
 	// INPUT
 	"show bounding box": false,
-	// "mode": "pixels",
-	// "mode": "dilate",
 	"use compute": false,
 	"dilate": false,
 	"Eye-Dome-Lighting": false,
 	"High-Quality": false,
-	// "mode": "HQS",
-	// "attribute": "rgba",
 	"point budget (M)": 4,
 	"point size": 3,
 	"update": true,
+	"debug": 0.7,
 
 	// COLOR ADJUSTMENT
 	"scalar min": 0,
@@ -81,6 +78,7 @@ export function initGUI(potree){
 		// slider
 		input.add(guiContent, 'point budget (M)', 0.01, 5);
 		input.add(guiContent, 'point size', 1, 5);
+		input.add(guiContent, 'debug', 0, 1);
 	}
 
 	// {
@@ -116,6 +114,7 @@ export function initGUI(potree){
 		Potree.settings.hqsEnabled = guiContent["High-Quality"];
 		Potree.settings.updateEnabled = guiContent["update"];
 		Potree.settings.showBoundingBox = guiContent["show bounding box"];
+		Potree.settings.debugU = guiContent["debug"];
 
 	
 	});
