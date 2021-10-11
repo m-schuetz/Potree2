@@ -1,6 +1,10 @@
 
 import {Box3, Vector3, Mesh, PhongMaterial} from "potree";
 import {renderVoxelsLOD} from "./renderVoxelsLOD.js";
+import {renderVoxelsLOD_quads} from "./renderVoxelsLOD_quads.js";
+
+let metadataFilename = "metadata_sitn.json";
+let dataFilename = "data_sitn.bin";
 
 let tmpVec3 = new Vector3();
 function createChildAABB(aabb, index){
@@ -42,6 +46,7 @@ class Node{
 		this.level = 0;
 		this.voxelGridSize = 0;
 		this.visible = false;
+		this.loading = false;
 		this.loaded = false;
 	}
 
@@ -57,6 +62,8 @@ class Node{
 
 }
 
+let numBytesLoaded = 0;
+
 
 export class Potree3Loader{
 
@@ -66,7 +73,7 @@ export class Potree3Loader{
 
 	static async load(url){
 
-		let rMetadata = await fetch(`${url}/metadata.json`);
+		let rMetadata = await fetch(`${url}/${metadataFilename}`);
 		let jsMetadata = await rMetadata.json();
 
 		let root = null;
@@ -123,17 +130,21 @@ export class Potree3Loader{
 		});
 
 		root.traverse( (node) => {
-			console.log(node);
 
-			// if(!node.isLeaf){
+			node.load = async () => {
+				// load voxels
 
-				node.load = async () => {
-					// load voxels
+				if(node.loading){
+					return;
+				}else{
+					node.loading = true;
+				}
 
+				try{
 					let first = node.byteOffset;
 					let last = first + node.byteSize - 1;
 
-					let response = await fetch(`${url}/data.bin`, {
+					let response = await fetch(`${url}/${dataFilename}`, {
 						headers: {
 							'content-type': 'multipart/byteranges',
 							'Range': `bytes=${first}-${last}`,
@@ -142,87 +153,41 @@ export class Potree3Loader{
 
 					let numVoxels = node.byteSize / 16;
 					let buffer = await response.arrayBuffer();
-					let bPositions = buffer.slice(0, 12 * numVoxels);
-					let bColors = buffer.slice(12 * numVoxels, 16 * numVoxels);
 
-					// let pPositions = fetch(`${url}/${node.name}_voxels_positions.bin`);
-					// let pColors = fetch(`${url}/${node.name}_voxels_colors.bin`);
+					let positions = new Float32Array(buffer, 0, 3 * numVoxels);
+					let colors = new Uint8Array(buffer, 12 * numVoxels, 4 * numVoxels);
 
-					// Promise.all([pPositions, pColors]).then(async result => {
-					// 	let [rPositions, rColors] = result;
-
-					// 	let bPositions = await rPositions.arrayBuffer();
-					// 	let bColors = await rColors.arrayBuffer();
-
-						let positions = new Float32Array(bPositions);
-						let colors = new Uint8Array(bColors);
-
-						// let numVoxels = positions.length / 3;
-
-						node.voxels = {positions, colors, numVoxels};
-
-					// });
-
-					// let voxelSize = rootVoxelSize / (2 ** node.level);
+					node.voxels = {positions, colors, numVoxels};
 					node.loaded = true;
-					// node.position.x -= voxelSize / 2;
-					// node.position.y -= voxelSize / 2;
-					// node.position.z -= voxelSize / 2;
 
 					node.load = () => {};
+					node.loading = false;
+					numBytesLoaded += node.byteSize;
+
+					console.log(`[${node.name}]: ${numVoxels} voxels; ${Math.floor(node.byteSize / 1024)} kb`);
+					console.log(`mb loaded: ${numBytesLoaded / (1024 * 1024)}`);
+				}catch(e){
+					console.log(`failed to load ${node.name}. Trying again.`);
+					console.log(e);
+					node.loading = false;
 				}
+			}
 				
-			// }else{
-			// 	// load mesh
-				
-			// 	node.load = async () => {
-			// 		let pPositions = fetch(`${url}/${node.name}_mesh_positions.bin`);
-			// 		let pUVs = fetch(`${url}/${node.name}_mesh_uvs.bin`);
-			// 		let pColors = fetch(`${url}/${node.name}_mesh_colors.bin`);
-
-			// 		Promise.all([pPositions, pUVs, pColors]).then(async result => {
-			// 			let [rPositions, rUVs, rColors] = result;
-
-			// 			let bPositions = await rPositions.arrayBuffer();
-			// 			let bUVs = await rUVs.arrayBuffer();
-			// 			let bColors = await rColors.arrayBuffer();
-
-			// 			let positions = new Float32Array(bPositions);
-			// 			let uvs = new Float32Array(bUVs);
-			// 			let colors = new Uint8Array(bColors);
-
-			// 			let numVertices = positions.length / 3;
-
-			// 			let geometry = {
-			// 				buffers: [
-			// 					{name: "position", buffer: positions},
-			// 					{name: "uv", buffer: uvs},
-			// 					{name: "color", buffer: colors},
-			// 				],
-			// 				numElements: numVertices,
-			// 			};
-			// 			let mesh = new Mesh("abc", geometry);
-			// 			mesh.material = new PhongMaterial();
-			// 			mesh.material.colorMode = 0;
-
-			// 			// node.mesh = {positions, uvs, colors};
-			// 			node.mesh = mesh;
-
-			// 			scene.root.children.push(mesh);
-
-
-			// 		});
-					
-			// 		node.loaded = true;
-
-			// 		node.load = () => {};
-			// 	}
-
-
-			// }
 		});
 
+		let visibleNodes = [];
+
 		potree.onUpdate( () => {
+
+			if(!guiContent["update"]){
+				return;
+			}
+
+			let numVisibleNodes = 0;
+			let numVisibleVoxels = 0;
+
+			visibleNodes = [];
+
 			root.traverse( (node) => {
 
 				{
@@ -250,25 +215,44 @@ export class Potree3Loader{
 						node.mesh.visible = visible;
 					}
 
-					// if(node.visible){
-					// 	potree.renderer.drawBoundingBox(
-					// 		node.boundingBox.center(),
-					// 		node.boundingBox.size(),
-					// 		new Vector3(255, 255, 0),
-					// 	);
-					// }
+					if(visible){
+						numVisibleNodes++;
 
+						if(node.voxels){
+							numVisibleVoxels += node.voxels.numVoxels;
 
+							visibleNodes.push(node);
+						}
+					}
 
 				}
 
 			});
 
+			guiContent["#points"] = numVisibleVoxels.toLocaleString();
+			guiContent["#nodes"] = numVisibleNodes.toLocaleString();
+
 			
+		});
+
+		potree.onUpdate(() => {
+			let showBoundingBox = guiContent["show bounding box"];
+
+			if(showBoundingBox){
+
+				for(let node of visibleNodes){
+					potree.renderer.drawBoundingBox(
+						node.boundingBox.center(),
+						node.boundingBox.size(),
+						new Vector3(255, 255, 0),
+					);
+				}
+			}
 		});
 
 		potree.renderer.onDraw(drawstate => {
 			renderVoxelsLOD(root, drawstate);
+			// renderVoxelsLOD_quads(root, drawstate);
 		});
 
 	}

@@ -6,8 +6,8 @@ let gui = null;
 let guiContent = {
 
 	// INFOS
-	"#points": "0",
-	"#nodes": "0",
+	"#points": "",
+	"#nodes": "",
 	"fps": "0",
 	"duration(update)": "0",
 	"cam.pos": "",
@@ -24,7 +24,7 @@ let guiContent = {
 	"point budget (M)": 4,
 	"point size": 3,
 	"update": true,
-	"debug": 0.195,
+	"debug": 0.4,
 
 	// COLOR ADJUSTMENT
 	"scalar min": 0,

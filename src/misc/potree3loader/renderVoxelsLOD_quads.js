@@ -11,7 +11,7 @@ const shaderSource = `
 	voxelSize          : f32;
 	bbMin              : vec3<f32>;    // 16     144
 	bbMax              : vec3<f32>;    // 16     160
-	pad_0              : u32;
+	point_size         : f32;
 	pad_1              : u32;
 };
 
@@ -46,43 +46,14 @@ struct LOD {
 [[block]] struct U32s {values : [[stride(4)]] array<u32>;};
 [[block]] struct F32s {values : [[stride(4)]] array<f32>;};
 
-var<private> CUBE_POS : array<vec3<f32>, 36> = array<vec3<f32>, 36>(
-	vec3<f32>(-0.5, -0.5, -0.5),
-	vec3<f32>(0.5,  0.5, -0.5),
-	vec3<f32>(0.5, -0.5, -0.5),
-	vec3<f32>(-0.5, -0.5, -0.5),
-	vec3<f32>(-0.5,  0.5, -0.5),
-	vec3<f32>(0.5,  0.5, -0.5),
-	vec3<f32>(-0.5, -0.5,  0.5),
-	vec3<f32>(0.5, -0.5,  0.5),
-	vec3<f32>(0.5,  0.5,  0.5),
-	vec3<f32>(-0.5, -0.5,  0.5),
-	vec3<f32>(0.5,  0.5,  0.5),
-	vec3<f32>(-0.5,  0.5,  0.5),
-	vec3<f32>(-0.5, -0.5, -0.5,),
-	vec3<f32>(-0.5,  0.5,  0.5,),
-	vec3<f32>(-0.5,  0.5, -0.5,),
-	vec3<f32>(-0.5, -0.5, -0.5,),
-	vec3<f32>(-0.5, -0.5,  0.5,),
-	vec3<f32>(-0.5,  0.5,  0.5,),
-	vec3<f32>(0.5, -0.5, -0.5),
-	vec3<f32>(0.5,  0.5, -0.5),
-	vec3<f32>(0.5,  0.5,  0.5),
-	vec3<f32>(0.5, -0.5, -0.5),
-	vec3<f32>(0.5,  0.5,  0.5),
-	vec3<f32>(0.5, -0.5,  0.5),
-	vec3<f32>(-0.5, 0.5, -0.5),
-	vec3<f32>(0.5, 0.5,  0.5),
-	vec3<f32>(0.5, 0.5, -0.5),
-	vec3<f32>(-0.5, 0.5, -0.5),
-	vec3<f32>(-0.5, 0.5,  0.5),
-	vec3<f32>(0.5, 0.5,  0.5),
-	vec3<f32>(-0.5, -0.5, -0.5),
-	vec3<f32>(0.5, -0.5, -0.5),
-	vec3<f32>(0.5, -0.5,  0.5),
-	vec3<f32>(-0.5, -0.5, -0.5),
-	vec3<f32>(0.5, -0.5,  0.5),
-	vec3<f32>(-0.5, -0.5,  0.5),
+var<private> QUAD_POS : array<vec3<f32>, 6> = array<vec3<f32>, 6>(
+	vec3<f32>(-1.0, -1.0, 0.0),
+	vec3<f32>( 1.0, -1.0, 0.0),
+	vec3<f32>( 1.0,  1.0, 0.0),
+
+	vec3<f32>(-1.0, -1.0, 0.0),
+	vec3<f32>( 1.0,  1.0, 0.0),
+	vec3<f32>(-1.0,  1.0, 0.0),
 );
 
 var<private> GRADIENT : array<vec3<f32>, 4> = array<vec3<f32>, 4>(
@@ -199,9 +170,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	doIgnore();
 
 	var node = nodes.values[vertex.instance_index];
-	let cubeVertexIndex : u32 = vertex.index % 36u;
-	var cubeOffset : vec3<f32> = CUBE_POS[cubeVertexIndex];
-	var voxelIndex = vertex.index / 36u;
+	var voxelIndex = vertex.index / 6u;
 
 	var position = vec3<f32>(
 		positions.values[3u * voxelIndex + 0u],
@@ -209,19 +178,45 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 		positions.values[3u * voxelIndex + 2u],
 	);
 
-	// var rootCubeSize = uniforms.bbMax.x - uniforms.bbMin.x;
-	// var rootVoxelSize = rootCubeSize / uniforms.voxelGridSize;
-	// var voxelSize = rootVoxelSize / pow(2.0, f32(node.level));
-
-
 	var cubeSize = uniforms.bbMax.x - uniforms.bbMin.x;
 	var chunkSize = cubeSize / pow(2.0, f32(node.level));
 	var voxelSize = chunkSize / uniforms.voxelGridSize;
-	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(position + voxelSize * cubeOffset + voxelSize / 2.0, 1.0);
+	position = position + voxelSize / 2.0;
+
+	var lod = getLOD(position);
+
+	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(position, 1.0);
 	var projPos : vec4<f32> = uniforms.proj * viewPos;
 
-	position = position + voxelSize / 2.0;
-	var lod = getLOD(position);
+	var size = 0.0;
+	{
+		var viewPos_1 : vec4<f32> = uniforms.worldView * vec4<f32>(position, 1.0);
+		viewPos_1 = viewPos_1 + voxelSize;
+		var projPos_1 : vec4<f32> = uniforms.proj * viewPos_1;
+
+		var xy_0 = (projPos.xy / projPos.w) / 2.0 + 0.5;
+		var xy_1 = (projPos_1.xy / projPos_1.w) / 2.0 + 0.5;
+
+		var screenSize = vec2<f32>(f32(uniforms.screen_width), f32(uniforms.screen_height));
+		xy_0 = xy_0 * screenSize;
+		xy_1 = xy_1 * screenSize;
+
+		size = length(xy_1 - xy_0);
+	}
+
+	let quadVertexIndex : u32 = vertex.index % 6u;
+	var pos_quad : vec3<f32> = QUAD_POS[quadVertexIndex];
+
+	var pointSize = size;
+	pointSize = clamp(pointSize, 1.0, 50.0);
+	var fx : f32 = projPos.x / projPos.w;
+	fx = fx + pointSize * pos_quad.x / uniforms.screen_width;
+	projPos.x = fx * projPos.w;
+
+	var fy : f32 = projPos.y / projPos.w;
+	fy = fy + pointSize * pos_quad.y / uniforms.screen_height;
+	projPos.y = fy * projPos.w;
+
 
 	var vout : VertexOut;
 
@@ -236,13 +231,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 		// discard!
 
 		vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
-	}
-
-	// var w = f32(uniforms.level) / 5.0;
-	// var w = f32(lod.depth) / 5.0;
-	// vout.color = vec4<f32>(w, w, w, 1.0);
-	// var gradientColor = GRADIENT[lod.depth] / 255.0;
-	// vout.color = vec4<f32>(gradientColor, 1.0);
+	}	
 
 	return vout;
 }
@@ -310,30 +299,6 @@ function getState(renderer, node){
 	}
 }
 
-let bindGroupCache = new Map();
-function getBindGroup(renderer, node, state){
-
-	if(!bindGroupCache.has(node)){
-
-		let vboPositions = renderer.getGpuBuffer(node.voxels.positions);
-		let vboColors = renderer.getGpuBuffer(node.voxels.colors);
-
-		let bindGroup = renderer.device.createBindGroup({
-			layout: state.pipeline.getBindGroupLayout(0),
-			entries: [
-				{binding: 0, resource: {buffer: state.uniformBuffer}},
-				{binding: 1, resource: {buffer: vboPositions}},
-				{binding: 2, resource: {buffer: vboColors}},
-				{binding: 3, resource: {buffer: state.nodeBuffer}},
-			],
-		});
-
-		bindGroupCache.set(node, bindGroup);
-
-	}
-
-	return bindGroupCache.get(node);
-}
 
 function updateUniforms(renderer, node){
 
@@ -370,7 +335,7 @@ function updateUniforms(renderer, node){
 		view.setFloat32(136, node.voxelGridSize, true);
 		view.setFloat32(140, voxelSize, true);
 
-		view.setFloat32(176, node.level, true);
+		view.setFloat32(176, 2.0, true);
 	}
 
 	renderer.device.queue.writeBuffer(state.uniformBuffer, 0, data, 0, data.byteLength);
@@ -391,7 +356,7 @@ function childMaskOf(node){
 	return mask;
 }
 
-export function renderVoxelsLOD(root, drawstate){
+export function renderVoxelsLOD_quads(root, drawstate){
 
 	let {renderer, camera} = drawstate;
 	let {passEncoder} = drawstate.pass;
@@ -466,10 +431,21 @@ export function renderVoxelsLOD(root, drawstate){
 			continue;
 		}
 
-		let bindGroup = getBindGroup(renderer, node, state);
+		let vboPositions = renderer.getGpuBuffer(node.voxels.positions);
+		let vboColors = renderer.getGpuBuffer(node.voxels.colors);
+
+		let bindGroup = renderer.device.createBindGroup({
+			layout: state.pipeline.getBindGroupLayout(0),
+			entries: [
+				{binding: 0, resource: {buffer: state.uniformBuffer}},
+				{binding: 1, resource: {buffer: vboPositions}},
+				{binding: 2, resource: {buffer: vboColors}},
+				{binding: 3, resource: {buffer: state.nodeBuffer}},
+			],
+		});
 		passEncoder.setBindGroup(0, bindGroup);
 
-		passEncoder.draw(36 * node.voxels.numVoxels, 1, 0, instanceIndex);
+		passEncoder.draw(6 * node.voxels.numVoxels, 1, 0, instanceIndex);
 
 		instanceIndex++;
 	}
