@@ -229,7 +229,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	var cubeSize = uniforms.bbMax.x - uniforms.bbMin.x;
 	var chunkSize = cubeSize / pow(2.0, f32(node.level));
 	var voxelSize = chunkSize / uniforms.voxelGridSize;
-	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(position + voxelSize * cubeOffset, 1.0);
+	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(position + voxelSize * cubeOffset + voxelSize / 2.0, 1.0);
 	var projPos : vec4<f32> = uniforms.proj * viewPos;
 
 	var vout : VertexOut;
@@ -247,13 +247,13 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 		vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 	}
 
-	if(lod.isLeaf){
-		var blue = vec4<f32>(0.0, 0.0, 1.0, 1.0);
-		vout.color = 0.5 * vout.color + 0.5 * blue;
-		vout.color.w = 1.0;
+	// if(lod.isLeaf){
+	// 	var blue = vec4<f32>(0.0, 0.0, 1.0, 1.0);
+	// 	vout.color = 0.5 * vout.color + 0.5 * blue;
+	// 	vout.color.w = 1.0;
 
-		vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
-	}
+	// 	vout.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
+	// }
 
 	// var gradientColor = GRADIENT[lod.depth] / 255.0;
 	// vout.color = vec4<f32>(gradientColor, 1.0);

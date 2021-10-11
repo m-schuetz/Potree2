@@ -73,13 +73,15 @@ export class Potree3Loader{
 		let nodes = [];
 		let nodeMap = new Map();
 
-		for(let nodeName of jsMetadata.nodes){
+		for(let jsNode of jsMetadata.nodes){
 			let node = new Node();
-			node.name = nodeName;
+			node.name = jsNode.name;
 			node.level = node.name.length - 1;
+			node.byteOffset = jsNode.offset;
+			node.byteSize = jsNode.size;
 
 			nodes.push(node);
-			nodeMap.set(nodeName, node);
+			nodeMap.set(jsNode.name, node);
 		}
 
 		for(let node of nodes){
@@ -102,6 +104,8 @@ export class Potree3Loader{
 			new Vector3(...jsMetadata.boundingBox.max),
 		);
 
+		let rootVoxelSize = root.boundingBox.size().x / jsMetadata.gridSize;
+
 		root.traverse( (node) => {
 			
 			for(let childIndex = 0; childIndex < 8; childIndex++){
@@ -121,81 +125,101 @@ export class Potree3Loader{
 		root.traverse( (node) => {
 			console.log(node);
 
-			if(!node.isLeaf){
+			// if(!node.isLeaf){
 
 				node.load = async () => {
 					// load voxels
-					let pPositions = fetch(`${url}/${node.name}_voxels_positions.bin`);
-					let pColors = fetch(`${url}/${node.name}_voxels_colors.bin`);
 
-					Promise.all([pPositions, pColors]).then(async result => {
-						let [rPositions, rColors] = result;
+					let first = node.byteOffset;
+					let last = first + node.byteSize - 1;
 
-						let bPositions = await rPositions.arrayBuffer();
-						let bColors = await rColors.arrayBuffer();
+					let response = await fetch(`${url}/data.bin`, {
+						headers: {
+							'content-type': 'multipart/byteranges',
+							'Range': `bytes=${first}-${last}`,
+						},
+					});
+
+					let numVoxels = node.byteSize / 16;
+					let buffer = await response.arrayBuffer();
+					let bPositions = buffer.slice(0, 12 * numVoxels);
+					let bColors = buffer.slice(12 * numVoxels, 16 * numVoxels);
+
+					// let pPositions = fetch(`${url}/${node.name}_voxels_positions.bin`);
+					// let pColors = fetch(`${url}/${node.name}_voxels_colors.bin`);
+
+					// Promise.all([pPositions, pColors]).then(async result => {
+					// 	let [rPositions, rColors] = result;
+
+					// 	let bPositions = await rPositions.arrayBuffer();
+					// 	let bColors = await rColors.arrayBuffer();
 
 						let positions = new Float32Array(bPositions);
 						let colors = new Uint8Array(bColors);
 
-						let numVoxels = positions.length / 3;
+						// let numVoxels = positions.length / 3;
 
 						node.voxels = {positions, colors, numVoxels};
 
-					});
+					// });
 
+					// let voxelSize = rootVoxelSize / (2 ** node.level);
 					node.loaded = true;
+					// node.position.x -= voxelSize / 2;
+					// node.position.y -= voxelSize / 2;
+					// node.position.z -= voxelSize / 2;
 
 					node.load = () => {};
 				}
 				
-			}else{
-				// load mesh
+			// }else{
+			// 	// load mesh
 				
-				node.load = async () => {
-					let pPositions = fetch(`${url}/${node.name}_mesh_positions.bin`);
-					let pUVs = fetch(`${url}/${node.name}_mesh_uvs.bin`);
-					let pColors = fetch(`${url}/${node.name}_mesh_colors.bin`);
+			// 	node.load = async () => {
+			// 		let pPositions = fetch(`${url}/${node.name}_mesh_positions.bin`);
+			// 		let pUVs = fetch(`${url}/${node.name}_mesh_uvs.bin`);
+			// 		let pColors = fetch(`${url}/${node.name}_mesh_colors.bin`);
 
-					Promise.all([pPositions, pUVs, pColors]).then(async result => {
-						let [rPositions, rUVs, rColors] = result;
+			// 		Promise.all([pPositions, pUVs, pColors]).then(async result => {
+			// 			let [rPositions, rUVs, rColors] = result;
 
-						let bPositions = await rPositions.arrayBuffer();
-						let bUVs = await rUVs.arrayBuffer();
-						let bColors = await rColors.arrayBuffer();
+			// 			let bPositions = await rPositions.arrayBuffer();
+			// 			let bUVs = await rUVs.arrayBuffer();
+			// 			let bColors = await rColors.arrayBuffer();
 
-						let positions = new Float32Array(bPositions);
-						let uvs = new Float32Array(bUVs);
-						let colors = new Uint8Array(bColors);
+			// 			let positions = new Float32Array(bPositions);
+			// 			let uvs = new Float32Array(bUVs);
+			// 			let colors = new Uint8Array(bColors);
 
-						let numVertices = positions.length / 3;
+			// 			let numVertices = positions.length / 3;
 
-						let geometry = {
-							buffers: [
-								{name: "position", buffer: positions},
-								{name: "uv", buffer: uvs},
-								{name: "color", buffer: colors},
-							],
-							numElements: numVertices,
-						};
-						let mesh = new Mesh("abc", geometry);
-						mesh.material = new PhongMaterial();
-						mesh.material.colorMode = 0;
+			// 			let geometry = {
+			// 				buffers: [
+			// 					{name: "position", buffer: positions},
+			// 					{name: "uv", buffer: uvs},
+			// 					{name: "color", buffer: colors},
+			// 				],
+			// 				numElements: numVertices,
+			// 			};
+			// 			let mesh = new Mesh("abc", geometry);
+			// 			mesh.material = new PhongMaterial();
+			// 			mesh.material.colorMode = 0;
 
-						// node.mesh = {positions, uvs, colors};
-						node.mesh = mesh;
+			// 			// node.mesh = {positions, uvs, colors};
+			// 			node.mesh = mesh;
 
-						scene.root.children.push(mesh);
+			// 			scene.root.children.push(mesh);
 
 
-					});
+			// 		});
 					
-					node.loaded = true;
+			// 		node.loaded = true;
 
-					node.load = () => {};
-				}
+			// 		node.load = () => {};
+			// 	}
 
 
-			}
+			// }
 		});
 
 		potree.onUpdate( () => {
