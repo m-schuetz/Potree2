@@ -29,7 +29,6 @@ export * from "./modules/mesh/NormalMaterial.js";
 export * from "./modules/mesh/PhongMaterial.js";
 export * from "./modules/mesh/WireframeMaterial.js";
 export * from "./modules/mesh/TriangleColorMaterial.js";
-export * from "./modules/quads/Quads.js";
 export * from "./scene/Camera.js";
 export * from "./navigation/OrbitControls.js";
 export * from "./navigation/PotreeControls.js";
@@ -76,7 +75,6 @@ const settings = {
 	dbgAttribute: "rgba",
 	debugU: 1,
 	showBoundingBox: false,
-	// mode: "pixels",
 	useCompute: false,
 	dilateEnabled: false,
 	edlEnabled: false,
@@ -89,6 +87,7 @@ const state = {
 	camPos: "",
 	camDir: "",
 	numPoints: 0,
+	numVoxels: 0,
 	numNodes: 0,
 };
 

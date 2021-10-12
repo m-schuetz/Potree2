@@ -2,9 +2,14 @@
 import {Box3, Vector3, Mesh, PhongMaterial} from "potree";
 import {renderVoxelsLOD} from "./renderVoxelsLOD.js";
 import {renderVoxelsLOD_quads} from "./renderVoxelsLOD_quads.js";
+import {renderVoxelsLOD_points} from "./renderVoxelsLOD_points.js";
+import {BinaryHeap} from "BinaryHeap";
 
-let metadataFilename = "metadata_sitn.json";
-let dataFilename = "data_sitn.bin";
+// let metadataFilename = "metadata_sitn.json";
+// let dataFilename = "data_sitn.bin";
+
+let metadataFilename = "metadata.json";
+let dataFilename = "data.bin";
 
 let tmpVec3 = new Vector3();
 function createChildAABB(aabb, index){
@@ -186,50 +191,60 @@ export class Potree3Loader{
 			let numVisibleNodes = 0;
 			let numVisibleVoxels = 0;
 
+
+			root.traverse( (node) => { 
+				node.visible = false;
+			} );
+
+
+			let priorityQueue = new BinaryHeap((element) => {element.weight});
+			priorityQueue.push({node: root, weight: 1});
+
 			visibleNodes = [];
+			while (priorityQueue.size() > 0) {
 
-			root.traverse( (node) => {
+				let element = priorityQueue.pop();
+				let node = element.node;
 
-				{
 
-					let center = node.boundingBox.center();
-					let size = node.boundingBox.size().length();
+				if(!node.loaded){
+					node.load();
+					node.visible = false;
+
+					continue;
+				}
+
+				node.visible = true;
+				numVisibleNodes++;
+				if(node.voxels){
+					numVisibleVoxels += node.voxels.numVoxels;
+					visibleNodes.push(node);
+				}
+
+				for(let child of node.children){
+
+					if (!child) continue;
+
+					let center = child.boundingBox.center();
+					let size = child.boundingBox.size().length();
 					let camWorldPos = camera.getWorldPosition();
 					let distance = camWorldPos.distanceTo(center);
-					let visible = (size / distance) > 0.3 / Potree.settings.debugU;
+					let weight = (size / distance);
+					let visible = weight > 0.3 / Potree.settings.debugU;
 
-					if(visible && !node.loaded){
-						node.load();
-						node.visible = false;
-
-						return;
-					}
-
-					if(node.name === "r"){
-						visible = true;
-					} 
-
-					node.visible = visible;
-
-					if(node.mesh){
-						node.mesh.visible = visible;
-					}
+					// visible = ["r", "r0", "r00", "r006", "r0060", "r0061"].includes(child.name);
 
 					if(visible){
-						numVisibleNodes++;
-
-						if(node.voxels){
-							numVisibleVoxels += node.voxels.numVoxels;
-
-							visibleNodes.push(node);
-						}
+						priorityQueue.push({node: child, weight: weight});
 					}
 
 				}
 
-			});
 
-			guiContent["#points"] = numVisibleVoxels.toLocaleString();
+			}
+
+			Potree.state.numVoxels = numVisibleVoxels;
+			// guiContent["#points"] = numVisibleVoxels.toLocaleString();
 			guiContent["#nodes"] = numVisibleNodes.toLocaleString();
 
 			
@@ -252,6 +267,7 @@ export class Potree3Loader{
 
 		potree.renderer.onDraw(drawstate => {
 			renderVoxelsLOD(root, drawstate);
+			// renderVoxelsLOD_points(root, drawstate);
 			// renderVoxelsLOD_quads(root, drawstate);
 		});
 

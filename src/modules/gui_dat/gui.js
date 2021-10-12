@@ -6,7 +6,7 @@ let gui = null;
 let guiContent = {
 
 	// INFOS
-	"#points": "",
+	"#voxels": "",
 	"#nodes": "",
 	"fps": "0",
 	"duration(update)": "0",
@@ -24,7 +24,7 @@ let guiContent = {
 	"point budget (M)": 4,
 	"point size": 3,
 	"update": true,
-	"debug": 0.4,
+	"debug": 0.7,
 
 	// COLOR ADJUSTMENT
 	"scalar min": 0,
@@ -48,7 +48,7 @@ export function initGUI(potree){
 	{
 		let stats = gui.addFolder("stats");
 		stats.open();
-		stats.add(guiContent, "#points").listen();
+		stats.add(guiContent, "#voxels").listen();
 		stats.add(guiContent, "#nodes").listen();
 		stats.add(guiContent, "fps").listen();
 		stats.add(guiContent, "duration(update)").listen();
@@ -98,7 +98,7 @@ export function initGUI(potree){
 		let state = Potree.state;
 
 		guiContent["fps"]       = state.fps.toLocaleString();
-		guiContent["#points"]   = state.numPoints.toLocaleString();
+		guiContent["#voxels"]   = state.numVoxels.toLocaleString();
 		guiContent["#nodes"]    = state.numNodes.toLocaleString();
 		guiContent["cam.pos"]   = state.camPos;
 		guiContent["cam.target"]   = state.camTarget;
