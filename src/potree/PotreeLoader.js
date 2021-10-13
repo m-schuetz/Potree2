@@ -232,14 +232,6 @@ export class PotreeLoader{
 					return;
 				}
 
-				// let attributeBuffers = data.attributeBuffers;
-
-				// let buffers = [];
-
-				// for(let attributeName in attributeBuffers){
-				// 	buffers.push(attributeBuffers[attributeName]);
-				// }
-
 				let geometry = new Geometry();
 				geometry.numElements = node.numPoints;
 				// geometry.buffers = buffers;

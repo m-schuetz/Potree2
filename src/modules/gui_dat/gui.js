@@ -24,7 +24,7 @@ let guiContent = {
 	"point budget (M)": 4,
 	"point size": 3,
 	"update": true,
-	"debug": 0.7,
+	"debug": 0.5,
 
 	// COLOR ADJUSTMENT
 	"scalar min": 0,

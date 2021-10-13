@@ -37,9 +37,7 @@ export class PointCloudOctree extends SceneNode{
 		let world = this.world;
 		let view = camera.view;
 		let proj = camera.proj;
-		// let worldI = world.clone().invert();
-		let fm = new Matrix4().multiply(proj).multiply(view); //.multiply(world);
-		//let fm = new Matrix4().multiplyMatrices(camera.proj, camera.view);
+		let fm = new Matrix4().multiply(proj).multiply(view); 
 		let frustum = new Frustum();
 		frustum.setFromMatrix(fm);
 

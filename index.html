@@ -102,7 +102,7 @@ canvas{
 	guiContent["point budget (M)"] = 2;
 	guiContent["point size"] = 5;
 	guiContent["High-Quality"] = false;
-	guiContent["Eye-Dome-Lighting"] = true;
+	guiContent["Eye-Dome-Lighting"] = false;
 	guiContent["dilate"] = false;
 	// guiContent["attribute"] = "intensity";
 
@@ -121,10 +121,15 @@ canvas{
 		pivot: [-0.3, 0.4, -5.7],
 	});
 
+	controls.set({
+		position: [-1.5, -5.8, -3.0],
+		pivot: [-0.1, -0.8, -4.8],
+	});
+
 	// SITN
 	controls.set({
-		position: [2290.5, 1352.2, 957.3],
-		pivot: [2361.6, 1362.4, 916.1],
+		position: [2315.2, 1355.2, 949.8],
+		pivot: [2357.1, 1363.8, 931.0],
 	});
 	
 
@@ -159,7 +164,7 @@ canvas{
 	});
 
 
-	import {Potree3Loader} from "./src/misc/potree3loader/Potree3Loader.js";
+	import {Potree3Loader} from "./src/misc/potree3loader_batched/Potree3Loader.js";
 	Potree3Loader.load("./temp").then(() => {
 		console.log("abc");
 	});

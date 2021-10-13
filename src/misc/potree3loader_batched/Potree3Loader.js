@@ -1,9 +1,11 @@
 
-import {Box3, Vector3, Mesh, PhongMaterial} from "potree";
+import {Box3, Vector3, Matrix4, Frustum} from "potree";
 import {renderVoxelsLOD} from "./renderVoxelsLOD.js";
 import {renderVoxelsLOD_quads} from "./renderVoxelsLOD_quads.js";
 import {renderVoxelsLOD_points} from "./renderVoxelsLOD_points.js";
 import {BinaryHeap} from "BinaryHeap";
+import {BrotliDecode} from "../../../libs/brotli/decode.js";
+import {WorkerPool} from "../../misc/WorkerPool.js";
 
 // let metadataFilename = "metadata_sitn.json";
 // let dataFilename = "data_sitn.bin";
@@ -67,8 +69,104 @@ class Node{
 
 }
 
-let numBytesLoaded = 0;
+let numBatchesLoading = 0;
+let maxNumBatchesLoading = 4;
 
+class Batch{
+
+	constructor(){
+		this.boundingBox = new Box3();
+		this.name = "";
+		this.children = [];
+		this.nodes = [];
+
+		this.url = "";
+		this.posOffset = 0;
+		this.posSize = 0;
+		this.colOffset = 0;
+		this.colSize = 0;
+		this.loaded = false;
+		this.loading = false;
+
+	}
+
+	async load(){
+
+		if(this.loaded) return;
+		if(this.loading) return;
+		if(numBatchesLoading > maxNumBatchesLoading) return;
+
+		this.loading = true;
+		numBatchesLoading++;
+
+
+		let workerPath = "./src/misc/potree3loader_batched/Potree3LoaderWorker.js";
+		let worker = WorkerPool.getWorker(workerPath, {type: "module"});
+
+		worker.onmessage = (e) => {
+			let data = e.data;
+
+			let position_decoded = data.position_decoded;
+			let color_decoded = data.color_decoded;
+
+			let position_decoded_u32 = new Int32Array(position_decoded.buffer);
+
+			let numVoxels_batch = position_decoded.byteLength / 4;
+			let positions = new Float32Array(3 * numVoxels_batch);
+			let voxelsProcessed = 0;
+
+			for(let node of this.nodes){
+				let box = node.boundingBox;
+				let cubeSize = box.max.x - box.min.x;
+				let voxelGridSize = node.voxelGridSize;
+
+				for(let i = 0; i < node.numVoxels; i++){
+
+					let voxelIndex = position_decoded_u32[voxelsProcessed];
+					let X = voxelIndex % voxelGridSize;
+					let Y = Math.floor((voxelIndex % (voxelGridSize * voxelGridSize)) / voxelGridSize);
+					let Z = Math.floor(voxelIndex / (voxelGridSize * voxelGridSize));
+
+					let x = cubeSize * (X / voxelGridSize) + box.min.x;
+					let y = cubeSize * (Y / voxelGridSize) + box.min.y;
+					let z = cubeSize * (Z / voxelGridSize) + box.min.z;
+
+					positions[3 * voxelsProcessed + 0] = x;
+					positions[3 * voxelsProcessed + 1] = y;
+					positions[3 * voxelsProcessed + 2] = z;
+
+					voxelsProcessed++;
+				}
+
+			}
+			
+			this.buffers = {
+				"position": positions,
+				"color": color_decoded,
+			};
+
+			this.loaded = true;
+			this.loading = false;
+			numBatchesLoading--;
+			WorkerPool.returnWorker(workerPath, worker);
+		};
+
+		let url = new URL(this.url, document.baseURI).href;
+		let message = {
+			url: url,
+			posOffset: this.posOffset,
+			posSize: this.posSize,
+			colOffset: this.colOffset,
+			colSize: this.colSize,
+		};
+		worker.postMessage(message, []);
+
+		
+
+		
+	}
+
+}
 
 export class Potree3Loader{
 
@@ -81,20 +179,41 @@ export class Potree3Loader{
 		let rMetadata = await fetch(`${url}/${metadataFilename}`);
 		let jsMetadata = await rMetadata.json();
 
-		let root = null;
+		let batches = [];
 		let nodes = [];
 		let nodeMap = new Map();
 
-		for(let jsNode of jsMetadata.nodes){
-			let node = new Node();
-			node.name = jsNode.name;
-			node.level = node.name.length - 1;
-			node.byteOffset = jsNode.offset;
-			node.byteSize = jsNode.size;
+		for(let jsBatch of jsMetadata.batches){
+			
+			let batch = new Batch();
+			batch.name = jsBatch.name;
+			batch.url = `${url}/chunks.bin`;
+			batch.posOffset = jsBatch.pos_offset;
+			batch.posSize = jsBatch.pos_size;
+			batch.colOffset = jsBatch.col_offset;
+			batch.colSize = jsBatch.col_size;
 
-			nodes.push(node);
-			nodeMap.set(jsNode.name, node);
+			let numVoxelsProcessed = 0;
+
+			for(let jsNode of jsBatch.nodes){
+
+				let node = new Node();
+				node.name = jsNode.name;
+				node.level = node.name.length - 1;
+				node.batch = batch;
+				node.numVoxels = jsNode.voxels;
+				node.numVoxelsProcessed = numVoxelsProcessed;
+				numVoxelsProcessed += node.numVoxels;
+
+				batch.nodes.push(node);
+				nodes.push(node);
+				nodeMap.set(node.name, node);
+			}
+
+			batches.push(batch);
 		}
+
+		let root = null;
 
 		for(let node of nodes){
 			
@@ -116,10 +235,7 @@ export class Potree3Loader{
 			new Vector3(...jsMetadata.boundingBox.max),
 		);
 
-		let rootVoxelSize = root.boundingBox.size().x / jsMetadata.gridSize;
-
 		root.traverse( (node) => {
-			
 			for(let childIndex = 0; childIndex < 8; childIndex++){
 				let child = node.children[childIndex];
 
@@ -131,54 +247,12 @@ export class Potree3Loader{
 			}
 
 			node.voxelGridSize = jsMetadata.gridSize;
-
 		});
 
-		root.traverse( (node) => {
+		console.log(root);
 
-			node.load = async () => {
-				// load voxels
+		root.batch.load();
 
-				if(node.loading){
-					return;
-				}else{
-					node.loading = true;
-				}
-
-				try{
-					let first = node.byteOffset;
-					let last = first + node.byteSize - 1;
-
-					let response = await fetch(`${url}/${dataFilename}`, {
-						headers: {
-							'content-type': 'multipart/byteranges',
-							'Range': `bytes=${first}-${last}`,
-						},
-					});
-
-					let numVoxels = node.byteSize / 16;
-					let buffer = await response.arrayBuffer();
-
-					let positions = new Float32Array(buffer, 0, 3 * numVoxels);
-					let colors = new Uint8Array(buffer, 12 * numVoxels, 4 * numVoxels);
-
-					node.voxels = {positions, colors, numVoxels};
-					node.loaded = true;
-
-					node.load = () => {};
-					node.loading = false;
-					numBytesLoaded += node.byteSize;
-
-					console.log(`[${node.name}]: ${numVoxels} voxels; ${Math.floor(node.byteSize / 1024)} kb`);
-					console.log(`mb loaded: ${numBytesLoaded / (1024 * 1024)}`);
-				}catch(e){
-					console.log(`failed to load ${node.name}. Trying again.`);
-					console.log(e);
-					node.loading = false;
-				}
-			}
-				
-		});
 
 		let visibleNodes = [];
 
@@ -188,14 +262,17 @@ export class Potree3Loader{
 				return;
 			}
 
-			let numVisibleNodes = 0;
 			let numVisibleVoxels = 0;
-
 
 			root.traverse( (node) => { 
 				node.visible = false;
 			} );
 
+			let view = camera.view;
+			let proj = camera.proj;
+			let fm = new Matrix4().multiply(proj).multiply(view); 
+			let frustum = new Frustum();
+			frustum.setFromMatrix(fm);
 
 			let priorityQueue = new BinaryHeap((element) => {element.weight});
 			priorityQueue.push({node: root, weight: 1});
@@ -206,20 +283,15 @@ export class Potree3Loader{
 				let element = priorityQueue.pop();
 				let node = element.node;
 
-
-				if(!node.loaded){
-					node.load();
+				if(!node.batch.loaded){
+					node.batch.load();
 					node.visible = false;
 
 					continue;
 				}
 
 				node.visible = true;
-				numVisibleNodes++;
-				if(node.voxels){
-					numVisibleVoxels += node.voxels.numVoxels;
-					visibleNodes.push(node);
-				}
+				visibleNodes.push(node);
 
 				for(let child of node.children){
 
@@ -232,20 +304,16 @@ export class Potree3Loader{
 					let weight = (size / distance);
 					let visible = weight > 0.3 / Potree.settings.debugU;
 
-					// visible = ["r", "r0", "r00", "r006", "r0060", "r0061"].includes(child.name);
+					visible = visible && frustum.intersectsBox(child.boundingBox);
 
 					if(visible){
 						priorityQueue.push({node: child, weight: weight});
 					}
-
 				}
-
-
 			}
 
 			Potree.state.numVoxels = numVisibleVoxels;
-			// guiContent["#points"] = numVisibleVoxels.toLocaleString();
-			guiContent["#nodes"] = numVisibleNodes.toLocaleString();
+			guiContent["#nodes"] = visibleNodes.length.toLocaleString();
 
 			
 		});
@@ -266,10 +334,11 @@ export class Potree3Loader{
 		});
 
 		potree.renderer.onDraw(drawstate => {
-			// renderVoxelsLOD(root, drawstate);
+			renderVoxelsLOD(root, drawstate);
 			// renderVoxelsLOD_points(root, drawstate);
-			renderVoxelsLOD_quads(root, drawstate);
+			// renderVoxelsLOD_quads(root, drawstate);
 		});
+
 
 	}
 
