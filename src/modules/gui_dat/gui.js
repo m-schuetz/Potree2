@@ -7,6 +7,7 @@ let guiContent = {
 
 	// INFOS
 	"#voxels": "",
+	"#points": "",
 	"#nodes": "",
 	"fps": "0",
 	"duration(update)": "0",
@@ -48,7 +49,8 @@ export function initGUI(potree){
 	{
 		let stats = gui.addFolder("stats");
 		stats.open();
-		stats.add(guiContent, "#voxels").listen();
+		// stats.add(guiContent, "#voxels").listen();
+		stats.add(guiContent, "#points").listen();
 		stats.add(guiContent, "#nodes").listen();
 		stats.add(guiContent, "fps").listen();
 		stats.add(guiContent, "duration(update)").listen();
@@ -66,7 +68,7 @@ export function initGUI(potree){
 		// 	"dilate",
 		// 	"HQS",
 		// ]);
-		input.add(guiContent, "use compute").listen();
+		// input.add(guiContent, "use compute").listen();
 		input.add(guiContent, "dilate").listen();
 		input.add(guiContent, "Eye-Dome-Lighting").listen();
 		input.add(guiContent, "High-Quality").listen();
@@ -99,6 +101,7 @@ export function initGUI(potree){
 
 		guiContent["fps"]       = state.fps.toLocaleString();
 		guiContent["#voxels"]   = state.numVoxels.toLocaleString();
+		guiContent["#points"]   = state.numPoints.toLocaleString();
 		guiContent["#nodes"]    = state.numNodes.toLocaleString();
 		guiContent["cam.pos"]   = state.camPos;
 		guiContent["cam.target"]   = state.camTarget;

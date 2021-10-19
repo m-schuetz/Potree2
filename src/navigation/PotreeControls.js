@@ -49,6 +49,9 @@ export class PotreeControls{
 					0, 
 					uy * this.radius);
 
+
+				// console.log(this.pivot);
+
 			}
 
 			{ // always compute pick location
@@ -58,6 +61,8 @@ export class PotreeControls{
 
 					if(result.depth !== Infinity){
 						Potree.pickPos = result.position;
+					}else{
+						Potree.pickPos = null;
 					}
 				});
 			}
@@ -66,15 +71,18 @@ export class PotreeControls{
 		this.dispatcher.add("mousewheel", e => {
 			let diff = -Math.sign(e.delta);
 
-			// if(diff > 0){
-			// 	this.radius *= 1.05;
-			// }else if(diff < 0){
-			// 	this.radius /= 1.05;
-			// }
+			{
 
-			if(Potree.pickPos){
 				let campos = this.getPosition();
-				let targetpos = Potree.pickPos;
+				let targetpos;
+				
+				if(Potree.pickPos){
+					targetpos = Potree.pickPos;
+				}else{
+					targetpos = this.pivot;
+				}
+
+				
 
 				let distance = campos.distanceTo(targetpos);
 				
@@ -90,7 +98,6 @@ export class PotreeControls{
 				let movevec = movedir.clone().multiplyScalar(movedist);
 				let newCampos = campos.clone().add(movevec);
 				let newRadius = newDistance * this.radius / distance;
-				// let newPivot = this.pivot.clone().add(movevec);
 
 				let camdir = this.pivot.clone().sub(campos).normalize();
 				let newPivot = newCampos.clone().add(camdir.clone().multiplyScalar(newRadius));
@@ -100,6 +107,7 @@ export class PotreeControls{
 					radius: newRadius,
 				});
 
+				// console.log(newRadius);
 			}
 			
 

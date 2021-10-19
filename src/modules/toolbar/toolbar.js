@@ -186,7 +186,7 @@ export async function installToolbar(element, potree){
 
 			elButton.addEventListener("click", () => {
 				Potree.settings.gradient = scheme.values;
-				Potree.settings.dbgAttribute = "elevation";
+				Potree.settings.attribute = "elevation";
 			});
 
 

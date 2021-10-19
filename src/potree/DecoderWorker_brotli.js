@@ -208,16 +208,6 @@ onmessage = async function (event) {
 		let message = loaded;
 		
 		let transferables = [];
-		// for (let property in message.attributeBuffers) {
-
-		// 	let buffer = message.attributeBuffers[property].buffer;
-
-		// 	if(buffer instanceof ArrayBuffer){
-		// 		transferables.push(buffer);
-		// 	}else{
-		// 		transferables.push(buffer.buffer);
-		// 	}
-		// }
 
 		transferables.push(loaded.buffer.buffer);
 

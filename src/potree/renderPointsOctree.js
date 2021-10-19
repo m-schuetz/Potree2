@@ -31,7 +31,7 @@ function init(renderer){
 
 function getGradient(renderer, pipeline, gradient){
 
-	if(!gradientTextureMap.has(pipeline)){
+	if(!gradientTextureMap.has(gradient)){
 
 		let texture = renderer.createTextureFromArray(
 			gradient.steps.flat(), gradient.steps.length, 1);
@@ -45,10 +45,10 @@ function getGradient(renderer, pipeline, gradient){
 			],
 		});
 
-		gradientTextureMap.set(pipeline, {texture, bindGroup});
+		gradientTextureMap.set(gradient, {texture, bindGroup});
 	}
 
-	return gradientTextureMap.get(pipeline);
+	return gradientTextureMap.get(gradient);
 }
  
  let ids = 0;
@@ -277,7 +277,6 @@ function getCachedBufferBindGroup(renderer, pipeline, node){
 		let gpuBuffer = renderer.getGpuBuffer(buffer);
 
 		let bufferBindGroup = renderer.device.createBindGroup({
-			// layout: layout,
 			layout: pipeline.getBindGroupLayout(2),
 			entries: [
 				{binding: 0, resource: {buffer: gpuBuffer}}
@@ -358,6 +357,7 @@ function renderOctree(octree, drawstate, flags){
 
 		let numElements = node.geometry.numElements;
 		pass.passEncoder.draw(numElements, 1, 0, i);
+		// Potree.state.numPoints += numElements;
 
 		i++;
 	}

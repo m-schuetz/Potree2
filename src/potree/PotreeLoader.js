@@ -234,7 +234,6 @@ export class PotreeLoader{
 
 				let geometry = new Geometry();
 				geometry.numElements = node.numPoints;
-				// geometry.buffers = buffers;
 				geometry.buffer = data.buffer;
 
 				node.loaded = true;

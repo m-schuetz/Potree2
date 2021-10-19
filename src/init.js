@@ -435,7 +435,7 @@ function renderNotSoBasic(){
 	}
 
 
-	if(dilateEnabled){ // dilate
+	if(dilateEnabled && Potree.settings.pointSize >= 2){ // dilate
 		let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
 
 		let pass = startPass(renderer, fboTarget);
