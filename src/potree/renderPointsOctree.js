@@ -276,16 +276,6 @@ function getCachedBufferBindGroup(renderer, pipeline, node){
 		let buffer = node.geometry.buffer;
 		let gpuBuffer = renderer.getGpuBuffer(buffer);
 
-		// let layout = renderer.device.createBindGroupLayout({
-		// 	entries: [
-		// 		{
-		// 			binding: 0,
-		// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-		// 			buffer: {type: "read-only-storage"},
-		// 		}
-		// 	],
-		// });
-
 		let bufferBindGroup = renderer.device.createBindGroup({
 			// layout: layout,
 			layout: pipeline.getBindGroupLayout(2),

@@ -50,10 +50,23 @@ let shaderSource = `
 		var depth = uniforms.near / pixelDepth;
 		var wRadius = uniforms.near * f32(uniforms.window) * depth / f32(uniforms.width);
 		var wi = diff.x * diff.x + diff.y * diff.y;
-		// var wi = pow(diff.x * diff.x + diff.y * diff.y, 2.5);
-		var newDepth = depth + wi * wRadius * 0.5;
+		var newDepth = depth + wi * wi * wRadius;
 
 		return newDepth;
+	}
+
+	fn getWeight(fragment : FragmentInput, depthCoord : vec2<f32>) -> f32 {
+		var currentCoord = fragment.fragCoord.xy;
+
+		var pixelDepth = textureLoad(myDepth, vec2<i32>(depthCoord), 0);
+		var diff = (currentCoord - depthCoord) / f32(uniforms.window);
+
+		var depth = uniforms.near / pixelDepth;
+		var wRadius = uniforms.near * f32(uniforms.window) * depth / f32(uniforms.width);
+		var wi = diff.x * diff.x + diff.y * diff.y;
+		var newDepth = depth + wi * wRadius * 0.5;
+
+		return wi;
 	}
 
 	//=================================================
@@ -127,6 +140,8 @@ let shaderSource = `
 			coords.x = i32(input.fragCoord.x) + i;
 			coords.y = i32(input.fragCoord.y) + j;
 
+			// var distance = sqrt(f32(i * i + j * j));
+
 			var d : f32 = getLinearDepthAt(input, vec2<f32>(coords));
 
 			if(d == 0.0){
@@ -152,8 +167,11 @@ let shaderSource = `
 			var d = getLinearDepthAt(input, source);
 
 			output.depth = pixelDepth;
-			// output.depth = uniforms.near / d;
 			output.color = color;
+
+
+			// var w = getWeight(input, source);
+			// output.color = vec4<f32>(w, w, w, 1.0);
 
 			return output;
 		}else{
@@ -206,6 +224,27 @@ function init(renderer){
 	});
 }
 
+let uniformBindGroupCache = new Map();
+function getUniformBindGroup(renderer, source){
+
+	if(!uniformBindGroupCache.has(source)){
+		
+		let uniformBindGroup = renderer.device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [
+				{binding: 0, resource: {buffer: uniformBuffer}},
+				{binding: 2, resource: source.colorAttachments[0].texture.createView()},
+				{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
+			],
+		});
+
+		uniformBindGroupCache.set(source, uniformBindGroup);
+
+	}
+
+	return uniformBindGroupCache.get(source);
+}
+
 export function dilate(source, drawstate){
 
 	let {renderer, camera, pass} = drawstate;
@@ -215,39 +254,7 @@ export function dilate(source, drawstate){
 
 	Timer.timestamp(passEncoder,"dilate-start");
 
-	let sampler = renderer.device.createSampler({
-		magFilter: "linear",
-		minFilter: "linear",
-	});
-
-	// const bindGroupLayout = renderer.device.createBindGroupLayout({
-	// 	entries: [
-	// 		{
-	// 			binding: 0,
-	// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-	// 			buffer: {type: 'uniform'},
-	// 		},{
-	// 			binding: 2,
-	// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-	// 			texture: {sampleType: 'float'},
-	// 		},{
-	// 			binding: 3, 
-	// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-	// 			texture: {sampleType: 'unfilterable-float'},
-	// 		},
-	// 	],
-	// });
-
-	// TODO: possible issue: re-creating bind group every frame
-	// doing that because the render target attachments may change after resize
-	let uniformBindGroup = renderer.device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
-		entries: [
-			{binding: 0, resource: {buffer: uniformBuffer}},
-			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
-			{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
-		],
-	});
+	let uniformBindGroup = getUniformBindGroup(renderer, source);
 
 	passEncoder.setPipeline(pipeline);
 

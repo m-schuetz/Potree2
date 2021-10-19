@@ -76,7 +76,7 @@ export function initGUI(potree){
 		// window.guiAttributes = guiAttributes;
 
 		// slider
-		input.add(guiContent, 'point budget (M)', 0.01, 5);
+		input.add(guiContent, 'point budget (M)', 0.01, 5).listen();
 		input.add(guiContent, 'point size', 1, 5);
 		input.add(guiContent, 'debug', 0, 1);
 	}

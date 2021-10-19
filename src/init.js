@@ -463,29 +463,29 @@ function renderNotSoBasic(){
 	}
 
 
-	// { // HANDLE PICKING
-	// 	for(let {x, y, callback} of Potree.pickQueue){
+	{ // HANDLE PICKING
+		for(let {x, y, callback} of Potree.pickQueue){
 
-	// 		let u = x / renderer.canvas.clientWidth;
-	// 		let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
-	// 		let pos = camera.getWorldPosition();
-	// 		let dir = camera.mouseToUnormalizedDirection(u, v);
-	// 		let near = camera.near;
+			let u = x / renderer.canvas.clientWidth;
+			let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
+			let pos = camera.getWorldPosition();
+			let dir = camera.mouseToUnormalizedDirection(u, v);
+			let near = camera.near;
 
-	// 		let window = 2;
-	// 		let wh = 1;
-	// 		readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
+			let window = 2;
+			let wh = 1;
+			readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
 				
-	// 			let depth = near / d;
+				let depth = near / d;
 				
-	// 			dir.multiplyScalar(depth);
-	// 			let position = pos.add(dir);
+				dir.multiplyScalar(depth);
+				let position = pos.add(dir);
 
-	// 			callback({depth, position});
-	// 		});
-	// 	}
-	// 	Potree.pickQueue.length = 0;
-	// }
+				callback({depth, position});
+			});
+		}
+		Potree.pickQueue.length = 0;
+	}
 
 
 
@@ -552,8 +552,8 @@ export async function init(){
 	let potree = {};
 
 	camera = new Camera();
-	controls = new OrbitControls(renderer.canvas);
-	// controls = new PotreeControls(renderer.canvas);
+	// controls = new OrbitControls(renderer.canvas);
+	controls = new PotreeControls(renderer.canvas);
 
 
 	potree.controls = controls;

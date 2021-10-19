@@ -92,14 +92,14 @@ canvas{
 	let canvas = document.getElementById("canvas");
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
-	// installToolbar(potree.renderer.canvas, potree);
+	installToolbar(potree.renderer.canvas, potree);
 
 	window.Potree = Potree;
 	window.potree = potree;
 	window.Vector3 = Vector3;
 
 	initGUI(potree);
-	guiContent["point budget (M)"] = 2;
+	guiContent["point budget (M)"] = 3;
 	guiContent["point size"] = 5;
 	guiContent["High-Quality"] = true;
 	guiContent["Eye-Dome-Lighting"] = true;
@@ -130,10 +130,17 @@ canvas{
 	// 	pivot: [2357.1, 1363.8, 931.0],
 	// });
 
-	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+
+		controls.set({
+			position: [694068.6, 3915209.4, 2092.8],
+			pivot: [694702.7, 3916648.3, -196.8],
+		});
+		
 		scene.root.children.push(pointcloud);
 	});
-	
+
 
 	potree.onUpdate( () => {
 		potree.renderer.drawLine(
