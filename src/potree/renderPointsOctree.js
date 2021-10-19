@@ -31,22 +31,24 @@ function init(renderer){
 
 function getGradient(renderer, pipeline, gradient){
 
-	if(!gradientTextureMap.has(gradient)){
+	if(!gradientTextureMap.has(pipeline)){
+
 		let texture = renderer.createTextureFromArray(
 			gradient.steps.flat(), gradient.steps.length, 1);
 
 		let bindGroup = renderer.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(1),
+			// layout: layout,
 			entries: [
 				{binding: 0, resource: gradientSampler},
 				{binding: 1, resource: texture.createView()},
 			],
 		});
 
-		gradientTextureMap.set(gradient, {texture, bindGroup});
+		gradientTextureMap.set(pipeline, {texture, bindGroup});
 	}
 
-	return gradientTextureMap.get(gradient);
+	return gradientTextureMap.get(pipeline);
 }
  
  let ids = 0;
@@ -274,7 +276,18 @@ function getCachedBufferBindGroup(renderer, pipeline, node){
 		let buffer = node.geometry.buffer;
 		let gpuBuffer = renderer.getGpuBuffer(buffer);
 
+		// let layout = renderer.device.createBindGroupLayout({
+		// 	entries: [
+		// 		{
+		// 			binding: 0,
+		// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+		// 			buffer: {type: "read-only-storage"},
+		// 		}
+		// 	],
+		// });
+
 		let bufferBindGroup = renderer.device.createBindGroup({
+			// layout: layout,
 			layout: pipeline.getBindGroupLayout(2),
 			entries: [
 				{binding: 0, resource: {buffer: gpuBuffer}}

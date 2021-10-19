@@ -15,13 +15,13 @@ function toWgslType(attribute){
 
 }
 
-function createVS(args){
+function createShaderSource(args){
 
 	let type = toWgslType(args.attribute);
 	let strAttribute = `[[location(${1})]] attribute : ${type};\n`;
 
 
-let shader = `
+let shaderSource = `
 [[block]] struct Uniforms {
 	worldView : mat4x4<f32>;
 	proj : mat4x4<f32>;
@@ -226,18 +226,21 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	return color;
 }
 
+fn doIgnores(){
+
+	ignore(uniforms);
+	ignore(attributes);
+	ignore(mySampler);
+	ignore(myTexture);
+	ignore(buffer);
+	ignore(nodes);
+
+}
 
 [[stage(vertex)]]
-fn main(vertex : VertexInput) -> VertexOutput {
+fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
-	{ // reference all potentially unused variables, 
-		// otherwise the bind group layout breaks if they're not used in the shader
-		ignore(mySampler);
-		ignore(myTexture);
-
-		var dbg = buffer.values[0];
-		var dbg1 = attributes.values[0];
-	}
+	doIgnores();
 
 	var node = nodes.values[vertex.instanceID];
 
@@ -316,12 +319,6 @@ fn main(vertex : VertexInput) -> VertexOutput {
 
 	return output;
 }
-`;
-
-	return shader;
-}
-
-const fsBase = `
 
 struct FragmentInput {
 	[[location(0)]] color : vec4<f32>;
@@ -332,21 +329,27 @@ struct FragmentOutput {
 };
 
 [[stage(fragment)]]
-fn main(fragment : FragmentInput) -> FragmentOutput {
+fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
+
+	doIgnores();
+
 	var output : FragmentOutput;
 	output.color = fragment.color;
 
 	return output;
 }
+
 `;
+
+	return shaderSource;
+}
 
 
 export function generate(args = {}){
 
-	let vs = createVS(args);
-	let fs = fsBase;
+	let shaderSource = createShaderSource(args);
 
-	return {vs, fs};
+	return {shaderSource};
 }
 
 

@@ -2,7 +2,7 @@
 
 import {Timer} from "potree";
 
-let vs = `
+let shaderSource = `
 
 	[[block]] struct Uniforms {
 		uTest : u32;
@@ -11,12 +11,12 @@ let vs = `
 		width : f32;
 		height : f32;
 		near : f32;
+		window  : i32;
 	};
 
-	[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-	// [[binding(1), group(0)]] var mySampler: sampler;
-	// [[binding(2), group(0)]] var myTexture: texture_2d<f32>;
-	// [[binding(3), group(0)]] var myDepth: texture_2d<f32>;
+	[[binding(0), group(0)]] var<uniform> uniforms   : Uniforms;
+	[[binding(2), group(0)]] var myTexture           : texture_2d<f32>;
+	[[binding(3), group(0)]] var myDepth             : texture_depth_2d;
 
 	struct VertexInput {
 		[[builtin(vertex_index)]] index : u32;
@@ -27,8 +27,40 @@ let vs = `
 		[[location(0)]] uv : vec2<f32>;
 	};
 
+	struct FragmentInput {
+		[[builtin(position)]] fragCoord : vec4<f32>;
+		[[location(0)]] uv: vec2<f32>;
+	};
+
+	struct FragmentOutput{
+		[[builtin(frag_depth)]] depth : f32;
+		[[location(0)]] color : vec4<f32>;
+	};
+
+	fn toLinear(depth: f32, near: f32) -> f32{
+		return near / depth;
+	}
+
+	fn getLinearDepthAt(fragment : FragmentInput, depthCoord : vec2<f32>) -> f32 {
+		var currentCoord = fragment.fragCoord.xy;
+
+		var pixelDepth = textureLoad(myDepth, vec2<i32>(depthCoord), 0);
+		var diff = (currentCoord - depthCoord) / f32(uniforms.window);
+
+		var depth = uniforms.near / pixelDepth;
+		var wRadius = uniforms.near * f32(uniforms.window) * depth / f32(uniforms.width);
+		var wi = diff.x * diff.x + diff.y * diff.y;
+		// var wi = pow(diff.x * diff.x + diff.y * diff.y, 2.5);
+		var newDepth = depth + wi * wRadius * 0.5;
+
+		return newDepth;
+	}
+
+	//=================================================
+	//=================================================
+
 	[[stage(vertex)]]
-	fn main(vertex : VertexInput) -> VertexOutput {
+	fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 			vec2<f32>(0.0, 0.0),
@@ -74,56 +106,12 @@ let vs = `
 
 		return output;
 	}
-`;
 
-let fs = `
-
-	[[block]] struct Uniforms {
-		uTest   : u32;
-		x       : f32;
-		y       : f32;
-		width   : f32;
-		height  : f32;
-		near    : f32;
-		window  : i32;
-	};
-	
-	[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-	// [[binding(1), group(0)]] var mySampler: sampler;
-	[[binding(2), group(0)]] var myTexture: texture_2d<f32>;
-	[[binding(3), group(0)]] var myDepth: texture_2d<f32>;
-
-	struct FragmentInput {
-		[[builtin(position)]] fragCoord : vec4<f32>;
-		[[location(0)]] uv: vec2<f32>;
-	};
-
-	struct FragmentOutput{
-		[[builtin(frag_depth)]] depth : f32;
-		[[location(0)]] color : vec4<f32>;
-	};
-
-	fn toLinear(depth: f32, near: f32) -> f32{
-		return near / depth;
-	}
-
-	fn getLinearDepthAt(fragment : FragmentInput, depthCoord : vec2<f32>) -> f32 {
-		var currentCoord = fragment.fragCoord.xy;
-
-		var pixelDepth : f32 = textureLoad(myDepth, vec2<i32>(depthCoord), 0).x;
-		var diff = (currentCoord - depthCoord) / f32(uniforms.window);
-
-		var depth = uniforms.near / pixelDepth;
-		var wRadius = uniforms.near * f32(uniforms.window) * depth / f32(uniforms.width);
-		var wi = diff.x * diff.x + diff.y * diff.y;
-		// var wi = pow(diff.x * diff.x + diff.y * diff.y, 2.5);
-		var newDepth = depth + wi * wRadius * 0.5;
-
-		return newDepth;
-	}
+	//=================================================
+	//=================================================
 
 	[[stage(fragment)]]
-	fn main(input : FragmentInput) -> FragmentOutput {
+	fn main_fragment(input : FragmentInput) -> FragmentOutput {
 
 		ignore(myTexture);
 		ignore(myDepth);
@@ -160,7 +148,7 @@ let fs = `
 			var source = closestCoords;
 
 			var color : vec4<f32> = textureLoad(myTexture, vec2<i32>(source), 0);
-			var pixelDepth : f32 = textureLoad(myDepth, vec2<i32>(source), 0).x;
+			var pixelDepth = textureLoad(myDepth, vec2<i32>(source), 0);
 			var d = getLinearDepthAt(input, source);
 
 			output.depth = pixelDepth;
@@ -188,14 +176,16 @@ function init(renderer){
 
 	let {device, swapChainFormat} = renderer;
 
+	let module = device.createShaderModule({code: shaderSource});
+
 	pipeline = device.createRenderPipeline({
 		vertex: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
+			module: module,
+			entryPoint: "main_vertex",
 		},
 		fragment: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
+			module: module,
+			entryPoint: "main_fragment",
 			targets: [{format: "bgra8unorm"}],
 		},
 		primitive: {
@@ -230,13 +220,30 @@ export function dilate(source, drawstate){
 		minFilter: "linear",
 	});
 
+	// const bindGroupLayout = renderer.device.createBindGroupLayout({
+	// 	entries: [
+	// 		{
+	// 			binding: 0,
+	// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+	// 			buffer: {type: 'uniform'},
+	// 		},{
+	// 			binding: 2,
+	// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+	// 			texture: {sampleType: 'float'},
+	// 		},{
+	// 			binding: 3, 
+	// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+	// 			texture: {sampleType: 'unfilterable-float'},
+	// 		},
+	// 	],
+	// });
+
 	// TODO: possible issue: re-creating bind group every frame
 	// doing that because the render target attachments may change after resize
 	let uniformBindGroup = renderer.device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
 			{binding: 0, resource: {buffer: uniformBuffer}},
-			// {binding: 1, resource: sampler},
 			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
 			{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
 		],

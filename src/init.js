@@ -435,18 +435,18 @@ function renderNotSoBasic(){
 	}
 
 
-	// if(dilateEnabled){ // dilate
-	// 	let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
+	if(dilateEnabled){ // dilate
+		let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
 
-	// 	let pass = startPass(renderer, fboTarget);
-	// 	let drawstate = {renderer, camera, renderables, pass};
+		let pass = startPass(renderer, fboTarget);
+		let drawstate = {renderer, camera, renderables, pass};
 
-	// 	dilate(fbo_source, drawstate);
+		dilate(fbo_source, drawstate);
 
-	// 	endPass(pass);
+		endPass(pass);
 
-	// 	fbo_source = fboTarget;
-	// }
+		fbo_source = fboTarget;
+	}
 
 	if(edlEnabled){ // EDL
 		let pass = startPass(renderer, screenbuffer);

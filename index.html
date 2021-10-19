@@ -84,15 +84,15 @@ canvas{
 	import {Vector3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
-	import {loadGLB} from "./src/prototyping/glbloader/loadGLB.js";
-	import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
+	// import {loadGLB} from "./src/prototyping/glbloader/loadGLB.js";
+	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 
 	import {installToolbar} from "toolbar";
 
 	let canvas = document.getElementById("canvas");
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
-	installToolbar(potree.renderer.canvas, potree);
+	// installToolbar(potree.renderer.canvas, potree);
 
 	window.Potree = Potree;
 	window.potree = potree;
@@ -101,12 +101,10 @@ canvas{
 	initGUI(potree);
 	guiContent["point budget (M)"] = 2;
 	guiContent["point size"] = 5;
-	guiContent["High-Quality"] = false;
-	guiContent["Eye-Dome-Lighting"] = false;
-	guiContent["dilate"] = false;
+	guiContent["High-Quality"] = true;
+	guiContent["Eye-Dome-Lighting"] = true;
+	guiContent["dilate"] = true;
 	// guiContent["attribute"] = "intensity";
-
-
 
 
 	// default, if not overriden later on
@@ -122,28 +120,20 @@ canvas{
 	});
 
 	controls.set({
-		position: [-1.5, -5.8, -3.0],
-		pivot: [-0.1, -0.8, -4.8],
+		position: [-19.0, 13.6, 12.2],
+		pivot: [-0.0, 2.2, 3.9],
 	});
 
 	// SITN
-	controls.set({
-		position: [2315.2, 1355.2, 949.8],
-		pivot: [2357.1, 1363.8, 931.0],
+	// controls.set({
+	// 	position: [2315.2, 1355.2, 949.8],
+	// 	pivot: [2357.1, 1363.8, 931.0],
+	// });
+
+	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+		scene.root.children.push(pointcloud);
 	});
 	
-
-	{
-		let light = new PointLight();
-		light.position.set(10, 10, 10);
-
-		scene.root.children.push(light);
-
-		// controls.set({
-		// 	position: [2334.5, 1408.7, 954.4],
-		// 	pivot: [2335.0, 1377.2, 910.0],
-		// });
-	}
 
 	potree.onUpdate( () => {
 		potree.renderer.drawLine(
@@ -163,11 +153,6 @@ canvas{
 		);
 	});
 
-
-	import {Potree3Loader} from "./src/misc/potree3loader_batched/Potree3Loader.js";
-	Potree3Loader.load("./temp").then(() => {
-		console.log("abc");
-	});
 
 
 </script>

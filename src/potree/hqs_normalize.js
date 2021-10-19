@@ -76,7 +76,7 @@ let fs = `
 
 	[[binding(1), group(0)]] var mySampler: sampler;
 	[[binding(2), group(0)]] var myTexture: texture_2d<f32>;
-	[[binding(3), group(0)]] var myDepth: texture_2d<f32>;
+	[[binding(3), group(0)]] var myDepth: texture_depth_2d;
 
 	[[block]] struct Uniforms {
 		uTest   : u32;
@@ -122,7 +122,7 @@ let fs = `
 		c.g = c.g / c.w;
 		c.b = c.b / c.w;
 
-		var d : f32 = textureLoad(myDepth, coords, 0).x;
+		var d : f32 = textureLoad(myDepth, coords, 0);
 
 		if(c.w == 0.0){
 			discard;
@@ -136,7 +136,6 @@ let fs = `
 `;
 
 let pipeline = null;
-// let uniformBindGroup = null;
 let uniformBuffer = null;
 
 function init(renderer){

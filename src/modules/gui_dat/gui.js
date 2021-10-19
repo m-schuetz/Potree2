@@ -18,7 +18,7 @@ let guiContent = {
 	// INPUT
 	"show bounding box": false,
 	"use compute": false,
-	"dilate": false,
+	"dilate": true,
 	"Eye-Dome-Lighting": false,
 	"High-Quality": false,
 	"point budget (M)": 4,
