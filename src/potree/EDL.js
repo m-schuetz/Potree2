@@ -179,8 +179,12 @@ let fs = `
 			c.b * shade, 
 			1.0);
 
+
 		var d : f32 = textureLoad(myDepth, coords, 0);
 		output.depth = d;
+
+
+		// output.color = vec4<f32>(1000.0 * d, 0.0, 0.0, 1.0);
 
 		return output;
 	}

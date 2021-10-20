@@ -59,6 +59,8 @@ async function load(event){
 		let first = byteOffset;
 		let last = byteOffset + byteSize - 1n;
 
+		// console.log((Number(byteSize) / 1024).toFixed(1) + " kb");
+
 		let response = await fetch(url, {
 			headers: {
 				'content-type': 'multipart/byteranges',

@@ -5,6 +5,7 @@ import {Renderer, Timer, EventDispatcher, InputHandler} from "potree";
 import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
 import {geometries} from "potree";
 import {Potree} from "potree";
+// import {PointCloudOctree } from "potree";
 import {loadGLB} from "potree";
 import {MeasureTool} from "./interaction/measure.js";
 import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoader.js";
@@ -376,25 +377,6 @@ function renderNotSoBasic(){
 			endPass(pass);
 		}
 
-		{
-
-			let pass = revisitPass(renderer, fboTarget);
-			let drawstate = {renderer, camera, renderables, pass};
-
-			let meshes = renderables.get("Mesh") ?? [];
-			renderMeshes(meshes, drawstate);
-
-			let quadss = renderables.get("Quads") ?? [];
-			for(let quads of quadss){
-				renderQuads(quads, drawstate);
-			}
-
-
-			renderer.renderDrawCommands(drawstate);
-
-			endPass(pass);
-		}
-
 		fbo_source = fboTarget;
 
 		Timer.timestampSep(renderer, "HQS(total)-end");
@@ -422,15 +404,7 @@ function renderNotSoBasic(){
 		let pass = startPass(renderer, fbo_0);
 		let drawstate = {renderer, camera, renderables, pass};
 
-		for(let [key, nodes] of renderables){
-			for(let node of nodes){
-				if(typeof node.render !== "undefined"){
-					node.render(drawstate);
-				}
-			}
-		}
-
-		renderer.renderDrawCommands(drawstate);
+		renderPointsOctree(octrees, drawstate);
 
 		endPass(pass);
 
@@ -449,6 +423,25 @@ function renderNotSoBasic(){
 		endPass(pass);
 
 		fbo_source = fboTarget;
+	}
+
+	{
+		let pass = revisitPass(renderer, fbo_source);
+		let drawstate = {renderer, camera, renderables, pass};
+
+		for(let [key, nodes] of renderables){
+			for(let node of nodes){
+				let hasRender = typeof node.render !== "undefined";
+				let isOctree = node.constructor.name === "PointCloudOctree";
+				if(hasRender && !isOctree){
+					node.render(drawstate);
+				}
+			}
+		}
+
+		renderer.renderDrawCommands(drawstate);
+
+		endPass(pass);
 	}
 
 	if(edlEnabled){ // EDL
