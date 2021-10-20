@@ -24,7 +24,7 @@ export class MeasureTool{
 		this.element = potree.renderer.canvas;
 
 		this.cursor = new Mesh("sphere", geometries.sphere);
-		this.cursor.scale.set(0.5, 0.5, 0.5);
+		this.cursor.scale.set(10.5, 10.5, 10.5);
 		this.cursor.renderLayer = 10;
 		this.cursor.visible = false;
 		potree.scene.root.children.push(this.cursor);
@@ -56,18 +56,19 @@ export class MeasureTool{
 				let depth = camera.getWorldPosition().distanceTo(marker);
 				let radius = depth / 50;
 
-				this.renderer.drawBox(
-					marker,
-					new Vector3(radius, radius, radius),
-					new Vector3(255, 255, 0),
-				);
+				this.renderer.drawSphere(marker, radius);
+				// this.renderer.drawBox(
+				// 	marker,
+				// 	new Vector3(radius, radius, radius),
+				// 	new Vector3(255, 255, 0),
+				// );
 			}
 
 			for(let i = 0; i < measure.markers.length - 1; i++){
 				this.renderer.drawLine(
 					measure.markers[i + 0],
 					measure.markers[i + 1],
-					new Vector3(255, 255, 0),
+					new Vector3(255, 0, 0),
 				);
 			}
 

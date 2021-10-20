@@ -11,10 +11,11 @@ import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoad
 import {readPixels, readDepth} from "./renderer/readPixels.js";
 import {
 	renderPoints, renderMeshes, renderQuads, 
-	renderPointsCompute, renderPointsOctree, renderQuadsOctree
+	renderPointsOctree, renderQuadsOctree
 } from "potree";
 import {dilate, EDL, hqs_normalize} from "potree";
 import Stats from "stats";
+import * as TWEEN from "tween";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -229,6 +230,7 @@ function renderBasic(){
 	let renderables = layers.get(0).renderables;
 
 	renderer.start();
+	// renderer.updateScreenbuffer();
 
 	let screenbuffer = renderer.screenbuffer;
 
@@ -314,6 +316,7 @@ function renderNotSoBasic(){
 	let dilateEnabled = Potree.settings.dilateEnabled;
 
 	renderer.start();
+	// renderer.updateScreenbuffer();
 
 	let screenbuffer = renderer.screenbuffer;
 	let fbo_source = screenbuffer;
@@ -513,9 +516,11 @@ function renderNotSoBasic(){
 }
 
 
-function loop(){
+function loop(time){
 
 	stats.begin();
+
+	TWEEN.update(time);
 
 	update();
 	renderNotSoBasic();
@@ -552,8 +557,8 @@ export async function init(){
 	let potree = {};
 
 	camera = new Camera();
-	// controls = new OrbitControls(renderer.canvas);
-	controls = new PotreeControls(renderer.canvas);
+	controls = new OrbitControls(renderer.canvas);
+	// controls = new PotreeControls(renderer.canvas);
 
 
 	potree.controls = controls;

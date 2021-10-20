@@ -3,6 +3,7 @@
 
 import * as shaders from "../prototyping/shaders.js";
 import {render as renderBoxes} from "../modules/drawCommands/renderBoxes.js";
+import {render as renderSpheres} from "../modules/drawCommands/renderSpheres.js";
 import {render as renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
 import {render as renderPoints} from "../modules/drawCommands/renderPoints.js";
 import {render as renderQuads} from "../modules/drawCommands/renderQuads.js";
@@ -15,6 +16,7 @@ import {fillBuffer} from "./fillBuffer.js";
 import {readPixels, readDepth} from "../renderer/readPixels.js";
 import {RenderTarget} from "potree";
 
+let dbgSet = new Set();
 
 class Draws{
 
@@ -57,7 +59,7 @@ export class Renderer{
 
 		this.defaultSampler = null;
 
-		this.swapChain = null;
+		// this.swapChain = null;
 		this.depthTexture = null;
 		this.screenbuffer = null;
 
@@ -120,6 +122,7 @@ export class Renderer{
 			},
 			texture: this.context.getCurrentTexture(),
 		}];
+
 		this.screenbuffer.depth = {
 			descriptor: {
 				size: [size.width, size.height],
@@ -148,12 +151,14 @@ export class Renderer{
 
 		let resized = this.canvas.width !== width || this.canvas.height !== height;
 
-		if(resized){
+		if(resized)
+		{
 			this.canvas.width = width;
 			this.canvas.height = height;
 
 			let size = {width, height};
 
+			console.log(`configure`, {width, height});
 			this.context.configure({
 				device: this.device,
 				format: this.swapChainFormat,
@@ -161,6 +166,7 @@ export class Renderer{
 					| GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.COPY_SRC
 					| GPUTextureUsage.TEXTURE_BINDING,
+				size: {width, height},
 			});
 
 			this.depthTexture = this.device.createTexture({
@@ -519,6 +525,10 @@ export class Renderer{
 		this.draws.boxes.push([position, size, color]);
 	}
 
+	drawSphere(position, radius){
+		this.draws.spheres.push([position, radius]);
+	}
+
 	drawMesh(args){
 		this.draws.meshes.push(args);
 	}
@@ -618,6 +628,7 @@ export class Renderer{
 
 	renderDrawCommands(drawstate){
 		renderBoxes(this.draws.boxes, drawstate);
+		renderSpheres(this.draws.spheres, drawstate);
 		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
 		renderPoints(this.draws.points, drawstate);
 		renderQuads(this.draws.quads, drawstate);

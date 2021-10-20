@@ -1,6 +1,7 @@
 
 import {Vector3, Matrix4, Box3} from "potree";
 import {Potree, EventDispatcher} from "potree";
+import * as TWEEN from "tween";
 
 export class OrbitControls{
 
@@ -51,6 +52,55 @@ export class OrbitControls{
 			}else if(diff < 0){
 				this.radius /= 1.1;
 			}
+
+		});
+
+		this.dispatcher.add("dblclick", e => {
+
+			let {x, y} = e.mouse;
+
+			Potree.pick(x, y, (result) => {
+				let newRadius = result.depth * 0.25;
+				let newPivot = result.position;
+
+				// this.set({radius: newRadius, pivot: newPivot});
+
+				let value = {x: 0};
+				let animationDuration = 400;
+				let easing = TWEEN.Easing.Quartic.Out;
+				let tween = new TWEEN.Tween(value).to({x: 1}, animationDuration);
+				tween.easing(easing);
+				// this.tweens.push(tween);
+
+				// let startPos = this.getPosition();
+				// let targetPos = cameraTargetPosition.clone();
+				let startRadius = this.radius;
+				let targetRadius = newRadius;
+				let startPivot = this.pivot.clone();
+				let targetPivot = newPivot;
+
+				tween.onUpdate(() => {
+					let t = value.x;
+
+					let pivot = new Vector3(
+						(1 - t) * startPivot.x + t * targetPivot.x,
+						(1 - t) * startPivot.y + t * targetPivot.y,
+						(1 - t) * startPivot.z + t * targetPivot.z,
+					);
+
+					let radius = (1 - t) * startRadius + t * targetRadius;
+
+					// this.viewer.setMoveSpeed(this.scene.view.radius);
+					this.set({radius: radius, pivot: pivot});
+				});
+
+				tween.onComplete(() => {
+					// this.tweens = this.tweens.filter(e => e !== tween);
+				});
+
+				tween.start();
+
+			});
 
 		});
 	}

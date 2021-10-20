@@ -71,9 +71,9 @@ canvas{
 		"potree":      "./src/Potree.js",
 		"toolbar":     "./src/modules/toolbar/toolbar.js",
 		"dat.gui":     "./libs/dat.gui/dat.gui.module.js",
-		"glslang":     "./libs/glslang/glslang.js",
 		"stats":       "./libs/stats.js/stats.module.js",
-		"BinaryHeap":  "./libs/BinaryHeap/BinaryHeap.js"
+		"BinaryHeap":  "./libs/BinaryHeap/BinaryHeap.js",
+		"tween":       "./libs/tween/tween.esm.js"
 	}
 }
 </script>
@@ -130,43 +130,53 @@ canvas{
 	// 	pivot: [2357.1, 1363.8, 931.0],
 	// });
 
-	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
-
-	// 	controls.set({
-	// 		position: [-19.0, 13.6, 12.2],
-	// 		pivot: [-0.0, 2.2, 3.9],
-	// 	});
-		
-	// 	scene.root.children.push(pointcloud);
-	// });
-
-	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 
 		controls.set({
-			position: [694068.6, 3915209.4, 2092.8],
-			pivot: [694702.7, 3916648.3, -196.8],
+			position: [-19.0, 13.6, 12.2],
+			pivot: [-0.0, 2.2, 3.9],
 		});
 		
 		scene.root.children.push(pointcloud);
 	});
 
+	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+
+	// 	controls.set({
+	// 		position: [694068.6, 3915209.4, 2092.8],
+	// 		pivot: [694702.7, 3916648.3, -196.8],
+	// 	});
+		
+	// 	scene.root.children.push(pointcloud);
+	// });
+
+	let origin = new Vector3(0, 0, 0);
+	let X = new Vector3(10, 0, 0);
+	let Y = new Vector3(0, 10, 0);
+	let Z = new Vector3(0, 0, 10);
+	let red = new Vector3(255, 0, 0);
+	let green = new Vector3(0, 255, 0);
+	let blue = new Vector3(0, 0, 255);
+
+	import {sphere} from "./src/modules/geometries/sphere.js";
 
 	potree.onUpdate( () => {
-		potree.renderer.drawLine(
-			new Vector3(0, 0, 0),
-			new Vector3(10, 0, 0),
-			new Vector3(255, 0, 0),
-		);
-		potree.renderer.drawLine(
-			new Vector3(0, 0, 0),
-			new Vector3(0, 10, 0),
-			new Vector3(0, 255, 0),
-		);
-		potree.renderer.drawLine(
-			new Vector3(0, 0, 0),
-			new Vector3(0, 0, 10),
-			new Vector3(0, 0, 255),
-		);
+
+		potree.renderer.drawLine(origin, X, red);
+		potree.renderer.drawLine(origin, Y, green);
+		potree.renderer.drawLine(origin, Z, blue);
+
+		// potree.renderer.drawSphere(origin, 5);
+
+
+
+		// potree.renderer.drawMesh({
+		// 	"positions": sphere.buffers.find(b => b.name === "position").buffer,
+		// 	"uvs": sphere.buffers.find(b => b.name === "uv").buffer,
+		// 	"normals": sphere.buffers.find(b => b.name === "normal").buffer,
+		// });
+		// potree.renderer.drawMesh({positions, uvs, indices, world, image: node.material.image});
+
 	});
 
 
