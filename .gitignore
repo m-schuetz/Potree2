@@ -44,3 +44,5 @@ resources/pointclouds/octree_cuda/octree.bin
 resources/models/australia_gas_30M.glb
 resources/models/sitnmesh.glb
 resources/models/Big5M.glb
+autzen-classified.copc.laz
+las14_extra_attributes.las

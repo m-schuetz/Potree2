@@ -1,0 +1,326 @@
+<html>
+
+<body>
+
+
+<script type="module">
+import {createLazPerf} from "./libs/laz-perf/laz-perf.js";
+
+async function loadHeader(url){
+
+	let response = await fetch(url, {
+		headers: {
+			'content-type': 'multipart/byteranges',
+			'Range': `bytes=0-549`,
+		},
+	});
+
+	let buffer = await response.arrayBuffer();
+
+	let view = new DataView(buffer);
+
+	let versionMajor = view.getUint8(24);
+	let versionMinor = view.getUint8(25);
+	let headerSize = view.getUint16(94, true);
+	let offsetToPointData = view.getUint32(96, true);
+	let numVLRs = view.getUint32(100, true);
+	let pointFormat = view.getUint8(104);
+	let pointRecordLength = view.getUint16(105, true);
+	let numPoints = 0;
+	
+	if(versionMajor === 1 && versionMinor < 4){
+		numPoints = view.getUint32(107, true);
+	}else{
+		numPoints = Number(view.getBigUint64(247, true));
+	}
+
+	let scale = [
+		view.getFloat64(131, true),
+		view.getFloat64(139, true),
+		view.getFloat64(147, true),
+	];
+
+	let offset = [
+		view.getFloat64(155, true),
+		view.getFloat64(163, true),
+		view.getFloat64(171, true),
+	];
+
+	let min = [
+		view.getFloat64(187, true),
+		view.getFloat64(203, true),
+		view.getFloat64(219, true),
+	];
+
+	let max = [
+		view.getFloat64(179, true),
+		view.getFloat64(195, true),
+		view.getFloat64(211, true),
+	];
+
+	let startFirstEVLR = Number(view.getBigUint64(235, true));
+	let numEVLRs = view.getUint32(243, true);
+
+
+	let header = {
+		versionMajor,
+		versionMinor,
+		headerSize,
+		offsetToPointData,
+		numVLRs,
+		pointFormat,
+		pointRecordLength,
+		numPoints,
+		scale, 
+		offset, 
+		min, max,
+		startFirstEVLR, numEVLRs
+	};
+
+	return header;
+}
+
+function readString(buffer, offset, length){
+
+	let view = new Uint8Array(buffer);
+	let string = "";
+
+	for(let i = 0; i < length; i++){
+		let char = view[offset + i];
+
+		if(char === 0){
+			break;
+		}
+
+		string = string + String.fromCharCode(char);
+	}
+
+	return string;
+}
+
+async function loadVLRs(url, header){
+
+	let response = await fetch(url, {
+		headers: {
+			'content-type': 'multipart/byteranges',
+			'Range': `bytes=${header.headerSize}-${header.offsetToPointData - 1}`,
+		},
+	});
+
+	let buffer = await response.arrayBuffer();
+	let view = new DataView(buffer);
+
+	let vlrs = [];
+	let offset = 0;
+
+	for(let i = 0; i < header.numVLRs; i++){
+		let reserved = view.getUint16(offset + 0, true);
+		let userID = readString(buffer, 2, 16);
+		let recordID = view.getUint16(offset + 18, true);
+		let recordLength = view.getUint16(offset + 20, true);
+		let description = readString(buffer, offset + 22, 32);
+
+		let VLR = {
+			userID, recordID, recordLength, description,
+			buffer: buffer.slice(offset + 54, offset + 54 + recordLength),
+		};
+
+		offset = offset + 54 + recordLength;
+
+		vlrs.push(VLR);
+	}
+
+	return vlrs;
+}
+
+async function loadEVLRs(url, header){
+
+	let evlrs = [];
+	let offset = header.startFirstEVLR;
+
+	for(let i = 0; i < header.numEVLRs; i++){
+		let response = await fetch(url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${offset}-${offset + 60 - 1}`,
+			},
+		});
+		let buffer = await response.arrayBuffer();
+		let view = new DataView(buffer);
+
+		let reserved = view.getUint16(0, true);
+		let userID = readString(buffer, 2, 16);
+		let recordID = view.getUint16(18, true);
+		let recordLength = Number(view.getBigUint64(20, true));
+		let description = readString(buffer, 28, 32);
+
+		let responseContent = await fetch(url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${offset + 60}-${offset + 60 + recordLength - 1}`,
+			},
+		});
+		let bufferContent = await responseContent.arrayBuffer();
+
+		let EVLR = {
+			userID, recordID, recordLength, description,
+			buffer: bufferContent,
+		};
+
+		offset = offset + 60 + recordLength;
+
+		evlrs.push(EVLR);
+	}
+
+	return evlrs;
+}
+
+
+let url = "./autzen-classified.copc.laz";
+
+let header = await loadHeader(url);
+
+console.log(header);
+
+let vlrs = await loadVLRs(url, header);
+let evlrs = await loadEVLRs(url, header);
+
+console.log(vlrs);
+console.log(evlrs);
+
+
+let compressed;
+let chunkPointCount = 0;
+{
+	let view = new DataView(vlrs[0].buffer);
+
+	let root_hier_offset = Number(view.getBigUint64(40, true));
+	let root_hier_size = Number(view.getBigUint64(48, true));
+
+	console.log({root_hier_offset, root_hier_size});
+
+
+	{
+		let response = await fetch(url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${root_hier_offset}-${root_hier_offset + 31}`,
+			},
+		});
+		let buffer = await response.arrayBuffer();
+		let view = new DataView(buffer);
+
+		let offset = Number(view.getBigUint64(16, true));
+		let byteSize = view.getUint32(24, true);
+		let pointCount = view.getUint32(28, true);
+
+		console.log({offset, byteSize, pointCount});
+
+
+		let responseCompressed = await fetch(url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${offset}-${offset + byteSize - 1}`,
+			},
+		});
+		let bufferCompressed = await responseCompressed.arrayBuffer();
+		compressed = new Uint8Array(bufferCompressed);
+		chunkPointCount = pointCount;
+	}
+	
+}
+
+
+console.log(createLazPerf);
+
+let LazPerf = await createLazPerf();
+
+console.log(LazPerf);
+
+// let response = await fetch("./autzen-classified.copc.laz");
+
+// let response = await fetch("./las14_extra_attributes.las");
+let pointDataRecordFormat = header.pointFormat - 128;
+let pointDataRecordLength = header.pointRecordLength;
+let pointCount = chunkPointCount;
+
+const outBuffer = new Uint8Array(pointCount * pointDataRecordLength);
+
+
+// let compressed = await response.arrayBuffer();
+
+
+
+
+
+
+
+
+
+const blobPointer = LazPerf._malloc(compressed.byteLength);
+const dataPointer = LazPerf._malloc(pointDataRecordLength);
+const decoder = new LazPerf.ChunkDecoder();
+
+try {
+	LazPerf.HEAPU8.set(
+		new Uint8Array(
+			compressed.buffer,
+			compressed.byteOffset,
+			compressed.byteLength
+		),
+		blobPointer
+	);
+
+	debugger;
+
+	decoder.open(pointDataRecordFormat, pointDataRecordLength, blobPointer);
+
+	for (let i = 0; i < pointCount; ++i) {
+		decoder.getPoint(dataPointer);
+
+		let pointData = new Uint8Array(
+			LazPerf.HEAPU8.buffer,
+			dataPointer,
+			pointDataRecordLength
+		);
+
+		outBuffer.set(pointData, i * pointDataRecordLength);
+
+		if(i === 0){
+			let view = new DataView(LazPerf.HEAPU8.buffer, dataPointer);
+
+			let X = view.getInt32(0, true);
+			let Y = view.getInt32(4, true);
+			let Z = view.getInt32(8, true);
+
+			let x = X * header.scale[0] + header.offset[0];
+			let y = Y * header.scale[1] + header.offset[1];
+			let z = Z * header.scale[2] + header.offset[2];
+
+			console.log(x, y, z);
+
+		}
+	}
+
+	{
+		let a = new Uint8Array(LazPerf.HEAPU8.buffer);
+		
+		for(let i = 0; i < a.length; i++){
+			if(a[i] !== 0){
+				console.log(i, a[i]);
+				debugger;
+			}
+		}
+	}
+
+} finally {
+	LazPerf._free(blobPointer)
+	LazPerf._free(dataPointer)
+	decoder.delete()
+}
+
+
+</script>
+
+</body>
+</html>
