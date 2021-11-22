@@ -264,7 +264,7 @@ export class CopcLoader{
 
 			let offset = Number(view.getBigUint64(32 * i + 16, true));
 			let byteSize = view.getUint32(32 * i + 24, true);
-			let pointCount = view.getUint32(32 * i + 28, true);
+			let pointCount = view.getInt32(32 * i + 28, true);
 
 			let nodeName = eptKeyToPotreeKey(level, x, y, z);
 
@@ -278,11 +278,6 @@ export class CopcLoader{
 			node.numPoints = pointCount;
 			node.byteOffset = offset;
 			node.byteSize = byteSize;
-
-
-			// TODO: hierarchyByteOffet
-			// TODO: hierarchyByteSize
-			
 		}
 
 		// 2.Pass connect nodes 

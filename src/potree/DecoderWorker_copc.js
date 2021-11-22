@@ -49,7 +49,14 @@ async function load(event){
 
 		let pointDataRecordFormat = pointFormat;
 		let pointDataRecordLength = pointRecordLength;
-		outBuffer = new Uint8Array(16 * numPoints);
+		let outSize = pointRecordLength * numPoints;
+		let alignedOutSize = outSize + (4 - (outSize % 4));
+		if(alignedOutSize > 10_849_018_852){
+
+			
+			debugger;
+		}
+		outBuffer = new Uint8Array(alignedOutSize);
 		let outView = new DataView(outBuffer.buffer);
 
 		blobPointer = lazperf._malloc(compressed.byteLength);

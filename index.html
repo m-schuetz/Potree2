@@ -142,16 +142,13 @@ canvas{
 	// });
 
 	import {CopcLoader} from "potree";
-	CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
+	CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
+	// CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
 
-		// controls.set({
-		// 	position: [-19.0, 13.6, 12.2],
-		// 	pivot: [-0.0, 2.2, 3.9],
-		// });
-		
+		// debugger;
 
-		let min = new Vector3(635577.79, 848882.15, 406.14);
-		let max = new Vector3(639003.73, 853537.66, 615.26);
+		let min = new Vector3(...pointcloud.loader.header.min);
+		let max = new Vector3(...pointcloud.loader.header.max);
 
 		let center = min.add(max).multiplyScalar(0.5);
 		let size = min.distanceTo(max);
