@@ -186,6 +186,16 @@ async function load(event){
 	// let pointsPerSecond = (1000 * numPoints / duration) / 1_000_000;
 	// console.log(`[${name}] duration: ${duration.toFixed(1)}ms, #points: ${numPoints}, points/s: ${pointsPerSecond.toFixed(1)}M`);
 
+	// {
+	// 	let millies = performance.now() - tStart;
+	// 	let seconds = millies / 1000;
+
+	// 	let pointsPerSec = numPoints / seconds;
+	// 	let strPointsPerSec = (pointsPerSec / 1_000_000).toFixed(2);
+
+	// 	console.log(`read ${numPoints.toLocaleString()} points in ${millies.toFixed(1)}ms. (${strPointsPerSec} million points / s`);
+	// }
+
 	// pad to multiple of 4 bytes due to GPU requirements.
 	let alignedBuffer;
 	if((decoded.byteLength % 4) === 0){

@@ -16,16 +16,16 @@ const NodeType = {
 };
 
 let typenameTypeattributeMap = {
-	"double": PointAttributeTypes.DATA_TYPE_DOUBLE,
-	"float": PointAttributeTypes.DATA_TYPE_FLOAT,
-	"int8": PointAttributeTypes.DATA_TYPE_INT8,
-	"uint8": PointAttributeTypes.DATA_TYPE_UINT8,
-	"int16": PointAttributeTypes.DATA_TYPE_INT16,
-	"uint16": PointAttributeTypes.DATA_TYPE_UINT16,
-	"int32": PointAttributeTypes.DATA_TYPE_INT32,
-	"uint32": PointAttributeTypes.DATA_TYPE_UINT32,
-	"int64": PointAttributeTypes.DATA_TYPE_INT64,
-	"uint64": PointAttributeTypes.DATA_TYPE_UINT64,
+	"double": PointAttributeTypes.DOUBLE,
+	"float": PointAttributeTypes.FLOAT,
+	"int8": PointAttributeTypes.INT8,
+	"uint8": PointAttributeTypes.UINT8,
+	"int16": PointAttributeTypes.INT16,
+	"uint16": PointAttributeTypes.UINT16,
+	"int32": PointAttributeTypes.INT32,
+	"uint32": PointAttributeTypes.UINT32,
+	"int64": PointAttributeTypes.INT64,
+	"uint64": PointAttributeTypes.UINT64,
 };
 
 let tmpVec3 = new Vector3();
@@ -236,6 +236,53 @@ function eptKeyToPotreeKey(level, x, y, z){
 	}
 
 	return potreeKey;
+}
+
+function parseAttributes(header, vlrs){
+
+	// TODO: read extra attributes from vlr
+
+	let format = header.pointFormat % 128;
+	let types = PointAttributeTypes;
+
+	let baseAttributesMap = {
+		6: [
+			new PointAttribute("XYZ"                   , types.INT32  , 3),
+			new PointAttribute("intensity"             , types.UINT16 , 1),
+			new PointAttribute("return number"         , types.UINT8  , 1),
+			new PointAttribute("classification flags"  , types.UINT8  , 1),
+			new PointAttribute("classification"        , types.UINT8  , 1),
+			new PointAttribute("user data"             , types.UINT8  , 1),
+			new PointAttribute("scan angle"            , types.INT16  , 1),
+			new PointAttribute("point source id"       , types.UINT16 , 1),
+			new PointAttribute("gps-time"              , types.DOUBLE , 1),
+		],
+		7: [
+			new PointAttribute("XYZ"                   , types.INT32  , 3),
+			new PointAttribute("intensity"             , types.UINT16 , 1),
+			new PointAttribute("return number"         , types.UINT8  , 1),
+			new PointAttribute("classification flags"  , types.UINT8  , 1),
+			new PointAttribute("classification"        , types.UINT8  , 1),
+			new PointAttribute("user data"             , types.UINT8  , 1),
+			new PointAttribute("scan angle"            , types.INT16  , 1),
+			new PointAttribute("point source id"       , types.UINT16 , 1),
+			new PointAttribute("gps-time"              , types.DOUBLE , 1),
+			new PointAttribute("rgba"                  , types.UINT16 , 3),
+		],
+	};
+
+	let pointAttributes = new PointAttributes();
+	let attributes = baseAttributesMap[format];
+
+	if(!attributes){
+		throw "unable to parse point attributes";
+	}
+
+	for(let attribute of attributes){
+		pointAttributes.add(attribute);
+	}
+
+	return attributes;
 }
 
 
@@ -460,11 +507,16 @@ export class CopcLoader{
 		octree.boundingBox.min.set(0, 0, 0);
 		octree.updateWorld();
 
-		let aXYZ = new PointAttribute("position", typenameTypeattributeMap["float"], 3);
-		let aRGB = new PointAttribute("rgba", typenameTypeattributeMap["uint16"], 3);
+		// let aXYZ = new PointAttribute("position", typenameTypeattributeMap["float"], 3);
+		// let aRGB = new PointAttribute("rgba", typenameTypeattributeMap["uint16"], 3);
+		// let attributes = new PointAttributes();
+		// attributes.add(aXYZ);
+		// attributes.add(aRGB);
+		let attributesList = parseAttributes(header, vlrs);
 		let attributes = new PointAttributes();
-		attributes.add(aXYZ);
-		attributes.add(aRGB);
+		for(let attribute of attributesList){
+			attributes.add(attribute);
+		}
 		loader.attributes = attributes;
 
 		octree.loader = loader;

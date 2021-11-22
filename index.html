@@ -93,7 +93,7 @@ canvas{
 	let canvas = document.getElementById("canvas");
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
-	// installToolbar(potree.renderer.canvas, potree);
+	installToolbar(potree.renderer.canvas, potree);
 
 	window.Potree = Potree;
 	window.potree = potree;
@@ -141,7 +141,9 @@ canvas{
 	// 	scene.root.children.push(pointcloud);
 	// });
 
+
 	import {CopcLoader} from "potree";
+	Potree.settings.attribute = "intensity";
 	CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
 	// CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
 

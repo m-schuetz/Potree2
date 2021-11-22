@@ -15,16 +15,16 @@ const NodeType = {
 };
 
 let typenameTypeattributeMap = {
-	"double": PointAttributeTypes.DATA_TYPE_DOUBLE,
-	"float": PointAttributeTypes.DATA_TYPE_FLOAT,
-	"int8": PointAttributeTypes.DATA_TYPE_INT8,
-	"uint8": PointAttributeTypes.DATA_TYPE_UINT8,
-	"int16": PointAttributeTypes.DATA_TYPE_INT16,
-	"uint16": PointAttributeTypes.DATA_TYPE_UINT16,
-	"int32": PointAttributeTypes.DATA_TYPE_INT32,
-	"uint32": PointAttributeTypes.DATA_TYPE_UINT32,
-	"int64": PointAttributeTypes.DATA_TYPE_INT64,
-	"uint64": PointAttributeTypes.DATA_TYPE_UINT64,
+	"double": PointAttributeTypes.DOUBLE,
+	"float": PointAttributeTypes.FLOAT,
+	"int8": PointAttributeTypes.INT8,
+	"uint8": PointAttributeTypes.UINT8,
+	"int16": PointAttributeTypes.INT16,
+	"uint16": PointAttributeTypes.UINT16,
+	"int32": PointAttributeTypes.INT32,
+	"uint32": PointAttributeTypes.UINT32,
+	"int64": PointAttributeTypes.INT64,
+	"uint64": PointAttributeTypes.UINT64,
 };
 
 let tmpVec3 = new Vector3();

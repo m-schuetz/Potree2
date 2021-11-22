@@ -49,6 +49,8 @@ struct AttributeDescriptor{
 	range_min   : f32;
 	range_max   : f32;
 	clamp       : u32;
+	byteSize    : u32;
+	datatype    : u32;
 };
 
 [[block]] struct Nodes{
@@ -56,7 +58,7 @@ struct AttributeDescriptor{
 };
 
 [[block]] struct AttributeDescriptors{
-	values : [[stride(24)]] array<AttributeDescriptor>;
+	values : [[stride(32)]] array<AttributeDescriptor>;
 };
 
 [[block]] struct U32s {
@@ -73,6 +75,17 @@ let TYPES_F32           =  6u;
 let TYPES_F64           =  7u;
 let TYPES_RGBA          = 50u;
 let TYPES_ELEVATION     = 51u;
+
+let TYPE_DOUBLE = 0u;
+let TYPE_FLOAT  = 1u;
+let TYPE_INT8   = 2u;
+let TYPE_UINT8  = 3u;
+let TYPE_INT16  = 4u;
+let TYPE_UINT16 = 5u;
+let TYPE_INT32  = 6u;
+let TYPE_UINT32 = 7u;
+let TYPE_INT64  = 8u;
+let TYPE_UINT64 = 9u;
 
 let CLAMP_DISABLED      =  0u;
 let CLAMP_ENABLED       =  1u;
@@ -213,14 +226,33 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 
 	if(attribute.valuetype == TYPES_RGBA){
 
-		// var offset = node.numPoints * 33u + 4u * vertex.vertexID;
-		var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
-		var r = f32(readU8(offset + 0u));
-		var g = f32(readU8(offset + 1u));
-		var b = f32(readU8(offset + 2u));
-		var a = f32(readU8(offset + 3u));
+		var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
 
-		color = vec4<f32>(r, g, b, a) / 255.0;
+		var r = 0.0;
+		var g = 0.0;
+		var b = 0.0;
+
+		if(attribute.datatype == TYPE_UINT8){
+			r = f32(readU8(offset + 0u));
+			g = f32(readU8(offset + 1u));
+			b = f32(readU8(offset + 2u));
+		}elseif(attribute.datatype == TYPE_UINT16){
+			r = f32(readU16(offset + 0u));
+			g = f32(readU16(offset + 2u));
+			b = f32(readU16(offset + 4u));
+		}
+
+		if(r > 255.0){
+			r = r / 256.0;
+		}
+		if(g > 255.0){
+			g = g / 256.0;
+		}
+		if(b > 255.0){
+			b = b / 256.0;
+		}
+
+		color = vec4<f32>(r, g, b, 255.0) / 255.0;
 	}
 
 	return color;

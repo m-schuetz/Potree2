@@ -59,7 +59,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 
 
 	let attributes = octree.loader.attributes.attributes;
-	let mapping = "rgba";
+	let mapping = "intensity";
 	let attribute = attributes.find(a => a.name === mapping);
 
 	// let key = `${attribute.name}_${attribute.numElements}_${attribute.type.name}_${mapping}_${flags.join("_")}`;
@@ -190,12 +190,18 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			let clampBool = args.clamp ?? false;
 			let clamp = clampBool ? 1 : 0;
 
-			view.setUint32(   0,             args.offset, true);
-			view.setUint32(   4,        args.numElements, true);
-			view.setUint32(   8,               args.type, true);
-			view.setFloat32( 12,           args.range[0], true);
-			view.setFloat32( 16,           args.range[1], true);
-			view.setUint32(  20,                   clamp, true);
+			let byteSize = args.attribute?.byteSize ?? 0;
+			let dataType = args.attribute?.type?.ordinal ?? 0;
+			let numElements = args.attribute?.numElements ?? 1;
+
+			view.setUint32(   0,         args.offset, true);
+			view.setUint32(   4,         numElements, true);
+			view.setUint32(   8,           args.type, true);
+			view.setFloat32( 12,       args.range[0], true);
+			view.setFloat32( 16,       args.range[1], true);
+			view.setUint32(  20,               clamp, true);
+			view.setUint32(  24,            byteSize, true);
+			view.setUint32(  28,            dataType, true);
 		};
 
 		let attributes = octree.loader.attributes;
@@ -215,47 +221,53 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		if(selectedAttribute === "rgba"){
 			set({
 				offset       : offsets.get(selectedAttribute) + corrector,
-				numElements  : attribute.numElements,
 				type         : TYPES.RGBA,
 				range        : [0, 255],
+				attribute    : attribute,
 			});
 		}else if(selectedAttribute === "elevation"){
 			set({
 				offset       : 0,
-				numElements  : 1,
 				type         : TYPES.ELEVATION,
 				range        : [0, 200],
 				clamp        : true,
+				attribute    : attribute,
 			});
 		}else if(selectedAttribute === "intensity"){
 			
 			set({
 				offset       : offsets.get(selectedAttribute) + corrector,
-				numElements  : attribute.numElements,
 				type         : TYPES.U16,
 				range        : [0, 255],
+				attribute    : attribute,
 			});
 		}else if(selectedAttribute === "classification"){
 			set({
 				offset       : offsets.get(selectedAttribute) + corrector,
-				numElements  : attribute.numElements,
 				type         : TYPES.U8,
 				range        : [0, 32],
+				attribute    : attribute,
 			});
 		}else if(selectedAttribute === "number of returns"){
 			set({
 				offset       : offsets.get(selectedAttribute) + corrector,
-				numElements  : attribute.numElements,
 				type         : TYPES.U8,
 				range        : [0, 4],
+				attribute    : attribute,
 			});
 		}else if(selectedAttribute === "gps-time"){
 			set({
 				offset       : offsets.get(selectedAttribute) + corrector,
-				numElements  : attribute.numElements,
 				type         : TYPES.F64,
 				range        : [0, 10_000],
-				clamp        : false,
+				attribute    : attribute,
+			});
+		}else{
+			set({
+				offset       : offsets.get(selectedAttribute) + corrector,
+				type         : TYPES.U8,
+				range        : [0, 10_000],
+				attribute    : attribute,
 			});
 		}
 
