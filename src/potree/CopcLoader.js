@@ -5,7 +5,7 @@ import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttri
 import {WorkerPool} from "../misc/WorkerPool.js";
 import {Geometry} from "potree";
 import {Vector3, Box3, Matrix4} from "potree";
-import {createLazPerf} from "lazperf";
+
 
 let nodesLoading = 0;
 
@@ -238,7 +238,7 @@ function eptKeyToPotreeKey(level, x, y, z){
 	return potreeKey;
 }
 
-let lazperf = null;
+
 
 export class CopcLoader{
 
@@ -354,103 +354,77 @@ export class CopcLoader{
 			return;
 		}
 
-		if(nodesLoading >= 10){
+		if(nodesLoading >= 6){
 			return;
 		}
 
 		nodesLoading++;
 		node.loading = true;
 
-		let blobPointer = null;
-		let dataPointer = null;
-		let decoder = null;
-
 		try{
 			if(node.nodeType === NodeType.PROXY){
 				await this.loadHierarchy(node);
 			}
 
-			let first = node.byteOffset;
-			let last = node.byteOffset + node.byteSize - 1;
-			let response = await fetch(this.url, {
-				headers: {
-					'content-type': 'multipart/byteranges',
-					'Range': `bytes=${first}-${last}`,
-				},
-			});
+			let workerPath = "./src/potree/DecoderWorker_copc.js";
+			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
-			let buffer = await response.arrayBuffer();
-			let compressed = new Uint8Array(buffer);
+			worker.onmessage = function(e){
+				let data = e.data;
 
-			let pointDataRecordFormat = this.header.pointFormat - 128;
-			let pointDataRecordLength = this.header.pointRecordLength;
-			let pointCount = node.numPoints;
-			let outBuffer = new Uint8Array(16 * pointCount);
-			let outView = new DataView(outBuffer.buffer);
+				if(data === "failed"){
+					console.log(`failed to load ${node.name}. trying again!`);
 
-			blobPointer = lazperf._malloc(compressed.byteLength);
-			dataPointer = lazperf._malloc(pointDataRecordLength);
-			decoder = new lazperf.ChunkDecoder();
+					node.loaded = false;
+					node.loading = false;
+					nodesLoading--;
 
-			lazperf.HEAPU8.set(
-				new Uint8Array(
-					compressed.buffer,
-					compressed.byteOffset,
-					compressed.byteLength
-				),
-				blobPointer
-			);
+					WorkerPool.returnWorker(workerPath, worker);
 
-			decoder.open(pointDataRecordFormat, pointDataRecordLength, blobPointer);
-
-			let pointView = new DataView(lazperf.HEAPU8.buffer, dataPointer, pointDataRecordLength);
-
-			let offset_rgb = {
-				6: 0,
-				7: 30,
-				8: 30,
-			}[this.header.pointFormat % 128];
-
-			for (let i = 0; i < pointCount; ++i) {
-				decoder.getPoint(dataPointer);
-
-				let X = pointView.getInt32(0, true);
-				let Y = pointView.getInt32(4, true);
-				let Z = pointView.getInt32(8, true);
-
-				let x = X * this.header.scale[0] + this.header.offset[0] - this.header.min[0];
-				let y = Y * this.header.scale[1] + this.header.offset[1] - this.header.min[1];
-				let z = Z * this.header.scale[2] + this.header.offset[2] - this.header.min[2];
-
-				outView.setFloat32(12 * i + 0, x, true);
-				outView.setFloat32(12 * i + 4, y, true);
-				outView.setFloat32(12 * i + 8, z, true);
-
-				
-				{
-					let R = pointView.getUint16(offset_rgb + 0, true);
-					let G = pointView.getUint16(offset_rgb + 2, true);
-					let B = pointView.getUint16(offset_rgb + 4, true);
-
-					let r = R > 255 ? R / 255 : R;
-					let g = G > 255 ? G / 255 : G;
-					let b = B > 255 ? B / 255 : B;
-
-					outView.setUint8(12 * node.numPoints + 4 * i + 0, r, true);
-					outView.setUint8(12 * node.numPoints + 4 * i + 1, g, true);
-					outView.setUint8(12 * node.numPoints + 4 * i + 2, b, true);
-					outView.setUint8(12 * node.numPoints + 4 * i + 3, 255, true);
+					return;
 				}
-			}
 
-			let geometry = new Geometry();
-			geometry.numElements = node.numPoints;
-			geometry.buffer = outBuffer;
+				let geometry = new Geometry();
+				geometry.numElements = node.numPoints;
+				geometry.buffer = data.buffer;
 
-			node.loaded = true;
-			node.loading = false;
-			nodesLoading--;
-			node.geometry = geometry;
+				node.loaded = true;
+				node.loading = false;
+				nodesLoading--;
+				node.geometry = geometry;
+
+				WorkerPool.returnWorker(workerPath, worker);
+			};
+
+			let {byteOffset, byteSize} = node;
+			let url = new URL(this.url, document.baseURI).href;
+			let pointAttributes = this.attributes;
+			let scale = this.header.scale;
+			let offset = this.header.offset;
+			let min = this.octree.loader.header.min;
+			let numPoints = node.numPoints;
+			let name = node.name;
+			let nodeMin = [
+				node.boundingBox.min.x,// + min[0],
+				node.boundingBox.min.y,// + min[1],
+				node.boundingBox.min.z,// + min[2],
+			];
+			let nodeMax = [
+				node.boundingBox.max.x,// + min[0],
+				node.boundingBox.max.y,// + min[1],
+				node.boundingBox.max.z,// + min[2],
+			];
+
+			let pointFormat = this.header.pointFormat % 128;
+			let pointRecordLength = this.header.pointRecordLength;
+
+			let message = {
+				name, url, byteOffset, byteSize, numPoints,
+				pointAttributes, scale, offset, min, nodeMin, nodeMax,
+				pointFormat, pointRecordLength,
+			};
+
+			worker.postMessage(message, []);
 		}catch(e){
 			node.loaded = false;
 			node.loading = false;
@@ -459,20 +433,10 @@ export class CopcLoader{
 			console.log(`failed to load ${node.name}`);
 			console.log(e);
 			console.log(`trying again!`);
-		} finally {
-			if(blobPointer){
-				lazperf._free(blobPointer);
-				lazperf._free(dataPointer);
-				decoder.delete();
-			}
 		}
 	}
 
 	static async load(url){
-
-		if(lazperf === null){
-			lazperf = await createLazPerf();
-		}
 
 		let loader = new CopcLoader();
 		loader.url = url;

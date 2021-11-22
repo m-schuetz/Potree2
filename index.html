@@ -93,7 +93,7 @@ canvas{
 	let canvas = document.getElementById("canvas");
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
-	installToolbar(potree.renderer.canvas, potree);
+	// installToolbar(potree.renderer.canvas, potree);
 
 	window.Potree = Potree;
 	window.potree = potree;
