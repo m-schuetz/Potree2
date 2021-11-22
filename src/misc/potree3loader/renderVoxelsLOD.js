@@ -188,9 +188,9 @@ fn getLOD(position : vec3<f32>) -> LOD {
 }
 
 fn doIgnore(){
-	ignore(uniforms);
-	ignore(positions);
-	ignore(colors);
+	_ = uniforms;
+	_ = &positions;
+	_ = &colors;
 }
 
 [[stage(vertex)]]

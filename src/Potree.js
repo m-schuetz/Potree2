@@ -45,6 +45,7 @@ export * from "./utils.js";
 export * from "./defines.js";
 export * from "./misc/EventDispatcher.js";
 export * from "./InputHandler.js";
+export * from "./potree/CopcLoader.js";
 
 export {render as renderPoints} from "./prototyping/renderPoints.js";
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";

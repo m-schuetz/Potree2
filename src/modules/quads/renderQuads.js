@@ -119,8 +119,8 @@ fn main(fragment : FragmentIn) -> FragmentOut {
 
 	var uv = vec2<f32>(fragment.uv.x, 1.0 - fragment.uv.y);
 
-	ignore(mySampler);
-	ignore(myTexture);
+	_ = mySampler;
+	_ = myTexture;
 	fout.color = textureSample(myTexture, mySampler, uv);
 
 	if(fout.color.w < 1.0){

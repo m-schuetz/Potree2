@@ -162,7 +162,7 @@ let fs = `
 	[[stage(fragment)]]
 	fn main(input : FragmentInput) -> FragmentOutput {
 
-		ignore(mySampler);
+		_ = mySampler;
 
 		fragXY = input.fragCoord.xy;
 

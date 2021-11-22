@@ -228,12 +228,12 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 
 fn doIgnores(){
 
-	ignore(uniforms);
-	ignore(attributes);
-	ignore(mySampler);
-	ignore(myTexture);
-	ignore(buffer);
-	ignore(nodes);
+	_ = uniforms;
+	_ = &attributes;
+	_ = mySampler;
+	_ = myTexture;
+	_ = &buffer;
+	_ = &nodes;
 
 }
 

@@ -69,6 +69,7 @@ canvas{
 {
 	"imports": {
 		"potree":      "./src/Potree.js",
+		"lazperf":     "./libs/laz-perf/laz-perf.js",
 		"toolbar":     "./src/modules/toolbar/toolbar.js",
 		"dat.gui":     "./libs/dat.gui/dat.gui.module.js",
 		"stats":       "./libs/stats.js/stats.module.js",
@@ -130,13 +131,38 @@ canvas{
 	// 	pivot: [2357.1, 1363.8, 931.0],
 	// });
 
-	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 
-		controls.set({
-			position: [-19.0, 13.6, 12.2],
-			pivot: [-0.0, 2.2, 3.9],
-		});
+	// 	controls.set({
+	// 		position: [-19.0, 13.6, 12.2],
+	// 		pivot: [-0.0, 2.2, 3.9],
+	// 	});
 		
+	// 	scene.root.children.push(pointcloud);
+	// });
+
+	import {CopcLoader} from "potree";
+	CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
+
+		// controls.set({
+		// 	position: [-19.0, 13.6, 12.2],
+		// 	pivot: [-0.0, 2.2, 3.9],
+		// });
+		
+
+		let min = new Vector3(635577.79, 848882.15, 406.14);
+		let max = new Vector3(639003.73, 853537.66, 615.26);
+
+		let center = min.add(max).multiplyScalar(0.5);
+		let size = min.distanceTo(max);
+		
+		controls.set({
+			yaw: -0.2,
+			pitch: 0.8,
+			radius: size,
+			pivot: center,
+		});
+
 		scene.root.children.push(pointcloud);
 	});
 

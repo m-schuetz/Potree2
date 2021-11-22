@@ -41,7 +41,7 @@ struct FragmentOut{
 [[stage(vertex)]]
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
-	ignore(vertex.uv);
+	_ = vertex.uv;
 
 	var projPos = uniforms.proj * uniforms.view * vec4<f32>(vertex.position, 1.0);
 
@@ -75,8 +75,8 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 	// 	fout.color = vec4<f32>(GRADIENT[gIndex] / 255.0, 1.0);
 	// }
 
-	ignore(myTexture);
-	ignore(mySampler);
+	_ = myTexture;
+	_ = mySampler;
 
 	return fout;
 }

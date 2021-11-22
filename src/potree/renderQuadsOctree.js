@@ -218,8 +218,8 @@ fn main(vertex : VertexInput) -> VertexOutput {
 
 	{ // reference all potentially unused variables, 
 		// otherwise the bind group layout breaks if they're not used in the shader
-		ignore(mySampler);
-		ignore(myTexture);
+		_ = mySampler;
+		_ = myTexture;
 
 		var dbg = buffer.values[0];
 		var dbg1 = attributes.values[0];

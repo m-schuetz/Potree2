@@ -128,17 +128,17 @@ fn getBatchGridOffset() -> u32 {
 
 fn doIgnore(){
 	
-	ignore(uniforms);
+	_ = uniforms;
 
-	ignore(indices);
-	ignore(positions);
-	ignore(colors);
-	ignore(uvs);
-	ignore(grids);
-	ignore(batches);
-	ignore(sortedTriangles);
-	ignore(mySampler);
-	ignore(myTexture);
+	_ = &indices;
+	_ = &positions;
+	_ = &colors;
+	_ = &uvs;
+	_ = &grids;
+	_ = &batches;
+	_ = &sortedTriangles;
+	_ = mySampler;
+	_ = myTexture;
 }
 
 [[stage(compute), workgroup_size(128)]]

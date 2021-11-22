@@ -107,9 +107,9 @@ let fs = `
 	[[stage(fragment)]]
 	fn main(input : FragmentInput) -> FragmentOutput {
 
-		ignore(mySampler);
-		ignore(myTexture);
-		ignore(myDepth);
+		_ = mySampler;
+		_ = myTexture;
+		_ = myDepth;
 
 		var output : FragmentOutput;
 

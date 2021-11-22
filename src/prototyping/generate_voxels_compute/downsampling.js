@@ -118,19 +118,19 @@ fn loadColor(vertexIndex : u32) -> vec3<u32> {
 
 fn doIgnore(){
 	
-	ignore(uniforms);
+	_ = uniforms;
 
-	ignore(mySampler);
-	ignore(myTexture);
+	_ = mySampler;
+	_ = myTexture;
 
-	ignore(indices);
-	ignore(positions);
-	ignore(colors);
-	ignore(uvs);
-	ignore(grids);
-	ignore(chunks);
-	ignore(voxels);
-	ignore(sortedIndices);	
+	_ = &indices;
+	_ = &positions;
+	_ = &colors;
+	_ = &uvs;
+	_ = &grids;
+	_ = &chunks;
+	_ = &voxels;
+	_ = &sortedIndices)	
 }
 
 fn loadTextureSample(vertexIndex : u32) -> vec4<f32> {

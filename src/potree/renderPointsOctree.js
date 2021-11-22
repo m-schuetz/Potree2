@@ -209,7 +209,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			offset += attribute.byteSize;
 		}
 
-		let corrector = octree.loader.metadata.encoding === "BROTLI" ? 4 : 0;
+		let corrector = octree.loader.metadata?.encoding === "BROTLI" ? 4 : 0;
 		let attribute = attributes.attributes.find(a => a.name === selectedAttribute);
 
 		if(selectedAttribute === "rgba"){

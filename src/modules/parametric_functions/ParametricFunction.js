@@ -31,7 +31,7 @@ struct FragmentOut{
 [[stage(vertex)]]
 fn main_vertex_points(vertex : VertexIn) -> VertexOut {
 
-	ignore(uniforms);
+	_ = uniforms;
 
 	var u = f32(vertex.index) / 1000000.0;
 	var z = 2.0 * u - 1.0;
@@ -91,7 +91,7 @@ fn sampleNormal(u : f32, v : f32, spacing : f32) -> vec4<f32> {
 [[stage(vertex)]]
 fn main_vertex_triangles(vertex : VertexIn) -> VertexOut {
 
-	ignore(uniforms);
+	_ = uniforms;
 
 	var QUAD_OFFSETS : array<vec3<f32>, 6> = array<vec3<f32>, 6>(
 		vec3<f32>( 0.0, 0.0, 0.0),
@@ -131,7 +131,7 @@ fn main_vertex_triangles(vertex : VertexIn) -> VertexOut {
 [[stage(fragment)]]
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
-	ignore(uniforms);
+	_ = uniforms;
 
 	var fout : FragmentOut;
 	fout.color = fragment.color;

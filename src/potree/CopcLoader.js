@@ -1,0 +1,532 @@
+
+import {PointCloudOctree} from "potree";
+import {PointCloudOctreeNode} from "./PointCloudOctreeNode.js";
+import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
+import {WorkerPool} from "../misc/WorkerPool.js";
+import {Geometry} from "potree";
+import {Vector3, Box3, Matrix4} from "potree";
+import {createLazPerf} from "lazperf";
+
+let nodesLoading = 0;
+
+const NodeType = {
+	NORMAL: 0,
+	LEAF: 1,
+	PROXY: 2,
+};
+
+let typenameTypeattributeMap = {
+	"double": PointAttributeTypes.DATA_TYPE_DOUBLE,
+	"float": PointAttributeTypes.DATA_TYPE_FLOAT,
+	"int8": PointAttributeTypes.DATA_TYPE_INT8,
+	"uint8": PointAttributeTypes.DATA_TYPE_UINT8,
+	"int16": PointAttributeTypes.DATA_TYPE_INT16,
+	"uint16": PointAttributeTypes.DATA_TYPE_UINT16,
+	"int32": PointAttributeTypes.DATA_TYPE_INT32,
+	"uint32": PointAttributeTypes.DATA_TYPE_UINT32,
+	"int64": PointAttributeTypes.DATA_TYPE_INT64,
+	"uint64": PointAttributeTypes.DATA_TYPE_UINT64,
+};
+
+let tmpVec3 = new Vector3();
+function createChildAABB(aabb, index){
+	let min = aabb.min.clone();
+	let max = aabb.max.clone();
+	let size = tmpVec3.copy(max).sub(min);
+
+	if ((index & 0b0001) > 0) {
+		min.z += size.z / 2;
+	} else {
+		max.z -= size.z / 2;
+	}
+
+	if ((index & 0b0010) > 0) {
+		min.y += size.y / 2;
+	} else {
+		max.y -= size.y / 2;
+	}
+	
+	if ((index & 0b0100) > 0) {
+		min.x += size.x / 2;
+	} else {
+		max.x -= size.x / 2;
+	}
+
+	return new Box3(min, max);
+}
+
+async function loadHeader(url){
+
+	let response = await fetch(url, {
+		headers: {
+			'content-type': 'multipart/byteranges',
+			'Range': `bytes=0-549`,
+		},
+	});
+
+	let buffer = await response.arrayBuffer();
+
+	let view = new DataView(buffer);
+
+	let versionMajor = view.getUint8(24);
+	let versionMinor = view.getUint8(25);
+	let headerSize = view.getUint16(94, true);
+	let offsetToPointData = view.getUint32(96, true);
+	let numVLRs = view.getUint32(100, true);
+	let pointFormat = view.getUint8(104);
+	let pointRecordLength = view.getUint16(105, true);
+	let numPoints = 0;
+	
+	if(versionMajor === 1 && versionMinor < 4){
+		numPoints = view.getUint32(107, true);
+	}else{
+		numPoints = Number(view.getBigUint64(247, true));
+	}
+
+	let scale = [
+		view.getFloat64(131, true),
+		view.getFloat64(139, true),
+		view.getFloat64(147, true),
+	];
+
+	let offset = [
+		view.getFloat64(155, true),
+		view.getFloat64(163, true),
+		view.getFloat64(171, true),
+	];
+
+	let min = [
+		view.getFloat64(187, true),
+		view.getFloat64(203, true),
+		view.getFloat64(219, true),
+	];
+
+	let max = [
+		view.getFloat64(179, true),
+		view.getFloat64(195, true),
+		view.getFloat64(211, true),
+	];
+
+	let startFirstEVLR = Number(view.getBigUint64(235, true));
+	let numEVLRs = view.getUint32(243, true);
+
+
+	let header = {
+		versionMajor,
+		versionMinor,
+		headerSize,
+		offsetToPointData,
+		numVLRs,
+		pointFormat,
+		pointRecordLength,
+		numPoints,
+		scale, 
+		offset, 
+		min, max,
+		startFirstEVLR, numEVLRs
+	};
+
+	return header;
+}
+
+function readString(buffer, offset, length){
+
+	let view = new Uint8Array(buffer);
+	let string = "";
+
+	for(let i = 0; i < length; i++){
+		let char = view[offset + i];
+
+		if(char === 0){
+			break;
+		}
+
+		string = string + String.fromCharCode(char);
+	}
+
+	return string;
+}
+
+async function loadVLRs(url, header){
+
+	let response = await fetch(url, {
+		headers: {
+			'content-type': 'multipart/byteranges',
+			'Range': `bytes=${header.headerSize}-${header.offsetToPointData - 1}`,
+		},
+	});
+
+	let buffer = await response.arrayBuffer();
+	let view = new DataView(buffer);
+
+	let vlrs = [];
+	let offset = 0;
+
+	for(let i = 0; i < header.numVLRs; i++){
+
+		if(offset >= buffer.byteLength){
+			console.warn(`Stopped reading at VLR[${i}] because offset(${offset}) is >= vlrBufferSize(${buffer.byteLength})`);
+		}
+
+		let reserved = view.getUint16(offset + 0, true);
+		let userID = readString(buffer, 2, 16);
+		let recordID = view.getUint16(offset + 18, true);
+		let recordLength = view.getUint16(offset + 20, true);
+		let description = readString(buffer, offset + 22, 32);
+
+		let VLR = {
+			userID, recordID, recordLength, description,
+			buffer: buffer.slice(offset + 54, offset + 54 + recordLength),
+		};
+
+		offset = offset + 54 + recordLength;
+
+		vlrs.push(VLR);
+	}
+
+	return vlrs;
+}
+
+function parseCopcInfo(vlrs){
+
+	let vlr = vlrs.find(vlr => vlr.recordID === 1 && vlr.userID == "copc");
+
+	if(!vlr){
+		return null;
+	}
+
+	let view = new DataView(vlr.buffer);
+
+	let center = new Vector3(
+		view.getFloat64(0, true),
+		view.getFloat64(8, true),
+		view.getFloat64(16, true),
+	);
+
+	let halfsize = view.getFloat64(24, true);
+	let spacing = view.getFloat64(32, true);
+	let root_hier_offset = Number(view.getBigUint64(40, true));
+	let root_hier_size = Number(view.getBigUint64(48, true));
+	let gpstime_minimum = view.getFloat64(56, true);
+	let gpstime_maximum = view.getFloat64(64, true);
+
+	let copcInfo = {
+		center, halfsize, spacing, 
+		root_hier_offset, root_hier_size, 
+		gpstime_minimum, gpstime_maximum, 
+	};
+
+	return copcInfo;
+}
+
+function eptKeyToPotreeKey(level, x, y, z){
+
+	let potreeKey = "r";
+
+	for(let i = 1; i <= level; i++){
+		let shift = level - i;
+
+		let ix = (x >> shift) & 1;
+		let iy = (y >> shift) & 1;
+		let iz = (z >> shift) & 1;
+
+		let childIndex = (ix << 2) | (iy << 1) | iz;
+
+		potreeKey = potreeKey + childIndex;
+	}
+
+	return potreeKey;
+}
+
+let lazperf = null;
+
+export class CopcLoader{
+
+	constructor(){
+		this.header = null;
+	}
+
+	parseHierarchy(localRoot, buffer){
+
+		let numEntries = buffer.byteLength / 32;
+		let view = new DataView(buffer);
+
+		let nodeMap = new Map();
+		nodeMap.set(localRoot.name, localRoot);
+
+		// 1.PASS: read node data
+		for(let i = 0; i < numEntries; i++){
+			
+			let level = view.getUint32(32 * i + 0, true);
+			let x = view.getUint32(32 * i + 4, true);
+			let y = view.getUint32(32 * i + 8, true);
+			let z = view.getUint32(32 * i + 12, true);
+
+			let offset = Number(view.getBigUint64(32 * i + 16, true));
+			let byteSize = view.getUint32(32 * i + 24, true);
+			let pointCount = view.getUint32(32 * i + 28, true);
+
+			let nodeName = eptKeyToPotreeKey(level, x, y, z);
+
+			let node = nodeMap.get(nodeName);
+			if(!node){
+				node = new PointCloudOctreeNode(nodeName);
+				nodeMap.set(node.name, node);
+			}
+
+			node.level = node.name.length - 1;
+			node.numPoints = pointCount;
+			node.byteOffset = offset;
+			node.byteSize = byteSize;
+
+
+			// TODO: hierarchyByteOffet
+			// TODO: hierarchyByteSize
+			
+		}
+
+		// 2.Pass connect nodes 
+		for(let [nodeName, node] of nodeMap){
+
+			let parentName = node.name.slice(0, -1);
+			let parent = nodeMap.get(parentName);
+			let childIndex = parseInt(node.name.slice(-1));
+
+			if(parent){
+				node.parent = parent;
+				parent.children[childIndex] = node;
+			}
+		}
+
+		// 3.Pass compute derivatives (bounding boxes, ...)
+		localRoot.traverse(node => {
+
+			if(node.parent){
+				let childIndex = parseInt(node.name.slice(-1));
+				let boundingBox = createChildAABB(node.parent.boundingBox, childIndex);
+
+				node.boundingBox = boundingBox;
+				node.spacing = node.parent.spacing / 2;
+
+				node.parent.nodeType = NodeType.NORMAL;
+			}
+
+			// mark as PROXY if pointCount is -1 (more hierarchy to load)
+			// otherwise it's a LEAF node
+			if(node.numPoints === -1){
+				node.nodeType = NodeType.PROXY;
+				node.hierarchyByteOffset = node.byteOffset;
+				node.hierarchyByteSize = node.byteSize;
+			}else{
+				node.nodeType = NodeType.LEAF;
+			}
+			
+
+		});
+
+	}
+
+	async loadHierarchy(node){
+		let {hierarchyByteOffset, hierarchyByteSize} = node;
+
+		let first = hierarchyByteOffset;
+		let last = first + hierarchyByteSize - 1;
+
+		let response = await fetch(this.url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${first}-${last}`,
+			},
+		});
+
+		let buffer = await response.arrayBuffer();
+
+		this.parseHierarchy(node, buffer);
+	}
+
+	async loadNode(node){
+		if(node.loaded || node.loading){
+			return;
+		}
+
+		if(node.loadAttempts > 5){
+			// give up if node failed to load multiple times in a row.
+			return;
+		}
+
+		if(nodesLoading >= 10){
+			return;
+		}
+
+		nodesLoading++;
+		node.loading = true;
+
+		let blobPointer = null;
+		let dataPointer = null;
+		let decoder = null;
+
+		try{
+			if(node.nodeType === NodeType.PROXY){
+				await this.loadHierarchy(node);
+			}
+
+			let first = node.byteOffset;
+			let last = node.byteOffset + node.byteSize - 1;
+			let response = await fetch(this.url, {
+				headers: {
+					'content-type': 'multipart/byteranges',
+					'Range': `bytes=${first}-${last}`,
+				},
+			});
+
+			let buffer = await response.arrayBuffer();
+			let compressed = new Uint8Array(buffer);
+
+			let pointDataRecordFormat = this.header.pointFormat - 128;
+			let pointDataRecordLength = this.header.pointRecordLength;
+			let pointCount = node.numPoints;
+			let outBuffer = new Uint8Array(16 * pointCount);
+			let outView = new DataView(outBuffer.buffer);
+
+			blobPointer = lazperf._malloc(compressed.byteLength);
+			dataPointer = lazperf._malloc(pointDataRecordLength);
+			decoder = new lazperf.ChunkDecoder();
+
+			lazperf.HEAPU8.set(
+				new Uint8Array(
+					compressed.buffer,
+					compressed.byteOffset,
+					compressed.byteLength
+				),
+				blobPointer
+			);
+
+			decoder.open(pointDataRecordFormat, pointDataRecordLength, blobPointer);
+
+			let pointView = new DataView(lazperf.HEAPU8.buffer, dataPointer, pointDataRecordLength);
+
+			let offset_rgb = {
+				6: 0,
+				7: 30,
+				8: 30,
+			}[this.header.pointFormat % 128];
+
+			for (let i = 0; i < pointCount; ++i) {
+				decoder.getPoint(dataPointer);
+
+				let X = pointView.getInt32(0, true);
+				let Y = pointView.getInt32(4, true);
+				let Z = pointView.getInt32(8, true);
+
+				let x = X * this.header.scale[0] + this.header.offset[0] - this.header.min[0];
+				let y = Y * this.header.scale[1] + this.header.offset[1] - this.header.min[1];
+				let z = Z * this.header.scale[2] + this.header.offset[2] - this.header.min[2];
+
+				outView.setFloat32(12 * i + 0, x, true);
+				outView.setFloat32(12 * i + 4, y, true);
+				outView.setFloat32(12 * i + 8, z, true);
+
+				
+				{
+					let R = pointView.getUint16(offset_rgb + 0, true);
+					let G = pointView.getUint16(offset_rgb + 2, true);
+					let B = pointView.getUint16(offset_rgb + 4, true);
+
+					let r = R > 255 ? R / 255 : R;
+					let g = G > 255 ? G / 255 : G;
+					let b = B > 255 ? B / 255 : B;
+
+					outView.setUint8(12 * node.numPoints + 4 * i + 0, r, true);
+					outView.setUint8(12 * node.numPoints + 4 * i + 1, g, true);
+					outView.setUint8(12 * node.numPoints + 4 * i + 2, b, true);
+					outView.setUint8(12 * node.numPoints + 4 * i + 3, 255, true);
+				}
+			}
+
+			let geometry = new Geometry();
+			geometry.numElements = node.numPoints;
+			geometry.buffer = outBuffer;
+
+			node.loaded = true;
+			node.loading = false;
+			nodesLoading--;
+			node.geometry = geometry;
+		}catch(e){
+			node.loaded = false;
+			node.loading = false;
+			nodesLoading--;
+
+			console.log(`failed to load ${node.name}`);
+			console.log(e);
+			console.log(`trying again!`);
+		} finally {
+			if(blobPointer){
+				lazperf._free(blobPointer);
+				lazperf._free(dataPointer);
+				decoder.delete();
+			}
+		}
+	}
+
+	static async load(url){
+
+		if(lazperf === null){
+			lazperf = await createLazPerf();
+		}
+
+		let loader = new CopcLoader();
+		loader.url = url;
+
+		let header = await loadHeader(url);
+		let vlrs = await loadVLRs(url, header);
+		let copcInfo = parseCopcInfo(vlrs);
+
+		if(!copcInfo){
+			console.error("No CopcInfo VLR found?");
+			return null;
+		}
+
+		loader.header = header;
+		loader.vlrs = vlrs;
+		loader.copcInfo = copcInfo;
+
+		let octree = new PointCloudOctree();
+		octree.url = url;
+		octree.spacing = copcInfo.spacing;
+		let min = copcInfo.center.clone().subScalar(copcInfo.halfsize);
+		let max = copcInfo.center.clone().addScalar(copcInfo.halfsize);
+		octree.boundingBox = new Box3(min, max);
+		octree.position.copy(octree.boundingBox.min);
+		octree.boundingBox.max.sub(octree.boundingBox.min);
+		octree.boundingBox.min.set(0, 0, 0);
+		octree.updateWorld();
+
+		let aXYZ = new PointAttribute("position", typenameTypeattributeMap["float"], 3);
+		let aRGB = new PointAttribute("rgba", typenameTypeattributeMap["uint16"], 3);
+		let attributes = new PointAttributes();
+		attributes.add(aXYZ);
+		attributes.add(aRGB);
+		loader.attributes = attributes;
+
+		octree.loader = loader;
+		loader.octree = octree;
+
+		let root = new PointCloudOctreeNode("r");
+		root.boundingBox = octree.boundingBox.clone();
+		root.level = 0;
+		root.nodeType = NodeType.PROXY;
+		root.hierarchyByteOffset = copcInfo.root_hier_offset;
+		root.hierarchyByteSize = copcInfo.root_hier_size;
+		root.byteOffset = 0;
+		root.spacing = octree.spacing;
+
+		loader.loadNode(root);
+
+		octree.root = root;
+
+		// debugger;
+
+		return octree;
+	}
+
+}

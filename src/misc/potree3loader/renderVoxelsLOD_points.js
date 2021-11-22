@@ -48,9 +48,9 @@ struct FragmentOut{
 };
 
 fn doIgnore(){
-	ignore(uniforms);
-	ignore(positions);
-	ignore(colors);
+	_ = uniforms;
+	_ = &positions;
+	_ = &colors;
 }
 
 [[stage(vertex)]]

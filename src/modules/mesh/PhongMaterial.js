@@ -105,8 +105,8 @@ fn getColor(fragment : FragmentInput) -> vec4<f32>{
 	}elseif(uniforms.color_source == 3u){
 		// TEXTURE
 
-		ignore(myTexture);
-		ignore(mySampler);
+		_ = myTexture;
+		_ = mySampler;
 		color = textureSample(myTexture, mySampler, fragment.uv);
 		// color = vec4<f32>(fragment.uv, 0.0, 1.0);
 

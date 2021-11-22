@@ -246,17 +246,6 @@ let pointCount = chunkPointCount;
 
 const outBuffer = new Uint8Array(pointCount * pointDataRecordLength);
 
-
-// let compressed = await response.arrayBuffer();
-
-
-
-
-
-
-
-
-
 const blobPointer = LazPerf._malloc(compressed.byteLength);
 const dataPointer = LazPerf._malloc(pointDataRecordLength);
 const decoder = new LazPerf.ChunkDecoder();
@@ -271,9 +260,9 @@ try {
 		blobPointer
 	);
 
-	debugger;
-
 	decoder.open(pointDataRecordFormat, pointDataRecordLength, blobPointer);
+
+	let tStart = performance.now();
 
 	for (let i = 0; i < pointCount; ++i) {
 		decoder.getPoint(dataPointer);
@@ -285,33 +274,12 @@ try {
 		);
 
 		outBuffer.set(pointData, i * pointDataRecordLength);
-
-		if(i === 0){
-			let view = new DataView(LazPerf.HEAPU8.buffer, dataPointer);
-
-			let X = view.getInt32(0, true);
-			let Y = view.getInt32(4, true);
-			let Z = view.getInt32(8, true);
-
-			let x = X * header.scale[0] + header.offset[0];
-			let y = Y * header.scale[1] + header.offset[1];
-			let z = Z * header.scale[2] + header.offset[2];
-
-			console.log(x, y, z);
-
-		}
 	}
 
-	{
-		let a = new Uint8Array(LazPerf.HEAPU8.buffer);
-		
-		for(let i = 0; i < a.length; i++){
-			if(a[i] !== 0){
-				console.log(i, a[i]);
-				debugger;
-			}
-		}
-	}
+	let duration = performance.now() - tStart;
+	console.log(`${duration}ms`);
+
+
 
 } finally {
 	LazPerf._free(blobPointer)

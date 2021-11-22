@@ -126,8 +126,8 @@ let shaderSource = `
 	[[stage(fragment)]]
 	fn main_fragment(input : FragmentInput) -> FragmentOutput {
 
-		ignore(myTexture);
-		ignore(myDepth);
+		_ = myTexture;
+		_ = myDepth;
 
 		var window : i32 = uniforms.window;
 		var DEFAULT_CLOSEST = 10000000.0;

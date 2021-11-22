@@ -77,10 +77,10 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var box = loadBox(boxIndex);
 	
-	ignore(uniforms);
-	ignore(boxPositions);
-	ignore(boxSizes);
-	ignore(boxColors);
+	_ = uniforms;
+	_ = &boxPositions;
+	_ = &boxSizes;
+	_ = &boxColors;
 
 	var LINES : array<vec3<f32>, 24> = array<vec3<f32>, 24>(
 		// BOTTOM
@@ -162,10 +162,10 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 [[stage(fragment)]]
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
-	ignore(uniforms);
-	ignore(boxPositions);
-	ignore(boxSizes);
-	ignore(boxColors);
+	_ = uniforms;
+	_ = &boxPositions;
+	_ = &boxSizes;
+	_ = &boxColors;
 
 	var fout : FragmentOut;
 	fout.color = fragment.color;
