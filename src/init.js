@@ -34,6 +34,7 @@ let inputHandler = null;
 let dispatcher = new EventDispatcher();
 
 let scene = new Scene();
+let dbgSphere = null;
 
 function addEventListener(name, callback){
 	dispatcher.addEventListener(name, callback);
@@ -50,6 +51,11 @@ function initScene(){
 
 	// 	scene.root.children.push(mesh);
 	// }
+
+	dbgSphere = new Mesh("sphere", geometries.sphere);
+	dbgSphere.scale.set(10.5, 10.5, 10.5);
+	// dbgSphere.renderLayer = 10;
+	scene.root.children.push(dbgSphere);
 }
 
 function update(){
@@ -116,11 +122,19 @@ function getSumBuffer(renderer){
 function startPass(renderer, target){
 	let view = target.colorAttachments[0].texture.createView();
 
+	let colorAttachments = [
+		{view, loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 }}
+	];
+
+	if(target.colorAttachments.length === 2){
+		let view = target.colorAttachments[1].texture.createView();
+		colorAttachments.push(
+			{view, loadValue: { r: 0, g: 0, b: 0, a: 0}}
+		);
+	}
+
 	let renderPassDescriptor = {
-		colorAttachments: [{
-			view, 
-			loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 }
-		}],
+		colorAttachments,
 		depthStencilAttachment: {
 			view: target.depth.texture.createView(),
 			depthLoadValue: 0,
@@ -255,6 +269,8 @@ function renderBasic(){
 
 function renderNotSoBasic(){
 	// Timer.setEnabled(true);
+
+	Potree.state.renderedObjects = [];
 
 	let layers = new Map();
 
@@ -412,18 +428,18 @@ function renderNotSoBasic(){
 	}
 
 
-	if(dilateEnabled && Potree.settings.pointSize >= 2){ // dilate
-		let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
+	// if(dilateEnabled && Potree.settings.pointSize >= 2){ // dilate
+	// 	let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
 
-		let pass = startPass(renderer, fboTarget);
-		let drawstate = {renderer, camera, renderables, pass};
+	// 	let pass = startPass(renderer, fboTarget);
+	// 	let drawstate = {renderer, camera, renderables, pass};
 
-		dilate(fbo_source, drawstate);
+	// 	dilate(fbo_source, drawstate);
 
-		endPass(pass);
+	// 	endPass(pass);
 
-		fbo_source = fboTarget;
-	}
+	// 	fbo_source = fboTarget;
+	// }
 
 	{
 		let pass = revisitPass(renderer, fbo_source);
@@ -458,30 +474,57 @@ function renderNotSoBasic(){
 		endPass(pass);
 	}
 
-
 	{ // HANDLE PICKING
 		for(let {x, y, callback} of Potree.pickQueue){
 
-			let u = x / renderer.canvas.clientWidth;
-			let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
-			let pos = camera.getWorldPosition();
-			let dir = camera.mouseToUnormalizedDirection(u, v);
-			let near = camera.near;
+			let renderedObjects = Potree.state.renderedObjects;
 
-			let window = 2;
-			let wh = 1;
-			readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
-				
-				let depth = near / d;
-				
-				dir.multiplyScalar(depth);
-				let position = pos.add(dir);
+			let window = 8;
+			let wh = window / 2;
+			renderer.readPixels(fbo_source.colorAttachments[1].texture, x - wh, y - wh, window, window).then(buffer => {
 
-				callback({depth, position});
+				let max = Math.max(...new Uint32Array(buffer));
+
+				let nodeCounter = (max >>> 20);
+				let pointIndex = max & 0b1111_11111111_11111111;
+
+				if(nodeCounter === 0 && pointIndex === 0){
+					return;
+				}
+
+				let node = renderedObjects[nodeCounter];
+				let pointBuffer = node.geometry.buffer.buffer;
+				let view = new DataView(pointBuffer);
+
+				let x = view.getFloat32(12 * pointIndex + 0, true);
+				let y = view.getFloat32(12 * pointIndex + 4, true);
+				let z = view.getFloat32(12 * pointIndex + 8, true);
+
+				x = x + node.octree.position.x;
+				y = y + node.octree.position.y;
+				z = z + node.octree.position.z;
+
+				let position = new Vector3(x, y, z);
+				let distance = camera.getWorldPosition().distanceTo(position);
+				let radius = distance / 50;
+
+				dbgSphere.position.set(x, y, z);
+				dbgSphere.scale.set(radius, radius, radius);
+				dbgSphere.updateWorld();
+
+				callback({distance, position});
 			});
+
 		}
 		Potree.pickQueue.length = 0;
+
 	}
+
+	// renderer.drawSphere(
+	// 	// dbgSphere.position,
+	// 	new Vector3(637290.76, 851209.905, 510.7),
+	// 	200
+	// );
 
 
 

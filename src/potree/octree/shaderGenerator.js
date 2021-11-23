@@ -33,7 +33,7 @@ let shaderSource = `
 
 struct Node {
 	numPoints   : u32;
-	dbg         : u32;
+	counter     : u32;
 	min_x       : f32;
 	min_y       : f32;
 	min_z       : f32;
@@ -111,6 +111,7 @@ struct VertexInput {
 struct VertexOutput {
 	[[builtin(position)]] position : vec4<f32>;
 	[[location(0)]] color : vec4<f32>;
+	[[location(1), interpolate(flat)]] point_id : u32;
 };
 
 fn readU8(offset : u32) -> u32{
@@ -347,17 +348,23 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		output.color = color;
 	}
 
-	// output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	// bit pattern
+	// 12 node counter : 20 point id
+	
+	// output.point_id = vertex.vertexID;
+	output.point_id = ((node.counter & 0xFFFu) << 20u) | vertex.vertexID;
 
 	return output;
 }
 
 struct FragmentInput {
 	[[location(0)]] color : vec4<f32>;
+	[[location(1), interpolate(flat)]] point_id : u32;
 };
 
 struct FragmentOutput {
 	[[location(0)]] color : vec4<f32>;
+	[[location(1)]] point_id : u32;
 };
 
 [[stage(fragment)]]
@@ -367,6 +374,7 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 
 	var output : FragmentOutput;
 	output.color = fragment.color;
+	output.point_id = fragment.point_id;
 
 	return output;
 }

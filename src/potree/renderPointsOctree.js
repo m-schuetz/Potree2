@@ -332,7 +332,7 @@ function renderOctree(octree, drawstate, flags){
 			let node = nodes[i];
 
 			view.setUint32(32 * i + 0, node.geometry.numElements, true);
-			view.setUint32(32 * i + 4, i, true);
+			view.setUint32(32 * i + 4, Potree.state.renderedObjects.length + i, true);
 
 			let bb = node.boundingBox;
 			let bbWorld = octree.boundingBox;
@@ -370,6 +370,7 @@ function renderOctree(octree, drawstate, flags){
 		let numElements = node.geometry.numElements;
 		pass.passEncoder.draw(numElements, 1, 0, i);
 		// Potree.state.numPoints += numElements;
+		Potree.state.renderedObjects.push(node);
 
 		i++;
 	}

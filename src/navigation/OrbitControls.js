@@ -42,6 +42,12 @@ export class OrbitControls{
 					uy * this.radius);
 
 			}
+
+			let {x, y} = e.mouse;
+
+			Potree.pick(x, y, (result) => {
+
+			});
 		});
 
 		this.dispatcher.add('mousewheel', e => {
@@ -60,7 +66,7 @@ export class OrbitControls{
 			let {x, y} = e.mouse;
 
 			Potree.pick(x, y, (result) => {
-				let newRadius = result.depth * 0.25;
+				let newRadius = result.distance * 0.25;
 				let newPivot = result.position;
 
 				// this.set({radius: newRadius, pivot: newPivot});
@@ -70,10 +76,7 @@ export class OrbitControls{
 				let easing = TWEEN.Easing.Quartic.Out;
 				let tween = new TWEEN.Tween(value).to({x: 1}, animationDuration);
 				tween.easing(easing);
-				// this.tweens.push(tween);
-
-				// let startPos = this.getPosition();
-				// let targetPos = cameraTargetPosition.clone();
+				
 				let startRadius = this.radius;
 				let targetRadius = newRadius;
 				let startPivot = this.pivot.clone();

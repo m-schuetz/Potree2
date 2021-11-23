@@ -115,7 +115,10 @@ export function generate(renderer, args = {}){
 		fragment: {
 			module: module,
 			entryPoint: "main_fragment",
-			targets: [{format: format, blend: blend}],
+			targets: [
+				{format: format, blend: blend},
+				{format: "r32uint", blend: undefined}
+			],
 		},
 		primitive: {
 			topology: 'point-list',

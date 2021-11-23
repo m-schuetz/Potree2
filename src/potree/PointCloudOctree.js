@@ -71,7 +71,8 @@ export class PointCloudOctree extends SceneNode{
 			let insideFrustum = frustum.intersectsBox(box);
 
 			let visible = insideFrustum;
-			visible = visible || node.level <= 3;
+			visible = visible || node.level <= 2;
+			// visible = visible && visibleNodes.length <= 1;
 
 			if(!visible){
 				continue;
@@ -129,47 +130,47 @@ export class PointCloudOctree extends SceneNode{
 		return duration;
 	}
 
-	updateVisibility1(camera){
+	// updateVisibility1(camera){
 
-		let visibleNodes = [];
+	// 	let visibleNodes = [];
 
-		// traverse breadth first
-		let loadQueue = [];
-		let queue = [this.root];
-		while(queue.length > 0){
-			let node = queue.shift();
+	// 	// traverse breadth first
+	// 	let loadQueue = [];
+	// 	let queue = [this.root];
+	// 	while(queue.length > 0){
+	// 		let node = queue.shift();
 
-			if(!node.loaded){
-				loadQueue.push(node);
+	// 		if(!node.loaded){
+	// 			loadQueue.push(node);
 
-				if(loadQueue.length > 10){
-					break;
-				}
+	// 			if(loadQueue.length > 10){
+	// 				break;
+	// 			}
 
-				continue;
-			}
+	// 			continue;
+	// 		}
 
-			visibleNodes.push(node);
+	// 		visibleNodes.push(node);
 
-			if(node.level < 4){
-				for(let child of node.children){
-					if(child){
-						queue.push(child);
-					}
-				}
-			}
+	// 		if(node.level < 4){
+	// 			for(let child of node.children){
+	// 				if(child){
+	// 					queue.push(child);
+	// 				}
+	// 			}
+	// 		}
 
-		}
+	// 	}
 
-		for(let node of loadQueue){
-			this.load(node);
-		}
+	// 	for(let node of loadQueue){
+	// 		this.load(node);
+	// 	}
 
 
-		this.visibleNodes = visibleNodes;
+	// 	this.visibleNodes = visibleNodes;
 
 		
-	}
+	// }
 
 	render(drawstate){
 		renderPointsOctree([this], drawstate);

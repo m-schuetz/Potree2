@@ -148,6 +148,7 @@ export class PotreeLoader{
 				child.name = childName;
 				child.spacing = current.spacing / 2;
 				child.level = current.level + 1;
+				child.octree = this.octree;
 
 				current.children[childIndex] = child;
 				child.parent = current;
@@ -324,6 +325,7 @@ export class PotreeLoader{
 		root.hierarchyByteSize = BigInt(metadata.hierarchy.firstChunkSize);
 		root.spacing = octree.spacing;
 		root.byteOffset = 0;
+		root.octree = octree;
 
 		//loader.loadHierarchy(root);
 		loader.loadNode(root);

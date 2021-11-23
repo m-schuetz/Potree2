@@ -251,10 +251,25 @@ export class Renderer{
 		const copyArrayBuffer = buffer.getMappedRange();
 
 		let cloned = copyArrayBuffer.slice();
-
 		buffer.unmap();
 
-		return cloned;
+		let source_u8 = new Uint8Array(cloned);
+		let target_u8 = new Uint8Array(4 * width * height);
+
+		for(let px = 0; px < width; px++){
+		for(let py = 0; py < height; py++){
+
+			let source_offset = 4 * px + bytesPerRow * py;
+			let target_offset = 4 * px + 4 * width * py;
+
+			target_u8[target_offset + 0] = source_u8[source_offset + 0];
+			target_u8[target_offset + 1] = source_u8[source_offset + 1];
+			target_u8[target_offset + 2] = source_u8[source_offset + 2];
+			target_u8[target_offset + 3] = source_u8[source_offset + 3];
+		}
+		}
+
+		return target_u8.buffer;
 	}
 
 	createComputePipeline(args){
@@ -493,6 +508,13 @@ export class Renderer{
 				colorDescriptors: [{
 					size: size,
 					format: this.swapChainFormat,
+					usage: GPUTextureUsage.TEXTURE_BINDING 
+						| GPUTextureUsage.COPY_SRC 
+						| GPUTextureUsage.COPY_DST 
+						| GPUTextureUsage.RENDER_ATTACHMENT,
+				},{
+					size: size,
+					format: "r32uint",
 					usage: GPUTextureUsage.TEXTURE_BINDING 
 						| GPUTextureUsage.COPY_SRC 
 						| GPUTextureUsage.COPY_DST 

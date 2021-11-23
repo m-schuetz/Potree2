@@ -318,6 +318,7 @@ export class CopcLoader{
 			let node = nodeMap.get(nodeName);
 			if(!node){
 				node = new PointCloudOctreeNode(nodeName);
+				node.octree = this.octree;
 				nodeMap.set(node.name, node);
 			}
 
@@ -530,6 +531,7 @@ export class CopcLoader{
 		root.hierarchyByteSize = copcInfo.root_hier_size;
 		root.byteOffset = 0;
 		root.spacing = octree.spacing;
+		root.octree = octree;
 
 		loader.loadNode(root);
 
