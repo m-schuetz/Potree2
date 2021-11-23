@@ -17,8 +17,8 @@ function toWgslType(attribute){
 
 function createShaderSource(args){
 
-	let type = toWgslType(args.attribute);
-	let strAttribute = `[[location(${1})]] attribute : ${type};\n`;
+	// let type = toWgslType(args.attribute);
+	// let strAttribute = `[[location(${1})]] attribute : ${type};\n`;
 
 
 let shaderSource = `

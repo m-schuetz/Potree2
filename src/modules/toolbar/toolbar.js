@@ -195,27 +195,27 @@ export async function installToolbar(element, potree){
 			elGradientSchemes.appendChild(elButton);
 		}
 
-		{ // DROPDOWN
+		// { // DROPDOWN
 
-			let elDropdown = elToolbar.querySelector("#gradient_drop");
+		// 	let elDropdown = elToolbar.querySelector("#gradient_drop");
 
-			let elButton = document.createElement("input");
-			elButton.type = "button";
-			// elButton.value = "···";
-			elButton.classList.add("potree_toolbar_dropdown_button");
-			elButton.style.backgroundImage = `url(${dir}/icons/dotdotdot.svg)`;
+		// 	let elButton = document.createElement("input");
+		// 	elButton.type = "button";
+		// 	// elButton.value = "···";
+		// 	elButton.classList.add("potree_toolbar_dropdown_button");
+		// 	elButton.style.backgroundImage = `url(${dir}/icons/dotdotdot.svg)`;
 
-			// elButton.innerHTML = `
+		// 	// elButton.innerHTML = `
 			
-			// <svg height="32" width="32">
-			// 	<text x="0" y="15" fill="red">I love SVG!</text>
-			// </svg>
+		// 	// <svg height="32" width="32">
+		// 	// 	<text x="0" y="15" fill="red">I love SVG!</text>
+		// 	// </svg>
 
-			// `;
+		// 	// `;
 
-			elDropdown.appendChild(elButton);
+		// 	elDropdown.appendChild(elButton);
 
-		}
+		// }
 	}
 
 	// { // POINT BUDGET

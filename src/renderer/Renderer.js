@@ -214,6 +214,9 @@ export class Renderer{
 
 	async readPixels(texture, x, y, width, height){
 
+		x = Math.max(x, 0);
+		y = Math.max(y, 0);
+
 		let bytesPerRow = width * 4; 
 		
 		// "bytesPerRow must be a multiple of 256"

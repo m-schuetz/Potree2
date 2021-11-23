@@ -76,7 +76,13 @@ async function load(event){
 	let decoded = BrotliDecode(new Int8Array(buffer));
 	let view = new DataView(decoded.buffer);
 
-	let byteOffset = 0;
+	let outByteSize = pointAttributes.byteSize * numPoints;
+	let alignedOutByteSize = outByteSize + (4 - (outByteSize % 4));
+	let outBuffer = new ArrayBuffer(alignedOutByteSize);
+	let outView = new DataView(outBuffer);
+
+	let sourceByteOffset = 0;
+	let targetByteOffset = 0;
 	for (let pointAttribute of pointAttributes.attributes) {
 		
 		if(["POSITION_CARTESIAN", "position"].includes(pointAttribute.name)){
@@ -84,7 +90,7 @@ async function load(event){
 			for (let j = 0; j < numPoints; j++) {
 
 				let src_index = j;
-				let pointOffset = byteOffset + src_index * 16;
+				let pointOffset = sourceByteOffset + src_index * 16;
 
 				let mc_0 = view.getUint32(pointOffset +  4, true);
 				let mc_1 = view.getUint32(pointOffset +  0, true);
@@ -115,42 +121,18 @@ async function load(event){
 				let y = parseInt(Y) * scale[1] + offset[1] - min[1];
 				let z = parseInt(Z) * scale[2] + offset[2] - min[2];
 
-				view.setFloat32(byteOffset + 12 * j + 0, x, true);
-				view.setFloat32(byteOffset + 12 * j + 4, y, true);
-				view.setFloat32(byteOffset + 12 * j + 8, z, true);
-
-				// {
-				// 	let cubeSize = nodeMax[0] - nodeMin[0];
-				// 	// let iX = 1024 * (parseInt(X) * scale[0] + offset[0] - nodeMin[0]) / cubeSize;
-				// 	// let iY = 1024 * (parseInt(Y) * scale[1] + offset[1] - nodeMin[1]) / cubeSize;
-				// 	// let iZ = 1024 * (parseInt(Z) * scale[2] + offset[2] - nodeMin[2]) / cubeSize;
-
-				// 	let iX = 1024 * (x - nodeMin[0]) / cubeSize;
-				// 	let iY = 1024 * (y - nodeMin[1]) / cubeSize;
-				// 	let iZ = 1024 * (z - nodeMin[2]) / cubeSize;
-
-				// 	let clamp = (value, min, max) => Math.max(Math.min(value, max), min);
-
-				// 	iX = Math.floor(clamp(iX, 0, 1023));
-				// 	iY = Math.floor(clamp(iY, 0, 1023));
-				// 	iZ = Math.floor(clamp(iZ, 0, 1023));
-
-				// 	let encoded = (iX << 20) | (iY << 10) | iZ;
-
-				// 	// view.setUint32(byteOffset + 16 * j + 12, encoded, true);
-				// 	view.setUint32(byteOffset + 4 * j + 0, encoded, true);
-				// }
-
-
-
+				outView.setFloat32(targetByteOffset + 12 * j + 0, x, true);
+				outView.setFloat32(targetByteOffset + 12 * j + 4, y, true);
+				outView.setFloat32(targetByteOffset + 12 * j + 8, z, true);
 			}
 
-			byteOffset += 16 * numPoints;
+			sourceByteOffset += 16 * numPoints;
+			targetByteOffset += 12 * numPoints;
 		}else if(["RGBA", "rgba"].includes(pointAttribute.name)){
 
 			for (let j = 0; j < numPoints; j++) {
 				let src_index = j;
-				let pointOffset = byteOffset + src_index * 8;
+				let pointOffset = sourceByteOffset + src_index * 8;
 
 				let mc_0 = view.getUint32(pointOffset +  4, true);
 				let mc_1 = view.getUint32(pointOffset +  0, true);
@@ -169,15 +151,17 @@ async function load(event){
 				g = g | 255 ? g / 256 : g;
 				b = b | 255 ? b / 256 : b;
 
-				view.setUint8(byteOffset + 4 * j + 0, r, true);
-				view.setUint8(byteOffset + 4 * j + 1, g, true);
-				view.setUint8(byteOffset + 4 * j + 2, b, true);
-				view.setUint8(byteOffset + 4 * j + 3, 255, true);
+				outView.setUint16(targetByteOffset + 6 * j + 0, r, true);
+				outView.setUint16(targetByteOffset + 6 * j + 2, g, true);
+				outView.setUint16(targetByteOffset + 6 * j + 4, b, true);
+				// outView.setUint8(targetByteOffset + 4 * j + 3, 255, true);
 			}
 
-			byteOffset += 4 * numPoints;
+			sourceByteOffset += 4 * numPoints;
+			targetByteOffset += 6 * numPoints;
 		}else{
-			byteOffset += numPoints * pointAttribute.byteSize;
+			sourceByteOffset += numPoints * pointAttribute.byteSize;
+			targetByteOffset += numPoints * pointAttribute.byteSize;
 		}
 
 	}
@@ -197,17 +181,17 @@ async function load(event){
 	// }
 
 	// pad to multiple of 4 bytes due to GPU requirements.
-	let alignedBuffer;
-	if((decoded.byteLength % 4) === 0){
-		alignedBuffer = decoded;
-	}else{
-		let alignedSize = decoded.byteLength + (4 - (decoded.byteLength % 4));
-		alignedBuffer = new Uint8Array(alignedSize);
-		alignedBuffer.set(decoded);
-	}
+	// let alignedBuffer;
+	// if((decoded.byteLength % 4) === 0){
+	// 	alignedBuffer = decoded;
+	// }else{
+	// 	let alignedSize = decoded.byteLength + (4 - (decoded.byteLength % 4));
+	// 	alignedBuffer = new Uint8Array(alignedSize);
+	// 	alignedBuffer.set(decoded);
+	// }
 
 	return {
-		buffer: alignedBuffer, 
+		buffer: new Uint8Array(outBuffer), 
 		// attributeBuffers
 	};
 }

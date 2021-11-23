@@ -215,12 +215,11 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			offset += attribute.byteSize;
 		}
 
-		let corrector = octree.loader.metadata?.encoding === "BROTLI" ? 4 : 0;
 		let attribute = attributes.attributes.find(a => a.name === selectedAttribute);
 
 		if(selectedAttribute === "rgba"){
 			set({
-				offset       : offsets.get(selectedAttribute) + corrector,
+				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.RGBA,
 				range        : [0, 255],
 				attribute    : attribute,
@@ -236,35 +235,35 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		}else if(selectedAttribute === "intensity"){
 			
 			set({
-				offset       : offsets.get(selectedAttribute) + corrector,
+				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.U16,
 				range        : [0, 255],
 				attribute    : attribute,
 			});
 		}else if(selectedAttribute === "classification"){
 			set({
-				offset       : offsets.get(selectedAttribute) + corrector,
+				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.U8,
 				range        : [0, 32],
 				attribute    : attribute,
 			});
 		}else if(selectedAttribute === "number of returns"){
 			set({
-				offset       : offsets.get(selectedAttribute) + corrector,
+				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.U8,
 				range        : [0, 4],
 				attribute    : attribute,
 			});
 		}else if(selectedAttribute === "gps-time"){
 			set({
-				offset       : offsets.get(selectedAttribute) + corrector,
+				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.F64,
 				range        : [0, 10_000],
 				attribute    : attribute,
 			});
 		}else{
 			set({
-				offset       : offsets.get(selectedAttribute) + corrector,
+				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.U8,
 				range        : [0, 10_000],
 				attribute    : attribute,

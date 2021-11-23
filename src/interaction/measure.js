@@ -57,11 +57,6 @@ export class MeasureTool{
 				let radius = depth / 50;
 
 				this.renderer.drawSphere(marker, radius);
-				// this.renderer.drawBox(
-				// 	marker,
-				// 	new Vector3(radius, radius, radius),
-				// 	new Vector3(255, 255, 0),
-				// );
 			}
 
 			for(let i = 0; i < measure.markers.length - 1; i++){

@@ -14,16 +14,6 @@ export class PotreeControls{
 		this.world = new Matrix4();
 		this.dispatcher = new EventDispatcher();
 
-		// element.addEventListener('contextmenu', e => {
-		// 	e.preventDefault();
-
-		// 	return false;
-		// });
-
-		// element.addEventListener('dblclick ', e => {
-		// 	console.log("test");
-		// });
-
 		this.dispatcher.add("mousemove", e => {
 			let dragLeft = e.event.buttons === 1;
 			let dragRight = e.event.buttons === 2;
@@ -59,7 +49,7 @@ export class PotreeControls{
 
 				Potree.pick(x, y, (result) => {
 
-					if(result.depth !== Infinity){
+					if(result.distance !== Infinity){
 						Potree.pickPos = result.position;
 					}else{
 						Potree.pickPos = null;

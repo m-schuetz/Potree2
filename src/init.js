@@ -53,7 +53,7 @@ function initScene(){
 	// }
 
 	dbgSphere = new Mesh("sphere", geometries.sphere);
-	dbgSphere.scale.set(10.5, 10.5, 10.5);
+	dbgSphere.scale.set(0.1, 0.1, 0.1);
 	// dbgSphere.renderLayer = 10;
 	scene.root.children.push(dbgSphere);
 }
@@ -594,8 +594,8 @@ export async function init(){
 	let potree = {};
 
 	camera = new Camera();
-	controls = new OrbitControls(renderer.canvas);
-	// controls = new PotreeControls(renderer.canvas);
+	// controls = new OrbitControls(renderer.canvas);
+	controls = new PotreeControls(renderer.canvas);
 
 
 	potree.controls = controls;

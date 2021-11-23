@@ -16,6 +16,14 @@ const typedArrayMapping = {
 	"double": Float64Array,
 };
 
+class Stats{
+	constructor(){
+		name: "";
+		min: null;
+		max: null;
+		mean: null;
+	}
+};
 
 async function load(event){
 
@@ -74,9 +82,11 @@ async function load(event){
 
 		let targetOffsets = new Array(pointDataRecordLength).fill(0);
 		let targetOffsetIncrements = new Array(pointDataRecordLength).fill(0);
+		
 		{
 			let i = 0;
 			let byteOffset = 0;
+			let attributeIndex = 0;
 			for(let attribute of pointAttributes.attributes){
 
 				for(let j = 0; j < attribute.byteSize; j++){
@@ -88,8 +98,8 @@ async function load(event){
 				}
 
 				byteOffset += attribute.byteSize * numPoints;
+				attributeIndex++;
 			}
-
 		}
 
 		for (let i = 0; i < numPoints; ++i) {
@@ -114,8 +124,8 @@ async function load(event){
 				outBuffer[targetOffsets[j]] = pointU8[j];
 				targetOffsets[j] += targetOffsetIncrements[j];
 			}
-
 		}
+
 	}finally{
 		if(blobPointer){
 			lazperf._free(blobPointer);
@@ -123,6 +133,100 @@ async function load(event){
 			decoder.delete();
 		}
 	}
+
+	let statsList = new Array();
+	if(name === "r")
+	{ // compute stats
+
+
+		let outView = new DataView(outBuffer.buffer);
+
+		let attributesByteSize = 0;
+		for(let i = 0; i < pointAttributes.attributes.length; i++){
+			let attribute = pointAttributes.attributes[i];
+			
+			let stats = new Stats();
+			stats.name = attribute.name;
+
+			if(attribute.numElements === 1){
+				stats.min = Infinity;
+				stats.max = -Infinity;
+				stats.mean = 0;
+			}else{
+				stats.min = new Array(attribute.numElements).fill(Infinity);
+				stats.max = new Array(attribute.numElements).fill(-Infinity);
+				stats.mean = new Array(attribute.numElements).fill(0);
+			}
+
+			let readValue = null;
+			let offset_to_first = numPoints * attributesByteSize;
+
+			let reader = {
+				"uint8"    : outView.getUint8.bind(outView),
+				"uint16"   : outView.getUint16.bind(outView),
+				"uint32"   : outView.getUint32.bind(outView),
+				"int8"     : outView.getInt8.bind(outView),
+				"int16"    : outView.getInt16.bind(outView),
+				"int32"    : outView.getInt32.bind(outView),
+				"float"    : outView.getFloat32.bind(outView),
+				"double"   : outView.getFloat64.bind(outView),
+			}[attribute.type.name];
+
+			let elementByteSize = attribute.byteSize / attribute.numElements;
+			if(reader){
+				readValue = (index, element) => reader(offset_to_first + index * attribute.byteSize + element * elementByteSize, true);
+			}
+
+			if(attribute.name === "XYZ"){
+				readValue = (index, element) => {
+
+					let v = outView.getFloat32(offset_to_first + index * attribute.byteSize + element * 4, true);
+					v = v + min[element];
+
+					return v;
+				}
+			}
+
+			if(readValue !== null){
+
+				if(attribute.numElements === 1){
+					for(let i = 0; i < numPoints; i++){
+
+						let value = readValue(i, 0);
+
+						stats.min = Math.min(stats.min, value);
+						stats.max = Math.max(stats.max, value);
+						stats.mean = stats.mean + value;
+					}
+
+					stats.mean = stats.mean / numPoints;
+				}else{
+					for(let i = 0; i < numPoints; i++){
+						
+						for(let j = 0; j < attribute.numElements; j++){
+							let value = readValue(i, j);
+
+							stats.min[j] = Math.min(stats.min[j], value);
+							stats.max[j] = Math.max(stats.max[j], value);
+							stats.mean[j] += value;
+						}
+					}
+
+					for(let j = 0; j < attribute.numElements; j++){
+						stats.mean[j] = stats.mean[j] / numPoints;
+					}
+				}
+
+				
+			}
+
+			statsList.push(stats);
+			attributesByteSize += attribute.byteSize;
+		}
+
+		console.log(statsList);
+	}
+
 
 	{
 		let millies = performance.now() - tStart;
@@ -135,7 +239,7 @@ async function load(event){
 	}
 
 	return {
-		buffer: outBuffer, 
+		buffer: outBuffer, statsList
 	};
 }
 
