@@ -119,13 +119,14 @@ function getSumBuffer(renderer){
 
 }
 
-function startPass(renderer, target){
+function startPass(renderer, target, args = {}){
 	let view = target.colorAttachments[0].texture.createView();
 
 	let colorAttachments = [
 		{view, loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 }}
 	];
 
+	// let disable_multi_attachments = args.disable_multi_attachments ?? false;
 	if(target.colorAttachments.length === 2){
 		let view = target.colorAttachments[1].texture.createView();
 		colorAttachments.push(
@@ -428,18 +429,18 @@ function renderNotSoBasic(){
 	}
 
 
-	// if(dilateEnabled && Potree.settings.pointSize >= 2){ // dilate
-	// 	let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
+	if(dilateEnabled && Potree.settings.pointSize >= 2){ // dilate
+		let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
 
-	// 	let pass = startPass(renderer, fboTarget);
-	// 	let drawstate = {renderer, camera, renderables, pass};
+		let pass = startPass(renderer, fboTarget);
+		let drawstate = {renderer, camera, renderables, pass};
 
-	// 	dilate(fbo_source, drawstate);
+		dilate(fbo_source, drawstate);
 
-	// 	endPass(pass);
+		endPass(pass);
 
-	// 	fbo_source = fboTarget;
-	// }
+		fbo_source = fboTarget;
+	}
 
 	{
 		let pass = revisitPass(renderer, fbo_source);

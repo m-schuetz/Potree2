@@ -17,6 +17,7 @@ let shaderSource = `
 	[[binding(0), group(0)]] var<uniform> uniforms   : Uniforms;
 	[[binding(2), group(0)]] var myTexture           : texture_2d<f32>;
 	[[binding(3), group(0)]] var myDepth             : texture_depth_2d;
+	[[binding(4), group(0)]] var tex_pointID         : texture_2d<u32>;
 
 	struct VertexInput {
 		[[builtin(vertex_index)]] index : u32;
@@ -35,6 +36,7 @@ let shaderSource = `
 	struct FragmentOutput{
 		[[builtin(frag_depth)]] depth : f32;
 		[[location(0)]] color : vec4<f32>;
+		[[location(1)]] pointID : u32;
 	};
 
 	fn toLinear(depth: f32, near: f32) -> f32{
@@ -128,6 +130,7 @@ let shaderSource = `
 
 		_ = myTexture;
 		_ = myDepth;
+		_ = tex_pointID;
 
 		var window : i32 = uniforms.window;
 		var DEFAULT_CLOSEST = 10000000.0;
@@ -168,10 +171,8 @@ let shaderSource = `
 
 			output.depth = pixelDepth;
 			output.color = color;
+			output.pointID = textureLoad(tex_pointID, vec2<i32>(source), 0).r;
 
-
-			// var w = getWeight(input, source);
-			// output.color = vec4<f32>(w, w, w, 1.0);
 
 			return output;
 		}else{
@@ -204,7 +205,10 @@ function init(renderer){
 		fragment: {
 			module: module,
 			entryPoint: "main_fragment",
-			targets: [{format: "bgra8unorm"}],
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint"},
+			],
 		},
 		primitive: {
 			topology: 'triangle-list',
@@ -234,7 +238,8 @@ function getUniformBindGroup(renderer, source){
 			entries: [
 				{binding: 0, resource: {buffer: uniformBuffer}},
 				{binding: 2, resource: source.colorAttachments[0].texture.createView()},
-				{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
+				{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})},
+				{binding: 4, resource: source.colorAttachments[1].texture.createView()},
 			],
 		});
 
