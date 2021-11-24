@@ -624,7 +624,7 @@ export async function init(){
 
 	stats = new Stats();
 	stats.showPanel(0);
-	document.body.appendChild( stats.dom );
+	// document.body.appendChild( stats.dom );
 
 	initScene();
 

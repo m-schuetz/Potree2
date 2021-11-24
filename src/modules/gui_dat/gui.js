@@ -109,17 +109,19 @@ export function initGUI(potree){
 		
 		// Potree.settings.mode = guiContent["mode"];
 		Potree.settings.useCompute = guiContent["use compute"];
-		Potree.settings.dilateEnabled = guiContent["dilate"];
+		// Potree.settings.dilateEnabled = guiContent["dilate"];
 		// Potree.settings.attribute = guiContent["attribute"];
 		Potree.settings.pointBudget = guiContent["point budget (M)"] * 1_000_000;
 		Potree.settings.pointSize = guiContent["point size"];
-		Potree.settings.edlEnabled = guiContent["Eye-Dome-Lighting"];
-		Potree.settings.hqsEnabled = guiContent["High-Quality"];
-		Potree.settings.updateEnabled = guiContent["update"];
-		Potree.settings.showBoundingBox = guiContent["show bounding box"];
+		// Potree.settings.edlEnabled = guiContent["Eye-Dome-Lighting"];
+		// Potree.settings.hqsEnabled = guiContent["High-Quality"];
+		// Potree.settings.updateEnabled = guiContent["update"];
+		// Potree.settings.showBoundingBox = guiContent["show bounding box"];
 		Potree.settings.debugU = guiContent["debug"];
 
 	
 	});
+
+	gui.close()
 
 }

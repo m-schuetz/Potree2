@@ -45,7 +45,7 @@ export class PotreeControls{
 			}
 
 			{ // always compute pick location
-				let [x, y] = [e.event.clientX, e.event.clientY];
+				let {x, y} = e.mouse;
 
 				Potree.pick(x, y, (result) => {
 

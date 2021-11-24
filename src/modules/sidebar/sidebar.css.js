@@ -1,0 +1,85 @@
+
+export const css = `
+
+#potree_sidebar{
+	background: #333333;
+	color: #ffffff;
+	font-family: Calibri;
+}
+
+#potree_sidebar_section_selection{
+	background: #333333;
+	margin: 0 auto;
+	padding: 5px 0 0 0;
+}
+
+#potree_sidebar_section_content{
+	background: #252525;
+	padding: 0.5em;
+}
+
+.potree_sidebar_section_button{
+	width: 3em;
+	height: 3em;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-color: transparent;
+	border: none;
+}
+
+.potree_sidebar_section_button:hover{
+	filter: brightness(120%);
+	filter: drop-shadow(0px 0px 3px white) drop-shadow(0px 0px 3px white);
+}
+
+.potree_sidebar_button{
+	width: 3em;
+	height: 3em;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-color: transparent;
+	border: none;
+}
+
+.potree_sidebar_button:hover{
+	filter: brightness(120%);
+	filter: drop-shadow(0px 0px 3px white) drop-shadow(0px 0px 3px white);
+}
+
+select{
+	width: 100%;
+}
+
+.subsection{
+	text-align:        center;
+	font-family:       Calibri;
+	font-size:         1.1em;
+	padding:           1em 0em 0.1em 0em;
+	font-weight:       bold;
+	letter-spacing:    1px;
+}
+
+.potree_gradient_button{
+	width: 100%;
+	height: 3em;
+}
+
+ .potree_gradient_button:hover {
+	filter: brightness(120%);
+}
+
+table{
+	color: white;
+}
+
+.sidebarlabel{
+	white-space: nowrap
+}
+
+sidebarlabel{
+	white-space: nowrap
+}
+
+
+
+`;

@@ -41,26 +41,10 @@ canvas{
 </head>
 <body style="padding: 0; margin: 0">
 
-
-<canvas id="canvas" width="800" height="600" 
-	style="
-		width: 100%; height: 100%;
-		grid-column: 1; grid-row: 1">
-</canvas>
-
-<!-- <span style="position: absolute; left: 10px; top: 70px; 
-	background-color: white; opacity: 0.7; padding: 10px;">
-	
-	<span style="font-weight: bold">Rewriting Potree in WebGPU:</span>
-
-	<ul>
-		<li>Highly experimental and crashy.</li>
-		<li>Requires <a href="https://www.google.com/intl/de/chrome/canary/">Chrome Canary 92</a></li>
-		<li>To enable WebGPU, open this URL: <pre>chrome://flags/#enable-unsafe-webgpu</pre></li>
-		<li>Github: <a href="https://github.com/m-schuetz/Potree2">https://github.com/m-schuetz/Potree2</a></li>
-	</ul>
-
-</span> -->
+<div id="potree" style="width: 100%; height: 100%;">
+	<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;">
+	</canvas>
+</div>
 
 <span id="big_message"></span>
 <span id="msg_dbg"></span>
@@ -71,6 +55,7 @@ canvas{
 		"potree":      "./src/Potree.js",
 		"lazperf":     "./libs/laz-perf/laz-perf.js",
 		"toolbar":     "./src/modules/toolbar/toolbar.js",
+		"sidebar":     "./src/modules/sidebar/sidebar.js",
 		"dat.gui":     "./libs/dat.gui/dat.gui.module.js",
 		"stats":       "./libs/stats.js/stats.module.js",
 		"BinaryHeap":  "./libs/BinaryHeap/BinaryHeap.js",
@@ -89,24 +74,31 @@ canvas{
 	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 
 	import {installToolbar} from "toolbar";
+	import {installSidebar} from "sidebar";
 
 	let canvas = document.getElementById("canvas");
+	let elPotree = document.getElementById("potree");
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
-	installToolbar(potree.renderer.canvas, potree);
+	// installToolbar(potree.renderer.canvas, potree);
+	installSidebar(elPotree, potree);
 
 	window.Potree = Potree;
 	window.potree = potree;
 	window.Vector3 = Vector3;
 
 	initGUI(potree);
-	guiContent["point budget (M)"] = 3;
-	guiContent["point size"] = 5;
-	guiContent["High-Quality"] = false;
-	guiContent["Eye-Dome-Lighting"] = true;
-	guiContent["dilate"] = true;
-	guiContent["show bounding box"] = false;
+	// guiContent["point budget (M)"] = 3;
+	// guiContent["point size"] = 5;
+	// guiContent["High-Quality"] = false;
+	// guiContent["Eye-Dome-Lighting"] = true;
+	// guiContent["dilate"] = false;
+	// guiContent["show bounding box"] = false;
 	// guiContent["attribute"] = "intensity";
+
+	Potree.settings.edlEnabled = true;
+	Potree.settings.dilateEnabled = false;
+	Potree.settings.hqsEnabled = false;
 
 
 	// default, if not overriden later on
