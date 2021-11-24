@@ -39,8 +39,16 @@ export class EventDispatcher{
 			return;
 		}
 
+		let containsOneTimeEvent = false;
 		for(let callback of list){
 			callback(data);
+
+			containsOneTimeEvent = containsOneTimeEvent || (callback.isOneTimeEvent === true);
+		}
+
+		if(containsOneTimeEvent){
+			let prunedList = list.filter(callback => !callback.isOneTimeEvent);
+			this.listeners.set(name, prunedList);
 		}
 	}
 

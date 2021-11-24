@@ -23,12 +23,14 @@ function createShaderSource(args){
 
 let shaderSource = `
 [[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
-	hqs_flag : u32;
-	colorMode : u32;
+	world           : mat4x4<f32>;
+	view            : mat4x4<f32>;
+	proj            : mat4x4<f32>;
+	worldView       : mat4x4<f32>;
+	screen_width    : f32;
+	screen_height   : f32;
+	hqs_flag        : u32;
+	colorMode       : u32;
 };
 
 struct Node {
@@ -65,27 +67,18 @@ struct AttributeDescriptor{
 	values : [[stride(4)]] array<u32>;
 };
 
-let TYPES_U8            =  0u;
-let TYPES_U16           =  1u;
-let TYPES_U32           =  2u;
-let TYPES_I8            =  3u;
-let TYPES_I16           =  4u;
-let TYPES_I32           =  5u;
-let TYPES_F32           =  6u;
-let TYPES_F64           =  7u;
+let TYPES_DOUBLE        =  0u;
+let TYPES_FLOAT         =  1u;
+let TYPES_INT8          =  2u;
+let TYPES_UINT8         =  3u;
+let TYPES_INT16         =  4u;
+let TYPES_UINT16        =  5u;
+let TYPES_INT32         =  6u;
+let TYPES_UINT32        =  7u;
+let TYPES_INT64         =  8u;
+let TYPES_UINT64        =  9u;
 let TYPES_RGBA          = 50u;
 let TYPES_ELEVATION     = 51u;
-
-let TYPE_DOUBLE = 0u;
-let TYPE_FLOAT  = 1u;
-let TYPE_INT8   = 2u;
-let TYPE_UINT8  = 3u;
-let TYPE_INT16  = 4u;
-let TYPE_UINT16 = 5u;
-let TYPE_INT32  = 6u;
-let TYPE_UINT32 = 7u;
-let TYPE_INT64  = 8u;
-let TYPE_UINT64 = 9u;
 
 let CLAMP_DISABLED      =  0u;
 let CLAMP_ENABLED       =  1u;
@@ -172,10 +165,10 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 
 	var value : f32 = 0.0;
 
-	if(attribute.valuetype == TYPES_U8){
+	if(attribute.valuetype == TYPES_UINT8){
 		var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
 		value = f32(readU8(offset));
-	}elseif(attribute.valuetype == TYPES_F64){
+	}elseif(attribute.valuetype == TYPES_DOUBLE){
 		var offset = node.numPoints * attribute.offset + 8u * vertex.vertexID;
 
 		var b0 = readU8(offset + 0u);
@@ -203,8 +196,8 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 
 		value = value_f32;
 	}elseif(attribute.valuetype == TYPES_ELEVATION){
-		value = position.z;
-	}elseif(attribute.valuetype == TYPES_U16){
+		value = (uniforms.world * position).z;
+	}elseif(attribute.valuetype == TYPES_UINT16){
 		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
 		value = f32(readU16(offset));
 	}
@@ -233,11 +226,11 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 		var g = 0.0;
 		var b = 0.0;
 
-		if(attribute.datatype == TYPE_UINT8){
+		if(attribute.datatype == TYPES_UINT8){
 			r = f32(readU8(offset + 0u));
 			g = f32(readU8(offset + 1u));
 			b = f32(readU8(offset + 2u));
-		}elseif(attribute.datatype == TYPE_UINT16){
+		}elseif(attribute.datatype == TYPES_UINT16){
 			r = f32(readU16(offset + 0u));
 			g = f32(readU16(offset + 2u));
 			b = f32(readU16(offset + 4u));

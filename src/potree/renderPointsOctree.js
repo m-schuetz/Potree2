@@ -5,7 +5,6 @@ import {generate as generatePipeline} from "./octree/pipelineGenerator.js";
 import {Gradients} from "potree";
 
 let octreeStates = new Map();
-// let gradientTexture = null;
 let gradientSampler = null;
 let initialized = false;
 let gradientTextureMap = new Map();
@@ -15,9 +14,6 @@ function init(renderer){
 	if(initialized){
 		return;
 	}
-
-	// let SPECTRAL = Gradients.SPECTRAL;
-	// gradientTexture	= renderer.createTextureFromArray(SPECTRAL.steps.flat(), SPECTRAL.steps.length, 1);
 
 	gradientSampler = renderer.device.createSampler({
 		magFilter: 'linear',
@@ -38,7 +34,6 @@ function getGradient(renderer, pipeline, gradient){
 
 		let bindGroup = renderer.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(1),
-			// layout: layout,
 			entries: [
 				{binding: 0, resource: gradientSampler},
 				{binding: 1, resource: texture.createView()},
@@ -77,7 +72,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 		let pipeline = generatePipeline(renderer, {attribute, mapping, flags});
 
 		const uniformBuffer = device.createBuffer({
-			size: 256,
+			size: 512,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
@@ -131,14 +126,16 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 }
 
 const TYPES = {
-	U8:         0,
-	U16:        1,
-	U32:        2,
-	I8:         3,
-	I16:        4,
-	I32:        5,
-	F32:        6,
-	F64:        7,
+	DOUBLE:     0,
+	FLOAT:      1,
+	INT8:       2,
+	UINT8:      3,
+	INT16:      4,
+	UINT16:     5,
+	INT32:      6,
+	UINT32:     7,
+	INT64:      8,
+	UINT64:     9,
 	RGBA:      50,
 	ELEVATION: 51,
 };
@@ -150,7 +147,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		let {renderer} = drawstate;
 		let isHqsDepth = flags.includes("hqs-depth");
 
-		let data = new ArrayBuffer(256);
+		let data = new ArrayBuffer(512);
 		let f32 = new Float32Array(data);
 		let view = new DataView(data);
 
@@ -158,22 +155,24 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		let camView = camera.view;
 		let worldView = new Matrix4().multiplyMatrices(camView, world);
 
-		f32.set(worldView.elements, 0);
-		f32.set(camera.proj.elements, 16);
+		f32.set(world.elements, 0);
+		f32.set(camView.elements, 16);
+		f32.set(camera.proj.elements, 32);
+		f32.set(worldView.elements, 48);
 
 		let size = renderer.getSize();
 
-		view.setFloat32(128, size.width, true);
-		view.setFloat32(132, size.height, true);
-		view.setUint32(136, isHqsDepth ? 1 : 0, true);
+		view.setFloat32(256, size.width, true);
+		view.setFloat32(260, size.height, true);
+		view.setUint32(264, isHqsDepth ? 1 : 0, true);
 
 		if(Potree.settings.dbgAttribute === "rgba"){
-			view.setUint32(140, 0, true);
+			view.setUint32(268, 0, true);
 		}else if(Potree.settings.dbgAttribute === "elevation"){
-			view.setUint32(140, 1, true);
+			view.setUint32(268, 1, true);
 		}
 
-		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 144);
+		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 512);
 	}
 
 
@@ -193,12 +192,14 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			let byteSize = args.attribute?.byteSize ?? 0;
 			let dataType = args.attribute?.type?.ordinal ?? 0;
 			let numElements = args.attribute?.numElements ?? 1;
+			let range_min = args.range ? args.range[0] : 0;
+			let range_max = args.range ? args.range[1] : 0;
 
 			view.setUint32(   0,         args.offset, true);
 			view.setUint32(   4,         numElements, true);
 			view.setUint32(   8,           args.type, true);
-			view.setFloat32( 12,       args.range[0], true);
-			view.setFloat32( 16,       args.range[1], true);
+			view.setFloat32( 12,           range_min, true);
+			view.setFloat32( 16,           range_max, true);
 			view.setUint32(  20,               clamp, true);
 			view.setUint32(  24,            byteSize, true);
 			view.setUint32(  28,            dataType, true);
@@ -224,44 +225,65 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				range        : [0, 255],
 				attribute    : attribute,
 			});
-		}else if(selectedAttribute === "elevation"){
+		}
+		else if(selectedAttribute === "elevation"){
+			let materialValues = octree.material.attributes.get(selectedAttribute);
 			set({
 				offset       : 0,
 				type         : TYPES.ELEVATION,
-				range        : [0, 200],
+				range        : materialValues.range,
 				clamp        : true,
 				attribute    : attribute,
 			});
-		}else if(selectedAttribute === "intensity"){
+		}
+		else if(selectedAttribute === "intensity"){
 			
 			set({
 				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.U16,
+				type         : TYPES.UINT16,
 				range        : [0, 255],
 				attribute    : attribute,
 			});
-		}else if(selectedAttribute === "classification"){
+		}
+		// else if(selectedAttribute === "classification"){
+		// 	set({
+		// 		offset       : offsets.get(selectedAttribute),
+		// 		type         : TYPES.UINT8,
+		// 		range        : [0, 32],
+		// 		attribute    : attribute,
+		// 	});
+		// }
+		else if(selectedAttribute === "number of returns"){
 			set({
 				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.U8,
-				range        : [0, 32],
-				attribute    : attribute,
-			});
-		}else if(selectedAttribute === "number of returns"){
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.U8,
+				type         : TYPES.UINT8,
 				range        : [0, 4],
 				attribute    : attribute,
 			});
-		}else if(selectedAttribute === "gps-time"){
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.F64,
-				range        : [0, 10_000],
-				attribute    : attribute,
-			});
-		}else{
+		}
+		else if(octree.material?.attributes.has(selectedAttribute)){
+			let materialValues = octree.material.attributes.get(selectedAttribute);
+
+			if(materialValues.constructor.name === "Attribute_Scalar"){
+				set({
+					offset       : offsets.get(selectedAttribute),
+					type         : attribute.type.ordinal,
+					range        : materialValues.range,
+					attribute    : attribute,
+				});
+			}else if(materialValues.constructor.name === "Attribute_Listing"){
+				set({
+					offset       : offsets.get(selectedAttribute),
+					type         : attribute.type.ordinal,
+					// range        : materialValues.range,
+					attribute    : attribute,
+				});
+			}else{
+				debugger;
+			}
+
+		}
+		else{
 			set({
 				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.U8,

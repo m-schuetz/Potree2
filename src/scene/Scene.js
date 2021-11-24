@@ -9,4 +9,8 @@ export class Scene{
 
 	}
 
+	add(parent, node){
+		parent.children.push(node);
+	}
+
 };

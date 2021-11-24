@@ -1,7 +1,7 @@
 
 import {PotreeLoader} from "./potree/PotreeLoader.js";
 import {render} from "./potree/renderQuads.js";
-
+import {EventDispatcher} from "./misc/EventDispatcher.js";
 
 async function load(url, args = {}){
 	let octree = await PotreeLoader.load(url);
@@ -54,19 +54,24 @@ export {dilate}  from "./potree/dilate.js";
 export {EDL}  from "./potree/EDL.js";
 export {hqs_normalize}  from "./potree/hqs_normalize.js";
 
-
 import {createPointsData, createPointsSphere} from "./modules/geometries/points.js";
 import {cube} from "./modules/geometries/cube.js";
 import {sphere} from "./modules/geometries/sphere.js";
-export const geometries = {createPointsData, createPointsSphere, cube, sphere};
 
+export const geometries = {createPointsData, createPointsSphere, cube, sphere};
 export * as math from "./math/math.js";
 
 import {init} from "./init.js";
-
 import {load as loadGLB} from "./misc/GLBLoader.js";
-
 import * as Gradients from "./misc/Gradients.js";
+
+const dispatcher = new EventDispatcher();
+
+const events = {
+	dispatcher,
+	onPointcloudLoaded: (callback, args) => dispatcher.add("pointcloud_loaded", callback, args),
+	onRootNodeLoaded: (callback, args) => dispatcher.add("root_node_loaded", callback, args),
+};
 
 const settings = {
 	pointSize: 3,
@@ -98,7 +103,8 @@ export let Potree = {
 	pick, pickQueue,
 	init,
 	settings, state,
+	events,
+	scene: null,
 };
-
 
 

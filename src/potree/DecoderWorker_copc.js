@@ -3,19 +3,6 @@ import {createLazPerf} from "../../libs/laz-perf/laz-perf.js";
 
 let lazperf = null;
 
-const typedArrayMapping = {
-	"int8":   Int8Array,
-	"int16":  Int16Array,
-	"int32":  Int32Array,
-	"int64":  Float64Array,
-	"uint8":  Uint8Array,
-	"uint16": Uint16Array,
-	"uint32": Uint32Array,
-	"uint64": Float64Array,
-	"float":  Float32Array,
-	"double": Float64Array,
-};
-
 class Stats{
 	constructor(){
 		name: "";
@@ -137,7 +124,6 @@ async function load(event){
 	let statsList = new Array();
 	if(name === "r")
 	{ // compute stats
-
 
 		let outView = new DataView(outBuffer.buffer);
 

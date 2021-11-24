@@ -627,6 +627,7 @@ export async function init(){
 	// document.body.appendChild( stats.dom );
 
 	initScene();
+	Potree.scene = scene;
 
 	// progressive loader
 	let element = document.getElementById("canvas");

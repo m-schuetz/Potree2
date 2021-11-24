@@ -3,6 +3,7 @@ import {Vector3, Matrix4, Frustum, math} from "potree";
 import {SceneNode, PointCloudOctreeNode} from "potree";
 import {renderPointsOctree} from "potree";
 import {BinaryHeap} from "BinaryHeap";
+import {PointCloudMaterial} from "./PointCloudMaterial.js";
 
 export class PointCloudOctree extends SceneNode{
 
@@ -15,6 +16,7 @@ export class PointCloudOctree extends SceneNode{
 		this.loaded = false;
 		this.loading = false;
 		this.visibleNodes = [];
+		this.material = null;
 	}
 
 	load(node){
@@ -28,6 +30,11 @@ export class PointCloudOctree extends SceneNode{
 	updateVisibility(camera){
 
 		let tStart = performance.now();
+
+		if(this.material === null && this.root?.geometry?.statsList != null){
+			this.material = new PointCloudMaterial();
+			this.material.init(this);
+		}
 
 		let visibleNodes = [];
 		let loadQueue = [];
@@ -129,48 +136,6 @@ export class PointCloudOctree extends SceneNode{
 
 		return duration;
 	}
-
-	// updateVisibility1(camera){
-
-	// 	let visibleNodes = [];
-
-	// 	// traverse breadth first
-	// 	let loadQueue = [];
-	// 	let queue = [this.root];
-	// 	while(queue.length > 0){
-	// 		let node = queue.shift();
-
-	// 		if(!node.loaded){
-	// 			loadQueue.push(node);
-
-	// 			if(loadQueue.length > 10){
-	// 				break;
-	// 			}
-
-	// 			continue;
-	// 		}
-
-	// 		visibleNodes.push(node);
-
-	// 		if(node.level < 4){
-	// 			for(let child of node.children){
-	// 				if(child){
-	// 					queue.push(child);
-	// 				}
-	// 			}
-	// 		}
-
-	// 	}
-
-	// 	for(let node of loadQueue){
-	// 		this.load(node);
-	// 	}
-
-
-	// 	this.visibleNodes = visibleNodes;
-
-		
-	// }
 
 	render(drawstate){
 		renderPointsOctree([this], drawstate);

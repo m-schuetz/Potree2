@@ -1,62 +1,42 @@
 
-import {Gradients, Utils} from "potree";
+import {Gradients, Utils, Potree} from "potree";
 
-class AttributesPanel{
+class Panel{
 
 	constructor(){
 		this.element = document.createElement("div");
+		this.pointcloud = null;
 
-	}
-
-	set(pointcloud){
+		this.element.id = "attributes_panel";
+		this.element.innerHTML = `
 		
-		
+			<div class="subsection">Attributes</div>
 
+			<select id="attributes_list" >
+			</select>
+
+			<div id="gradient_schemes" style="display: flex">
+			</div>
+		`;
+
+		this.elAttributeList = this.element.querySelector("#attributes_list");
+		this.elGradientSchemes = this.element.querySelector("#gradient_schemes");
+
+		this.elAttributeList.onchange = () => {
+			this.onAttributeSelected();
+		};
+
+		this.updateGradientSchemes();
 	}
 
-}
+	onAttributeSelected(){
+		// console.log(this.elAttributeList.value);
 
-export function createAttributesPanel(){
-	let elAttributes = document.createElement("div");
-	elAttributes.id = "attributes_panel";
-
-	let elTitle = document.createElement("div");
-	elTitle.classList.add("subsection");
-	elTitle.textContent = "Attributes";
-
-	elAttributes.append(elTitle);
-
-	{ // ATTRIBUTE SELECTION
-		let elList = document.createElement("select");
-		elList.multiple = true;
-		elList.size = 5;
-
-		let items = [
-			"rgba", 
-			"elevation", 
-			"intensity", 
-			"classification", 
-			"number of returns", 
-			"gps-time"
-		];
-
-		for(let item of items){
-			let elOption = document.createElement("option");
-			elOption.innerText = item;
-			elOption.value = item;
-
-			elList.appendChild(elOption);
-		}
-
-		elAttributes.appendChild(elList);
+		Potree.settings.attribute = this.elAttributeList.value;
 	}
 
-	{ // GRADIENT
+	updateGradientSchemes(){
 		const schemes = Object.keys(Gradients).map(name => ({name: name, values: Gradients[name]}));
-
-		const elGradientSchemes = document.createElement("div");
-		elGradientSchemes.id = "gradient_schemes";
-		elGradientSchemes.style.display = "flex";
 
 		for(const scheme of schemes){
 			let elButton = document.createElement("input");
@@ -89,15 +69,75 @@ export function createAttributesPanel(){
 
 			elButton.classList.add("potree_gradient_button");
 
-			elGradientSchemes.appendChild(elButton);
+			this.elGradientSchemes.appendChild(elButton);
 		}
-
-		elAttributes.append(elGradientSchemes);
 	}
 
+	updateAttributesList(){
 
-	let panel = new AttributesPanel();
-	panel.element = elAttributes;
+		let preferredOrder = [
+			"rgb", "rgba", "RGB", "RGBA",
+			"intensity",
+			"classification",
+			"gps-time",
+		];
+
+		let statsList = this.pointcloud.root.geometry.statsList;
+
+		let weighted = [];
+		for(let i = 0; i < statsList.length; i++){
+			let stats = statsList[i];
+			let index = preferredOrder.indexOf(stats.name);
+
+			let weight = index >= 0 ? index : 100 + i;
+
+			weighted.push({name: stats.name, weight: weight});
+		}
+		weighted.push({name: "elevation", weight: 4});
+		weighted.sort( (a, b) => {
+			return a.weight - b.weight;
+		});
+
+		for(let item of weighted){
+			let name = item.name;
+			let elOption = document.createElement("option");
+			elOption.innerText = name;
+			elOption.value = name;
+
+			this.elAttributeList.appendChild(elOption);
+		}
+
+		this.elAttributeList.size = weighted.length;
+		this.elAttributeList.value = Potree.settings.attribute;
+
+
+	}
+
+	set(pointcloud){
+
+		this.pointcloud = pointcloud;
+		
+		if(pointcloud.root?.geometry?.statsList){
+			this.updateAttributesList();
+		}else{
+			let onRootNodeLoaded = (event) => {
+				this.updateAttributesList();
+			};
+			onRootNodeLoaded.isOneTimeEvent = true;
+			Potree.events.onRootNodeLoaded(onRootNodeLoaded);
+		}
+
+	}
+
+}
+
+export function createAttributesPanel(){
+
+	let panel = new Panel();
+
+	Potree.events.onPointcloudLoaded((pointcloud) => {
+		panel.set(pointcloud);
+	});
 
 	return panel;
 }

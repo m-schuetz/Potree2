@@ -236,6 +236,7 @@ export class PotreeLoader{
 				let geometry = new Geometry();
 				geometry.numElements = node.numPoints;
 				geometry.buffer = data.buffer;
+				geometry.statsList = data.statsList;
 
 				node.loaded = true;
 				node.loading = false;
@@ -243,6 +244,10 @@ export class PotreeLoader{
 				node.geometry = geometry;
 
 				WorkerPool.returnWorker(workerPath, worker);
+
+				if(node.name === "r"){
+					Potree.events.dispatcher.dispatch("root_node_loaded", {octree: this.octree, node});
+				}
 			};
 
 			let {byteOffset, byteSize} = node;
@@ -331,6 +336,8 @@ export class PotreeLoader{
 		loader.loadNode(root);
 
 		octree.root = root;
+
+		Potree.events.dispatcher.dispatch("pointcloud_loaded", octree);
 
 		return octree;
 	}

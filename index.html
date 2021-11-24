@@ -115,7 +115,13 @@ canvas{
 	// 	pivot: [2357.1, 1363.8, 931.0],
 	// });
 
+	// Potree.events.onPointcloudLoaded((pointcloud) => {
+	// 	console.log("loaded", pointcloud);
+	// });
+
 	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+
+	// 	Potree.settings.attribute = "rgba";
 
 	// 	controls.set({
 	// 		position: [-19.0, 13.6, 12.2],
@@ -124,6 +130,7 @@ canvas{
 		
 	// 	scene.root.children.push(pointcloud);
 	// });
+
 
 
 	import {CopcLoader} from "potree";
@@ -146,7 +153,8 @@ canvas{
 			pivot: center,
 		});
 
-		scene.root.children.push(pointcloud);
+		// scene.root.children.push(pointcloud);
+		scene.add(scene.root, pointcloud);
 	});
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {

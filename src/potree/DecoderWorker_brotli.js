@@ -1,17 +1,13 @@
 
 import {BrotliDecode} from "../../libs/brotli/decode.js";
 
-const typedArrayMapping = {
-	"int8":   Int8Array,
-	"int16":  Int16Array,
-	"int32":  Int32Array,
-	"int64":  Float64Array,
-	"uint8":  Uint8Array,
-	"uint16": Uint16Array,
-	"uint32": Uint32Array,
-	"uint64": Float64Array,
-	"float":  Float32Array,
-	"double": Float64Array,
+class Stats{
+	constructor(){
+		name: "";
+		min: null;
+		max: null;
+		mean: null;
+	}
 };
 
 // Potree = {};
@@ -166,9 +162,100 @@ async function load(event){
 
 	}
 
-	// let duration = performance.now() - tStart;
-	// let pointsPerSecond = (1000 * numPoints / duration) / 1_000_000;
-	// console.log(`[${name}] duration: ${duration.toFixed(1)}ms, #points: ${numPoints}, points/s: ${pointsPerSecond.toFixed(1)}M`);
+
+	let statsList = new Array();
+	if(name === "r")
+	{ // compute stats
+
+		let outView = new DataView(outBuffer);
+
+		let attributesByteSize = 0;
+		for(let i = 0; i < pointAttributes.attributes.length; i++){
+			let attribute = pointAttributes.attributes[i];
+			
+			let stats = new Stats();
+			stats.name = attribute.name;
+
+			if(attribute.numElements === 1){
+				stats.min = Infinity;
+				stats.max = -Infinity;
+				stats.mean = 0;
+			}else{
+				stats.min = new Array(attribute.numElements).fill(Infinity);
+				stats.max = new Array(attribute.numElements).fill(-Infinity);
+				stats.mean = new Array(attribute.numElements).fill(0);
+			}
+
+			let readValue = null;
+			let offset_to_first = numPoints * attributesByteSize;
+
+			let reader = {
+				"uint8"    : outView.getUint8.bind(outView),
+				"uint16"   : outView.getUint16.bind(outView),
+				"uint32"   : outView.getUint32.bind(outView),
+				"int8"     : outView.getInt8.bind(outView),
+				"int16"    : outView.getInt16.bind(outView),
+				"int32"    : outView.getInt32.bind(outView),
+				"float"    : outView.getFloat32.bind(outView),
+				"double"   : outView.getFloat64.bind(outView),
+			}[attribute.type.name];
+
+			let elementByteSize = attribute.byteSize / attribute.numElements;
+			if(reader){
+				readValue = (index, element) => reader(offset_to_first + index * attribute.byteSize + element * elementByteSize, true);
+			}
+
+			// attribute.name === "XYZ"){
+			if(["XYZ", "position"].includes(attribute.name)){
+				readValue = (index, element) => {
+
+					let v = outView.getFloat32(offset_to_first + index * attribute.byteSize + element * 4, true);
+					v = v + min[element];
+
+					return v;
+				}
+			}
+
+			if(readValue !== null){
+
+				if(attribute.numElements === 1){
+					for(let i = 0; i < numPoints; i++){
+
+						let value = readValue(i, 0);
+
+						stats.min = Math.min(stats.min, value);
+						stats.max = Math.max(stats.max, value);
+						stats.mean = stats.mean + value;
+					}
+
+					stats.mean = stats.mean / numPoints;
+				}else{
+					for(let i = 0; i < numPoints; i++){
+						
+						for(let j = 0; j < attribute.numElements; j++){
+							let value = readValue(i, j);
+
+							stats.min[j] = Math.min(stats.min[j], value);
+							stats.max[j] = Math.max(stats.max[j], value);
+							stats.mean[j] += value;
+						}
+					}
+
+					for(let j = 0; j < attribute.numElements; j++){
+						stats.mean[j] = stats.mean[j] / numPoints;
+					}
+				}
+
+				
+			}
+
+			statsList.push(stats);
+			attributesByteSize += attribute.byteSize;
+		}
+
+		console.log(statsList);
+	}
+
 
 	// {
 	// 	let millies = performance.now() - tStart;
@@ -180,19 +267,9 @@ async function load(event){
 	// 	console.log(`read ${numPoints.toLocaleString()} points in ${millies.toFixed(1)}ms. (${strPointsPerSec} million points / s`);
 	// }
 
-	// pad to multiple of 4 bytes due to GPU requirements.
-	// let alignedBuffer;
-	// if((decoded.byteLength % 4) === 0){
-	// 	alignedBuffer = decoded;
-	// }else{
-	// 	let alignedSize = decoded.byteLength + (4 - (decoded.byteLength % 4));
-	// 	alignedBuffer = new Uint8Array(alignedSize);
-	// 	alignedBuffer.set(decoded);
-	// }
 
 	return {
-		buffer: new Uint8Array(outBuffer), 
-		// attributeBuffers
+		buffer: new Uint8Array(outBuffer), statsList
 	};
 }
 
