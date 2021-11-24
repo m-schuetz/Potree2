@@ -70,7 +70,7 @@ import * as Gradients from "./misc/Gradients.js";
 
 const settings = {
 	pointSize: 3,
-	pointBudget: 1_000_000,
+	pointBudget: 2_000_000,
 	attribute: "rgba",
 	dbgAttribute: "rgba",
 	debugU: 1,

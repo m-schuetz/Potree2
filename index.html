@@ -73,7 +73,7 @@ canvas{
 	// import {loadGLB} from "./src/prototyping/glbloader/loadGLB.js";
 	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 
-	import {installToolbar} from "toolbar";
+	// import {installToolbar} from "toolbar";
 	import {installSidebar} from "sidebar";
 
 	let canvas = document.getElementById("canvas");
@@ -86,15 +86,6 @@ canvas{
 	window.Potree = Potree;
 	window.potree = potree;
 	window.Vector3 = Vector3;
-
-	initGUI(potree);
-	// guiContent["point budget (M)"] = 3;
-	// guiContent["point size"] = 5;
-	// guiContent["High-Quality"] = false;
-	// guiContent["Eye-Dome-Lighting"] = true;
-	// guiContent["dilate"] = false;
-	// guiContent["show bounding box"] = false;
-	// guiContent["attribute"] = "intensity";
 
 	Potree.settings.edlEnabled = true;
 	Potree.settings.dilateEnabled = false;
