@@ -13,12 +13,11 @@ async function installMainSection(){
 	elButton.classList.add("potree_sidebar_section_button");
 	elButton.type = "button";
 	elButton.title = "Main";
-	elButton.style.backgroundImage = `url(${dir}/icons/distance.svg)`;
+	elButton.style.backgroundImage = `url(${dir}/icons/home.svg)`;
+	// elButton.style.backgroundImage = `url(${dir}/icons/distance.svg)`;
 
 	elButton.addEventListener("click", () => {
-		potree.measure.startMeasuring({
-			
-		});
+		sidebar.toggle();
 	});
 
 	sidebar.elSectionSelection.append(elButton);
@@ -43,9 +42,23 @@ async function installMainSection(){
 
 	let panel_infos = createInfosPanel();
 	elMain.append(panel_infos.element);
+}
 
-	
-	
+async function installInfoSection(){
+	let elButton = document.createElement("input");
+	elButton.classList.add("potree_sidebar_section_button");
+	elButton.type = "button";
+	elButton.title = "Info";
+	elButton.style.backgroundImage = `url(${dir}/icons/help.svg)`;
+
+	elButton.addEventListener("click", () => {
+
+	});
+
+	sidebar.elSectionSelection.append(elButton);
+
+	// let elMain = document.createElement("span");
+
 }
 
 export async function installSidebar(elPotree, potree){
@@ -79,7 +92,19 @@ export async function installSidebar(elPotree, potree){
 		elSidebar, elSectionSelection, elSectionContent
 	};
 
+	let open = true;
+	sidebar.toggle = function(){
+		if(open){
+			open = false;
+			elPotree.style.gridTemplateColumns = "3em 1fr";
+		}else{
+			open = true;
+			elPotree.style.gridTemplateColumns = "23em 1fr";
+		}
+	};
+
 	installMainSection();
+	// installInfoSection();
 }
 
 

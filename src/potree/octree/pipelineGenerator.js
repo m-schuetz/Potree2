@@ -60,6 +60,10 @@ export function generate(renderer, args = {}){
 				binding: 1,
 				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
 				buffer: {type: 'read-only-storage'},
+			},{
+				binding: 2,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'read-only-storage'},
 			}
 		],
 	});

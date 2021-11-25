@@ -71,7 +71,8 @@ export class MeasureTool{
 	}
 
 	measureMove(e){
-		let [x, y] = [e.event.clientX, e.event.clientY];
+		// let [x, y] = [e.event.clientX, e.event.clientY];
+		let {x, y} = e.mouse;
 
 		let node = this.cursor;
 

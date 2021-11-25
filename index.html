@@ -41,7 +41,7 @@ canvas{
 </head>
 <body style="padding: 0; margin: 0">
 
-<div id="potree" style="width: 100%; height: 100%;">
+<div id="potree" style="width: 100%; height: 100%; position: fixed;">
 	<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;">
 	</canvas>
 </div>
@@ -134,7 +134,7 @@ canvas{
 
 
 	import {CopcLoader} from "potree";
-	Potree.settings.attribute = "intensity";
+	Potree.settings.attribute = "classification";
 	// CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
 	CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
 

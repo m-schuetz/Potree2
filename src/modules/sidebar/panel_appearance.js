@@ -71,7 +71,7 @@ export function createPanel(){
 				args.onChange(elSlider, elValue);
 			});
 			args.onChange(elSlider, elValue);
-		}
+		};
 
 		let addCheckbox = (label, elementName, initialValue, onChange) => {
 			let template = document.createElement('template');
@@ -88,7 +88,7 @@ export function createPanel(){
 			elCheckbox.addEventListener("change", () => {
 				onChange(elCheckbox);
 			});
-		}
+		};
 
 		addSlider({
 			label: "Point Budget", 

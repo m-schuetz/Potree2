@@ -90,6 +90,12 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
+		let colormapBuffer = new ArrayBuffer(4 * 256);
+		let colormapGpuBuffer = device.createBuffer({
+			size: colormapBuffer.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
 		let nodesBindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(3),
 			entries: [
@@ -102,21 +108,15 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			entries: [
 				{binding: 0, resource: {buffer: uniformBuffer}},
 				{binding: 1, resource: {buffer: attributesDescGpuBuffer}},
+				{binding: 2, resource: {buffer: colormapGpuBuffer}},
 			],
 		});
-
-		// const miscBindGroup = device.createBindGroup({
-		// 	layout: pipeline.getBindGroupLayout(1),
-		// 	entries: [
-		// 		{binding: 0, resource: gradientSampler},
-		// 		{binding: 1, resource: gradientTexture.createView()},
-		// 	],
-		// });
 
 		state = {
 			pipeline, uniformBuffer, uniformBindGroup, 
 			nodesBuffer, nodesGpuBuffer, nodesBindGroup,
-			attributesDescBuffer, attributesDescGpuBuffer
+			attributesDescBuffer, attributesDescGpuBuffer,
+			colormapBuffer, colormapGpuBuffer,
 		};
 
 		octreeStates.set(key, state);
@@ -166,10 +166,19 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		view.setFloat32(260, size.height, true);
 		view.setUint32(264, isHqsDepth ? 1 : 0, true);
 
-		if(Potree.settings.dbgAttribute === "rgba"){
+		let attributeName = Potree.settings.attribute;
+		let settings = octree?.material?.attributes?.get(attributeName);
+
+		if(!settings){
 			view.setUint32(268, 0, true);
-		}else if(Potree.settings.dbgAttribute === "elevation"){
+		}else if(settings?.constructor.name === "Attribute_RGB"){
 			view.setUint32(268, 1, true);
+		}else if(settings?.constructor.name === "Attribute_Scalar"){
+			view.setUint32(268, 2, true);
+		}else if(attributeName === "elevation"){
+			view.setUint32(268, 3, true);
+		}else if(settings?.constructor.name === "Attribute_Listing"){
+			view.setUint32(268, 4, true);
 		}
 
 		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 512);
@@ -275,7 +284,6 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				set({
 					offset       : offsets.get(selectedAttribute),
 					type         : attribute.type.ordinal,
-					// range        : materialValues.range,
 					attribute    : attribute,
 				});
 			}else{
@@ -335,6 +343,43 @@ function renderOctree(octree, drawstate, flags){
 
 	updateUniforms(octree, octreeState, drawstate, flags);
 
+	{ // UPDATE COLORMAP BUFFER
+		let attributeName = Potree.settings.attribute;
+
+		let settings = octree?.material?.attributes?.get(attributeName);
+
+		if(settings?.constructor?.name === "Attribute_Listing"){
+			let {colormapBuffer, colormapGpuBuffer} = octreeState;
+
+			let u8 = new Uint8Array(colormapBuffer);
+			let defaultValue = settings.listing?.DEFAULT ?? 0;
+			for(let i = 0; i < 256; i++){
+				u8[4 * i + 0] = 255 * defaultValue.color[0];
+				u8[4 * i + 1] = 255 * defaultValue.color[1];
+				u8[4 * i + 2] = 255 * defaultValue.color[2];
+				u8[4 * i + 3] = 255 * defaultValue.color[3];
+			}
+
+			for(let index of Object.keys(settings.listing)){
+				if(index === "DEFAULT"){
+					continue;
+				}
+
+				let value = settings.listing[index];
+
+				u8[4 * index + 0] = 255 * value.color[0];
+				u8[4 * index + 1] = 255 * value.color[1];
+				u8[4 * index + 2] = 255 * value.color[2];
+				u8[4 * index + 3] = 255 * value.color[3];
+			}
+
+			renderer.device.queue.writeBuffer(
+				colormapGpuBuffer, 0, 
+				colormapBuffer, 0, colormapBuffer.byteLength
+			);
+		}		
+	}
+
 	let {pipeline, uniformBindGroup} = octreeState;
 
 	pass.passEncoder.setPipeline(pipeline);
@@ -345,7 +390,7 @@ function renderOctree(octree, drawstate, flags){
 		pass.passEncoder.setBindGroup(1, bindGroup);
 	}
 
-	{
+	{ // UPDATE NODES BUFFER
 		let {nodesBuffer, nodesGpuBuffer, nodesBindGroup} = octreeState;
 		let view = new DataView(nodesBuffer);
 

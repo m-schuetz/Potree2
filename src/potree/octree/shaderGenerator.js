@@ -1,36 +1,16 @@
 
-
-function toWgslType(attribute){
-
-	let typename = attribute.type.name
-	let numElements = attribute.numElements;
-
-	if(typename === "uint16" && numElements === 1){
-		return "u32";
-	}else if(typename === "uint16" && numElements === 3){
-		return "vec4<f32>";
-	}else{
-		throw "unsupported type";
-	}
-
-}
-
 function createShaderSource(args){
-
-	// let type = toWgslType(args.attribute);
-	// let strAttribute = `[[location(${1})]] attribute : ${type};\n`;
-
 
 let shaderSource = `
 [[block]] struct Uniforms {
-	world           : mat4x4<f32>;
-	view            : mat4x4<f32>;
-	proj            : mat4x4<f32>;
-	worldView       : mat4x4<f32>;
-	screen_width    : f32;
-	screen_height   : f32;
-	hqs_flag        : u32;
-	colorMode       : u32;
+	world           : mat4x4<f32>;   //   0
+	view            : mat4x4<f32>;   //  64
+	proj            : mat4x4<f32>;   // 128
+	worldView       : mat4x4<f32>;   // 192
+	screen_width    : f32;           // 256
+	screen_height   : f32;           // 260
+	hqs_flag        : u32;           // 264
+	colorMode       : u32;           // 268
 };
 
 struct Node {
@@ -55,57 +35,47 @@ struct AttributeDescriptor{
 	datatype    : u32;
 };
 
-[[block]] struct Nodes{
-	values : [[stride(32)]] array<Node>;
-};
+[[block]] struct Nodes{ values : [[stride(32)]] array<Node>; };
+[[block]] struct AttributeDescriptors{ values : [[stride(32)]] array<AttributeDescriptor>; };
+[[block]] struct U32s { values : [[stride(4)]] array<u32>; };
 
-[[block]] struct AttributeDescriptors{
-	values : [[stride(32)]] array<AttributeDescriptor>;
-};
+let COLORMODE_UNDEFINED     = 0u;
+let COLORMODE_RGBA          = 1u;
+let COLORMODE_SCALAR        = 2u;
+let COLORMODE_ELEVATION     = 3u;
+let COLORMODE_LISTING       = 4u;
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
-};
+let TYPES_DOUBLE          =  0u;
+let TYPES_FLOAT           =  1u;
+let TYPES_INT8            =  2u;
+let TYPES_UINT8           =  3u;
+let TYPES_INT16           =  4u;
+let TYPES_UINT16          =  5u;
+let TYPES_INT32           =  6u;
+let TYPES_UINT32          =  7u;
+let TYPES_INT64           =  8u;
+let TYPES_UINT64          =  9u;
+let TYPES_RGBA            = 50u;
+let TYPES_ELEVATION       = 51u;
 
-let TYPES_DOUBLE        =  0u;
-let TYPES_FLOAT         =  1u;
-let TYPES_INT8          =  2u;
-let TYPES_UINT8         =  3u;
-let TYPES_INT16         =  4u;
-let TYPES_UINT16        =  5u;
-let TYPES_INT32         =  6u;
-let TYPES_UINT32        =  7u;
-let TYPES_INT64         =  8u;
-let TYPES_UINT64        =  9u;
-let TYPES_RGBA          = 50u;
-let TYPES_ELEVATION     = 51u;
-
-let CLAMP_DISABLED      =  0u;
-let CLAMP_ENABLED       =  1u;
+let CLAMP_DISABLED        =  0u;
+let CLAMP_ENABLED         =  1u;
 
 let RED      = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 let GREEN    = vec4<f32>(0.0, 1.0, 0.0, 1.0);
+let BLUE     = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 let OUTSIDE  = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var<storage, read> attributes : AttributeDescriptors;
+[[binding(0), group(0)]] var<uniform> uniforms           : Uniforms;
+[[binding(1), group(0)]] var<storage, read> attributes   : AttributeDescriptors;
+[[binding(2), group(0)]] var<storage, read> colormap     : U32s;
 
-[[binding(0), group(1)]] var mySampler: sampler;
-[[binding(1), group(1)]] var myTexture: texture_2d<f32>;
+[[binding(0), group(1)]] var mySampler                   : sampler;
+[[binding(1), group(1)]] var myTexture                   : texture_2d<f32>;
 
-[[binding(0), group(2)]] var<storage, read> buffer : U32s;
-[[binding(0), group(3)]] var<storage, read> nodes : Nodes;
+[[binding(0), group(2)]] var<storage, read> buffer       : U32s;
+[[binding(0), group(3)]] var<storage, read> nodes        : Nodes;
 
-struct VertexInput {
-	[[builtin(instance_index)]] instanceID : u32;
-	[[builtin(vertex_index)]] vertexID : u32;
-};
-
-struct VertexOutput {
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
-	[[location(1), interpolate(flat)]] point_id : u32;
-};
 
 fn readU8(offset : u32) -> u32{
 	var ipos : u32 = offset / 4u;
@@ -124,6 +94,16 @@ fn readU16(offset : u32) -> u32{
 	var second = readU8(offset + 1u);
 
 	var value = first | (second << 8u);
+
+	return value;
+}
+
+fn readI16(offset : u32) -> i32{
+	
+	var first = readU8(offset + 0u);
+	var second = readU8(offset + 1u);
+
+	var value = i32(first | (second << 8u));
 
 	return value;
 }
@@ -160,6 +140,37 @@ fn readF32(offset : u32) -> f32{
 	return value_f32;
 }
 
+struct VertexInput {
+	[[builtin(instance_index)]] instanceID : u32;
+	[[builtin(vertex_index)]] vertexID : u32;
+};
+
+struct VertexOutput {
+	[[builtin(position)]] position : vec4<f32>;
+	[[location(0)]] color : vec4<f32>;
+	[[location(1), interpolate(flat)]] point_id : u32;
+};
+
+fn colorFromListing(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
+	var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
+
+	var value = readU8(offset);
+
+	var color_u32 = colormap.values[value];
+
+	var r = (color_u32 >>  0u) & 0xFFu;
+	var g = (color_u32 >>  8u) & 0xFFu;
+	var b = (color_u32 >> 16u) & 0xFFu;
+
+	var color = vec4<f32>(
+		f32(r) / 255.0,
+		f32(g) / 255.0,
+		f32(b) / 255.0,
+		1.0
+	);
+
+	return color;
+}
 
 fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
@@ -200,6 +211,9 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	}elseif(attribute.valuetype == TYPES_UINT16){
 		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
 		value = f32(readU16(offset));
+	}elseif(attribute.valuetype == TYPES_INT16){
+		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
+		value = f32(readI16(offset));
 	}
 
 	var w = (value - attribute.range_min) / (attribute.range_max - attribute.range_min);
@@ -210,6 +224,8 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 
 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
 	var color = textureSampleLevel(myTexture, mySampler, uv, 0.0);
+
+	
 
 	return color;
 }
@@ -332,7 +348,9 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
-		if(attribute.numElements == 1u){
+		if(uniforms.colorMode == COLORMODE_LISTING){
+			color = colorFromListing(vertex, attribute, node);
+		}elseif(attribute.numElements == 1u){
 			color = scalarToColor(vertex, attribute, node, position);
 		}else{
 			color = vectorToColor(vertex, attribute, node);
