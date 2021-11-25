@@ -80,10 +80,50 @@ sidebarlabel{
 	white-space: nowrap
 }
 
-// input[type=range] {
-// 	-webkit-appearance: none; /* Hides the slider so that custom slider can be made */
-// 	width: 100%; /* Specific width is required for Firefox. */
-// 	background: transparent; /* Otherwise white in Chrome */
-// }
+
+
+
+
+
+
+
+section.range-slider {
+	position: relative;
+	user-select: none;
+}
+
+section.range-slider input {
+	position: absolute;
+	pointer-events: none;
+	outline: none;
+	-webkit-appearance: none;
+	background: none;
+	width: 100%;
+}
+
+section.range-slider input::-webkit-slider-thumb {
+	pointer-events: all;
+	position: relative;
+	z-index: 1;
+	outline: 0;
+}
+
+.range-slider-background{
+	position: absolute;
+	background: lightgray;
+	width: 100%;
+	height: 0.5em;
+	border-radius: 0.5em;
+	top: calc(50% - 0.25em);
+}
+
+.range-slider-selected{
+	position: absolute;
+	background: red;
+	width: 50%;
+	height: 0.5em;
+	border-radius: 0.5em;
+	top: calc(50% - 0.25em);
+}
 
 `;
