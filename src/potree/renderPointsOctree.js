@@ -201,8 +201,14 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			let byteSize = args.attribute?.byteSize ?? 0;
 			let dataType = args.attribute?.type?.ordinal ?? 0;
 			let numElements = args.attribute?.numElements ?? 1;
-			let range_min = args.range ? args.range[0] : 0;
-			let range_max = args.range ? args.range[1] : 0;
+
+			let range_min = 0;
+			let range_max = 1;
+
+			if(args?.settings?.range){
+				range_min = args.settings.range[0];
+				range_max = args.settings.range[1];
+			}
 
 			view.setUint32(   0,         args.offset, true);
 			view.setUint32(   4,         numElements, true);
@@ -226,13 +232,14 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		}
 
 		let attribute = attributes.attributes.find(a => a.name === selectedAttribute);
+		let settings = octree.material?.attributes?.get(selectedAttribute);
 
 		if(selectedAttribute === "rgba"){
 			set({
 				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.RGBA,
 				range        : [0, 255],
-				attribute    : attribute,
+				attribute, settings,
 			});
 		}
 		else if(selectedAttribute === "elevation"){
@@ -242,7 +249,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				type         : TYPES.ELEVATION,
 				range        : materialValues.range,
 				clamp        : true,
-				attribute    : attribute,
+				attribute, settings,
 			});
 		}
 		else if(selectedAttribute === "intensity"){
@@ -251,23 +258,15 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.UINT16,
 				range        : [0, 255],
-				attribute    : attribute,
+				attribute, settings,
 			});
 		}
-		// else if(selectedAttribute === "classification"){
-		// 	set({
-		// 		offset       : offsets.get(selectedAttribute),
-		// 		type         : TYPES.UINT8,
-		// 		range        : [0, 32],
-		// 		attribute    : attribute,
-		// 	});
-		// }
 		else if(selectedAttribute === "number of returns"){
 			set({
 				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.UINT8,
 				range        : [0, 4],
-				attribute    : attribute,
+				attribute, settings,
 			});
 		}
 		else if(octree.material?.attributes.has(selectedAttribute)){
@@ -278,13 +277,13 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 					offset       : offsets.get(selectedAttribute),
 					type         : attribute.type.ordinal,
 					range        : materialValues.range,
-					attribute    : attribute,
+					attribute, settings,
 				});
 			}else if(materialValues.constructor.name === "Attribute_Listing"){
 				set({
 					offset       : offsets.get(selectedAttribute),
 					type         : attribute.type.ordinal,
-					attribute    : attribute,
+					attribute, settings,
 				});
 			}else{
 				debugger;
@@ -296,7 +295,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				offset       : offsets.get(selectedAttribute),
 				type         : TYPES.U8,
 				range        : [0, 10_000],
-				attribute    : attribute,
+				attribute, settings,
 			});
 		}
 

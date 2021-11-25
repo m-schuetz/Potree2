@@ -52,14 +52,15 @@ canvas{
 <script type="importmap">
 {
 	"imports": {
-		"potree":      "./src/Potree.js",
-		"lazperf":     "./libs/laz-perf/laz-perf.js",
-		"toolbar":     "./src/modules/toolbar/toolbar.js",
-		"sidebar":     "./src/modules/sidebar/sidebar.js",
-		"dat.gui":     "./libs/dat.gui/dat.gui.module.js",
-		"stats":       "./libs/stats.js/stats.module.js",
-		"BinaryHeap":  "./libs/BinaryHeap/BinaryHeap.js",
-		"tween":       "./libs/tween/tween.esm.js"
+		"potree":        "./src/Potree.js",
+		"lazperf":       "./libs/laz-perf/laz-perf.js",
+		"toolbar":       "./src/modules/toolbar/toolbar.js",
+		"sidebar":       "./src/modules/sidebar/sidebar.js",
+		"dat.gui":       "./libs/dat.gui/dat.gui.module.js",
+		"stats":         "./libs/stats.js/stats.module.js",
+		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
+		"tween":         "./libs/tween/tween.esm.js",
+		"range-select":  "./libs/range-select/RangeSelect.js"
 	}
 }
 </script>
@@ -70,6 +71,7 @@ canvas{
 	import {Vector3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
+	import {RangeSelect} from "range-select";
 	// import {loadGLB} from "./src/prototyping/glbloader/loadGLB.js";
 	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 

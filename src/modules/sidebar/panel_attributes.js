@@ -94,8 +94,37 @@ class Panel{
 	}
 
 	updateScalar(){
-		// this.elScalar.innerHTML
+		let elScalar = this.elScalar;
 
+		elScalar.style.display = "block";
+
+		elScalar.innerHTML = `
+		
+			<div style="display: grid; grid-template-columns: 4em 1fr; gap: 5px 10px;">
+
+				<span>Range</span>
+				<range-select id="sldScalarRange"></range-select>
+
+			</div>
+
+		`;
+
+		let elRange = elScalar.querySelector("#sldScalarRange");
+
+		let attributeName = Potree.settings.attribute;
+		// let stats = 
+		let settings = this.pointcloud.material.attributes.get(attributeName);
+
+
+		if(settings){
+			elRange.setRange(...settings.range);
+			elRange.setValue(settings.stats.min, settings.stats.max);
+
+			elRange.addEventListener("input", () => {
+				// console.log(elRange.value);
+				settings.range = elRange.value;
+			});
+		}
 
 	}
 

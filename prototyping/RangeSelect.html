@@ -1,0 +1,94 @@
+<html>
+
+<!-- 
+Implementing a range selection slider as a custom dom element
+see https://stackoverflow.com/a/31083391/913630
+
+Note: This custom element is not robust to edge-cases and unintended usage. 
+
+Usage: 
+
+# Use the custom <range-select> element 
+
+	<range-select id="sldRange"></range-select>
+
+
+# Import RangeSelect module (the import automatically registers the component)
+
+	<script type="module">
+		import {RangeSelect} from "./RangeSelect.js"
+
+	</script>
+
+
+# Set values and listener
+
+	let rangeSelect = document.getElementById("sldRange");
+	rangeSelect.setRange(13, 76);
+	rangeSelect.setValue(20, 50);
+
+	rangeSelect.addEventListener("input", (e) => {
+		console.log(e.target.value);
+	});
+
+-->
+
+<body>
+
+<style>
+
+.container{
+	position: absolute; 
+	width: 300px; 
+	left: calc(50% - 150px); 
+	top: 10%;
+	border: 1px solid #456; 
+	background: #ccddee; 
+	display: grid;
+	grid-template-columns: 100px 1fr 50px;
+	row-gap: 10px;
+	column-gap: 5px;
+	padding: 5px;
+}
+
+</style>
+
+<span class="container">
+
+	<span>Normal Slider</span>
+	<input type="range" id="sldNormal" min="0" max="100">
+	<span id="lblNormal"></span>
+
+	<span>Range Slider</span>
+	<range-select id="sldRange"></range-select>
+	<span id="lblRange"></span>
+
+</span>
+
+
+<script type="module">
+
+	import {RangeSelect} from "./RangeSelect.js"
+	customElements.define('range-select', RangeSelect);
+
+	let slider = document.getElementById("sldNormal");
+	let rangeSelect = document.getElementById("sldRange");
+	let lblNormal = document.getElementById("lblNormal");
+	let lblRange = document.getElementById("lblRange");
+
+	rangeSelect.setRange(13, 76);
+	rangeSelect.setValue(20, 50);
+
+	slider.addEventListener("input", (e) => {
+		lblNormal.innerText = e.target.value;
+	});
+
+	rangeSelect.addEventListener("input", (e) => {
+		lblRange.innerText = e.target.value;
+	});
+
+</script>
+
+
+</body>
+</html>

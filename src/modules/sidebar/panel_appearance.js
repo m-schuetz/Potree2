@@ -80,43 +80,16 @@ export function createPanel(){
 			let template = document.createElement('template');
 			template.innerHTML = `
 				<sidebarlabel>${args.label}</sidebarlabel>
-				<section style="position: relative" class="range-slider">
-					<input type="range"  min="${min}" max="${max}" value="${args.value[0]}" name="${args.elementName}_0">
-					<input type="range"  min="${min}" max="${max}" value="${args.value[1]}" name="${args.elementName}_1">
-					<span class="range-slider-background"></span>
-					<span class="range-slider-selected"></span>
-				</section>
+				<range-select id="sldTest"></range-select>
 				<sidebarlabel>abc M</sidebarlabel>
 			`;
 			let nodes = template.content.childNodes;
 			elContainer.append(...nodes);
 
-			let elSlider0 = elContainer.querySelector(`input[name=${args.elementName}_0]`);
-			let elSlider1 = elContainer.querySelector(`input[name=${args.elementName}_1]`);
-			let elBackground = elContainer.querySelector(`.range-slider-background`);
-			let elSelected = elContainer.querySelector(`.range-slider-selected`);
+			let elSlider = elContainer.querySelector(`range-select`);
 			let elValue = elContainer.querySelectorAll(`sidebarlabel`)[1];
 
-			let onInput = () => {
-				let v0 = elSlider0.value;
-				let v1 = elSlider1.value;
 
-				let min = Math.min(v0, v1);
-				let max = Math.max(v0, v1);
-
-				let rangeSize = args.range[1] - args.range[0];
-				let u0 = (min - args.range[0]) / rangeSize;
-				let u1 = (max - args.range[0]) / rangeSize;
-
-				elSelected.style.left = `${100 * u0}%`;
-				elSelected.style.width = `${100 * (u1 - u0)}%`;
-				// elSelected.style.right = `${100 * u1}%`;
-			};
-
-			elSlider0.addEventListener("input", onInput);
-			elSlider1.addEventListener("input", onInput);
-
-			onInput();
 
 		};
 
