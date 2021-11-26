@@ -136,7 +136,9 @@ canvas{
 
 
 	import {CopcLoader} from "potree";
+	// Potree.settings.attribute = "elevation";
 	Potree.settings.attribute = "classification";
+	// Potree.settings.attribute = "rgba";
 	// CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
 	CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
 

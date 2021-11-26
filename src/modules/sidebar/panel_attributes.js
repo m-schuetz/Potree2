@@ -20,28 +20,30 @@ class Panel{
 
 		this.element.id = "attributes_panel";
 		this.element.innerHTML = `
+
+			<style>
+				.subsubsection{
+					padding: 15px 0px;
+				}
+			</style>
 		
 			<div class="subsection">Attributes</div>
 
 			<select id="attributes_list"></select>
 
-			<div id="gradient_schemes" style="display: flex"></div>
+			<div class="subsubsection" id="gradient_schemes" style="display: flex"></div>
 
-			<div id="attributes_gamma_brightness_contrast" style="display: flex"></div>
+			<div class="subsubsection" id="attributes_gamma_brightness_contrast" style="display: flex"></div>
 
-			<div id="attributes_scalar" style="display: flex">
-				abc
-			</div>
+			<div class="subsubsection" id="attributes_scalar" style="display: flex"></div>
 
-			<div id="attributes_listing" style="display: grid; grid-template-columns: 3em 1fr 3em">
-				abc
-			</div>
+			<div class="subsubsection" id="attributes_listing" style="display: grid; grid-template-columns: 3em 1fr 3em"></div>
 
 		`;
 
 		this.elAttributeList = this.element.querySelector("#attributes_list");
 		this.elGradientSchemes = this.element.querySelector("#gradient_schemes");
-		this.elGammeBrightnessContrast = this.element.querySelector("#attributes_gamma_brightness_contrast");
+		this.elGammaBrightnessContrast = this.element.querySelector("#attributes_gamma_brightness_contrast");
 		this.elScalar = this.element.querySelector("#attributes_scalar");
 		this.elListing = this.element.querySelector("#attributes_listing");
 
@@ -60,14 +62,20 @@ class Panel{
 
 	updateSettings(){
 
+		let elGammaBrightnessContrast = this.elGammaBrightnessContrast;
 		let elScalar = this.elScalar;
 		let elGradient = this.elGradientSchemes;
 		let elListing = this.elListing;
 
 		let show = (...args) => {
+			elGammaBrightnessContrast.style.display = args.includes(elGammaBrightnessContrast) ? "flex" : "none";
 			elScalar.style.display = args.includes(elScalar) ? "flex" : "none";
 			elGradient.style.display = args.includes(elGradient) ? "flex" : "none";
 			elListing.style.display = args.includes(elListing) ? "grid" : "none";
+
+			if(args.includes(elGammaBrightnessContrast)){
+				this.updateGammaBrightnessContrast();
+			}
 
 			if(args.includes(elScalar)){
 				this.updateScalar();
@@ -75,6 +83,10 @@ class Panel{
 			
 			if(args.includes(elListing)){
 				this.updateListing();
+			}
+
+			if(args.includes(elGradient)){
+				this.updateGradientSchemes();
 			}
 		};
 
@@ -100,6 +112,51 @@ class Panel{
 
 	}
 
+	updateGammaBrightnessContrast(){
+		let element = this.elGammaBrightnessContrast;
+
+		elScalar.style.display = "block";
+
+		// elScalar.innerHTML = `
+		
+		// 	<div style="display: grid; grid-template-columns: 4em 1fr; gap: 5px 10px;">
+
+		// 		<span>Gamma</span>
+		// 		<range-select id="sldGamma"></range-select>
+
+		// 		<span>Brightness</span>
+		// 		<range-select id="sldBrightness"></range-select>
+
+		// 		<span>Contrast</span>
+		// 		<range-select id="sldContrast"></range-select>
+
+		// 	</div>
+
+		// `;
+
+		// let elGamma = elScalar.querySelector("#sldGamma");
+		// let elBrightness = elScalar.querySelector("#sldBrightness");
+		// let elContrast = elScalar.querySelector("#sldContrast");
+
+		// let attributeName = Potree.settings.attribute;
+		// let settings = this.pointcloud.material.attributes.get(attributeName);
+
+		// if(settings){
+
+		// 	elGamma.setRange(0, 4);
+		// 	elBrightness.setRange(-1, 1);
+		// 	elContrast.setRange(-1, 1);
+
+		// 	elRange.setRange(...settings.range);
+		// 	elRange.setValue(settings.stats.min, settings.stats.max);
+
+		// 	elRange.addEventListener("input", () => {
+		// 		// console.log(elRange.value);
+		// 		settings.range = elRange.value;
+		// 	});
+		// }
+	}
+
 	updateScalar(){
 		let elScalar = this.elScalar;
 
@@ -107,9 +164,9 @@ class Panel{
 
 		elScalar.innerHTML = `
 		
-			<div style="display: grid; grid-template-columns: 4em 1fr; gap: 5px 10px;">
+			<div style="display: grid; grid-template-columns: 5em 1fr; gap: 2px 2px;">
 
-				<span>Range</span>
+				<span style="height: 3em">Range</span>
 				<range-select id="sldScalarRange"></range-select>
 
 			</div>
@@ -164,7 +221,18 @@ class Panel{
 			elColorPicker.type = "color";
 			elColorPicker.style.width = "3em";
 			elColorPicker.value = toHexString(value.color);
+			elColorPicker.addEventListener("input", () => {
+				let str = elColorPicker.value;
 
+				let r = Number(`0x${str.slice(1, 3)}`);
+				let g = Number(`0x${str.slice(3, 5)}`);
+				let b = Number(`0x${str.slice(5, 7)}`);
+
+				value.color[0] = 255 * r;
+				value.color[1] = 255 * g;
+				value.color[2] = 255 * b;
+
+			});
 			
 
 			elListing.append(elIndex, elLabel, elColorPicker);
@@ -175,6 +243,18 @@ class Panel{
 
 	updateGradientSchemes(){
 		const schemes = Object.keys(Gradients).map(name => ({name: name, values: Gradients[name]}));
+
+		let elGrid = document.createElement("span");
+		elGrid.style.display = "grid";
+		elGrid.style.gridTemplateColumns = "5em 1fr";
+		elGrid.style.width = "100%";
+
+		elGrid.innerHTML = `
+			<span>Gradients</span>
+			<span id="gradients" style="display: flex"></span>
+		`;
+
+		let elGradients = elGrid.querySelector("#gradients");
 
 		for(const scheme of schemes){
 			let elButton = document.createElement("input");
@@ -207,8 +287,11 @@ class Panel{
 
 			elButton.classList.add("potree_gradient_button");
 
-			this.elGradientSchemes.appendChild(elButton);
+			elGradients.append(elButton);
 		}
+
+		this.elGradientSchemes.innerHTML = "";
+		this.elGradientSchemes.append(elGrid);
 	}
 
 	updateAttributesList(){

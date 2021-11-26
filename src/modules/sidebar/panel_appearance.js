@@ -18,6 +18,7 @@ class Panel{
 export function createPanel(){
 	let elPanel = document.createElement("div");
 	elPanel.id = "appearance_panel";
+	elPanel.classList.add("subsection_panel");
 
 	let elTitle = document.createElement("div");
 	elTitle.classList.add("subsection");
@@ -31,23 +32,6 @@ export function createPanel(){
 		elContainer.style.display = "grid";
 		elContainer.style.gridTemplateColumns = "1fr 2fr 4em";
 		elContainer.style.gridGap = "5px 10px";
-
-		elContainer.innerHTML = `
-		<!--
-			<sidebarlabel>Point Budget</sidebarlabel>
-			<input type="range" style="width: 100%">
-			<sidebarlabel>1.4 M</sidebarlabel>
-
-			<sidebarlabel>Point Size</sidebarlabel>
-			<input type="range" style="width: 100%">
-			<sidebarlabel>5 px</sidebarlabel>
-
-			<sidebarlabel>Min Node Size</sidebarlabel>
-			<input type="range" style="width: 100%">
-			<sidebarlabel>56543 px</sidebarlabel>
-
-			-->
-		`;
 
 		elPanel.append(elContainer);
 
@@ -73,26 +57,6 @@ export function createPanel(){
 			args.onChange(elSlider, elValue);
 		};
 
-		let addSubrangeSlider = (args) => {
-
-			let [min, max] = args.range;
-
-			let template = document.createElement('template');
-			template.innerHTML = `
-				<sidebarlabel>${args.label}</sidebarlabel>
-				<range-select id="sldTest"></range-select>
-				<sidebarlabel>abc M</sidebarlabel>
-			`;
-			let nodes = template.content.childNodes;
-			elContainer.append(...nodes);
-
-			let elSlider = elContainer.querySelector(`range-select`);
-			let elValue = elContainer.querySelectorAll(`sidebarlabel`)[1];
-
-
-
-		};
-
 		let addCheckbox = (label, elementName, initialValue, onChange) => {
 			let template = document.createElement('template');
 			template.innerHTML = `
@@ -110,18 +74,6 @@ export function createPanel(){
 			});
 		};
 
-		addSubrangeSlider({
-			label: "Test", 
-			elementName: "sldTest",
-			range: [0, 1000], 
-			value: [100, 500],
-			onChange: (elSlider, elValue) => {
-				// Potree.settings.pointBudget = Number(elSlider.value);
-
-				// let str = (Number(elSlider.value) / 1_000_000).toFixed(1) + " M";
-				// elValue.innerText = str;
-			},
-		});
 
 		addSlider({
 			label: "Point Budget", 

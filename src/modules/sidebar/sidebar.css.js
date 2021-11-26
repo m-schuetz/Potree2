@@ -11,20 +11,31 @@ export const css = `
 	background: #333333;
 	margin: 0 auto;
 	padding: 5px 0 0 0;
+	display: grid;
+	grid-template-rows: repeat(10, 48px);
 }
 
-#potree_sidebar_section_content{
+#potree_sidebar_main{
 	background: #252525;
 	padding: 0.5em;
 }
 
+#potree_sidebar_content{
+
+}
+
+#potree_sidebar_footer{
+	opacity: 0.6;
+}
+
 .potree_sidebar_section_button{
-	width: 3em;
-	height: 3em;
+	width: 32px;
+	height: 32px;
 	background-size: contain;
 	background-repeat: no-repeat;
 	background-color: transparent;
 	border: none;
+	margin: 4px 0px;
 }
 
 .potree_sidebar_section_button:hover{
@@ -50,11 +61,15 @@ select{
 	width: 100%;
 }
 
+.subsection_panel{
+	margin: 0px 0px 25px 0px;
+}
+
 .subsection{
 	text-align:        center;
 	font-family:       Calibri;
 	font-size:         1.1em;
-	padding:           1em 0em 0.1em 0em;
+	padding:           0.1em 0em 0.5em 0em;
 	font-weight:       bold;
 	letter-spacing:    1px;
 }

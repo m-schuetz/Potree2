@@ -8,58 +8,140 @@ import {createPanel as createInfosPanel} from "./panel_infos.js";
 let sidebar = null;
 let dir = new URL(import.meta.url + "/../").href;
 
-async function installMainSection(){
-	let elButton = document.createElement("input");
-	elButton.classList.add("potree_sidebar_section_button");
-	elButton.type = "button";
-	elButton.title = "Main";
-	elButton.style.backgroundImage = `url(${dir}/icons/home.svg)`;
-	// elButton.style.backgroundImage = `url(${dir}/icons/distance.svg)`;
+class Section{
 
-	elButton.addEventListener("click", () => {
-		sidebar.toggle();
-	});
+	constructor(){
+		this.icon = null;
+		this.panel = null;
+	}
 
-	sidebar.elSectionSelection.append(elButton);
+}
 
-	let elMain = document.createElement("span");
+let sections = [];
+let activeSection = null;
 
-	elMain.innerHTML = `
+function setActiveSection(section){
+
+	if(!section){
+		sidebar.elSectionContent.innerHTML = "";
+	}else if(section === activeSection){
+		toggle();
+	}else{
+		open();
+
+		sidebar.elSectionContent.innerHTML = "";
+		sidebar.elSectionContent.append(section.panel);
+	}
+
+	activeSection = section;
+}
+
+let isOpen = true;
+function toggle(){
+	if(isOpen){
+		isOpen = false;
+		sidebar.elContainer.style.gridTemplateColumns = "48px 1fr";
+	}else{
+		isOpen = true;
+		sidebar.elContainer.style.gridTemplateColumns = "23em 1fr";
+	}
+}
+
+function open(){
+	if(!isOpen){
+		isOpen = true;
+		sidebar.elContainer.style.gridTemplateColumns = "23em 1fr";
+	}
+}
+
+function onSectionSelect(section){
+
+	setActiveSection(section);
+}
+
+function addSection(section){
+
+	{
+		let elButton = document.createElement("input");
+		elButton.classList.add("potree_sidebar_section_button");
+		elButton.type = "button";
+		elButton.title = "Measure";
+		elButton.style.backgroundImage = section.icon;
+
+		elButton.addEventListener("click", () => {
+			onSectionSelect(section);
+		});
+
+		sidebar.elSectionSelection.append(elButton);
+	}
+
+
+	sections.push(section);
+}
+
+function createMainSection(){
+
+	let elPanel = document.createElement("span");
+
+	elPanel.innerHTML = `
 		<div id="attributes_panel">
 			
 		</div>
 	`;
-	sidebar.elSectionContent.append(elMain);
 
 	let panel_appearance = createAppearancePanel();
-	elMain.append(panel_appearance.element);
-
-	let panel_attributes = createAttributesPanel();
-	elMain.append(panel_attributes.element);
-
-	let panel_measurements = createMeasurementsPanel();
-	elMain.append(panel_measurements.element);
+	elPanel.append(panel_appearance.element);
 
 	let panel_infos = createInfosPanel();
-	elMain.append(panel_infos.element);
+	elPanel.append(panel_infos.element);
+
+	let section = new Section();
+	section.icon = `url(${dir}/icons/home.svg)`;
+	section.panel = elPanel;
+
+	return section;
 }
 
-async function installInfoSection(){
-	let elButton = document.createElement("input");
-	elButton.classList.add("potree_sidebar_section_button");
-	elButton.type = "button";
-	elButton.title = "Info";
-	elButton.style.backgroundImage = `url(${dir}/icons/help.svg)`;
+function createAttributesSection(){
 
-	elButton.addEventListener("click", () => {
+	let elPanel = document.createElement("span");
 
-	});
+	elPanel.innerHTML = `
+		<div id="attributes_panel">
+			
+		</div>
+	`;
 
-	sidebar.elSectionSelection.append(elButton);
+	let panel_attributes = createAttributesPanel();
+	elPanel.append(panel_attributes.element);
 
-	// let elMain = document.createElement("span");
+	let section = new Section();
+	section.icon = `url(${dir}/icons/material.svg)`;
+	section.panel = elPanel;
 
+	return section;
 }
+
+function createMeasureSection(){
+
+	let elPanel = document.createElement("span");
+
+	elPanel.innerHTML = `
+		<div id="attributes_panel">
+			
+		</div>
+	`;
+
+	let panel_measurements = createMeasurementsPanel();
+	elPanel.append(panel_measurements.element);
+
+	let section = new Section();
+	section.icon = `url(${dir}/icons/measure.svg)`;
+	section.panel = elPanel;
+
+	return section;
+}
+
 
 export async function installSidebar(elPotree, potree){
 
@@ -72,11 +154,18 @@ export async function installSidebar(elPotree, potree){
 	let elSidebar = document.createElement("span");
 	elSidebar.id = "potree_sidebar";
 	elSidebar.style.display = "grid";
-	elSidebar.style.gridTemplateColumns = "3em 1fr";
+	elSidebar.style.gridTemplateColumns = "48px 1fr";
 
 	elSidebar.innerHTML = `
 		<span id="potree_sidebar_section_selection"></span>
-		<span id="potree_sidebar_section_content"></span>
+		<span id="potree_sidebar_main" style="display: flex; flex-direction: column;">
+			<span id="potree_sidebar_content"></span>
+			<span style="flex-grow: 100;"></span>
+			<span id="potree_sidebar_footer">
+				Potree ${Potree.version}<br>
+				<a href="https://github.com/m-schuetz/Potree2" target="_blank">github</a>
+			</span>
+		</span>
 	`;
 
 	elPotree.style.display = "grid";
@@ -84,26 +173,30 @@ export async function installSidebar(elPotree, potree){
 	elPotree.prepend(elSidebar);
 
 	let elSectionSelection = elSidebar.querySelector("#potree_sidebar_section_selection");
-	let elSectionContent = elSidebar.querySelector("#potree_sidebar_section_content");
+	let elSectionContent = elSidebar.querySelector("#potree_sidebar_content");
 
 	sidebar = {
-		elCointainer: elPotree,
+		elContainer: elPotree,
 		potree,
 		elSidebar, elSectionSelection, elSectionContent
 	};
 
-	let open = true;
-	sidebar.toggle = function(){
-		if(open){
-			open = false;
-			elPotree.style.gridTemplateColumns = "3em 1fr";
-		}else{
-			open = true;
-			elPotree.style.gridTemplateColumns = "23em 1fr";
-		}
-	};
 
-	installMainSection();
+	let secMain = createMainSection();
+	let secMeasure = createMeasureSection();
+	let secAttributes = createAttributesSection();
+
+	addSection(secMain);
+	addSection(secAttributes);
+	addSection(secMeasure);
+
+	setActiveSection(secMain);
+
+
+
+	// installMainSection();
+	// installMaterialSection();
+	// installMeasureSection();
 	// installInfoSection();
 }
 

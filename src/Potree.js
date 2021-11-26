@@ -105,6 +105,8 @@ export let Potree = {
 	settings, state,
 	events,
 	scene: null,
+
+	version: "2.0 (WebGPU prototype)",
 };
 
 

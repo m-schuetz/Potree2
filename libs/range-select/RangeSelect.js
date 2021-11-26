@@ -1,10 +1,4 @@
 
-//
-// author: Markus Schütz
-// license: MIT
-// github: 
-//
-//
 // see https://stackoverflow.com/a/31083391/913630
 
 export class RangeSelect extends HTMLElement{
@@ -71,9 +65,30 @@ export class RangeSelect extends HTMLElement{
 					border-radius: 0.5em;
 					top: calc(50% - 0.25em);
 				}
+
+				.marker{
+					position: fixed;
+					left: 100px;
+					top: 100px;
+					border: 1px solid black;
+					background: white;
+					padding: 0px 3px;
+					font-family: calibri;
+					font-weight: bold;
+					font-size: 0.75em;
+					z-index: 100;
+					color: black;
+				}
+
+				.test{
+					position: relative;
+				}
+
 			</style>
 			<span class="background"></span>
 			<span class="selected"></span>
+			<span class="marker" id="marker_min">abc</span>
+			<span class="marker" id="marker_max">abc</span>
 			<input type="range" min="${this.range[0]}" max="${this.range[1]}" value="${this.value[0]}" class="abc" />
 			<input type="range" min="${this.range[0]}" max="${this.range[1]}" value="${this.value[1]}" class="abc" />
 
@@ -82,6 +97,8 @@ export class RangeSelect extends HTMLElement{
 		this.elSliders = this.querySelectorAll("input");
 		this.elBackground = this.querySelector(`.background`);
 		this.elSelected = this.querySelector(`.selected`);
+		this.elMin = this.querySelector(`#marker_min`);
+		this.elMax = this.querySelector(`#marker_max`);
 
 		this.elSliders[0].addEventListener("input", this.onInput.bind(this));
 		this.elSliders[1].addEventListener("input", this.onInput.bind(this));
@@ -119,6 +136,21 @@ export class RangeSelect extends HTMLElement{
 
 		this.elSelected.style.left = `${100 * u_min}%`;
 		this.elSelected.style.width = `${100 * (u_max - u_min)}%`;
+
+		{
+			let selectionBox = this.elSelected.getBoundingClientRect();
+
+			this.elMin.innerText = min.toLocaleString();
+			let elMinBox = this.elMin.getBoundingClientRect();
+
+			this.elMin.style.left = `calc(${selectionBox.left - 0.5 * elMinBox.width}px)`;
+			this.elMin.style.top = `calc(${selectionBox.top}px - 2em)`;
+
+			this.elMax.innerText = max.toLocaleString();
+			let elMaxBox = this.elMax.getBoundingClientRect();
+			this.elMax.style.left = `calc(${selectionBox.right - 0.5 * elMaxBox.width}px)`;
+			this.elMax.style.top = `calc(${selectionBox.top}px - 2em)`;
+		}
 
 		this.value = [min, max];
 
