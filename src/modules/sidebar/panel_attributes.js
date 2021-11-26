@@ -49,7 +49,7 @@ class Panel{
 			this.onAttributeSelected();
 		};
 
-		this.updateGradientSchemes();
+		this.updateSettings();
 	}
 
 	onAttributeSelected(){
@@ -59,9 +59,6 @@ class Panel{
 	}
 
 	updateSettings(){
-
-		let attributeName = Potree.settings.attribute;
-		let settings = this.pointcloud.material.attributes.get(attributeName);
 
 		let elScalar = this.elScalar;
 		let elGradient = this.elGradientSchemes;
@@ -81,7 +78,17 @@ class Panel{
 			}
 		};
 
-		if(settings.constructor.name === "Attribute_RGB"){
+		if(!this.pointcloud){
+			show();
+			return;
+		}
+
+		let attributeName = Potree.settings.attribute;
+		let settings = this.pointcloud.material.attributes.get(attributeName);
+
+		if(!settings){
+			return;
+		}else if(settings.constructor.name === "Attribute_RGB"){
 			show();
 		}else if(settings.constructor.name === "Attribute_Scalar"){
 			show(elScalar, elGradient);
@@ -215,7 +222,11 @@ class Panel{
 
 		let blacklist = ["XYZ", "position"];
 
-		let statsList = this.pointcloud.root.geometry.statsList;
+		let statsList = this.pointcloud.root?.geometry?.statsList;
+
+		if(!statsList){
+			return;
+		}
 
 		let weighted = [];
 		for(let i = 0; i < statsList.length; i++){
@@ -255,16 +266,26 @@ class Panel{
 	set(pointcloud){
 
 		this.pointcloud = pointcloud;
-		
-		if(pointcloud.root?.geometry?.statsList){
+
+		let onChange = () => {
 			this.updateAttributesList();
-		}else{
-			let onRootNodeLoaded = (event) => {
-				this.updateAttributesList();
-			};
-			onRootNodeLoaded.isOneTimeEvent = true;
-			Potree.events.onRootNodeLoaded(onRootNodeLoaded);
-		}
+			this.updateSettings();
+		};
+		this.pointcloud.events.onMaterialChanged(onChange);
+
+		onChange();
+		
+		// if(pointcloud.root?.geometry?.statsList){
+		// 	this.updateAttributesList();
+		// 	this.updateSettings();
+		// }else{
+		// 	let onRootNodeLoaded = (event) => {
+		// 		this.updateAttributesList();
+		// 		this.updateSettings();
+		// 	};
+		// 	onRootNodeLoaded.isOneTimeEvent = true;
+		// 	pointcloud.events.onRootNodeLoaded(onRootNodeLoaded);
+		// }
 
 	}
 

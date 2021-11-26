@@ -1,3 +1,4 @@
+import { EventDispatcher } from "potree";
 
 
 export class Attribute_Misc{
@@ -72,12 +73,22 @@ export class Attribute_Listing{
 export class PointCloudMaterial{
 
 	constructor(){
-
+		
+		this.initialized = false;
 		this.attributes = new Map();
-
+		
+		let dispatcher = new EventDispatcher();
+		this.events = {
+			dispatcher,
+			onChange: (callback, args) => dispatcher.add("change", callback, args),
+		};
 	}
 
 	init(pointcloud){
+
+		if(this.initialized){
+			return;
+		}
 
 		let statsList = pointcloud.root.geometry.statsList;
 
@@ -124,8 +135,11 @@ export class PointCloudMaterial{
 		}
 
 		console.log(statsList);
-
 		console.log(this.attributes);
+
+		this.initialized = true;
+
+		this.events.dispatcher.dispatch("change", {material: this});
 	}
 
 };

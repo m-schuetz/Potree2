@@ -412,7 +412,7 @@ export class CopcLoader{
 			let workerPath = "./src/potree/DecoderWorker_copc.js";
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
-			worker.onmessage = function(e){
+			worker.onmessage = (e) => {
 				let data = e.data;
 
 				if(data === "failed"){
@@ -440,7 +440,7 @@ export class CopcLoader{
 				WorkerPool.returnWorker(workerPath, worker);
 
 				if(node.name === "r"){
-					Potree.events.dispatcher.dispatch("root_node_loaded", {octree: this.octree, node});
+					this.octree.events.dispatcher.dispatch("root_node_loaded", {octree: this.octree, node});
 				}
 			};
 

@@ -1,5 +1,5 @@
 
-import {Vector3, Matrix4, Frustum, math} from "potree";
+import {Vector3, Matrix4, Frustum, math, EventDispatcher} from "potree";
 import {SceneNode, PointCloudOctreeNode} from "potree";
 import {renderPointsOctree} from "potree";
 import {BinaryHeap} from "BinaryHeap";
@@ -16,7 +16,16 @@ export class PointCloudOctree extends SceneNode{
 		this.loaded = false;
 		this.loading = false;
 		this.visibleNodes = [];
-		this.material = null;
+		this.material = new PointCloudMaterial();
+
+		let dispatcher = new EventDispatcher();
+		this.events = {
+			dispatcher,
+			onRootNodeLoaded: (callback, args) => dispatcher.add("root_node_loaded", callback, args),
+			onMaterialChanged: (callback, args) => dispatcher.add("material_changed", callback, args),
+		};
+
+		this.material.events.onChange((event) => this.events.dispatcher.dispatch("material_changed", {material: event.material}));
 	}
 
 	load(node){
@@ -31,8 +40,7 @@ export class PointCloudOctree extends SceneNode{
 
 		let tStart = performance.now();
 
-		if(this.material === null && this.root?.geometry?.statsList != null){
-			this.material = new PointCloudMaterial();
+		if(!this.material.initialized && this.root?.geometry?.statsList != null){
 			this.material.init(this);
 		}
 
