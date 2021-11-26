@@ -1,6 +1,7 @@
 
 canvas{
 	image-rendering: pixelated;
+	display: absolute;
 }
 
 td{

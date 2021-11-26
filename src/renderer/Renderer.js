@@ -593,53 +593,12 @@ export class Renderer{
 
 	start(){
 
-		// let scale = window.devicePixelRatio;
-		// this.setSize(scale * this.canvas.clientWidth, scale * this.canvas.clientHeight);
 		this.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
 
 		this.updateScreenbuffer();
-
-		// let renderPassDescriptor = {
-		// 	colorAttachments: [
-		// 		{
-		// 			view: this.swapChain.getCurrentTexture().createView(),
-		// 			loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
-		// 		},
-		// 	],
-		// 	depthStencilAttachment: {
-		// 		view: this.depthTexture.createView(),
-
-		// 		depthLoadValue: 0.0,
-		// 		depthStoreOp: "store",
-		// 		stencilLoadValue: 0,
-		// 		stencilStoreOp: "store",
-		// 	},
-		// 	sampleCount: 1,
-		// };
-
-		// const commandEncoder = this.device.createCommandEncoder();
-		// const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
-		// return {commandEncoder, passEncoder, renderPassDescriptor};
 	}
 
 	finish(){
-
-		// pass.passEncoder.endPass();
-
-		// Timer.resolve(renderer, pass.commandEncoder);
-
-		// let commandBuffer = pass.commandEncoder.finish();
-		// this.device.queue.submit([commandBuffer]);
-
-
-
-		// not yet available?
-		// https://github.com/gpuweb/gpuweb/issues/1325
-		// commandBuffer.executionTime.then( (e) => {
-		// 	console.log(e);
-		// });
-
 		this.draws.reset();
 		this.currentBindGroup = -1;
 		this.frameCounter++;
