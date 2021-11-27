@@ -166,6 +166,7 @@ async function loadVLRs(url, header){
 
 		if(offset >= buffer.byteLength){
 			console.warn(`Stopped reading at VLR[${i}] because offset(${offset}) is >= vlrBufferSize(${buffer.byteLength})`);
+			break;
 		}
 
 		let reserved = view.getUint16(offset + 0, true);

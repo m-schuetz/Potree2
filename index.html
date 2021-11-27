@@ -36,6 +36,7 @@ td{
 canvas{
 	image-rendering: pixelated;
 	display: flex;
+	position: absolute;
 	height: 100%;
 }
 
@@ -44,8 +45,9 @@ canvas{
 <body style="padding: 0; margin: 0">
 
 <div id="potree" style="width: 100%; height: 100%; position: fixed;">
-	<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;">
-	</canvas>
+	<span style="position: relative">
+		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
+	</span>
 </div>
 
 <span id="big_message"></span>
@@ -73,7 +75,7 @@ canvas{
 	import {Vector3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
-	import {RangeSelect} from "range-select";
+	import "range-select";
 	// import {loadGLB} from "./src/prototyping/glbloader/loadGLB.js";
 	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 
@@ -85,6 +87,11 @@ canvas{
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
 	// installToolbar(potree.renderer.canvas, potree);
+
+	// window.Potree = {
+	// 	version: "abc",
+	// };
+
 	installSidebar(elPotree, potree);
 
 	window.Potree = Potree;
@@ -98,47 +105,11 @@ canvas{
 
 	// default, if not overriden later on
 	controls.set({
-		yaw: -0.2,
-		pitch: 0.8,
-		radius: 10,
-	});
-
-	controls.set({
-		position: [-0.9, -3.7, -4.6],
-		pivot: [-0.3, 0.4, -5.7],
-	});
-
-	controls.set({
 		position: [-19.0, 13.6, 12.2],
 		pivot: [-0.0, 2.2, 3.9],
 	});
 
-	// SITN
-	// controls.set({
-	// 	position: [2315.2, 1355.2, 949.8],
-	// 	pivot: [2357.1, 1363.8, 931.0],
-	// });
-
-	// Potree.events.onPointcloudLoaded((pointcloud) => {
-	// 	console.log("loaded", pointcloud);
-	// });
-
-	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
-
-	// 	Potree.settings.attribute = "rgba";
-
-	// 	controls.set({
-	// 		position: [-19.0, 13.6, 12.2],
-	// 		pivot: [-0.0, 2.2, 3.9],
-	// 	});
-		
-	// 	scene.root.children.push(pointcloud);
-	// });
-
-
-
 	import {CopcLoader} from "potree";
-	// Potree.settings.attribute = "elevation";
 	Potree.settings.attribute = "classification";
 	// Potree.settings.attribute = "rgba";
 	// CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
@@ -190,16 +161,6 @@ canvas{
 		potree.renderer.drawLine(origin, Z, blue);
 
 		potree.renderer.drawSphere(origin, 2);
-
-
-
-		// potree.renderer.drawMesh({
-		// 	"positions": sphere.buffers.find(b => b.name === "position").buffer,
-		// 	"uvs": sphere.buffers.find(b => b.name === "uv").buffer,
-		// 	"normals": sphere.buffers.find(b => b.name === "normal").buffer,
-		// });
-		// potree.renderer.drawMesh({positions, uvs, indices, world, image: node.material.image});
-
 	});
 
 

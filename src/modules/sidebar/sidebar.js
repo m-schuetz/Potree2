@@ -160,11 +160,13 @@ export async function installSidebar(elPotree, potree){
 		<span id="potree_sidebar_section_selection"></span>
 		<span id="potree_sidebar_main" style="display: flex; flex-direction: column;">
 			<span id="potree_sidebar_content"></span>
+			<!--
 			<span style="flex-grow: 100;"></span>
 			<span id="potree_sidebar_footer">
 				Potree ${Potree.version}<br>
 				<a href="https://github.com/m-schuetz/Potree2" target="_blank">github</a>
 			</span>
+			-->
 		</span>
 	`;
 
@@ -192,12 +194,6 @@ export async function installSidebar(elPotree, potree){
 
 	setActiveSection(secMain);
 
-
-
-	// installMainSection();
-	// installMaterialSection();
-	// installMeasureSection();
-	// installInfoSection();
 }
 
 
