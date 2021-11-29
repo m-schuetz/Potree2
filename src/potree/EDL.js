@@ -230,6 +230,40 @@ function init(renderer){
 	});
 }
 
+let uniformBindGroupCache = new Map();
+function getUniformBindGroup(renderer, source){
+
+	let data = uniformBindGroupCache.get(source);
+
+	if(data == null || data.version < source.version){
+
+		let sampler = renderer.device.createSampler({
+			magFilter: "linear",
+			minFilter: "linear",
+		});
+		
+		let uniformBindGroup = renderer.device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [
+				{binding: 0, resource: {buffer: uniformBuffer}},
+				{binding: 1, resource: sampler},
+				{binding: 2, resource: source.colorAttachments[0].texture.createView()},
+				{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
+			],
+		});
+
+		let data = {
+			version: source.version, 
+			uniformBindGroup
+		};
+
+		uniformBindGroupCache.set(source, data);
+
+	}
+
+	return uniformBindGroupCache.get(source).uniformBindGroup;
+}
+
 export function EDL(source, drawstate){
 
 	let {renderer, camera, pass} = drawstate;
@@ -239,22 +273,7 @@ export function EDL(source, drawstate){
 
 	Timer.timestamp(passEncoder,"EDL-start");
 
-	let sampler = renderer.device.createSampler({
-		magFilter: "linear",
-		minFilter: "linear",
-	});
-
-	// TODO: possible issue: re-creating bind group every frame
-	// doing that because the render target attachments may change after resize
-	let uniformBindGroup = renderer.device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
-		entries: [
-			{binding: 0, resource: {buffer: uniformBuffer}},
-			{binding: 1, resource: sampler},
-			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
-			{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
-		],
-	});
+	let uniformBindGroup = getUniformBindGroup(renderer, source);
 
 	passEncoder.setPipeline(pipeline);
 

@@ -47,6 +47,8 @@ export class MeasureTool{
 		let depth = camera.getWorldPosition().distanceTo(this.cursor.position);
 		let radius = depth / 50;
 
+		// console.log(radius);
+
 		this.cursor.scale.set(radius, radius, radius);
 
 		for(let measure of this.measures){

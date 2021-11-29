@@ -2,6 +2,7 @@
 import {PotreeLoader} from "./potree/PotreeLoader.js";
 import {render} from "./potree/renderQuads.js";
 import {EventDispatcher} from "./misc/EventDispatcher.js";
+import {Vector3} from "./math/math.js";
 
 async function load(url, args = {}){
 	let octree = await PotreeLoader.load(url);
@@ -11,7 +12,7 @@ async function load(url, args = {}){
 	return octree;
 }
 
-
+const pickPosition = new Vector3();
 const pickQueue = [];
 
 function pick(x, y, callback){
@@ -100,7 +101,7 @@ const state = {
 export let Potree = {
 	load, loadGLB,
 	render: render,
-	pick, pickQueue,
+	pick, pickQueue, pickPosition,
 	init,
 	settings, state,
 	events,

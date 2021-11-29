@@ -75,6 +75,7 @@ export class RenderTarget{
 				attachment.texture = this.renderer.device.createTexture(desc);
 			}
 
+			this.version++;
 		}
 
 	}

@@ -231,7 +231,9 @@ function init(renderer){
 let uniformBindGroupCache = new Map();
 function getUniformBindGroup(renderer, source){
 
-	if(!uniformBindGroupCache.has(source)){
+	let data = uniformBindGroupCache.get(source);
+
+	if(data == null || data.version < source.version){
 		
 		let uniformBindGroup = renderer.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
@@ -243,11 +245,16 @@ function getUniformBindGroup(renderer, source){
 			],
 		});
 
-		uniformBindGroupCache.set(source, uniformBindGroup);
+		let data = {
+			version: source.version, 
+			uniformBindGroup
+		};
+
+		uniformBindGroupCache.set(source, data);
 
 	}
 
-	return uniformBindGroupCache.get(source);
+	return uniformBindGroupCache.get(source).uniformBindGroup;
 }
 
 export function dilate(source, drawstate){

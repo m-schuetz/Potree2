@@ -429,8 +429,10 @@ function renderNotSoBasic(){
 	}
 
 
+	// DILATE
 	if(dilateEnabled && Potree.settings.pointSize >= 2){ // dilate
-		let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
+		// let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
+		let fboTarget = fbo_1;
 
 		let pass = startPass(renderer, fboTarget);
 		let drawstate = {renderer, camera, renderables, pass};
@@ -442,7 +444,7 @@ function renderNotSoBasic(){
 		fbo_source = fboTarget;
 	}
 
-	{
+	{ // render everything but point clouds
 		let pass = revisitPass(renderer, fbo_source);
 		let drawstate = {renderer, camera, renderables, pass};
 
@@ -461,7 +463,8 @@ function renderNotSoBasic(){
 		endPass(pass);
 	}
 
-	if(edlEnabled){ // EDL
+	// EDL
+	if(edlEnabled){ 
 		let pass = startPass(renderer, screenbuffer);
 		let drawstate = {renderer, camera, renderables, pass};
 
@@ -476,48 +479,54 @@ function renderNotSoBasic(){
 	}
 
 	{ // HANDLE PICKING
+
+		let renderedObjects = Potree.state.renderedObjects;
+		
+		let mouse = inputHandler.mouse;
+		let window = 8;
+		let wh = window / 2;
+		renderer.readPixels(fbo_source.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, window, window).then(buffer => {
+
+			let max = Math.max(...new Uint32Array(buffer));
+
+			let nodeCounter = (max >>> 20);
+			let pointIndex = max & 0b1111_11111111_11111111;
+
+			if(nodeCounter === 0 && pointIndex === 0){
+				return;
+			}
+
+			let node = renderedObjects[nodeCounter];
+			let pointBuffer = node.geometry.buffer.buffer;
+			let view = new DataView(pointBuffer);
+
+			let x = view.getFloat32(12 * pointIndex + 0, true);
+			let y = view.getFloat32(12 * pointIndex + 4, true);
+			let z = view.getFloat32(12 * pointIndex + 8, true);
+
+			x = x + node.octree.position.x;
+			y = y + node.octree.position.y;
+			z = z + node.octree.position.z;
+
+			let position = new Vector3(x, y, z);
+			let distance = camera.getWorldPosition().distanceTo(position);
+			let radius = distance / 50;
+
+			dbgSphere.position.set(x, y, z);
+			dbgSphere.scale.set(radius, radius, radius);
+			dbgSphere.updateWorld();
+
+			Potree.pickPosition.copy(position);
+		});
+
 		for(let {x, y, callback} of Potree.pickQueue){
-
-			let renderedObjects = Potree.state.renderedObjects;
-
-			let window = 8;
-			let wh = window / 2;
-			renderer.readPixels(fbo_source.colorAttachments[1].texture, x - wh, y - wh, window, window).then(buffer => {
-
-				let max = Math.max(...new Uint32Array(buffer));
-
-				let nodeCounter = (max >>> 20);
-				let pointIndex = max & 0b1111_11111111_11111111;
-
-				if(nodeCounter === 0 && pointIndex === 0){
-					return;
-				}
-
-				let node = renderedObjects[nodeCounter];
-				let pointBuffer = node.geometry.buffer.buffer;
-				let view = new DataView(pointBuffer);
-
-				let x = view.getFloat32(12 * pointIndex + 0, true);
-				let y = view.getFloat32(12 * pointIndex + 4, true);
-				let z = view.getFloat32(12 * pointIndex + 8, true);
-
-				x = x + node.octree.position.x;
-				y = y + node.octree.position.y;
-				z = z + node.octree.position.z;
-
-				let position = new Vector3(x, y, z);
-				let distance = camera.getWorldPosition().distanceTo(position);
-				let radius = distance / 50;
-
-				dbgSphere.position.set(x, y, z);
-				dbgSphere.scale.set(radius, radius, radius);
-				dbgSphere.updateWorld();
-
-				callback({distance, position});
-			});
-
+			let position = Potree.pickPosition;
+			let distance = camera.getWorldPosition().distanceTo(position);
+			callback({distance, position});
 		}
 		Potree.pickQueue.length = 0;
+
+		
 
 	}
 
