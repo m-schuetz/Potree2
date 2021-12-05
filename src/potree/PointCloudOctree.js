@@ -87,7 +87,7 @@ export class PointCloudOctree extends SceneNode{
 
 			let visible = insideFrustum;
 			visible = visible || node.level <= 2;
-			// visible = visible && visibleNodes.length <= 1;
+			// visible = visible && visibleNodes.length < 2;
 
 			if(!visible){
 				continue;

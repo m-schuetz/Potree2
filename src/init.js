@@ -278,6 +278,8 @@ function renderNotSoBasic(){
 	// Timer.setEnabled(true);
 
 	Potree.state.renderedObjects = [];
+	Potree.state.renderedElements = 0;
+
 
 	let layers = new Map();
 
@@ -496,40 +498,74 @@ function renderNotSoBasic(){
 		let wh = window / 2;
 		renderer.readPixels(fbo_source.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, window, window).then(buffer => {
 
-			let max = Math.max(...new Uint32Array(buffer));
+			let maxID = Math.max(...new Uint32Array(buffer));
 
-			let nodeCounter = (max >>> 20);
-			let pointIndex = max & 0b1111_11111111_11111111;
+			// let nodeCounter = (max >>> 20);
+			// let pointIndex = max & 0b1111_11111111_11111111;
 
-			if(nodeCounter === 0 && pointIndex === 0){
+			// if(nodeCounter === 0 && pointIndex === 0){
+			// 	return;
+			// }
+
+			// if(max === 1){
+			// 	console.log("abc?");
+			// }
+
+			if(maxID === 0){
 				return;
 			}
 
-			if(max === 1){
-				console.log("abc?");
+			let node = null;
+			let counter = 0;
+			for(let i = 0; i < renderedObjects.length; i++){
+				let object = renderedObjects[i];
+
+				if(maxID < counter + object.numElements){
+					node = object.node;
+					break;
+				}
+
+				counter += object.numElements;
 			}
 
-			let node = renderedObjects[nodeCounter];
-			let pointBuffer = node.geometry.buffer.buffer;
-			let view = new DataView(pointBuffer);
+			let elementIndex = maxID - counter;
 
-			let x = view.getFloat32(12 * pointIndex + 0, true);
-			let y = view.getFloat32(12 * pointIndex + 4, true);
-			let z = view.getFloat32(12 * pointIndex + 8, true);
+			if(node?.constructor.name === "PointCloudOctreeNode"){
 
-			x = x + node.octree.position.x;
-			y = y + node.octree.position.y;
-			z = z + node.octree.position.z;
+				let pointBuffer = node.geometry.buffer.buffer;
+				let view = new DataView(pointBuffer);
 
-			let position = new Vector3(x, y, z);
-			let distance = camera.getWorldPosition().distanceTo(position);
-			let radius = distance / 50;
+				let x = view.getFloat32(12 * elementIndex + 0, true);
+				let y = view.getFloat32(12 * elementIndex + 4, true);
+				let z = view.getFloat32(12 * elementIndex + 8, true);
 
-			dbgSphere.position.set(x, y, z);
-			dbgSphere.scale.set(radius, radius, radius);
-			dbgSphere.updateWorld();
+				x = x + node.octree.position.x;
+				y = y + node.octree.position.y;
+				z = z + node.octree.position.z;
 
-			Potree.pickPosition.copy(position);
+				let position = new Vector3(x, y, z);
+				let distance = camera.getWorldPosition().distanceTo(position);
+				let radius = distance / 50;
+
+				dbgSphere.position.set(x, y, z);
+				dbgSphere.scale.set(radius, radius, radius);
+				dbgSphere.updateWorld();
+
+				Potree.pickPosition.copy(position);
+			}else if(node?.constructor.name === "Images360"){
+
+				let image = node.images[elementIndex];
+				
+				let position = image.position;
+				let distance = camera.getWorldPosition().distanceTo(position);
+				let radius = distance / 50;
+
+				dbgSphere.position.copy(position);
+				dbgSphere.scale.set(radius, radius, radius);
+				dbgSphere.updateWorld();
+
+				Potree.pickPosition.copy(position);
+			}
 		});
 
 		for(let {x, y, callback} of Potree.pickQueue){

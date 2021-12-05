@@ -363,7 +363,8 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	// 12 node counter : 20 point id
 	
 	// output.point_id = vertex.vertexID;
-	output.point_id = ((node.counter & 0xFFFu) << 20u) | vertex.vertexID;
+	// output.point_id = ((node.counter & 0xFFFu) << 20u) | vertex.vertexID;
+	output.point_id = node.counter + vertex.vertexID;
 
 	return output;
 }

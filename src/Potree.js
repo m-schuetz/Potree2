@@ -97,6 +97,7 @@ const state = {
 	numVoxels: 0,
 	numNodes: 0,
 	renderedObjects: [],
+	renderedElements: 0,
 };
 
 export let Potree = {
