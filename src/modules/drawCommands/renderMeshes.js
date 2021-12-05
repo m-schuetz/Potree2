@@ -35,6 +35,7 @@ struct FragmentIn{
 
 struct FragmentOut{
 	[[location(0)]] color : vec4<f32>;
+	[[location(1)]] id : u32;
 };
 
 
@@ -66,6 +67,7 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
 	fout.color = fragment.color;
+	fout.id = 0u;
 	// fout.color = vec4<f32>(fragment.uv, 0.0, 1.0);
 	// fout.color = textureSample(myTexture, mySampler, fragment.uv);
 
@@ -160,7 +162,10 @@ export function render(meshes, drawstate){
 		fragment: {
 			module: device.createShaderModule({code: shaderSource}),
 			entryPoint: "main_fragment",
-			targets: [{format: "bgra8unorm"}],
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint"},
+			],
 		},
 		primitive: {
 			topology: 'triangle-list',

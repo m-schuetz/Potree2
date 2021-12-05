@@ -146,8 +146,10 @@ export class Renderer{
 
 	setSize(width, height){
 
-		width = Math.min(width, 7680);
-		height = Math.min(height, 4320);
+		let clamp = (value, min, max) => Math.max(Math.min(value, max), min);
+
+		width = clamp(width, 128, 7680);
+		height = clamp(height, 128, 4320);
 
 		let resized = this.canvas.width !== width || this.canvas.height !== height;
 
@@ -613,10 +615,10 @@ export class Renderer{
 	renderDrawCommands(drawstate){
 		renderBoxes(this.draws.boxes, drawstate);
 		renderSpheres(this.draws.spheres, drawstate);
-		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
-		renderPoints(this.draws.points, drawstate);
-		renderQuads(this.draws.quads, drawstate);
-		renderVoxels(this.draws.voxels, drawstate);
+		// renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
+		// renderPoints(this.draws.points, drawstate);
+		// renderQuads(this.draws.quads, drawstate);
+		// renderVoxels(this.draws.voxels, drawstate);
 		renderMeshes(this.draws.meshes, drawstate);
 		renderLines(this.draws.lines, drawstate);
 

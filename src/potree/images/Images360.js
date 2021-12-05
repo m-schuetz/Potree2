@@ -8,6 +8,7 @@ let shaderCode = `
 	proj : mat4x4<f32>;
 	screen_width : f32;
 	screen_height : f32;
+	size: f32;
 };
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
@@ -27,15 +28,38 @@ struct VertexOut{
 
 struct FragmentOut{
 	[[location(0)]] color : vec4<f32>;
+	[[location(1)]] point_id : u32;
 };
 
 [[stage(vertex)]]
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
+	var QUAD_POS : array<vec3<f32>, 6> = array<vec3<f32>, 6>(
+		vec3<f32>(-1.0, -1.0, 0.0),
+		vec3<f32>( 1.0, -1.0, 0.0),
+		vec3<f32>( 1.0,  1.0, 0.0),
+
+		vec3<f32>(-1.0, -1.0, 0.0),
+		vec3<f32>( 1.0,  1.0, 0.0),
+		vec3<f32>(-1.0,  1.0, 0.0),
+	);
+
 	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
+	var projPos : vec4<f32> = uniforms.proj * viewPos;
+
+	let quadVertexIndex : u32 = vertex.vertexID % 6u;
+	var pos_quad : vec3<f32> = QUAD_POS[quadVertexIndex];
+
+	var fx : f32 = projPos.x / projPos.w;
+	fx = fx + uniforms.size * pos_quad.x / uniforms.screen_width;
+	projPos.x = fx * projPos.w;
+
+	var fy : f32 = projPos.y / projPos.w;
+	fy = fy + uniforms.size * pos_quad.y / uniforms.screen_height;
+	projPos.y = fy * projPos.w;
 
 	var vout : VertexOut;
-	vout.position = uniforms.proj * viewPos;
+	vout.position = projPos;
 
 	return vout;
 }
@@ -45,6 +69,7 @@ fn main_fragment() -> FragmentOut {
 
 	var fout : FragmentOut;
 	fout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	fout.point_id = 1u;
 
 	return fout;
 }
@@ -73,7 +98,7 @@ function init(renderer){
 			buffers: [
 				{ // position
 					arrayStride: 3 * 4,
-					stepMode: "vertex",
+					stepMode: "instance",
 					attributes: [{ 
 						shaderLocation: 0,
 						offset: 0,
@@ -85,10 +110,13 @@ function init(renderer){
 		fragment: {
 			module,
 			entryPoint: "main_fragment",
-			targets: [{format: "bgra8unorm"}],
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint"},
+			],
 		},
 		primitive: {
-			topology: 'point-list',
+			topology: 'triangle-list',
 			cullMode: 'back',
 		},
 		depthStencil: {
@@ -137,6 +165,7 @@ function updateUniforms(drawstate){
 
 		view.setFloat32(128, size.width, true);
 		view.setFloat32(132, size.height, true);
+		view.setFloat32(136, 10.0, true);
 	}
 
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
@@ -204,7 +233,8 @@ export class Images360 extends SceneNode{
 		passEncoder.setVertexBuffer(0, vboPosition);
 
 		let numVertices = this.positions.length / 3;
-		passEncoder.draw(numVertices, 1, 0, 0);
+		// passEncoder.draw(numVertices, 1, 0, 0);
+		passEncoder.draw(6, numVertices, 0, 0);
 
 	}
 

@@ -155,11 +155,17 @@ function startPass(renderer, target, args = {}){
 function revisitPass(renderer, target){
 	let view = target.colorAttachments[0].texture.createView();
 
+	let colorAttachments = [
+		{view, loadValue: "load"}
+	];
+
+	if(target.colorAttachments.length === 2){
+		let view = target.colorAttachments[1].texture.createView();
+		colorAttachments.push({view, loadValue: "load"});
+	}
+
 	let renderPassDescriptor = {
-		colorAttachments: [{
-			view, 
-			loadValue: "load",
-		}],
+		colorAttachments,
 		depthStencilAttachment: {
 			view: target.depth.texture.createView(),
 			depthLoadValue: "load",
@@ -400,21 +406,21 @@ function renderNotSoBasic(){
 
 	}else if(forwardRendering){
 
-		// render directly to screenbuffer
-		let pass = startPass(renderer, screenbuffer);
-		let drawstate = {renderer, camera, renderables, pass};
+		// // render directly to screenbuffer
+		// let pass = startPass(renderer, screenbuffer);
+		// let drawstate = {renderer, camera, renderables, pass};
 
-		for(let [key, nodes] of renderables){
-			for(let node of nodes){
-				if(typeof node.render !== "undefined"){
-					node.render(drawstate);
-				}
-			}
-		}
+		// for(let [key, nodes] of renderables){
+		// 	for(let node of nodes){
+		// 		if(typeof node.render !== "undefined"){
+		// 			node.render(drawstate);
+		// 		}
+		// 	}
+		// }
 
-		renderer.renderDrawCommands(drawstate);
+		// renderer.renderDrawCommands(drawstate);
 
-		endPass(pass);
+		// endPass(pass);
 	}else{
 
 		// render to intermediate framebuffer
@@ -452,6 +458,9 @@ function renderNotSoBasic(){
 			for(let node of nodes){
 				let hasRender = typeof node.render !== "undefined";
 				let isOctree = node.constructor.name === "PointCloudOctree";
+				let isImages360 = node.constructor.name === "Images360";
+
+
 				if(hasRender && !isOctree){
 					node.render(drawstate);
 				}
@@ -483,7 +492,7 @@ function renderNotSoBasic(){
 		let renderedObjects = Potree.state.renderedObjects;
 		
 		let mouse = inputHandler.mouse;
-		let window = 8;
+		let window = 2;
 		let wh = window / 2;
 		renderer.readPixels(fbo_source.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, window, window).then(buffer => {
 
@@ -494,6 +503,10 @@ function renderNotSoBasic(){
 
 			if(nodeCounter === 0 && pointIndex === 0){
 				return;
+			}
+
+			if(max === 1){
+				console.log("abc?");
 			}
 
 			let node = renderedObjects[nodeCounter];

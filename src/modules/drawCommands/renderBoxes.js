@@ -3,7 +3,7 @@ import {Geometry, Vector3, Matrix4} from "potree";
 import {cube, cube_wireframe} from "../geometries/cube.js";
 
 
-const vs = `
+const shaderCode = `
 [[block]] struct Uniforms {
 	worldView : mat4x4<f32>;
 	proj : mat4x4<f32>;
@@ -26,7 +26,7 @@ struct VertexOut{
 };
 
 [[stage(vertex)]]
-fn main(vertex : VertexIn) -> VertexOut {
+fn main_vertex(vertex : VertexIn) -> VertexOut {
 	
 	var worldPos : vec4<f32> = vertex.box_pos + vertex.point_pos * vertex.box_scale;
 	worldPos.w = 1.0;
@@ -38,23 +38,21 @@ fn main(vertex : VertexIn) -> VertexOut {
 
 	return vout;
 }
-`;
-
-const fs = `
-
 struct FragmentIn{
 	[[location(0)]] fragColor : vec4<f32>;
 };
 
 struct FragmentOut{
 	[[location(0)]] outColor : vec4<f32>;
+	[[location(1)]] id : u32;
 };
 
 [[stage(fragment)]]
-fn main(fragment : FragmentIn) -> FragmentOut {
+fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
 	fout.outColor = fragment.fragColor;
+	fout.id = 0u;
 
 	return fout;
 }
@@ -71,10 +69,12 @@ function createPipeline(renderer){
 
 	let {device} = renderer;
 
+	let module = device.createShaderModule({code: shaderCode});
+
 	pipeline = device.createRenderPipeline({
 		vertex: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
+			module,
+			entryPoint: "main_vertex",
 			buffers: [
 				{ // box position
 					arrayStride: 3 * 4,
@@ -112,9 +112,12 @@ function createPipeline(renderer){
 			]
 		},
 		fragment: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-			targets: [{format: "bgra8unorm"}],
+			module,
+			entryPoint: "main_fragment",
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint"},
+			],
 		},
 		primitive: {
 			topology: 'triangle-list',

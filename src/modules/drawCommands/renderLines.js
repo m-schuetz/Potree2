@@ -1,7 +1,7 @@
 
 import {Geometry, Vector3, Matrix4} from "potree";
 
-const vs = `
+const shaderCode = `
 [[block]] struct Uniforms {
 	worldView : mat4x4<f32>;
 	proj : mat4x4<f32>;
@@ -55,7 +55,7 @@ fn toScreen(worldPos : vec4<f32>) -> vec2<f32> {
 }
 
 [[stage(vertex)]]
-fn main(vertex : VertexIn) -> VertexOut {
+fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	// A line is made of 2 triangles / 6 vertices
 	// each of the 6 vertices loads start and end of the line
@@ -133,9 +133,6 @@ fn main(vertex : VertexIn) -> VertexOut {
 
 	return vout;
 }
-`;
-
-const fs = `
 
 struct FragmentIn{
 	[[builtin(position)]] position  : vec4<f32>;
@@ -145,15 +142,17 @@ struct FragmentIn{
 struct FragmentOut{
 	[[location(0)]] color : vec4<f32>;
 	[[builtin(frag_depth)]] depth : f32;
+	[[location(1)]] id : u32;
 };
 
 [[stage(fragment)]]
-fn main(fragment : FragmentIn) -> FragmentOut {
+fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
 	fout.color = fragment.color;
 
 	fout.depth = fragment.position.z * 1.002;
+	fout.id = 0u;
 
 	return fout;
 }
@@ -171,16 +170,21 @@ function createPipeline(renderer){
 
 	let {device} = renderer;
 
+	let module = device.createShaderModule({code: shaderCode});
+
 	pipeline = device.createRenderPipeline({
 		vertex: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
+			module,
+			entryPoint: "main_vertex",
 			buffers: []
 		},
 		fragment: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-			targets: [{format: "bgra8unorm"}],
+			module,
+			entryPoint: "main_fragment",
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint"},
+			],
 		},
 		primitive: {
 			topology: 'triangle-list',

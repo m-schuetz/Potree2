@@ -48,6 +48,7 @@ struct FragmentInput {
 
 struct FragmentOutput {
 	[[location(0)]] color : vec4<f32>;
+	[[location(1)]] id : vec4<u32>;
 };
 
 [[stage(fragment)]]
@@ -100,7 +101,10 @@ function init(renderer){
 		fragment: {
 			module: device.createShaderModule({code: fs}),
 			entryPoint: "main",
-			targets: [{format: "bgra8unorm"}],
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint", writeMask: 0},
+			],
 		},
 		primitive: {
 			topology: 'triangle-list',

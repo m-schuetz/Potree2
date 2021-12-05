@@ -31,6 +31,7 @@ struct FragmentIn{
 
 struct FragmentOut{
 	[[location(0)]] outColor : vec4<f32>;
+	[[location(1)]] id : u32;
 };
 
 [[stage(vertex)]]
@@ -53,6 +54,7 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
 	fout.outColor = fragment.fragColor;
+	fout.id = 0u;
 
 	return fout;
 }
@@ -114,7 +116,10 @@ function createPipeline(renderer){
 		fragment: {
 			module: module,
 			entryPoint: "main_fragment",
-			targets: [{format: "bgra8unorm"}],
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint"},
+			],
 		},
 		primitive: {
 			topology: 'triangle-list',

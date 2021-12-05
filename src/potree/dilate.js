@@ -179,7 +179,7 @@ let shaderSource = `
 			discard;
 		}
 
-		return output;
+		// return output;
 	}
 `;
 
