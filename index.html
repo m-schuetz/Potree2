@@ -109,42 +109,45 @@ canvas{
 		pivot: [-0.0, 2.2, 3.9],
 	});
 
-	import {CopcLoader} from "potree";
+	import {CopcLoader, Images360} from "potree";
 	Potree.settings.pointBudget = 4_000_000;
 	// Potree.settings.attribute = "classification";
 	Potree.settings.attribute = "rgba";
 
 	
 	// // CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
-	// CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
+	CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
 
-	// 	// debugger;
+		// debugger;
 
-	// 	let min = new Vector3(...pointcloud.loader.header.min);
-	// 	let max = new Vector3(...pointcloud.loader.header.max);
+		let min = new Vector3(...pointcloud.loader.header.min);
+		let max = new Vector3(...pointcloud.loader.header.max);
 
-	// 	let center = min.add(max).multiplyScalar(0.5);
-	// 	let size = min.distanceTo(max);
+		let center = min.add(max).multiplyScalar(0.5);
+		let size = min.distanceTo(max);
 		
-	// 	controls.set({
-	// 		yaw: -0.2,
-	// 		pitch: 0.8,
-	// 		radius: 1.5 * size,
-	// 		pivot: center,
-	// 	});
-
-	// 	scene.add(scene.root, pointcloud);
-	// });
-
-	Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-
 		controls.set({
-			position: [694068.6, 3915209.4, 2092.8],
-			pivot: [694702.7, 3916648.3, -196.8],
+			yaw: -0.2,
+			pitch: 0.8,
+			radius: 1.5 * size,
+			pivot: center,
 		});
-		
-		scene.root.children.push(pointcloud);
+
+		scene.add(scene.root, pointcloud);
+
+		let images = new Images360([]);
+		scene.add(scene.root, images);
 	});
+
+	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+
+	// 	controls.set({
+	// 		position: [694068.6, 3915209.4, 2092.8],
+	// 		pivot: [694702.7, 3916648.3, -196.8],
+	// 	});
+		
+	// 	scene.root.children.push(pointcloud);
+	// });
 
 	let origin = new Vector3(0, 0, 0);
 	let X = new Vector3(10, 0, 0);
