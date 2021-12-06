@@ -1,5 +1,5 @@
 
-import {Vector3, Matrix4, Frustum, math, EventDispatcher} from "potree";
+import {Vector3, Matrix4, Box3, Frustum, math, EventDispatcher} from "potree";
 import {SceneNode, PointCloudOctreeNode} from "potree";
 import {renderPointsOctree} from "potree";
 import {BinaryHeap} from "BinaryHeap";
@@ -147,6 +147,32 @@ export class PointCloudOctree extends SceneNode{
 
 	render(drawstate){
 		renderPointsOctree([this], drawstate);
+	}
+
+	getBoundingBoxWorld(){
+
+		let bb = this.boundingBox;
+		let min = bb.min;
+		let max = bb.max;
+
+		let transformed = [
+			new Vector3(min.x, min.y, min.z).applyMatrix4(this.world),
+			new Vector3(min.x, min.y, max.z).applyMatrix4(this.world),
+			new Vector3(min.x, max.y, min.z).applyMatrix4(this.world),
+			new Vector3(min.x, max.y, max.z).applyMatrix4(this.world),
+			new Vector3(max.x, min.y, min.z).applyMatrix4(this.world),
+			new Vector3(max.x, min.y, max.z).applyMatrix4(this.world),
+			new Vector3(max.x, max.y, min.z).applyMatrix4(this.world),
+			new Vector3(max.x, max.y, max.z).applyMatrix4(this.world),
+		];
+
+		let boxWorld = new Box3();
+
+		for(let point of transformed){
+			boxWorld.expandByPoint(point);
+		}
+
+		return boxWorld;
 	}
 
 }

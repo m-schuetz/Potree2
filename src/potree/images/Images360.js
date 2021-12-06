@@ -1,15 +1,16 @@
 
-import {SceneNode, Vector3, Matrix4} from "potree";
+import {SceneNode, Vector3, Matrix4, EventDispatcher} from "potree";
 
 let shaderCode = `
 
 [[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
-	size: f32;
-	elementCounter: u32;
+	worldView        : mat4x4<f32>;
+	proj             : mat4x4<f32>;
+	screen_width     : f32;
+	screen_height    : f32;
+	size             : f32;
+	elementCounter   : u32;
+	hoveredIndex     : i32;
 };
 
 [[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
@@ -50,15 +51,30 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
 	var projPos : vec4<f32> = uniforms.proj * viewPos;
 
+	var worldSize = 10.0;
+	var sizeR = 0.0;
+	{
+		var viewPosR : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
+		viewPosR.x = viewPosR.x + 0.5 * worldSize;
+		viewPosR.y = viewPosR.y + 0.5 * worldSize;
+		var projPosR : vec4<f32> = uniforms.proj * viewPosR;
+
+		var diff = abs((projPosR.x / projPosR.w) - (projPos.x / projPos.w));
+
+		sizeR = 1.0 * uniforms.screen_width * diff;
+	}
+
 	let quadVertexIndex : u32 = vertex.vertexID % 6u;
 	var pos_quad : vec3<f32> = QUAD_POS[quadVertexIndex];
 
+	var size = max(sizeR, uniforms.size);
+
 	var fx : f32 = projPos.x / projPos.w;
-	fx = fx + uniforms.size * pos_quad.x / uniforms.screen_width;
+	fx = fx + size * pos_quad.x / uniforms.screen_width;
 	projPos.x = fx * projPos.w;
 
 	var fy : f32 = projPos.y / projPos.w;
-	fy = fy + uniforms.size * pos_quad.y / uniforms.screen_height;
+	fy = fy + size * pos_quad.y / uniforms.screen_height;
 	projPos.y = fy * projPos.w;
 
 	var vout : VertexOut;
@@ -72,7 +88,13 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
-	fout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+
+	if(i32(fragment.pointID) == uniforms.hoveredIndex){
+		fout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	}else{
+		fout.color = vec4<f32>(0.5, 0.5, 0.5, 1.0);
+	}
+
 	fout.point_id = uniforms.elementCounter + fragment.pointID;
 
 	return fout;
@@ -148,14 +170,16 @@ export class Images360 extends SceneNode{
 		this.images = images;
 		this.uniformBuffer = null;
 		this.bindGroup = null;
+		this.hoveredIndex = null;
+		this.dispatcher = new EventDispatcher();
 
 		// test data
 		let center = new Vector3(637227.1, 850869.3, 649.5);
-		let n = 100_000;
+		let n = 100;
 		this.positions = new Float32Array(3 * n);
 		for(let i = 0; i < n; i++){
 			let u = i / n;
-			let r = 2 * i;
+			let r = 10 * i;
 			let x = center.x + r * Math.cos(4 * Math.PI * u);
 			let y = center.y + r * Math.sin(4 * Math.PI * u);
 			let z = center.z;
@@ -171,6 +195,15 @@ export class Images360 extends SceneNode{
 			this.positions[3 * i + 2] = z;
 		}
 
+	}
+
+	setHovered(index){
+		this.hoveredIndex = index;
+		this.dispatcher.dispatch("hover", {
+			images: this,
+			index: index,
+			image: this.images[index],
+		});
 	}
 
 	updateUniforms(drawstate){
@@ -214,6 +247,7 @@ export class Images360 extends SceneNode{
 			view.setFloat32(132, size.height, true);
 			view.setFloat32(136, 10.0, true);
 			view.setUint32(140, Potree.state.renderedElements, true);
+			view.setInt32(144, this.hoveredIndex ?? -1, true);
 		}
 
 		renderer.device.queue.writeBuffer(this.uniformBuffer, 0, data, 0, data.byteLength);

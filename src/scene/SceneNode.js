@@ -1,7 +1,5 @@
 
-import {Vector3} from "../math/Vector3.js";
-import {Box3} from "../math/Box3.js";
-import {Matrix4} from "../math/Matrix4.js";
+import {Vector3, Box3, Matrix4} from "potree";
 
 export class SceneNode{
 

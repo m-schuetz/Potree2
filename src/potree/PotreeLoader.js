@@ -210,7 +210,7 @@ export class PotreeLoader{
 			//let worker = new Worker("./src/potree/DecoderWorker_brotli.js", { type: "module" });
 
 			let workerPath = null;
-			if(this.metadata.encoding === "default"){
+			if(this.metadata.encoding === "DEFAULT"){
 				workerPath = "./src/potree/DecoderWorker_default.js";
 			}else if(this.metadata.encoding === "BROTLI"){
 				workerPath = "./src/potree/DecoderWorker_brotli.js";

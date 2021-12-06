@@ -116,27 +116,51 @@ canvas{
 
 	
 	// // CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
-	CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
+	// CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
 
-		// debugger;
+	// 	// debugger;
 
-		let min = new Vector3(...pointcloud.loader.header.min);
-		let max = new Vector3(...pointcloud.loader.header.max);
+	// 	let min = new Vector3(...pointcloud.loader.header.min);
+	// 	let max = new Vector3(...pointcloud.loader.header.max);
+
+	// 	let center = min.add(max).multiplyScalar(0.5);
+	// 	let size = min.distanceTo(max);
+		
+	// 	controls.set({
+	// 		yaw: -0.2,
+	// 		pitch: 0.8,
+	// 		radius: 1.5 * size,
+	// 		pivot: center,
+	// 	});
+
+	// 	scene.add(scene.root, pointcloud);
+
+	// 	let images = new Images360([]);
+	// 	scene.add(scene.root, images);
+	// });
+
+	Potree.load("./nocommit/F_pointclouds/helimap/MLS/MLS_converted/metadata.json").then(pointcloud => {
+
+		let box = pointcloud.getBoundingBoxWorld();
+		let min = box.min.clone();
+		let max = box.max.clone();
 
 		let center = min.add(max).multiplyScalar(0.5);
 		let size = min.distanceTo(max);
-		
+
+		// controls.set({
+		// 	yaw: -0.2,
+		// 	pitch: 0.8,
+		// 	radius: 1.5 * size,
+		// 	pivot: center,
+		// });
+
 		controls.set({
-			yaw: -0.2,
-			pitch: 0.8,
-			radius: 1.5 * size,
-			pivot: center,
+			position: [2650424, 1247555, 439],
+			pivot: [2650474, 1247624, 422],
 		});
 
-		scene.add(scene.root, pointcloud);
-
-		let images = new Images360([]);
-		scene.add(scene.root, images);
+		scene.root.children.push(pointcloud);
 	});
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {

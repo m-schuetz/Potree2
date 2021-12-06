@@ -558,13 +558,15 @@ function renderNotSoBasic(){
 				
 				let position = image.position;
 				let distance = camera.getWorldPosition().distanceTo(position);
-				let radius = distance / 50;
+				let radius = distance / 200;
 
 				dbgSphere.position.copy(position);
 				dbgSphere.scale.set(radius, radius, radius);
 				dbgSphere.updateWorld();
 
 				Potree.pickPosition.copy(position);
+
+				node.setHovered(elementIndex);
 			}
 		});
 
