@@ -25,8 +25,8 @@ export class PotreeControls{
 				let ux = diffX / this.element.width;
 				let uy = diffY / this.element.height;
 
-				this.yaw += 12 * ux;
-				this.pitch += 12 * uy;
+				this.yaw += 6 * ux;
+				this.pitch += 6 * uy;
 			}else if(dragRight){
 				let diffX = e.event.movementX;
 				let diffY = e.event.movementY;

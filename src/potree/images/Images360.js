@@ -51,7 +51,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
 	var projPos : vec4<f32> = uniforms.proj * viewPos;
 
-	var worldSize = 10.0;
+	var worldSize = 2.0;
 	var sizeR = 0.0;
 	{
 		var viewPosR : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
@@ -92,7 +92,11 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 	if(i32(fragment.pointID) == uniforms.hoveredIndex){
 		fout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 	}else{
-		fout.color = vec4<f32>(0.5, 0.5, 0.5, 1.0);
+		fout.color = vec4<f32>(
+			253.0 / 255.0,
+			174.0 / 255.0,
+			97.0 / 255.0,
+			1.0);
 	}
 
 	fout.point_id = uniforms.elementCounter + fragment.pointID;
@@ -173,27 +177,38 @@ export class Images360 extends SceneNode{
 		this.hoveredIndex = null;
 		this.dispatcher = new EventDispatcher();
 
-		// test data
-		let center = new Vector3(637227.1, 850869.3, 649.5);
-		let n = 100;
-		this.positions = new Float32Array(3 * n);
-		for(let i = 0; i < n; i++){
-			let u = i / n;
-			let r = 10 * i;
-			let x = center.x + r * Math.cos(4 * Math.PI * u);
-			let y = center.y + r * Math.sin(4 * Math.PI * u);
-			let z = center.z;
+		this.positions = new Float32Array(3 * this.images.length);
+		for(let i = 0; i < this.images.length; i++){
+			let image = this.images[i];
 
-			let image = new Image360();
-			image.position.set(x, y, z);
-			image.name = `test_${i}`;
+			this.positions[3 * i + 0] = image.position.x;
+			this.positions[3 * i + 1] = image.position.y;
+			this.positions[3 * i + 2] = image.position.z;
 
-			this.images.push(image);
-			
-			this.positions[3 * i + 0] = x;
-			this.positions[3 * i + 1] = y;
-			this.positions[3 * i + 2] = z;
 		}
+
+
+		// // test data
+		// let center = new Vector3(637227.1, 850869.3, 649.5);
+		// let n = 100;
+		// this.positions = new Float32Array(3 * n);
+		// for(let i = 0; i < n; i++){
+		// 	let u = i / n;
+		// 	let r = 10 * i;
+		// 	let x = center.x + r * Math.cos(4 * Math.PI * u);
+		// 	let y = center.y + r * Math.sin(4 * Math.PI * u);
+		// 	let z = center.z;
+
+		// 	let image = new Image360();
+		// 	image.position.set(x, y, z);
+		// 	image.name = `test_${i}`;
+
+		// 	this.images.push(image);
+			
+		// 	this.positions[3 * i + 0] = x;
+		// 	this.positions[3 * i + 1] = y;
+		// 	this.positions[3 * i + 2] = z;
+		// }
 
 	}
 
