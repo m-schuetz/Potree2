@@ -99,12 +99,21 @@ function getSumBuffer(renderer){
 	let size = [128, 128, 1];
 	let descriptor = {
 		size: size,
-		colorDescriptors: [{
-			size: size,
-			format: "rgba16float",
-			usage: GPUTextureUsage.TEXTURE_BINDING 
-				| GPUTextureUsage.RENDER_ATTACHMENT,
-		}],
+		colorDescriptors: [
+			{
+				size: size,
+				format: "rgba16float",
+				usage: GPUTextureUsage.TEXTURE_BINDING 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
+			},{
+				size: size,
+				format: "r32uint",
+				usage: GPUTextureUsage.TEXTURE_BINDING 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
+			}
+		],
 		depthDescriptor: {
 			size: size,
 			format: "depth32float",
@@ -185,11 +194,20 @@ function revisitPass(renderer, target){
 function startSumPass(renderer, target){
 	let view = target.colorAttachments[0].texture.createView();
 
+	let colorAttachments = [
+		{view, loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }}
+	];
+
+	// let disable_multi_attachments = args.disable_multi_attachments ?? false;
+	if(target.colorAttachments.length === 2){
+		let view = target.colorAttachments[1].texture.createView();
+		colorAttachments.push(
+			{view, loadValue: { r: 0, g: 0, b: 0, a: 0}}
+		);
+	}
+
 	let renderPassDescriptor = {
-		colorAttachments: [{
-			view, 
-			loadValue: { r: 0, g: 0, b: 0, a: 0.0 }
-		}],
+		colorAttachments,
 		depthStencilAttachment: {
 			view: target.depth.texture.createView(),
 			depthLoadValue: "load",
