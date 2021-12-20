@@ -67,25 +67,19 @@ async function load(event){
 				targetView.setFloat32(targetOffset + 4, z, true);
 				targetView.setFloat32(targetOffset + 8, y, true);
 			}
-		}else if(["RGBA", "rgba"].includes(pointAttribute.name)){
+		}else{
 
 			for (let j = 0; j < numPoints; j++) {
-				let pointOffset = j * pointAttributes.byteSize;
 
-				let R = view.getUint16(pointOffset + byteOffset + 0, true);
-				let G = view.getUint16(pointOffset + byteOffset + 2, true);
-				let B = view.getUint16(pointOffset + byteOffset + 4, true);
+				for(let k = 0; k < pointAttribute.byteSize; k++){
+					let sourceOffset = j * pointAttributes.byteSize + byteOffset + k;
+					let targetOffset = numPoints * byteOffset + j * pointAttribute.byteSize + k;
 
-				let r = R > 255 ? R / 256 : R;
-				let g = G > 255 ? G / 256 : G;
-				let b = B > 255 ? B / 256 : B;
+					targetBuffer[targetOffset] = buffer[sourceOffset];
+				}
 
-				let targetOffset = numPoints * byteOffset + j *4;
-				targetView.setUint8(targetOffset + 0, r, true);
-				targetView.setUint8(targetOffset + 1, g, true);
-				targetView.setUint8(targetOffset + 2, b, true);
-				targetView.setUint8(targetOffset + 3, 255, true);
 			}
+
 		}
 		
 		byteOffset += pointAttribute.byteSize;

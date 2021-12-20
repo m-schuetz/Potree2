@@ -235,8 +235,10 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
 	if(attribute.valuetype == TYPES_RGBA){
+		
 
 		var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
+		// var offset = 29u * node.numPoints + 4u * vertex.vertexID;
 
 		var r = 0.0;
 		var g = 0.0;
@@ -251,6 +253,12 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 			g = f32(readU16(offset + 2u));
 			b = f32(readU16(offset + 4u));
 		}
+
+		// {
+		// 	r = f32(readU8(offset + 0u));
+		// 	g = f32(readU8(offset + 1u));
+		// 	b = f32(readU8(offset + 2u));
+		// }
 
 		if(r > 255.0){
 			r = r / 256.0;
