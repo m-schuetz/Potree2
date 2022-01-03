@@ -54,6 +54,12 @@ let shaderSource = `
 		var wi = diff.x * diff.x + diff.y * diff.y;
 		var newDepth = depth + wi * wi * wRadius;
 
+		if(i32(fragment.fragCoord.x) == i32(depthCoord.x) && i32(fragment.fragCoord.y) == i32(depthCoord.y)){
+			newDepth = depth;
+		}else{
+			newDepth = depth + wi * wi * wRadius;
+		}
+
 		return newDepth;
 	}
 
@@ -66,7 +72,7 @@ let shaderSource = `
 		var depth = uniforms.near / pixelDepth;
 		var wRadius = uniforms.near * f32(uniforms.window) * depth / f32(uniforms.width);
 		var wi = diff.x * diff.x + diff.y * diff.y;
-		var newDepth = depth + wi * wRadius * 0.5;
+		var newDepth = depth + wi * wi * wRadius;
 
 		return wi;
 	}
@@ -172,6 +178,25 @@ let shaderSource = `
 			output.depth = pixelDepth;
 			output.color = color;
 			output.pointID = textureLoad(tex_pointID, vec2<i32>(source), 0).r;
+
+			// var w = (uniforms.near / pixelDepth) / 50000.0;
+
+			// var cval = output.pointID * 123u;
+			// var R = ((cval >>  0u) & 0xFu) << 4u;
+			// var G = ((cval >>  8u) & 0xFu) << 4u;
+			// var B = ((cval >> 16u) & 0xFu) << 4u;
+			
+			// var w = getWeight(input, source);
+			// output.color = vec4<f32>(
+			// 	w, w, w, 1.0
+			// );
+
+			// output.color = vec4<f32>(
+			// 	f32(R) / 256.0, 
+			// 	f32(G) / 256.0, 
+			// 	f32(B) / 256.0, 
+			// 	1.0
+			// );
 
 
 			return output;

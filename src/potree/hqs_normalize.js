@@ -1,7 +1,7 @@
 
 import {Timer} from "potree";
 
-let vs = `
+let shaderCode = `
 	[[block]] struct Uniforms {
 		uTest : u32;
 		x : f32;
@@ -12,6 +12,10 @@ let vs = `
 	};
 
 	[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+	[[binding(1), group(0)]] var mySampler   : sampler;
+	[[binding(2), group(0)]] var myTexture   : texture_2d<f32>;
+	[[binding(3), group(0)]] var tex_pointID : texture_2d<u32>;
+	[[binding(4), group(0)]] var myDepth     : texture_depth_2d;
 
 	struct VertexInput {
 		[[builtin(vertex_index)]] index : u32;
@@ -22,8 +26,23 @@ let vs = `
 		[[location(0)]] uv : vec2<f32>;
 	};
 
+	struct FragmentInput {
+		[[builtin(position)]] fragCoord : vec4<f32>;
+		[[location(0)]] uv: vec2<f32>;
+	};
+
+	struct FragmentOutput{
+		[[builtin(frag_depth)]] depth : f32;
+		[[location(0)]] color : vec4<f32>;
+		[[location(1)]] pointID : u32;
+	};
+
+	fn toLinear(depth: f32, near: f32) -> f32{
+		return near / depth;
+	}
+
 	[[stage(vertex)]]
-	fn main(vertex : VertexInput) -> VertexOutput {
+	fn main_vs(vertex : VertexInput) -> VertexOutput {
 
 		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 			vec2<f32>(0.0, 0.0),
@@ -70,44 +89,9 @@ let vs = `
 
 		return output;
 	}
-`;
-
-let fs = `
-
-	[[binding(1), group(0)]] var mySampler   : sampler;
-	[[binding(2), group(0)]] var myTexture   : texture_2d<f32>;
-	[[binding(3), group(0)]] var tex_pointID : texture_2d<u32>;
-	[[binding(4), group(0)]] var myDepth     : texture_depth_2d;
-
-	[[block]] struct Uniforms {
-		uTest   : u32;
-		x       : f32;
-		y       : f32;
-		width   : f32;
-		height  : f32;
-		near    : f32;
-		window  : i32;
-	};
-	
-	[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-
-	struct FragmentInput {
-		[[builtin(position)]] fragCoord : vec4<f32>;
-		[[location(0)]] uv: vec2<f32>;
-	};
-
-	struct FragmentOutput{
-		[[builtin(frag_depth)]] depth : f32;
-		[[location(0)]] color : vec4<f32>;
-		[[location(1)]] pointID : u32;
-	};
-
-	fn toLinear(depth: f32, near: f32) -> f32{
-		return near / depth;
-	}
 
 	[[stage(fragment)]]
-	fn main(input : FragmentInput) -> FragmentOutput {
+	fn main_fs(input : FragmentInput) -> FragmentOutput {
 
 		_ = mySampler;
 		_ = myTexture;
@@ -121,15 +105,14 @@ let fs = `
 		coords.y = i32(input.fragCoord.y);
 		
 		var c : vec4<f32> = textureLoad(myTexture, coords, 0);
-		c.r = c.r / c.w;
-		c.g = c.g / c.w;
-		c.b = c.b / c.w;
-
-		var d : f32 = textureLoad(myDepth, coords, 0);
 
 		if(c.w == 0.0){
 			discard;
 		}
+		
+		c = c / c.w;
+		
+		var d : f32 = textureLoad(myDepth, coords, 0);
 
 		output.color = c;
 		output.depth = d;
@@ -150,14 +133,16 @@ function init(renderer){
 
 	let {device, swapChainFormat} = renderer;
 
+	let module = device.createShaderModule({code: shaderCode});
+
 	pipeline = device.createRenderPipeline({
 		vertex: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
+			module,
+			entryPoint: "main_vs",
 		},
 		fragment: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
+			module,
+			entryPoint: "main_fs",
 			targets: [
 				{format: "bgra8unorm"},
 				{format: "r32uint", blend: undefined}

@@ -115,7 +115,10 @@ canvas{
 	import {CopcLoader, Image360, Images360} from "potree";
 	Potree.settings.pointBudget = 4_000_000;
 	// Potree.settings.attribute = "classification";
+
 	Potree.settings.attribute = "rgba";
+	Potree.settings.pointSize = 7;
+	// Potree.settings.pointBudget = 30085;
 
 	
 	// // CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
@@ -215,11 +218,11 @@ canvas{
 	// });
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	Potree.load("./nocommit/F_pointclouds/ca13_avg/metadata.json").then(pointcloud => {
+	Potree.load("./nocommit/F_pointclouds/ca13_avg_brotli/metadata.json").then(pointcloud => {
 
 		controls.set({
-			position: [694068.6, 3915209.4, 2092.8],
-			pivot: [694702.7, 3916648.3, -196.8],
+			position: [693443.9732606566, 3912001.1551396353, 5534.708901668277],
+			pivot: [694841.212154448, 3915171.7702544066, 692.7931475131616],
 		});
 		
 		scene.root.children.push(pointcloud);

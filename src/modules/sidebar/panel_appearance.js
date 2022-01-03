@@ -78,7 +78,7 @@ export function createPanel(){
 		addSlider({
 			label: "Point Budget", 
 			elementName: "sldPointBudget",
-			range: [1_000_000, 5_000_000], 
+			range: [20_000, 5_000_000], 
 			value: Potree.settings.pointBudget,
 			onChange: (elSlider, elValue) => {
 				Potree.settings.pointBudget = Number(elSlider.value);
