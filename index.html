@@ -145,88 +145,92 @@ canvas{
 	// 	// scene.add(scene.root, images);
 	// });
 
-	// Potree.load("./nocommit/F_pointclouds/helimap/MLS/MLS_converted/metadata.json").then(pointcloud => {
+	Potree.load("./nocommit/F_pointclouds/helimap/MLS/MLS_converted/metadata.json").then(pointcloud => {
 
-	// 	let box = pointcloud.getBoundingBoxWorld();
-	// 	let min = box.min.clone();
-	// 	let max = box.max.clone();
+		let box = pointcloud.getBoundingBoxWorld();
+		let min = box.min.clone();
+		let max = box.max.clone();
 
-	// 	let center = min.add(max).multiplyScalar(0.5);
-	// 	let size = min.distanceTo(max);
+		let center = min.add(max).multiplyScalar(0.5);
+		let size = min.distanceTo(max);
 
-	// 	// controls.set({
-	// 	// 	yaw: -0.2,
-	// 	// 	pitch: 0.8,
-	// 	// 	radius: 1.5 * size,
-	// 	// 	pivot: center,
-	// 	// });
-
-	// 	controls.set({
-	// 		position: [2652444.6957079773, 1249600.97937318, 411.0694647706244],
-	// 		pivot: [2652395.5288862716, 1249539.7654101078, 402.40091299827213],
-	// 	});
-
-	// 	scene.root.children.push(pointcloud);
-
-	// 	let projTo = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs";
-		
-	// 	let long = 8.133038383902338;
-	// 	let lat = 47.39491676370041;
-
-	// 	let result = proj4(projTo, [long, lat]);
-	// 	console.log(result);
-
-	// 	let imageList = [];
-	// 	fetch("./nocommit/F_pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt").then(async (response) => {
-
-	// 		let text = await response.text();
-	// 		let lines = text.split("\n");
-			
-	// 		for(let i = 1; i < lines.length; i++){
-	// 			let line = lines[i];
-
-	// 			if(line.trim().length === 0){
-	// 				continue;
-	// 			}
-
-	// 			let tokens = line.split("\t");
-
-	// 			console.log(tokens);
-
-	// 			let imgPath = tokens[0];
-	// 			let long = Number(tokens[2]);
-	// 			let lat = Number(tokens[3]);
-
-	// 			let xy = proj4(projTo, [long, lat]);
-
-	// 			let image = new Image360();
-	// 			image.position.x = xy[0];
-	// 			image.position.y = xy[1];
-	// 			image.position.z = 396;
-	// 			image.name = imgPath;
-
-	// 			imageList.push(image);
-				
-	// 		}
-
-	// 		let images = new Images360(imageList);
-	// 		scene.add(scene.root, images);
-
-
-	// 	});
-
-	// });
-
-	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	Potree.load("./nocommit/F_pointclouds/ca13_avg_brotli/metadata.json").then(pointcloud => {
+		// controls.set({
+		// 	yaw: -0.2,
+		// 	pitch: 0.8,
+		// 	radius: 1.5 * size,
+		// 	pivot: center,
+		// });
 
 		controls.set({
-			position: [693443.9732606566, 3912001.1551396353, 5534.708901668277],
-			pivot: [694841.212154448, 3915171.7702544066, 692.7931475131616],
+			position: [2652444.6957079773, 1249600.97937318, 411.0694647706244],
+			pivot: [2652395.5288862716, 1249539.7654101078, 402.40091299827213],
 		});
-		
+
 		scene.root.children.push(pointcloud);
+
+		let projTo = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs";
+		
+		let long = 8.133038383902338;
+		let lat = 47.39491676370041;
+
+		let result = proj4(projTo, [long, lat]);
+		console.log(result);
+
+		let imageList = [];
+		fetch("./nocommit/F_pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt").then(async (response) => {
+
+			let text = await response.text();
+			let lines = text.split("\n");
+			
+			for(let i = 1; i < lines.length; i++){
+				let line = lines[i];
+
+				if(line.trim().length === 0){
+					continue;
+				}
+
+				let tokens = line.split("\t");
+
+				console.log(tokens);
+
+				let imgPath = tokens[0];
+				let long = Number(tokens[2]);
+				let lat = Number(tokens[3]);
+
+				let xy = proj4(projTo, [long, lat]);
+
+				let image = new Image360();
+				image.position.x = xy[0];
+				image.position.y = xy[1];
+				image.position.z = 396;
+				image.name = imgPath;
+
+				imageList.push(image);
+				
+			}
+
+			let images = new Images360(imageList);
+			scene.add(scene.root, images);
+
+
+		});
+
 	});
+
+	// // Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// Potree.load("./nocommit/F_pointclouds/ca13_avg_brotli/metadata.json").then(pointcloud => {
+
+	// 	controls.set({
+	// 		position: [693510.3659155036, 3914635.7496266835, 2348.8318473331674],
+	// 		pivot: [695465.0277230293, 3917000.392088688, -320.45425290016703],
+	// 	});
+	// 	// controls.set({
+	// 	// 	position: [695519.3840013768, 3918738.880881983, 174.79076714030535],
+	// 	// 	pivot: [695414.0628645113, 3918897.936389257, 201.34908755874508],
+	// 	// });
+		
+	// 	scene.root.children.push(pointcloud);
+	// });
 
 	let origin = new Vector3(0, 0, 0);
 	let X = new Vector3(10, 0, 0);

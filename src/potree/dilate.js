@@ -171,7 +171,7 @@ let shaderSource = `
 
 			var source = closestCoords;
 
-			var color : vec4<f32> = textureLoad(myTexture, vec2<i32>(source), 0);
+			var color = textureLoad(myTexture, vec2<i32>(source), 0);
 			var pixelDepth = textureLoad(myDepth, vec2<i32>(source), 0);
 			var d = getLinearDepthAt(input, source);
 

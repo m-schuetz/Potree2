@@ -3,12 +3,13 @@ import {Timer} from "potree";
 
 let shaderCode = `
 	[[block]] struct Uniforms {
-		uTest : u32;
-		x : f32;
-		y : f32;
-		width : f32;
-		height : f32;
-		near : f32;
+		uTest     : u32;
+		x         : f32;
+		y         : f32;
+		width     : f32;
+		height    : f32;
+		near      : f32;
+		window    : i32;
 	};
 
 	[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
@@ -90,6 +91,26 @@ let shaderCode = `
 		return output;
 	}
 
+	fn getLinearDepthAt(fragment : FragmentInput, depthCoord : vec2<f32>) -> f32 {
+		var currentCoord = fragment.fragCoord.xy;
+
+		var pixelDepth = textureLoad(myDepth, vec2<i32>(depthCoord), 0);
+		var diff = (currentCoord - depthCoord) / f32(uniforms.window);
+
+		var depth = uniforms.near / pixelDepth;
+		var wRadius = uniforms.near * f32(uniforms.window) * depth / f32(uniforms.width);
+		var wi = diff.x * diff.x + diff.y * diff.y;
+		var newDepth = depth + wi * wi * wRadius;
+
+		if(i32(fragment.fragCoord.x) == i32(depthCoord.x) && i32(fragment.fragCoord.y) == i32(depthCoord.y)){
+			newDepth = depth;
+		}else{
+			newDepth = depth + wi * wi * wRadius;
+		}
+
+		return newDepth;
+	}
+
 	[[stage(fragment)]]
 	fn main_fs(input : FragmentInput) -> FragmentOutput {
 
@@ -98,13 +119,80 @@ let shaderCode = `
 		_ = myDepth;
 		_ = tex_pointID;
 
+
+		var window = uniforms.window;
+		var DEFAULT_CLOSEST = 10000000.0;
+		var closest = DEFAULT_CLOSEST;
+		var closestCoords = vec2<f32>(0.0, 0.0);
+
+		for(var i : i32 = -window; i <= window; i = i + 1){
+		for(var j : i32 = -window; j <= window; j = j + 1){
+			var coords : vec2<i32>;
+			coords.x = i32(input.fragCoord.x) + i;
+			coords.y = i32(input.fragCoord.y) + j;
+
+			// var distance = sqrt(f32(i * i + j * j));
+
+			var d : f32 = getLinearDepthAt(input, vec2<f32>(coords));
+
+			if(d == 0.0){
+				continue;
+			}
+
+			closest = min(closest, d);
+
+			if(closest == d){
+				closestCoords = input.fragCoord.xy + vec2<f32>(f32(i), f32(j));
+			}
+		}
+		}
+
+
+		var c = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+
+		for(var i : i32 = -window; i <= window; i = i + 1){
+		for(var j : i32 = -window; j <= window; j = j + 1){
+			var coords : vec2<i32>;
+			coords.x = i32(input.fragCoord.x) + i;
+			coords.y = i32(input.fragCoord.y) + j;
+
+			var d : f32 = getLinearDepthAt(input, vec2<f32>(coords));
+
+			if(d <= (closest * 1.01)){
+				var color = textureLoad(myTexture, coords, 0);
+
+				// // var distance = sqrt(f32(i * i + j * j)) / f32(window);
+				// var distance = f32(i + j) / f32(window + window);
+				// // float distance = 2.0 * length(gl_PointCoord.xy - 0.5);
+				// var w = max(0.0, 1.0 - distance);
+				// w = pow(w, 10.5);
+
+				// var a = 1.0;
+				
+				// if(window > 0){
+				// 	a = f32(window);
+				// }
+
+				var a = 1.0;
+				var distance = sqrt(f32(i * i + j * j)); // / sqrt(1.0 + 1.0);
+				var w = a * exp(- (pow(distance / a, 2.0)) / 0.1);
+
+				color = color * w;
+
+				c = c + color;
+			}
+
+			
+
+		}
+		}
+
+
 		var output : FragmentOutput;
 
 		var coords : vec2<i32>;
 		coords.x = i32(input.fragCoord.x);
 		coords.y = i32(input.fragCoord.y);
-		
-		var c : vec4<f32> = textureLoad(myTexture, coords, 0);
 
 		if(c.w == 0.0){
 			discard;
@@ -112,7 +200,7 @@ let shaderCode = `
 		
 		c = c / c.w;
 		
-		var d : f32 = textureLoad(myDepth, coords, 0);
+		var d : f32 = textureLoad(myDepth, vec2<i32>(closestCoords), 0);
 
 		output.color = c;
 		output.depth = d;
