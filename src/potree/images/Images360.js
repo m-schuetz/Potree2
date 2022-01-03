@@ -247,7 +247,9 @@ export class Images360 extends SceneNode{
 		let view = new DataView(data);
 
 		{ // transform
-			let world = new Matrix4();
+			// let world = new Matrix4();
+			this.updateWorld();
+			let world = this.world;
 			let view = camera.view;
 			let worldView = new Matrix4().multiplyMatrices(view, world);
 

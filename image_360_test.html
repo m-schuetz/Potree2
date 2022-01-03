@@ -178,6 +178,8 @@ canvas{
 
 			let text = await response.text();
 			let lines = text.split("\n");
+
+			let min = null;
 			
 			for(let i = 1; i < lines.length; i++){
 				let line = lines[i];
@@ -190,15 +192,20 @@ canvas{
 
 				console.log(tokens);
 
+
 				let imgPath = tokens[0];
 				let long = Number(tokens[2]);
 				let lat = Number(tokens[3]);
 
 				let xy = proj4(projTo, [long, lat]);
 
+				if(min == null){
+					min = new Vector3(xy[0], xy[1], 0);
+				}
+
 				let image = new Image360();
-				image.position.x = xy[0];
-				image.position.y = xy[1];
+				image.position.x = xy[0] - min.x;
+				image.position.y = xy[1] - min.y;
 				image.position.z = 396;
 				image.name = imgPath;
 
@@ -207,6 +214,7 @@ canvas{
 			}
 
 			let images = new Images360(imageList);
+			images.position.copy(min);
 			scene.add(scene.root, images);
 
 

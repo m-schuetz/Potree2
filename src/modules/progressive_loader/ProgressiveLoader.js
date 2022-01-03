@@ -1,7 +1,7 @@
 
 import {Vector3, Box3} from "potree";
 import {Geometry, SceneNode, Points} from "potree";
-import {WorkerPool} from "../../misc/WorkerPool.js";
+import {WorkerPool} from "potree";
 
 let root = new SceneNode("progressive_root");
 
@@ -10,7 +10,7 @@ let progress = {
 	nodes: [],
 };
 
-let workerPath = "./src/modules/progressive_loader/LasDecoder_worker.js";
+let workerPath = `../src/modules/progressive_loader/LasDecoder_worker.js`;
 let workers = [
 	WorkerPool.getWorker(workerPath, {type: "module"}),
 	WorkerPool.getWorker(workerPath, {type: "module"}),

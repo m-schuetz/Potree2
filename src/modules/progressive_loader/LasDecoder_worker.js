@@ -2,6 +2,7 @@
 import {Vector3} from "../../math/math.js";
 import {Geometry} from "../../core/Geometry.js";
 
+
 // from https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
 function shuffle(array) {
 	var currentIndex = array.length, temporaryValue, randomIndex;
