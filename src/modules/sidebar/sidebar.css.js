@@ -69,10 +69,32 @@ select{
 	text-align:        center;
 	font-family:       Calibri;
 	font-size:         1.1em;
-	padding:           0.1em 0em 0.5em 0em;
 	font-weight:       bold;
+	padding:           0.1em 0em 0.5em 0em;
 	letter-spacing:    1px;
+	z-index:           1;
+	overflow:          hidden;
+	width:             100%;
+	display:           flex;
+	gap:               10px;
 }
+.subsection:before, .subsection:after {
+	position:          relative;
+	top:               51%;
+	overflow:          hidden;
+	width:             100%;
+	height:            1px;
+	content:           '-';
+	background-color:  #888888;
+	align-self:        center;
+}
+
+
+
+
+
+
+
 
 .potree_gradient_button{
 	width: 100%;

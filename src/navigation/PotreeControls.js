@@ -9,12 +9,36 @@ export class PotreeControls{
 		this.element = element;
 		this.radius = 5;
 		this.yaw = 0;
-		this.pitch = 0;
+		this._pitch = 0;
+		// this.pitch = 0;
 		this.pivot = new Vector3();
 		this.world = new Matrix4();
 		this.dispatcher = new EventDispatcher();
+		this.pickPosition = null;
+		this.dragStart = null;
+
+		this.pitch_limits = [
+			0.8 * -Math.PI / 2, 
+			0.8 * Math.PI / 2
+		];
+
+		this.dispatcher.add("mousedown", e => {
+			this.dragStart = {
+				position: this.getPosition().clone(),
+				pick: this.pickPosition.clone(),
+				target: this.pivot.clone(),
+				yaw: this.yaw,
+				pitch: this.pitch,
+				ratius: this.radius,
+			};
+		});
+
+		this.dispatcher.add("mouseup", e => {
+			this.dragStart = null;
+		});
 
 		this.dispatcher.add("mousemove", e => {
+
 			let dragLeft = e.event.buttons === 1;
 			let dragRight = e.event.buttons === 2;
 
@@ -34,45 +58,26 @@ export class PotreeControls{
 				let ux = diffX / this.element.width;
 				let uy = diffY / this.element.height;
 
-				this.translate_local(
-					-ux * this.radius, 
-					0, 
-					uy * this.radius);
+				if(this.dragStart){
+					let extent = this.dragStart.position.distanceTo(this.dragStart.target);
 
-
-				// console.log(this.pivot);
-
+					this.translate_local(-ux * extent, 0, uy * extent);
+				}
+			}else{
+				if(Potree.hoveredItem){
+					this.setPickPosition(Potree.pickPosition);
+				}
+				// this.pickPosition = Potree.pickPosition;
 			}
 
-			{ // always compute pick location
-				let {x, y} = e.mouse;
-
-				Potree.pick(x, y, (result) => {
-
-					if(result.distance !== Infinity){
-						Potree.pickPos = result.position;
-					}else{
-						Potree.pickPos = null;
-					}
-				});
-			}
 		});
 
 		this.dispatcher.add("mousewheel", e => {
 			let diff = -Math.sign(e.delta);
 
 			{
-
 				let campos = this.getPosition();
-				let targetpos;
-				
-				if(Potree.pickPos){
-					targetpos = Potree.pickPos;
-				}else{
-					targetpos = this.pivot;
-				}
-
-				
+				let targetpos = this.pickPosition;
 
 				let distance = campos.distanceTo(targetpos);
 				
@@ -96,15 +101,33 @@ export class PotreeControls{
 					pivot: newPivot,
 					radius: newRadius,
 				});
-
-				// console.log(newRadius);
 			}
 			
 
 		});
 	}
 
+	setPickPosition(position){
+		this.pickPosition = position;
+
+		let origin = this.getPosition();
+		let pick_dir = this.pickPosition.clone().sub(origin).normalize();
+		let pick_dist = origin.distanceTo(this.pickPosition);
+		let pivot_dir = this.pivot.clone().sub(origin).normalize();
+		let pivot_dist = origin.distanceTo(this.pivot);
+		let origin_pick = this.pickPosition.clone().sub(origin);
+
+		let newRadius = pick_dir.dot(origin_pick);
+		let newPivot = pivot_dir.clone().multiplyScalar(newRadius).add(origin);
+
+		this.set({position: origin, pivot: newPivot});
+
+
+
+	}
+
 	set({yaw, pitch, radius, pivot, position}){
+
 		this.yaw = yaw ?? this.yaw;
 		this.pitch = pitch ?? this.pitch;
 		this.radius = radius ?? this.radius;
@@ -118,10 +141,18 @@ export class PotreeControls{
 		}
 		
 		if(position !== undefined && pivot !== undefined){
+
+			if(position.constructor.name === "Array"){
+				position = new Vector3(...position);
+			}
+			if(pivot.constructor.name === "Array"){
+				pivot = new Vector3(...pivot);
+			}
+
 			let diff = new Vector3(
-				pivot[0] - position[0],
-				pivot[1] - position[1],
-				pivot[2] - position[2],
+				pivot.x - position.x,
+				pivot.y - position.y,
+				pivot.z - position.z,
 			);
 
 			let radius = diff.length();
@@ -132,9 +163,23 @@ export class PotreeControls{
 			this.yaw = yaw;
 			this.pitch = pitch;
 			this.radius = radius;
-
 		} 
+
+		this.update(0);
 	}
+
+	get pitch(){
+		return this._pitch;
+	}
+
+	set pitch(value){
+
+		value = Math.max(value, this.pitch_limits[0]);
+		value = Math.min(value, this.pitch_limits[1]);
+
+		this._pitch = value;
+	}
+
 
 	zoomTo(node, args){
 
