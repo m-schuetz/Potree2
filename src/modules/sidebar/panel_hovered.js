@@ -75,7 +75,7 @@ class Panel{
 			}
 		}else if(hoveredItem?.type === "Image360"){
 			let {image, images} = hoveredItem;
-			let strPos = image.position.clone().add(images.position).toString(1);
+			let strPos = image.position.toString(1);
 
 			valueRows += `
 			<tr>

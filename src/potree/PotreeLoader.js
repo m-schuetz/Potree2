@@ -229,6 +229,8 @@ export class PotreeLoader{
 					}else{
 						console.log("not mergeable");
 					}
+				}else{
+					console.log("not mergeable");
 				}
 			}
 

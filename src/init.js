@@ -572,7 +572,7 @@ function renderNotSoBasic(){
 				let images = node;
 				let image = node.images[elementIndex];
 				
-				let position = image.position;
+				let position = image.position.clone().add(images.position);
 				let distance = camera.getWorldPosition().distanceTo(position);
 				let radius = distance / 200;
 
@@ -588,6 +588,8 @@ function renderNotSoBasic(){
 					type: image?.constructor.name,
 					image, images, position,
 				};
+			}else{
+				Potree.hoveredItem = null;
 			}
 		});
 
@@ -675,8 +677,8 @@ export async function init(){
 	let potree = {};
 
 	camera = new Camera();
-	controls = new OrbitControls(renderer.canvas);
-	// controls = new PotreeControls(renderer.canvas);
+	// controls = new OrbitControls(renderer.canvas);
+	controls = new PotreeControls(renderer.canvas);
 
 
 	potree.controls = controls;

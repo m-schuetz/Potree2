@@ -65,9 +65,12 @@ export class OrbitControls{
 
 			let {x, y} = e.mouse;
 
-			Potree.pick(x, y, (result) => {
-				let newRadius = result.distance * 0.25;
-				let newPivot = result.position;
+			if(Potree.hoveredItem){
+
+
+				let newPivot = Potree.hoveredItem.position;
+				let newRadius = this.getPosition().distanceTo(newPivot) * 0.25;
+				// let newRadius = result.distance * 0.25;
 
 				// this.set({radius: newRadius, pivot: newPivot});
 
@@ -103,7 +106,7 @@ export class OrbitControls{
 
 				tween.start();
 
-			});
+			}
 
 		});
 	}
