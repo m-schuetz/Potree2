@@ -121,29 +121,30 @@ canvas{
 	// Potree.settings.pointBudget = 30085;
 
 	
-	// // CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
-	// CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
+	// CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
+	CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
 
-	// 	// debugger;
+		window.pointcloud = pointcloud;
+		pointcloud.name = "Autzen Stadium";
 
-	// 	let min = new Vector3(...pointcloud.loader.header.min);
-	// 	let max = new Vector3(...pointcloud.loader.header.max);
+		let min = new Vector3(...pointcloud.loader.header.min);
+		let max = new Vector3(...pointcloud.loader.header.max);
 
-	// 	let center = min.add(max).multiplyScalar(0.5);
-	// 	let size = min.distanceTo(max);
+		let center = min.add(max).multiplyScalar(0.5);
+		let size = min.distanceTo(max);
 		
-	// 	controls.set({
-	// 		yaw: -0.2,
-	// 		pitch: 0.8,
-	// 		radius: 1.5 * size,
-	// 		pivot: center,
-	// 	});
+		controls.set({
+			yaw: -0.2,
+			pitch: 0.8,
+			radius: 1.5 * size,
+			pivot: center,
+		});
 
-	// 	scene.add(scene.root, pointcloud);
+		scene.add(scene.root, pointcloud);
 
-	// 	// let images = new Images360([]);
-	// 	// scene.add(scene.root, images);
-	// });
+		// let images = new Images360([]);
+		// scene.add(scene.root, images);
+	});
 
 	// Potree.load("./nocommit/F_pointclouds/helimap/MLS/MLS_converted/metadata.json").then(pointcloud => {
 
@@ -217,20 +218,26 @@ canvas{
 
 	// });
 
-	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	Potree.load("./nocommit/F_pointclouds/ca13_avg_brotli/metadata.json").then(pointcloud => {
 
-		controls.set({
-			position: [693510.3659155036, 3914635.7496266835, 2348.8318473331674],
-			pivot: [695465.0277230293, 3917000.392088688, -320.45425290016703],
-		});
-		// controls.set({
-		// 	position: [695519.3840013768, 3918738.880881983, 174.79076714030535],
-		// 	pivot: [695414.0628645113, 3918897.936389257, 201.34908755874508],
-		// });
+	
+
+	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
+	// // Potree.load("./nocommit/F_pointclouds/ca13_avg_brotli/metadata.json").then(pointcloud => {
+
+	// 	window.pointcloud = pointcloud;
+	// 	pointcloud.name = "CA13";
+
+	// 	controls.set({
+	// 		position: [693510.3659155036, 3914635.7496266835, 2348.8318473331674],
+	// 		pivot: [695465.0277230293, 3917000.392088688, -320.45425290016703],
+	// 	});
+	// 	// controls.set({
+	// 	// 	position: [695519.3840013768, 3918738.880881983, 174.79076714030535],
+	// 	// 	pivot: [695414.0628645113, 3918897.936389257, 201.34908755874508],
+	// 	// });
 		
-		scene.root.children.push(pointcloud);
-	});
+	// 	scene.root.children.push(pointcloud);
+	// });
 
 	let origin = new Vector3(0, 0, 0);
 	let X = new Vector3(10, 0, 0);

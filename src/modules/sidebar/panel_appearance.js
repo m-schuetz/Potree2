@@ -26,7 +26,7 @@ export function createPanel(){
 
 	elPanel.append(elTitle);
 
-	{ // Point Budget
+	{ 
 
 		let elContainer = document.createElement("div");
 		elContainer.style.display = "grid";
@@ -88,17 +88,17 @@ export function createPanel(){
 			},
 		});
 
-		addCheckbox("dilate", "chkDilate", Potree.settings.dilateEnabled, 
-			(checkbox) => {Potree.settings.dilateEnabled = checkbox.checked;}
-		);
+		// addCheckbox("dilate", "chkDilate", Potree.settings.dilateEnabled, 
+		// 	(checkbox) => {Potree.settings.dilateEnabled = checkbox.checked;}
+		// );
 
-		addCheckbox("Eye-Dome-Lighting", "chkEDL", Potree.settings.edlEnabled, 
-			(checkbox) => {Potree.settings.edlEnabled = checkbox.checked;}
-		);
+		// addCheckbox("Eye-Dome-Lighting", "chkEDL", Potree.settings.edlEnabled, 
+		// 	(checkbox) => {Potree.settings.edlEnabled = checkbox.checked;}
+		// );
 
-		addCheckbox("High-Quality", "chkHQS", Potree.settings.hqsEnabled, 
-			(checkbox) => {Potree.settings.hqsEnabled = checkbox.checked;}
-		);
+		// addCheckbox("High-Quality", "chkHQS", Potree.settings.hqsEnabled, 
+		// 	(checkbox) => {Potree.settings.hqsEnabled = checkbox.checked;}
+		// );
 
 		addCheckbox("show bounding box", "chkShowBoundingBox", Potree.settings.showBoundingBox, 
 			(checkbox) => {Potree.settings.showBoundingBox = checkbox.checked;}

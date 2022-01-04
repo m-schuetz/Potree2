@@ -512,22 +512,11 @@ function renderNotSoBasic(){
 		let renderedObjects = Potree.state.renderedObjects;
 		
 		let mouse = inputHandler.mouse;
-		let window = 2;
+		let window = 3;
 		let wh = window / 2;
 		renderer.readPixels(fbo_source.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, window, window).then(buffer => {
 
 			let maxID = Math.max(...new Uint32Array(buffer));
-
-			// let nodeCounter = (max >>> 20);
-			// let pointIndex = max & 0b1111_11111111_11111111;
-
-			// if(nodeCounter === 0 && pointIndex === 0){
-			// 	return;
-			// }
-
-			// if(max === 1){
-			// 	console.log("abc?");
-			// }
 
 			if(maxID === 0){
 				return;
@@ -570,8 +559,17 @@ function renderNotSoBasic(){
 				dbgSphere.updateWorld();
 
 				Potree.pickPosition.copy(position);
+
+				Potree.hoveredItem = {
+					type: node?.constructor.name + " (Point)",
+					instance: node,
+					pointIndex: elementIndex,
+					position: position,
+				};
+
 			}else if(node?.constructor.name === "Images360"){
 
+				let images = node;
 				let image = node.images[elementIndex];
 				
 				let position = image.position;
@@ -585,6 +583,11 @@ function renderNotSoBasic(){
 				Potree.pickPosition.copy(position);
 
 				node.setHovered(elementIndex);
+
+				Potree.hoveredItem = {
+					type: image?.constructor.name,
+					image, images, position,
+				};
 			}
 		});
 

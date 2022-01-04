@@ -108,8 +108,8 @@ export class PotreeLoader{
 			let type = view.getUint8(i * bytesPerNode + 0);
 			let childMask = view.getUint8(i * bytesPerNode + 1);
 			let numPoints = view.getUint32(i * bytesPerNode + 2, true);
-			let byteOffset = view.getBigInt64(i * bytesPerNode + 6, true);
-			let byteSize = view.getBigInt64(i * bytesPerNode + 14, true);
+			let byteOffset = Number(view.getBigInt64(i * bytesPerNode + 6, true));
+			let byteSize = Number(view.getBigInt64(i * bytesPerNode + 14, true));
 
 			if(current.nodeType === NodeType.PROXY){
 				// replace proxy with real node
@@ -166,7 +166,7 @@ export class PotreeLoader{
 		let hierarchyPath = `${this.url}/../hierarchy.bin`;
 
 		let first = hierarchyByteOffset;
-		let last = first + hierarchyByteSize - 1n;
+		let last = first + hierarchyByteSize - 1;
 
 		let response = await fetch(hierarchyPath, {
 			headers: {
@@ -197,6 +197,44 @@ export class PotreeLoader{
 			return;
 		}
 
+		if(false)
+		{ 
+
+			// Try merging child nodes (children are typically stored consecutively in memory)
+			// NOTE: if child.nodeType === NodeType.PROXY, then they won't have a byteSize until more hierarchy is loaded.
+			let children = node.children.filter(child => child != null);
+
+			if(children.length > 1){
+				let sumBytes = children.reduce( (sum, child) => sum + (child?.byteSize ?? 0), 0);
+				
+				let firstChild = children[0] ?? null;
+				let lastChild = children[children.length - 1] ?? null;
+
+				let byteOffsets = children.map(child => child.byteOffset);
+				let byteSizes = children.map(child => child.byteOffset);
+
+				let isMergeable = Number.isInteger(firstChild?.byteSize) && Number.isInteger(lastChild?.byteSize);
+
+				if(isMergeable){
+					let firstOffset = Math.min(...byteOffsets);
+					let lastOffset = Math.max(...byteOffsets);
+					let firstIndex = byteOffsets.indexOf(firstOffset);
+					let lastIndex = byteOffsets.indexOf(lastOffset);
+
+					let isPacked = (firstOffset + sumBytes) === lastOffset + children[lastIndex].byteSize;
+					
+					if(isPacked && isMergeable){
+						let msg = `#children: ${children.length}, sumBytes: ${sumBytes.toLocaleString()}`;
+						console.log(msg);
+					}else{
+						console.log("not mergeable");
+					}
+				}
+			}
+
+
+		}
+
 		nodesLoading++;
 		node.loading = true;
 
@@ -206,9 +244,6 @@ export class PotreeLoader{
 			}
 
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
-			//new Worker("./src/potree/DecoderWorker_brotli.js",);
-			//let worker = new Worker("./src/potree/DecoderWorker_brotli.js", { type: "module" });
-
 			let workerPath = null;
 			if(!this.metadata.encoding || this.metadata.encoding === "DEFAULT"){
 				workerPath = "../src/potree/DecoderWorker_default.js";
@@ -253,21 +288,12 @@ export class PotreeLoader{
 			let {byteOffset, byteSize} = node;
 			let url = new URL(`${this.url}/../octree.bin`, document.baseURI).href;
 			let pointAttributes = this.attributes;
-			let scale = this.scale;
-			let offset = this.offset;
+
+			let {scale, offset} = this;
+			let {name, numPoints} = node;
 			let min = this.octree.loader.metadata.boundingBox.min;
-			let numPoints = node.numPoints;
-			let name = node.name;
-			let nodeMin = [
-				node.boundingBox.min.x,// + min[0],
-				node.boundingBox.min.y,// + min[1],
-				node.boundingBox.min.z,// + min[2],
-			];
-			let nodeMax = [
-				node.boundingBox.max.x,// + min[0],
-				node.boundingBox.max.y,// + min[1],
-				node.boundingBox.max.z,// + min[2],
-			];
+			let nodeMin = node.boundingBox.min.toArray(); 
+			let nodeMax = node.boundingBox.max.toArray();
 
 			let message = {
 				name, url, byteOffset, byteSize, numPoints,
@@ -287,7 +313,6 @@ export class PotreeLoader{
 
 			// loading with range requests frequently fails in chrome 
 			// loading again usually resolves this.
-			// this.loadNode(node);
 		}
 
 	}
@@ -319,6 +344,7 @@ export class PotreeLoader{
 		// octree.world = new Matrix4();
 		// octree.world.translate(...metadata.boundingBox.min);
 
+		octree.attributes = attributes;
 		octree.loader = loader;
 		loader.octree = octree;
 
@@ -326,8 +352,8 @@ export class PotreeLoader{
 		root.boundingBox = octree.boundingBox.clone();
 		root.level = 0;
 		root.nodeType = NodeType.PROXY;
-		root.hierarchyByteOffset = 0n;
-		root.hierarchyByteSize = BigInt(metadata.hierarchy.firstChunkSize);
+		root.hierarchyByteOffset = 0;
+		root.hierarchyByteSize = metadata.hierarchy.firstChunkSize;
 		root.spacing = octree.spacing;
 		root.byteOffset = 0;
 		root.octree = octree;

@@ -170,7 +170,7 @@ let fs = `
 
 		var c = textureLoad(myTexture, coords, 0);
 		var response = getEdlResponse(input);
-		var shade = exp(-response * 100.0);
+		var shade = exp(-response * 30.0) ;
 
 		var output : FragmentOutput;
 		output.color = vec4<f32>(

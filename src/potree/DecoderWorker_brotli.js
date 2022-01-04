@@ -3,14 +3,12 @@ import {BrotliDecode} from "../../libs/brotli/decode.js";
 
 class Stats{
 	constructor(){
-		name: "";
-		min: null;
-		max: null;
-		mean: null;
+		this.name = "";
+		this.min = null;
+		this.max = null;
+		this.mean = null;
 	}
 };
-
-// Potree = {};
 
 function dealign24b(mortoncode){
 	// see https://stackoverflow.com/questions/45694690/how-i-can-remove-all-odds-bits-in-c
@@ -47,13 +45,13 @@ async function load(event){
 	let {name, pointAttributes, numPoints, scale, offset, min, nodeMin, nodeMax} = event.data;
 
 	let buffer;
-	if(event.data.byteSize === 0n){
+	if(event.data.byteSize === 0){
 		buffer = new ArrayBuffer(0);
 		console.warn(`loaded node with 0 bytes: ${name}`);
 	}else{
 		let {url, byteOffset, byteSize} = event.data;
 		let first = byteOffset;
-		let last = byteOffset + byteSize - 1n;
+		let last = byteOffset + byteSize - 1;
 
 		// console.log((Number(byteSize) / 1024).toFixed(1) + " kb");
 
@@ -205,7 +203,6 @@ async function load(event){
 				readValue = (index, element) => reader(offset_to_first + index * attribute.byteSize + element * elementByteSize, true);
 			}
 
-			// attribute.name === "XYZ"){
 			if(["XYZ", "position"].includes(attribute.name)){
 				readValue = (index, element) => {
 

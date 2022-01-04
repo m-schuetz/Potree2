@@ -17,13 +17,13 @@ async function load(event){
 	let {name, pointAttributes, numPoints, scale, offset, min} = event.data;
 
 	let buffer;
-	if(event.data.byteSize === 0n){
+	if(event.data.byteSize === 0){
 		buffer = new ArrayBuffer(0);
 		console.warn(`loaded node with 0 bytes: ${name}`);
 	}else{
 		let {url, byteOffset, byteSize} = event.data;
 		let first = byteOffset;
-		let last = byteOffset + byteSize - 1n;
+		let last = byteOffset + byteSize - 1;
 
 		let response = await fetch(url, {
 			headers: {

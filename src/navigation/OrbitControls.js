@@ -80,7 +80,7 @@ export class OrbitControls{
 				let startRadius = this.radius;
 				let targetRadius = newRadius;
 				let startPivot = this.pivot.clone();
-				let targetPivot = newPivot;
+				let targetPivot = newPivot.clone();
 
 				tween.onUpdate(() => {
 					let t = value.x;

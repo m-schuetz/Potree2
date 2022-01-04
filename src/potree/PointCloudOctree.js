@@ -77,17 +77,18 @@ export class PointCloudOctree extends SceneNode{
 				continue;
 			}
 
-			if(numPoints + node.numPoints > this.pointBudget){
-				break;
-			}
+			// if(numPoints + node.numPoints > this.pointBudget){
+			// 	break;
+			// }
 
 			let box = node.boundingBox.clone();
 			box.applyMatrix4(this.world);
 			let insideFrustum = frustum.intersectsBox(box);
+			let fitsInPointBudget = numPoints + node.numPoints < this.pointBudget;
+			let isLowLevel = node.level <= 2;
 
-			let visible = insideFrustum;
-			visible = visible || node.level <= 2;
-			// visible = visible && visibleNodes.length < 2;
+			let visible = fitsInPointBudget && insideFrustum;
+			visible = visible || isLowLevel;
 
 			if(!visible){
 				continue;
@@ -173,6 +174,83 @@ export class PointCloudOctree extends SceneNode{
 		}
 
 		return boxWorld;
+	}
+
+	parsePoint(node, index){
+
+		let point = {};
+
+		let view = new DataView(node.geometry.buffer.buffer);
+		let readers = {
+			"double"  : view.getFloat64.bind(view),
+			"float"   : view.getFloat32.bind(view),
+			"int8"    : view.getInt8.bind(view),
+			"uint8"   : view.getUint8.bind(view),
+			"int16"   : view.getInt16.bind(view),
+			"uint16"  : view.getUint16.bind(view),
+			"int32"   : view.getInt32.bind(view),
+			"uint32"  : view.getUint32.bind(view),
+			"int64"   : view.getBigInt64.bind(view),
+			"uint64"  : view.getBigUint64.bind(view),
+		};
+
+		let attributes = pointcloud.attributes;
+		let attributeByteOffset = 0;
+		for(let i = 0; i < attributes.attributes.length; i++){
+			let attribute = attributes.attributes[i];
+
+			let valueOffset = node.numPoints * attributeByteOffset + index * attribute.byteSize;
+
+			let value = null;
+			let strValue = "";
+
+
+			if(["XYZ", "position"].includes(attribute.name)){
+
+				let X = view.getFloat32(valueOffset + 0, true);
+				let Y = view.getFloat32(valueOffset + 4, true);
+				let Z = view.getFloat32(valueOffset + 8, true);
+
+				let shift = this.position;
+
+				value = [X, Y, Z];
+				strValue = new Vector3(X, Y, Z).add(shift).toString(1);
+
+			}else if(attribute.numElements === 1){
+				let reader = readers[attribute.type.name].bind(view);
+
+				value = reader(valueOffset, true);
+				strValue = `${value}`;
+			}else{
+				
+				let reader = readers[attribute.type.name].bind(view);
+				let value = [];
+				for(let j = 0; j < attribute.numElements; j++){
+					
+					let _value = reader(valueOffset + j * attribute.type.size, true);
+					value.push(_value);
+				}
+
+				strValue = "[" + value.map(v => `${v}`).join(", ") + "]";
+
+			}
+
+
+
+
+			let parsedAttribute = {
+				name: attribute.name,
+				value, strValue,
+			};
+
+			point[attribute.name] = parsedAttribute;
+
+			attributeByteOffset += attribute.byteSize;
+
+		}
+
+		return point;
+
 	}
 
 }

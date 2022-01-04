@@ -4,6 +4,7 @@ import {createAttributesPanel} from "./panel_attributes.js";
 import {createMeasurementsPanel} from "./panel_measurements.js";
 import {createPanel as createAppearancePanel} from "./panel_appearance.js";
 import {createPanel as createInfosPanel} from "./panel_infos.js";
+import {createPanel as createHoveredPanel} from "./panel_hovered.js";
 
 let sidebar = null;
 let dir = new URL(import.meta.url + "/../").href;
@@ -94,6 +95,9 @@ function createMainSection(){
 
 	let panel_infos = createInfosPanel();
 	elPanel.append(panel_infos.element);
+
+	let panel_hovered = createHoveredPanel();
+	elPanel.append(panel_hovered.element);
 
 	let section = new Section();
 	section.icon = `url(${dir}/icons/home.svg)`;

@@ -65,6 +65,7 @@ class Panel{
 export function createPanel(){
 	let panel = new Panel();
 	panel.element.id = "info_panel";
+	panel.element.classList.add("subsection_panel");
 
 	panel.update();
 

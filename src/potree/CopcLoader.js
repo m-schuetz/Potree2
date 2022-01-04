@@ -526,6 +526,7 @@ export class CopcLoader{
 		}
 		loader.attributes = attributes;
 
+		octree.attributes = attributes;
 		octree.loader = loader;
 		loader.octree = octree;
 
