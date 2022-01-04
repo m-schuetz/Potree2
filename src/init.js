@@ -343,7 +343,7 @@ function renderNotSoBasic(){
 		octree.pointSize = Potree.settings.pointSize;
 
 		if(Potree.settings.updateEnabled){
-			octree.updateVisibility(camera);
+			octree.updateVisibility(camera, renderer);
 		}
 
 		let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
@@ -591,7 +591,14 @@ function renderNotSoBasic(){
 			}else{
 				Potree.hoveredItem = null;
 			}
+
 		});
+
+		{
+			let radius = controls.radius / 70;
+			dbgSphere.scale.set(radius, radius, radius);
+			dbgSphere.updateWorld();
+		}
 
 		for(let {x, y, callback} of Potree.pickQueue){
 			let position = Potree.pickPosition;

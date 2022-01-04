@@ -79,6 +79,7 @@ const events = {
 const settings = {
 	pointSize: 3,
 	pointBudget: 2_000_000,
+	minNodeSize: 150,
 	attribute: "rgba",
 	dbgAttribute: "rgba",
 	debugU: 1,

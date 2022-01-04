@@ -25,7 +25,7 @@ export class PotreeControls{
 		this.dispatcher.add("mousedown", e => {
 			this.dragStart = {
 				position: this.getPosition().clone(),
-				pick: this.pickPosition.clone(),
+				pick: this.pickPosition?.clone(),
 				target: this.pivot.clone(),
 				yaw: this.yaw,
 				pitch: this.pitch,

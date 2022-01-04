@@ -36,7 +36,7 @@ export class PointCloudOctree extends SceneNode{
 
 	}
 
-	updateVisibility(camera){
+	updateVisibility(camera, renderer){
 
 		let tStart = performance.now();
 
@@ -97,7 +97,6 @@ export class PointCloudOctree extends SceneNode{
 			visibleNodes.push(node);
 			numPoints += node.numPoints;
 
-
 			for(let child of node.children){
 				if(!child){
 					continue;
@@ -114,13 +113,17 @@ export class PointCloudOctree extends SceneNode{
 				let dd = dx * dx + dy * dy + dz * dz;
 				let distance = Math.sqrt(dd);
 
-
 				let fov = math.toRadians(camera.fov);
 				let slope = Math.tan(fov / 2);
 				let projFactor = 1 / (slope * distance);
 				// let projFactor = (0.5 * domHeight) / (slope * distance);
 
 				let weight = radius * projFactor;
+				let pixelSize = weight * renderer.getSize().height;
+
+				if(pixelSize < Potree.settings.minNodeSize){
+					continue;
+				}
 
 				if(distance - radius < 0){
 					weight = Number.MAX_VALUE;

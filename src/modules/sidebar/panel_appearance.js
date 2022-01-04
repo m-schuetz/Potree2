@@ -43,13 +43,13 @@ export function createPanel(){
 			template.innerHTML = `
 				<sidebarlabel>${args.label}</sidebarlabel>
 				<input type="range" min="${min}" max="${max}" value="${args.value}" style="width: 100%" name=${args.elementName}>
-				<sidebarlabel>abc M</sidebarlabel>
+				<sidebarlabel name=${args.elementName}>abc M</sidebarlabel>
 			`;
 			let nodes = template.content.childNodes;
 			elContainer.append(...nodes);
 
 			let elSlider = elContainer.querySelector(`input[name=${args.elementName}]`);
-			let elValue = elContainer.querySelectorAll(`sidebarlabel`)[1];
+			let elValue = elContainer.querySelector(`sidebarlabel[name=${args.elementName}]`);
 
 			elSlider.addEventListener("input", () => {
 				args.onChange(elSlider, elValue);
@@ -84,6 +84,19 @@ export function createPanel(){
 				Potree.settings.pointBudget = Number(elSlider.value);
 
 				let str = (Number(elSlider.value) / 1_000_000).toFixed(1) + " M";
+				elValue.innerText = str;
+			},
+		});
+
+		addSlider({
+			label: "Min Node Size", 
+			elementName: "sldMinNodeSize",
+			range: [50, 500], 
+			value: Potree.settings.minNodeSize,
+			onChange: (elSlider, elValue) => {
+				Potree.settings.minNodeSize = Number(elSlider.value);
+
+				let str = parseInt(elSlider.value) + " px";
 				elValue.innerText = str;
 			},
 		});
