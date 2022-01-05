@@ -551,12 +551,12 @@ function renderNotSoBasic(){
 				z = z + node.octree.position.z;
 
 				let position = new Vector3(x, y, z);
-				let distance = camera.getWorldPosition().distanceTo(position);
-				let radius = distance / 50;
 
-				dbgSphere.position.set(x, y, z);
-				dbgSphere.scale.set(radius, radius, radius);
-				dbgSphere.updateWorld();
+				// let distance = camera.getWorldPosition().distanceTo(position);
+				// let radius = distance / 50;
+				// dbgSphere.position.set(x, y, z);
+				// dbgSphere.scale.set(radius, radius, radius);
+				// dbgSphere.updateWorld();
 
 				Potree.pickPosition.copy(position);
 
@@ -573,12 +573,12 @@ function renderNotSoBasic(){
 				let image = node.images[elementIndex];
 				
 				let position = image.position.clone().add(images.position);
-				let distance = camera.getWorldPosition().distanceTo(position);
-				let radius = distance / 200;
 
-				dbgSphere.position.copy(position);
-				dbgSphere.scale.set(radius, radius, radius);
-				dbgSphere.updateWorld();
+				// let distance = camera.getWorldPosition().distanceTo(position);
+				// let radius = distance / 200;
+				// dbgSphere.position.copy(position);
+				// dbgSphere.scale.set(radius, radius, radius);
+				// dbgSphere.updateWorld();
 
 				Potree.pickPosition.copy(position);
 
@@ -596,6 +596,7 @@ function renderNotSoBasic(){
 
 		{
 			let radius = controls.radius / 70;
+			dbgSphere.position.copy(Potree.pickPosition);
 			dbgSphere.scale.set(radius, radius, radius);
 			dbgSphere.updateWorld();
 		}

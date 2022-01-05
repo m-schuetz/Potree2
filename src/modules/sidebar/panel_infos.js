@@ -10,12 +10,33 @@ class Panel{
 
 		let elTitle = document.createElement("div");
 		elTitle.classList.add("subsection");
-		
 		elTitle.textContent = "Infos";
 
-		this.element.append(elTitle);
+		let elButtons = document.createElement("div");
+		
+		let createButton = (value, onClick) => {
+			let elButton = document.createElement("input");
 
+			elButton.type = "button";
+			elButton.value = value;
+			elButton.onclick = onClick;
+
+
+			elButtons.append(elButton);
+		};
+
+		createButton("📋 camera", () => {
+			
+			let {camPos, camTarget} = Potree.state;
+
+			let str = `[${camPos}], \n[${camTarget}]`;
+
+			Utils.clipboardCopy(str);
+		});
+
+		this.element.append(elTitle);
 		this.element.append(this.elTable);
+		this.element.append(elButtons);
 	}
 
 	set(pointcloud){
@@ -27,26 +48,25 @@ class Panel{
 		let valueRows = "";
 
 		valueRows += `
-		<tr>
-			<td>#points</td>
-			<td>${Potree.state.numPoints.toLocaleString()}</td>
-		</tr><tr>
-			<td>#nodes</td>
-			<td>${Potree.state.numNodes.toLocaleString()}</td>
-		</tr><tr>
-			<td>FPS</td>
-			<td>${Potree.state.fps}</td>
-		</tr><tr>
-			<td>cam.pos</td>
-			<td>${Potree.state.camPos}</td>
-		</tr><tr>
-			<td>cam.dir</td>
-			<td>${Potree.state.camDir}</td>
-		</tr><tr>
-			<td>cam.target</td>
-			<td>${Potree.state.camTarget}</td>
-		</tr>
-		
+			<tr>
+				<td>#points</td>
+				<td>${Potree.state.numPoints.toLocaleString()}</td>
+			</tr><tr>
+				<td>#nodes</td>
+				<td>${Potree.state.numNodes.toLocaleString()}</td>
+			</tr><tr>
+				<td>FPS</td>
+				<td>${Potree.state.fps}</td>
+			</tr><tr>
+				<td>cam.pos</td>
+				<td>${Potree.state.camPos}</td>
+			</tr><tr>
+				<td>cam.dir</td>
+				<td>${Potree.state.camDir}</td>
+			</tr><tr>
+				<td>cam.target</td>
+				<td>${Potree.state.camTarget}</td>
+			</tr>
 		`;
 
 		let strTable = `
