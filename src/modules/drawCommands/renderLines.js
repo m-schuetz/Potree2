@@ -283,9 +283,16 @@ function updateUniforms(drawstate){
 	let f32 = new Float32Array(data);
 	let view = new DataView(data);
 
+	let camPos = camera.getWorldPosition();
+
 	{ // transform
 		let world = new Matrix4();
 		let view = camera.view;
+
+		world.elements[12] = camPos.x;
+		world.elements[13] = camPos.y;
+		world.elements[14] = camPos.z;
+
 		let worldView = new Matrix4().multiplyMatrices(view, world);
 
 		f32.set(worldView.elements, 0);
@@ -316,6 +323,8 @@ export function render(lines, drawstate){
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
 
+	let camPos = camera.getWorldPosition();
+
 	{
 		let position = new Float32Array(2 * 3 * lines.length);
 		let color = new Uint8Array(2 * 4 * lines.length);
@@ -323,13 +332,13 @@ export function render(lines, drawstate){
 		for(let i = 0; i < lines.length; i++){
 			let [start, end, c] = lines[i];
 
-			position[6 * i + 0] = start.x;
-			position[6 * i + 1] = start.y;
-			position[6 * i + 2] = start.z;
+			position[6 * i + 0] = start.x - camPos.x;
+			position[6 * i + 1] = start.y - camPos.y;
+			position[6 * i + 2] = start.z - camPos.z;
 
-			position[6 * i + 3] = end.x;
-			position[6 * i + 4] = end.y;
-			position[6 * i + 5] = end.z;
+			position[6 * i + 3] = end.x - camPos.x;
+			position[6 * i + 4] = end.y - camPos.y;
+			position[6 * i + 5] = end.z - camPos.z;
 
 			color[8 * i + 0] = c.x;
 			color[8 * i + 1] = c.y;
@@ -352,9 +361,6 @@ export function render(lines, drawstate){
 			color.buffer, color.byteOffset, color.byteLength
 		);
 	}
-
-	// passEncoder.setVertexBuffer(0, vbo_lines[0].vbo);
-	// passEncoder.setVertexBuffer(1, vbo_lines[1].vbo);
 
 	passEncoder.draw(6 * lines.length, 1, 0, 0);
 

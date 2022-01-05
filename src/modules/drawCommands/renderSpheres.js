@@ -11,13 +11,17 @@ const shaderSource = `
 	screen_height : f32;
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+[[block]] struct Mat4s { values : [[stride(64)]] array<mat4x4<f32>>; };
+
+[[binding(0), group(0)]] var<uniform> uniforms     : Uniforms;
+[[binding(1), group(0)]] var<storage, read> worldViewArray : Mat4s;
 
 struct VertexIn{
-	[[location(0)]]         sphere_pos    : vec4<f32>;
-	[[location(1)]]         sphere_radius : f32;
-	[[location(2)]]         point_pos     : vec4<f32>;
-	[[location(3)]]         point_normal  : vec4<f32>;
+	[[builtin(instance_index)]] instanceID    : u32;
+	[[location(0)]]             sphere_pos    : vec4<f32>;
+	[[location(1)]]             sphere_radius : f32;
+	[[location(2)]]             point_pos     : vec4<f32>;
+	[[location(3)]]             point_normal  : vec4<f32>;
 };
 
 struct VertexOut{
@@ -36,13 +40,15 @@ struct FragmentOut{
 
 [[stage(vertex)]]
 fn main_vertex(vertex : VertexIn) -> VertexOut {
+
+	var worldView = worldViewArray.values[vertex.instanceID];
 	
-	var worldPos : vec4<f32> = vertex.sphere_pos + vertex.point_pos * vertex.sphere_radius;
+	// var worldPos : vec4<f32> = vertex.sphere_pos + vertex.point_pos * vertex.sphere_radius;
+	var worldPos : vec4<f32> = vertex.point_pos * vertex.sphere_radius;
 	worldPos.w = 1.0;
-	var viewPos : vec4<f32> = uniforms.worldView * worldPos;
+	var viewPos : vec4<f32> = worldView * worldPos;
 
 	var vout : VertexOut;
-	// vout.fragColor = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 	vout.fragColor = vec4<f32>(vertex.point_normal.xyz, 1.0);
 	vout.out_pos = uniforms.proj * viewPos;
 
@@ -64,8 +70,10 @@ let initialized = false;
 let pipeline = null;
 let geometry_spheres = null;
 let uniformBuffer = null;
+let mat4Buffer;
 let bindGroup = null;
-let capacity = 1_000_000;
+let capacity = 10_000;
+let f32Matrices = new Float32Array(16 * capacity);
 
 function createPipeline(renderer){
 
@@ -162,10 +170,16 @@ function init(renderer){
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
+		mat4Buffer = device.createBuffer({
+			size: 64 * capacity,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
 		bindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
-				{binding: 0,resource: {buffer: uniformBuffer}},
+				{binding: 0, resource: {buffer: uniformBuffer}},
+				{binding: 1, resource: {buffer: mat4Buffer}},
 			],
 		});
 	}
@@ -221,6 +235,11 @@ export function render(spheres, drawstate){
 	let vboRadius = renderer.getGpuBuffer(radius);
 
 	{
+
+		let world = new Matrix4();
+		let view = drawstate.camera.view;
+		let worldView = new Matrix4();
+
 		for(let i = 0; i < spheres.length; i++){
 			let sphere = spheres[i];
 			let pos = sphere[0];
@@ -230,11 +249,20 @@ export function render(spheres, drawstate){
 			position[3 * i + 2] = pos.z;
 
 			radius[i] = sphere[1];
+
+			world.elements[12] = pos.x;
+			world.elements[13] = pos.y;
+			world.elements[14] = pos.z;
+			
+			worldView.multiplyMatrices(view, world);
+
+			f32Matrices.set(worldView.elements, 16 * i);
 		}
 
 		let numSpheres = spheres.length;
 		device.queue.writeBuffer(vboPosition, 0, position.buffer, 0, 12 * numSpheres);
 		device.queue.writeBuffer(vboRadius, 0, radius.buffer, 0, 4 * numSpheres);
+		device.queue.writeBuffer(mat4Buffer, 0, f32Matrices.buffer, 0, 64 * numSpheres);
 	}
 
 	{ // solid
