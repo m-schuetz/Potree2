@@ -5,6 +5,7 @@ import {createMeasurementsPanel} from "./panel_measurements.js";
 import {createPanel as createAppearancePanel} from "./panel_appearance.js";
 import {createPanel as createInfosPanel} from "./panel_infos.js";
 import {createPanel as createHoveredPanel} from "./panel_hovered.js";
+import {createPanel as createScenePanel} from "./panel_scene.js";
 
 let sidebar = null;
 let dir = new URL(import.meta.url + "/../").href;
@@ -92,6 +93,9 @@ function createMainSection(){
 
 	let panel_appearance = createAppearancePanel();
 	elPanel.append(panel_appearance.element);
+
+	let panel_scene = createScenePanel();
+	elPanel.append(panel_scene.element);
 
 	let panel_infos = createInfosPanel();
 	elPanel.append(panel_infos.element);
@@ -188,7 +192,7 @@ export async function installSidebar(elPotree, potree){
 	};
 
 
-	let secMain = createMainSection();
+	let secMain = createMainSection(potree);
 	let secMeasure = createMeasureSection();
 	let secAttributes = createAttributesSection();
 

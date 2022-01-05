@@ -6,6 +6,7 @@ export class Scene{
 	constructor(){
 
 		this.root = new SceneNode("root");
+		this.root.scene = this;
 
 	}
 

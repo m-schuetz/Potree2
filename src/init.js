@@ -734,6 +734,8 @@ export async function init(){
 
 	requestAnimationFrame(loop);
 
+	Potree.instance = potree;
+
 	return potree;
 }
 

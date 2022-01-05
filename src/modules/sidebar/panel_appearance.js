@@ -101,6 +101,19 @@ export function createPanel(){
 			},
 		});
 
+		addSlider({
+			label: "Point Size", 
+			elementName: "sldPointSize",
+			range: [1, 7], 
+			value: Potree.settings.pointSize,
+			onChange: (elSlider, elValue) => {
+				Potree.settings.pointSize = Number(elSlider.value);
+
+				let str = parseInt(elSlider.value) + " px";
+				elValue.innerText = str;
+			},
+		});
+
 		// addCheckbox("dilate", "chkDilate", Potree.settings.dilateEnabled, 
 		// 	(checkbox) => {Potree.settings.dilateEnabled = checkbox.checked;}
 		// );
