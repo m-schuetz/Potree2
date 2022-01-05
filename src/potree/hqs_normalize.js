@@ -199,12 +199,10 @@ let shaderCode = `
 		}
 		
 		c = c / c.w;
-		
-		var d : f32 = textureLoad(myDepth, vec2<i32>(closestCoords), 0);
 
 		output.color = c;
-		output.depth = d;
-		output.pointID = textureLoad(tex_pointID, coords, 0).r;
+		output.depth = textureLoad(myDepth, vec2<i32>(closestCoords), 0);
+		output.pointID = textureLoad(tex_pointID, vec2<i32>(closestCoords), 0).r;
 
 		return output;
 	}
