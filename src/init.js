@@ -44,6 +44,10 @@ function removeEventListener(name, callback){
 	dispatcher.removeEventListener(name, callback);
 }
 
+dispatcher.add("click", (e) => {
+	console.log("click");
+});
+
 function initScene(){
 	// {
 	// 	let mesh = new Mesh("cube", geometries.cube);
@@ -563,8 +567,10 @@ function renderNotSoBasic(){
 				Potree.hoveredItem = {
 					type: node?.constructor.name + " (Point)",
 					instance: node,
+					node: node,
 					pointIndex: elementIndex,
 					position: position,
+					object: node.octree,
 				};
 
 			}else if(node?.constructor.name === "Images360"){
@@ -587,6 +593,7 @@ function renderNotSoBasic(){
 				Potree.hoveredItem = {
 					type: image?.constructor.name,
 					image, images, position,
+					object: images,
 				};
 			}else{
 				Potree.hoveredItem = null;
@@ -608,7 +615,7 @@ function renderNotSoBasic(){
 		}
 		Potree.pickQueue.length = 0;
 
-		
+		inputHandler.hoveredElements = [Potree.hoveredItem];
 
 	}
 
@@ -706,6 +713,8 @@ export async function init(){
 
 	inputHandler.addInputListener(controls.dispatcher);
 	inputHandler.addInputListener(measure.dispatcher);
+	inputHandler.addInputListener(dispatcher);
+
 
 	// make things available in dev tools for debugging
 	window.camera = camera;

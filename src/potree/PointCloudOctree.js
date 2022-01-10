@@ -18,12 +18,20 @@ export class PointCloudOctree extends SceneNode{
 		this.visibleNodes = [];
 		this.material = new PointCloudMaterial();
 
-		let dispatcher = new EventDispatcher();
+		this.dispatcher = new EventDispatcher();
 		this.events = {
-			dispatcher,
-			onRootNodeLoaded: (callback, args) => dispatcher.add("root_node_loaded", callback, args),
-			onMaterialChanged: (callback, args) => dispatcher.add("material_changed", callback, args),
+			dispatcher: this.dispatcher,
+			onRootNodeLoaded: (callback, args) => this.dispatcher.add("root_node_loaded", callback, args),
+			onMaterialChanged: (callback, args) => this.dispatcher.add("material_changed", callback, args),
 		};
+
+		this.dispatcher.addEventListener("drag", (e) => {
+			console.log("drag", e);
+		});
+
+		this.dispatcher.addEventListener("click", (e) => {
+			console.log("clicked: ", e.hovered.node.name + " - point #" + e.hovered.pointIndex);
+		});
 
 		this.material.events.onChange((event) => this.events.dispatcher.dispatch("material_changed", {material: event.material}));
 	}

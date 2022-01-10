@@ -187,28 +187,17 @@ export class Images360 extends SceneNode{
 
 		}
 
+		// this.dispatcher.addEventListener("mousedown", (e) => {
+		// 	console.log("mousedown", e);
+		// });
 
-		// // test data
-		// let center = new Vector3(637227.1, 850869.3, 649.5);
-		// let n = 100;
-		// this.positions = new Float32Array(3 * n);
-		// for(let i = 0; i < n; i++){
-		// 	let u = i / n;
-		// 	let r = 10 * i;
-		// 	let x = center.x + r * Math.cos(4 * Math.PI * u);
-		// 	let y = center.y + r * Math.sin(4 * Math.PI * u);
-		// 	let z = center.z;
+		this.dispatcher.addEventListener("drag", (e) => {
+			console.log("drag", e);
+		});
 
-		// 	let image = new Image360();
-		// 	image.position.set(x, y, z);
-		// 	image.name = `test_${i}`;
-
-		// 	this.images.push(image);
-			
-		// 	this.positions[3 * i + 0] = x;
-		// 	this.positions[3 * i + 1] = y;
-		// 	this.positions[3 * i + 2] = z;
-		// }
+		this.dispatcher.addEventListener("click", (e) => {
+			console.log("clicked: ", e.hovered.image.name);
+		});
 
 	}
 

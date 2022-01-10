@@ -246,9 +246,9 @@ export class InputHandler extends EventDispatcher {
 		}else{
 			for(let hovered of this.hoveredElements){
 				let object = hovered.object;
-				object.dispatch("mousedown", {
+				object.dispatcher.dispatch("mousedown", {
 					viewer: this.viewer,
-					consume: consume
+					hovered, consume,
 				});
 
 				if(consumed){
@@ -258,13 +258,11 @@ export class InputHandler extends EventDispatcher {
 		}
 
 		if (!this.drag) {
-			let target = this.hoveredElements
-				.find(el => (
-					el.object._listeners &&
-					el.object._listeners['drag'] &&
-					el.object._listeners['drag'].length > 0));
 
-			if (target) {
+			let target = this.hoveredElements[0];
+			let hasDragEvent = target?.object?.dispatcher?.listeners?.get("drag")?.length > 0;
+
+			if (target && hasDragEvent) {
 				this.startDragging(target.object, {location: target.point});
 			} else {
 				this.startDragging(null);
@@ -303,6 +301,7 @@ export class InputHandler extends EventDispatcher {
 				hovered.dispatch("mouseup", {
 					mouse: this.mouse,
 					consume: consume,
+					hovered,
 					event: e,
 				});
 			}
@@ -311,7 +310,7 @@ export class InputHandler extends EventDispatcher {
 		if (this.drag) {
 			if (this.drag.object) {
 				if (this.logMessages) console.log(`${this.constructor.name}: drop ${this.drag.object.name}`);
-				this.drag.object.dispatch("drop", {
+				this.drag.object.dispatcher.dispatch("drop", {
 					drag: this.drag,
 					viewer: this.viewer
 
@@ -326,12 +325,14 @@ export class InputHandler extends EventDispatcher {
 			}
 
 			// check for a click
-			let clicked = this.hoveredElements.map(h => h.object).find(v => v === this.drag.object) !== undefined;
+			let target = this.hoveredElements[0];
+			let clicked = target?.object === this.drag.object;
 			if(clicked){
 				if (this.logMessages) console.log(`${this.constructor.name}: click ${this.drag.object.name}`);
-				this.drag.object.dispatch("click", {
+				this.drag.object.dispatcher.dispatch("click", {
 					viewer: this.viewer,
 					consume: consume,
+					hovered: target,
 				});
 			}
 
