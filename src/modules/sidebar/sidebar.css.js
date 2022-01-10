@@ -5,6 +5,7 @@ export const css = `
 	background: #333333;
 	color: #ffffff;
 	font-family: Calibri;
+	overflow: hidden;
 }
 
 #potree_sidebar_section_selection{

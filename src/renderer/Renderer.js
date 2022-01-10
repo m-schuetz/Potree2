@@ -77,6 +77,8 @@ export class Renderer{
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("webgpu");
 
+		this.canvas.setAttribute("tabindex", 0);
+
 		this.swapChainFormat = "bgra8unorm";
 		this.context.configure({
 			device: this.device,

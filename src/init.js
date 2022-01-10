@@ -1,11 +1,10 @@
 
 import {Vector3} from "potree";
-import {Scene, SceneNode, Camera, OrbitControls, PotreeControls, Mesh, RenderTarget} from "potree";
+import {Scene, SceneNode, Camera, OrbitControls, PotreeControls, StationaryControls, Mesh, RenderTarget} from "potree";
 import {Renderer, Timer, EventDispatcher, InputHandler} from "potree";
 import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
 import {geometries} from "potree";
 import {Potree} from "potree";
-// import {PointCloudOctree } from "potree";
 import {loadGLB} from "potree";
 import {MeasureTool} from "./interaction/measure.js";
 import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoader.js";
@@ -22,6 +21,7 @@ let frame = 0;
 let lastFpsCount = 0;
 let framesSinceLastCount = 0;
 let fps = 0;
+let lastFrameTime = 0;
 
 let renderer = null;
 let camera = null;
@@ -74,10 +74,11 @@ function update(){
 		Potree.state.fps = Math.floor(fps).toLocaleString();
 	}
 
+	let timeSinceLastFrame = (lastFrameTime - now) / 1000;
 	frame++;
 	framesSinceLastCount++;
 
-	controls.update();
+	controls.update(timeSinceLastFrame);
 	camera.world.copy(controls.world);
 
 	camera.updateView();
@@ -91,6 +92,7 @@ function update(){
 
 	dispatcher.dispatch("update");
 
+	lastFrameTime = now;
 }
 
 let sumBuffer = null;
@@ -694,7 +696,7 @@ export async function init(){
 	camera = new Camera();
 	// controls = new OrbitControls(renderer.canvas);
 	controls = new PotreeControls(renderer.canvas);
-
+	window.orbitControls = new OrbitControls(renderer.canvas);
 
 	potree.controls = controls;
 	potree.addEventListener = addEventListener;
@@ -703,6 +705,19 @@ export async function init(){
 	potree.scene = scene;
 	potree.onUpdate = (callback) => {
 		addEventListener("update", callback);
+	};
+	potree.setControls = (newControls) => {
+
+		let oldControls = potree.controls;
+
+		inputHandler.removeInputListener(controls.dispatcher);
+		inputHandler.addInputListener(newControls.dispatcher);
+		
+		controls = newControls;
+		potree.controls = controls;
+
+		oldControls.dispatcher.dispatch("unfocused");
+		newControls.dispatcher.dispatch("focused");
 	};
 
 	measure = new MeasureTool(potree);

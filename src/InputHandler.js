@@ -19,7 +19,7 @@ export class InputHandler extends EventDispatcher {
 
 		this.selection = [];
 
-		this.hoveredElements = [];
+		this.hoveredElement = null;
 		this.pressedKeys = {};
 
 		this.wheelDelta = 0;
@@ -40,11 +40,15 @@ export class InputHandler extends EventDispatcher {
 		this.domElement.addEventListener('mousewheel', this.onMouseWheel.bind(this), false);
 		this.domElement.addEventListener('DOMMouseScroll', this.onMouseWheel.bind(this), false); // Firefox
 		this.domElement.addEventListener('dblclick', this.onDoubleClick.bind(this));
-		this.domElement.addEventListener('keydown', this.onKeyDown.bind(this));
-		this.domElement.addEventListener('keyup', this.onKeyUp.bind(this));
 		this.domElement.addEventListener('touchstart', this.onTouchStart.bind(this));
 		this.domElement.addEventListener('touchend', this.onTouchEnd.bind(this));
 		this.domElement.addEventListener('touchmove', this.onTouchMove.bind(this));
+
+		
+		// this.domElement.addEventListener('keydown', this.onKeyDown.bind(this));
+		// this.domElement.addEventListener('keyup', this.onKeyUp.bind(this));
+		window.addEventListener('keydown', this.onKeyDown.bind(this));
+		window.addEventListener('keyup', this.onKeyUp.bind(this));
 	}
 
 	addInputListener (listener) {
@@ -183,7 +187,7 @@ export class InputHandler extends EventDispatcher {
 		//	});
 		// }
 
-		this.pressedKeys[e.keyCode] = true;
+		this.pressedKeys[e.code] = true;
 
 		// e.preventDefault();
 	}
@@ -191,7 +195,7 @@ export class InputHandler extends EventDispatcher {
 	onKeyUp (e) {
 		if (this.logMessages) console.log(this.constructor.name + ': onKeyUp');
 
-		delete this.pressedKeys[e.keyCode];
+		delete this.pressedKeys[e.code];
 
 		e.preventDefault();
 	}
@@ -200,14 +204,14 @@ export class InputHandler extends EventDispatcher {
 		if (this.logMessages) console.log(this.constructor.name + ': onDoubleClick');
 
 		let consumed = false;
-		for (let hovered of this.hoveredElements) {
-			if (hovered._listeners && hovered._listeners['dblclick']) {
-				hovered.object.dispatch("dblclick", {
+
+		if(this.hoveredElement){
+			if (this.hoveredElement?.dispatcher?.listeners?.get("dblclick")) {
+				this.hoveredElement.dispatcher.dispatch("dblclick", {
 					mouse: this.mouse,
-					object: hovered.object
+					object: this.hoveredElement.object
 				});
 				consumed = true;
-				break;
 			}
 		}
 
@@ -235,25 +239,25 @@ export class InputHandler extends EventDispatcher {
 		e.preventDefault();
 
 		let consumed = false;
-		let consume = () => { return consumed = true; };
-		if (this.hoveredElements.length === 0) {
+		let consume = () => { consumed = true; };
+
+		if(this.hoveredElement){
+			if (this.hoveredElement?.dispatcher?.listeners?.get("mousedown")) {
+				this.hoveredElement.dispatcher.dispatch("mousedown", {
+					mouse: this.mouse,
+					object: this.hoveredElement.object,
+					consume
+				});
+				consumed = true;
+			}
+		}
+
+		if (!consumed) {
 			for (let inputListener of this.getSortedListeners()) {
 				inputListener.dispatch("mousedown", {
-					viewer: this.viewer,
-					mouse: this.mouse
+					mouse: this.mouse,
+					object: null
 				});
-			}
-		}else{
-			for(let hovered of this.hoveredElements){
-				let object = hovered.object;
-				object.dispatcher.dispatch("mousedown", {
-					viewer: this.viewer,
-					hovered, consume,
-				});
-
-				if(consumed){
-					break;
-				}
 			}
 		}
 
@@ -276,7 +280,6 @@ export class InputHandler extends EventDispatcher {
 		e.preventDefault();
 
 		let noMovement = this.getNormalizedDrag().length() === 0;
-
 		
 		let consumed = false;
 		let consume = () => { return consumed = true; };

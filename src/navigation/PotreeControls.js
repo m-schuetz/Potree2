@@ -22,6 +22,10 @@ export class PotreeControls{
 			0.8 * Math.PI / 2
 		];
 
+		// this.dispatcher.add("keydown", e => {
+		// 	console.log(e);
+		// });
+
 		this.dispatcher.add("mousedown", e => {
 			this.dragStart = {
 				position: this.getPosition().clone(),
@@ -165,7 +169,7 @@ export class PotreeControls{
 			this.radius = radius;
 		} 
 
-		this.update(0);
+		// this.update(0);
 	}
 
 	get pitch(){
@@ -243,6 +247,56 @@ export class PotreeControls{
 			0, -1, 0, 0,
 			0, 0, 0, 1,
 		);
+
+		if(true)
+		{ // apply key input
+			let pressedKeys = Potree.instance.inputHandler.pressedKeys;
+
+			let campos = this.getPosition();
+			let targetpos = this.pivot;
+			let camToTarget = targetpos.clone().sub(campos);
+			let distance = camToTarget.length();
+			let up = new Vector3(0, 0, 1);
+			let rightDir = new Vector3().crossVectors(camToTarget, up).normalize();
+
+			let advance = delta * distance;
+			
+			let forward = targetpos.clone().sub(campos).normalize().multiplyScalar(-advance);
+			let right = rightDir.clone().multiplyScalar(-advance);
+
+			let newCampos = campos.clone();
+			let newTargetpos = targetpos.clone();
+
+			let hasMoved = false;
+			if(pressedKeys["KeyW"]){
+				newCampos.add(forward);
+				newTargetpos.add(forward);
+				hasMoved = true;
+			}
+			if(pressedKeys["KeyS"]){
+				newCampos.sub(forward);
+				newTargetpos.sub(forward);
+				hasMoved = true;
+			}
+			if(pressedKeys["KeyD"]){
+				newCampos.add(right);
+				newTargetpos.add(right);
+				hasMoved = true;
+			}
+			if(pressedKeys["KeyA"]){
+				newCampos.sub(right);
+				newTargetpos.sub(right);
+				hasMoved = true;
+			}
+
+			if(hasMoved){
+				this.set({position: newCampos, pivot: newTargetpos});
+			}
+
+
+
+
+		}
 
 		this.world.makeIdentity();
 		this.world.translate(0, 0, this.radius);

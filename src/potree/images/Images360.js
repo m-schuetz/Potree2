@@ -1,5 +1,5 @@
 
-import {SceneNode, Vector3, Matrix4, EventDispatcher} from "potree";
+import {SceneNode, Vector3, Matrix4, EventDispatcher, StationaryControls} from "potree";
 
 let shaderCode = `
 
@@ -51,7 +51,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
 	var projPos : vec4<f32> = uniforms.proj * viewPos;
 
-	var worldSize = 2.0;
+	var worldSize = 1.0;
 	var sizeR = 0.0;
 	{
 		var viewPosR : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
@@ -68,6 +68,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	var pos_quad : vec3<f32> = QUAD_POS[quadVertexIndex];
 
 	var size = max(sizeR, uniforms.size);
+	size = min(size, 32.0);
 
 	var fx : f32 = projPos.x / projPos.w;
 	fx = fx + size * pos_quad.x / uniforms.screen_width;
@@ -176,6 +177,7 @@ export class Images360 extends SceneNode{
 		this.bindGroup = null;
 		this.hoveredIndex = null;
 		this.dispatcher = new EventDispatcher();
+		this.stationaryControls = new StationaryControls(Potree.instance.renderer.canvas);
 
 		this.positions = new Float32Array(3 * this.images.length);
 		for(let i = 0; i < this.images.length; i++){
@@ -187,16 +189,24 @@ export class Images360 extends SceneNode{
 
 		}
 
-		// this.dispatcher.addEventListener("mousedown", (e) => {
-		// 	console.log("mousedown", e);
-		// });
-
 		this.dispatcher.addEventListener("drag", (e) => {
 			console.log("drag", e);
 		});
 
 		this.dispatcher.addEventListener("click", (e) => {
 			console.log("clicked: ", e.hovered.image.name);
+
+			let image = e.hovered.image;
+			let position = this.position.clone().add(image.position);
+
+			this.stationaryControls.pivot.copy(position);
+			this.stationaryControls.radius = 0;
+			this.stationaryControls.setLabel(`Currently viewing: ${image.name}`);
+
+			Potree.instance.setControls(this.stationaryControls);
+
+			console.log(position);
+
 		});
 
 	}
