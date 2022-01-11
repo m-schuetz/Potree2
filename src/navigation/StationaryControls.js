@@ -1,5 +1,5 @@
 
-import {Vector3, Matrix4, Box3} from "potree";
+import {Vector3, Matrix4, Box3, SphereMap} from "potree";
 import {Potree, EventDispatcher} from "potree";
 import * as TWEEN from "tween";
 
@@ -13,6 +13,8 @@ export class StationaryControls{
 		this.pivot = new Vector3();
 		this.world = new Matrix4();
 		this.dispatcher = new EventDispatcher();
+
+		this.sphereMap = new SphereMap();
 
 		this.elFocusLabel = document.createElement("div");
 		this.element.parentElement.append(this.elFocusLabel);
@@ -70,12 +72,18 @@ export class StationaryControls{
 			console.log("focused!");
 
 			this.elFocusLabel.style.display = "block";
+
+			Potree.instance.scene.root.children.push(this.sphereMap);
 		});
 
 		this.dispatcher.add("unfocusd", e => {
 
 			console.log("unfocused!");
 			this.elFocusLabel.style.display = "none";
+
+			let root = Potree.instance.scene.root;
+			root.children = root.children.filter(node => node !== this.sphereMap);
+			
 		});
 
 	}

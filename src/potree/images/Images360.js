@@ -193,7 +193,7 @@ export class Images360 extends SceneNode{
 			console.log("drag", e);
 		});
 
-		this.dispatcher.addEventListener("click", (e) => {
+		this.dispatcher.addEventListener("click", async (e) => {
 			console.log("clicked: ", e.hovered.image.name);
 
 			let image = e.hovered.image;
@@ -204,6 +204,19 @@ export class Images360 extends SceneNode{
 			this.stationaryControls.setLabel(`Currently viewing: ${image.name}`);
 
 			Potree.instance.setControls(this.stationaryControls);
+
+			{
+				let response = await fetch(image.path);
+				let buffer = await response.arrayBuffer();
+				let mimeType = "image/jpg";
+
+				var u8 = new Uint8Array(buffer);
+				var blob = new Blob([u8], {type: mimeType});
+
+				let imageBitmap = await createImageBitmap(blob);
+
+				this.stationaryControls.sphereMap.setImage(imageBitmap);
+			}
 
 			console.log(position);
 
