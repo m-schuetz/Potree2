@@ -141,6 +141,8 @@ export class Matrix4{
 		tmpTranslate.elements[14] = z;
 
 		this.multiplyMatrices(tmpTranslate, this);
+
+		return this;
 	}
 
 	rotate(angle, axis){
