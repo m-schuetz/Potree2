@@ -2,47 +2,47 @@
 import {Timer} from "potree";
 
 let shaderCode = `
-	[[block]] struct Uniforms {
-		uTest     : u32;
-		x         : f32;
-		y         : f32;
-		width     : f32;
-		height    : f32;
-		near      : f32;
-		window    : i32;
+	struct Uniforms {
+		uTest     : u32,
+		x         : f32,
+		y         : f32,
+		width     : f32,
+		height    : f32,
+		near      : f32,
+		window    : i32,
 	};
 
-	[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-	[[binding(1), group(0)]] var mySampler   : sampler;
-	[[binding(2), group(0)]] var myTexture   : texture_2d<f32>;
-	[[binding(3), group(0)]] var tex_pointID : texture_2d<u32>;
-	[[binding(4), group(0)]] var myDepth     : texture_depth_2d;
+	@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+	@binding(1) @group(0) var mySampler   : sampler;
+	@binding(2) @group(0) var myTexture   : texture_2d<f32>;
+	@binding(3) @group(0) var tex_pointID : texture_2d<u32>;
+	@binding(4) @group(0) var myDepth     : texture_depth_2d;
 
 	struct VertexInput {
-		[[builtin(vertex_index)]] index : u32;
+		@builtin(vertex_index) index : u32,
 	};
 
 	struct VertexOutput {
-		[[builtin(position)]] position : vec4<f32>;
-		[[location(0)]] uv : vec2<f32>;
+		@builtin(position) position : vec4<f32>,
+		@location(0) uv : vec2<f32>,
 	};
 
 	struct FragmentInput {
-		[[builtin(position)]] fragCoord : vec4<f32>;
-		[[location(0)]] uv: vec2<f32>;
+		@builtin(position) fragCoord : vec4<f32>,
+		@location(0) uv: vec2<f32>,
 	};
 
 	struct FragmentOutput{
-		[[builtin(frag_depth)]] depth : f32;
-		[[location(0)]] color : vec4<f32>;
-		[[location(1)]] pointID : u32;
+		@builtin(frag_depth) depth : f32,
+		@location(0) color : vec4<f32>,
+		@location(1) pointID : u32,
 	};
 
 	fn toLinear(depth: f32, near: f32) -> f32{
 		return near / depth;
 	}
 
-	[[stage(vertex)]]
+	@stage(vertex)
 	fn main_vs(vertex : VertexInput) -> VertexOutput {
 
 		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
@@ -111,7 +111,7 @@ let shaderCode = `
 		return newDepth;
 	}
 
-	[[stage(fragment)]]
+	@stage(fragment)
 	fn main_fs(input : FragmentInput) -> FragmentOutput {
 
 		_ = mySampler;

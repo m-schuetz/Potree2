@@ -155,8 +155,6 @@ function startPass(renderer, target, args = {}){
 			view: target.depth.texture.createView(),
 			depthLoadValue: 0,
 			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
 		},
 		sampleCount: 1,
 	};
@@ -185,8 +183,6 @@ function revisitPass(renderer, target){
 			view: target.depth.texture.createView(),
 			depthLoadValue: "load",
 			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
 		},
 		sampleCount: 1,
 	};
@@ -218,8 +214,6 @@ function startSumPass(renderer, target){
 			view: target.depth.texture.createView(),
 			depthLoadValue: "load",
 			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
 		},
 		sampleCount: 1,
 	};

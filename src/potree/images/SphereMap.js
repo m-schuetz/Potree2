@@ -4,7 +4,7 @@ import {SceneNode, Vector3, Matrix4, EventDispatcher, geometries} from "potree";
 
 let shaderCode = `
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	worldView        : mat4x4<f32>;
 	proj             : mat4x4<f32>;
 	screen_width     : f32;
@@ -15,33 +15,32 @@ let shaderCode = `
 
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 [[binding(5), group(0)]] var sphereSampler     : sampler;
 [[binding(6), group(0)]] var sphereTexture     : texture_2d<f32>;
 
 struct VertexIn{
-	[[builtin(vertex_index)]] vertexID : u32;
-	[[location(0)]] position    : vec4<f32>;
-	[[location(1)]] uv          : vec2<f32>;
-	[[location(2)]] normal      : vec4<f32>;
+	@builtin(vertex_index) vertexID : u32,
+	@location(0) position    : vec4<f32>,
+	@location(1) uv          : vec2<f32>,
+	@location(2) normal      : vec4<f32>,
 };
 
 struct VertexOut{
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] uv : vec2<f32>;
-	[[location(1)]] rayd : vec2<f32>;
-	// [[location(0), interpolate(flat)]] pointID : u32;
+	@builtin(position) position : vec4<f32>,
+	@location(0) uv : vec2<f32>,
+	@location(1) rayd : vec2<f32>,
+	// [[location(0), interpolate(flat)]] pointID : u32,
 };
 
 struct FragmentIn{
-	[[location(0)]] uv : vec2<f32>;
-	[[location(1)]] rayd : vec2<f32>;
-	// [[location(0), interpolate(flat)]] pointID : u32;
+	@location(0) uv : vec2<f32>,
+	@location(1) rayd : vec2<f32>,
 };
 
 struct FragmentOut{
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] point_id : u32;
+	@location(0) color : vec4<f32>,
+	@location(1) point_id : u32,
 };
 
 fn rotate(x : f32, y : f32, angle : f32){
@@ -50,7 +49,7 @@ fn rotate(x : f32, y : f32, angle : f32){
 
 let PI = 3.141592653589793;
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	_ = uniforms;
@@ -95,11 +94,11 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	// var rayd = vec2<f32>(0.0, 0.0);
 	// if(vertex.vertexID == 0u || vertex.vertexID == 3u){
 	// 	rayd = vec2<f32>(a_left + yaw, a_bottom + pitch);
-	// }elseif(vertex.vertexID == 1u){
+	// }else if(vertex.vertexID == 1u){
 	// 	rayd = vec2<f32>(a_right + yaw, a_bottom + pitch);
-	// }elseif(vertex.vertexID == 2u || vertex.vertexID == 4u){
+	// }else if(vertex.vertexID == 2u || vertex.vertexID == 4u){
 	// 	rayd = vec2<f32>(a_right + yaw, a_top + pitch);
-	// }elseif(vertex.vertexID == 5u){
+	// }else if(vertex.vertexID == 5u){
 	// 	rayd = vec2<f32>(a_left + yaw, a_top + pitch);
 	// }
 
@@ -112,7 +111,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

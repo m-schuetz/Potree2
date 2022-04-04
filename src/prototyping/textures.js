@@ -3,31 +3,31 @@ import * as Timer from "../renderer/Timer.js";
 
 const source = `
 
-	[[block]] struct Uniforms {
+	struct Uniforms {
 		uTest : u32;
 		x : f32;
 		y : f32;
 		width : f32;
 		height : f32;
 	};
-	[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-	[[binding(1), group(0)]] var mySampler: sampler;
-	[[binding(2), group(0)]] var myTexture: texture_2d<f32>;
+	@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+	@binding(1) @group(0) var mySampler: sampler;
+	@binding(2) @group(0) var myTexture: texture_2d<f32>;
 
 	struct VertexInput {
-		[[builtin(vertex_index)]] index : u32;
+		@builtin(vertex_index) index : u32,
 	};
 
 	struct VertexOutput {
-		[[builtin(position)]] position : vec4<f32>;
-		[[location(0)]] uv : vec2<f32>;
+		@builtin(position) position : vec4<f32>,
+		@location(0) uv : vec2<f32>,
 	};
 
 	struct FragmentInput {
-		[[location(0)]] uv: vec2<f32>;
+		@location(0) uv: vec2<f32>,
 	};
 
-	[[stage(vertex)]]
+	@stage(vertex)
 	fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
@@ -75,8 +75,8 @@ const source = `
 		return output;
 	}
 
-	[[stage(fragment)]]
-	fn main_fragment(input : FragmentInput) -> [[location(0)]] vec4<f32> {
+	@stage(fragment)
+	fn main_fragment(input : FragmentInput) -> @location(0) vec4<f32> {
 
 		var uv : vec2<f32> = input.uv;
 		

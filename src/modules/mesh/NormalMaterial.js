@@ -2,24 +2,24 @@
 import {Vector3, Matrix4} from "potree";
 
 const vs = `
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 struct VertexInput {
-	[[location(0)]] position        : vec4<f32>;
-	[[location(1)]] normal          : vec4<f32>;
+	@location(0) position        : vec4<f32>,
+	@location(1) normal          : vec4<f32>,
 };
 
 struct VertexOutput {
-	[[builtin(position)]] position  : vec4<f32>;
-	[[location(3)]] color           : vec4<f32>;
+	@builtin(position) position  : vec4<f32>,
+	@location(3) color           : vec4<f32>,
 };
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var output : VertexOutput;
@@ -34,24 +34,24 @@ fn main(vertex : VertexInput) -> VertexOutput {
 
 const fs = `
 
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 struct FragmentInput {
-	[[builtin(position)]] position  : vec4<f32>;
-	[[location(3)]] color           : vec4<f32>;
+	@builtin(position) position  : vec4<f32>,
+	@location(3) color           : vec4<f32>,
 };
 
 struct FragmentOutput {
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] id : vec4<u32>;
+	@location(0) color : vec4<f32>,
+	@location(1) id : vec4<u32>,
 };
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main(fragment : FragmentInput) -> FragmentOutput {
 
 	// var N : vec3<f32> = (uniforms.worldView * vec4<f32>(in_normal.xyz, 0.0)).xyz;

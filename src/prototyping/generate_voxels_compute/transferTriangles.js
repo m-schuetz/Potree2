@@ -3,7 +3,7 @@ import {storage_flags, uniform_flags} from "./common.js";
 
 let csTransfer = `
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	batchTriangleCount      : u32;
 	fragmentTriangleCount   : u32;
 	firstTriangle           : u32;
@@ -11,11 +11,11 @@ let csTransfer = `
 	numTransfered           : u32;
 };
 
-[[block]] struct F32s { values : [[stride(4)]] array<f32>; };
-[[block]] struct U32s { values : [[stride(4)]] array<u32>; };
-[[block]] struct I32s { values : [[stride(4)]] array<i32>; };
-[[block]] struct AU32s { values : [[stride(4)]] array<atomic<u32>>; };
-[[block]] struct AI32s { values : [[stride(4)]] array<atomic<i32>>; };
+struct F32s { values : array<f32>; };
+struct U32s { values : array<u32> };
+struct I32s { values : array<i32>; };
+struct AU32s { values : array<atomic<u32>>; };
+struct AI32s { values : array<atomic<i32>>; };
 
 [[binding( 0), group(0)]] var<uniform> uniforms : Uniforms;
 

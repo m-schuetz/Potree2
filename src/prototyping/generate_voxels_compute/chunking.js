@@ -7,7 +7,7 @@ import {Geometry, Mesh, Box3} from "potree";
 
 export let csChunking = `
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	chunkGridSize      : u32;
 	pad_1              : u32;
 	pad_0              : u32;
@@ -22,16 +22,16 @@ struct Batch {
 	lutCounter        : atomic<u32>;
 };
 
-[[block]] struct F32s { values : [[stride(4)]] array<f32>; };
-[[block]] struct U32s { values : [[stride(4)]] array<u32>; };
-[[block]] struct I32s { values : [[stride(4)]] array<i32>; };
-[[block]] struct AU32s { values : [[stride(4)]] array<atomic<u32>>; };
-[[block]] struct AI32s { values : [[stride(4)]] array<atomic<i32>>; };
-[[block]] struct Batches { values : [[stride(32)]] array<Batch>; };
+struct F32s { values : array<f32>; };
+struct U32s { values : array<u32> };
+struct I32s { values : array<i32>; };
+struct AU32s { values : array<atomic<u32>>; };
+struct AI32s { values : array<atomic<i32>>; };
+struct Batches { values : array<Batch>; };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var mySampler: sampler;
-[[binding(2), group(0)]] var myTexture: texture_2d<f32>;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+@binding(1) @group(0) var mySampler: sampler;
+@binding(2) @group(0) var myTexture: texture_2d<f32>;
 
 [[binding(10), group(0)]] var<storage, read_write> indices   : U32s;
 [[binding(11), group(0)]] var<storage, read_write> positions : F32s;

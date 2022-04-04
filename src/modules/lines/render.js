@@ -2,18 +2,18 @@
 import { mat4, vec3 } from '../../../libs/gl-matrix.js';
 
 const vs = `
-[[block]] struct Uniforms {
+struct Uniforms {
   [[offset(0)]] modelViewProjectionMatrix : mat4x4<f32>;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @set(0) var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> position : vec4<f32>;
+@location(0) var<in> position : vec4<f32>;
 
-[[builtin(position)]] var<out> Position : vec4<f32>;
-[[location(0)]] var<out> fragColor : vec4<f32>;
+@builtin(position) var<out> Position : vec4<f32>;
+@location(0) var<out> fragColor : vec4<f32>;
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main() -> void {
 	Position = uniforms.modelViewProjectionMatrix * position;
 	fragColor = vec4<f32>(1.0, 0.0, 0.0, 1.0);
@@ -22,10 +22,10 @@ fn main() -> void {
 `;
 
 const fs = `
-[[location(0)]] var<in> fragColor : vec4<f32>;
-[[location(0)]] var<out> outColor : vec4<f32>;
+@location(0) var<in> fragColor : vec4<f32>;
+@location(0) var<out> outColor : vec4<f32>;
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main() -> void {
 	outColor = fragColor;
 	return;

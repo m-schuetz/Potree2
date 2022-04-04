@@ -3,7 +3,7 @@
 import {Vector3, Matrix4, Geometry} from "potree";
 
 const shaderSource = `
-[[block]] struct Uniforms {
+struct Uniforms {
 	worldView         : mat4x4<f32>;  // 64       0
 	proj              : mat4x4<f32>;  // 64      64
 	screen_width      : f32;          //  4     128
@@ -16,7 +16,7 @@ const shaderSource = `
 	near              : f32;          //  4     176
 };
 
-[[block]] struct NodeUniforms {
+struct NodeUniforms {
 	level             : u32;
 };
 
@@ -27,36 +27,36 @@ struct Node{
 	pad2              : u32;
 };
 
-[[block]] struct Nodes{ values : [[stride(16)]] array<Node>; };
+struct Nodes{ values : [[stride(16)]] array<Node>; };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var<storage, read> nodes : Nodes;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+@binding(1) @group(0) var<storage, read> nodes : Nodes;
 
 [[binding(3), group(1)]] var<uniform> nodeUniforms : NodeUniforms;
 
 struct VertexIn{
-	[[location(0)]] position : vec3<f32>;
-	[[location(1)]] color : vec3<f32>;
-	[[builtin(vertex_index)]] vertexID : u32;
+	@location(0) position : vec3<f32>;
+	@location(1) color : vec3<f32>;
+	@builtin(vertex_index) vertexID : u32,
 };
 
 struct VertexOut{
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] uv : vec2<f32>;
-	[[location(2)]] lod : f32;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
+	@location(1) uv : vec2<f32>;
+	@location(2) lod : f32;
 };
 
 struct FragmentIn{
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] uv : vec2<f32>;
-	[[location(2)]] lod : f32;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
+	@location(1) uv : vec2<f32>;
+	@location(2) lod : f32;
 };
 
 struct FragmentOut{
-	[[builtin(frag_depth)]] depth : f32;
-	[[location(0)]] color : vec4<f32>;
+	@builtin(frag_depth) depth : f32,
+	@location(0) color : vec4<f32>,
 };
 
 var<private> QUAD_POS : array<vec3<f32>, 6> = array<vec3<f32>, 6>(
@@ -170,7 +170,7 @@ fn getLOD(vertex : VertexIn) -> u32 {
 	return depth;
 }
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var abc = nodes.values[0];
@@ -237,7 +237,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

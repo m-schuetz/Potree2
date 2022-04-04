@@ -144,33 +144,33 @@ canvas{
 	// });
 	
 
-	// Potree.load("./resources/pointclouds/heidentor/metadata.json", {name: "CA13"}).then(pointcloud => {
-	// 	pointcloud.name = "Heidentor";
-	// 	scene.root.children.push(pointcloud);
-	// });
+	Potree.load("./resources/pointclouds/heidentor/metadata.json", {name: "CA13"}).then(pointcloud => {
+		pointcloud.name = "Heidentor";
+		scene.root.children.push(pointcloud);
+	});
 
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	Potree.load("./nocommit/F_pointclouds/ca13_avg_brotli/metadata.json").then(pointcloud => {
+	// Potree.load("./nocommit/F_pointclouds/ca13_avg_brotli/metadata.json").then(pointcloud => {
 
-		window.pointcloud = pointcloud;
-		pointcloud.name = "CA13";
+	// 	window.pointcloud = pointcloud;
+	// 	pointcloud.name = "CA13";
 
-		controls.set({
-			position: [693510.3659155036, 3914635.7496266835, 2348.8318473331674],
-			pivot: [695465.0277230293, 3917000.392088688, -320.45425290016703],
-		});
-		controls.set({
-			position: [694662.1, 3916358.1, 17.2], 
-			pivot: [694689.4, 3916377.7, -3.4],
-		});
-		// controls.set({
-		// 	position: [695519.3840013768, 3918738.880881983, 174.79076714030535],
-		// 	pivot: [695414.0628645113, 3918897.936389257, 201.34908755874508],
-		// });
+	// 	controls.set({
+	// 		position: [693510.3659155036, 3914635.7496266835, 2348.8318473331674],
+	// 		pivot: [695465.0277230293, 3917000.392088688, -320.45425290016703],
+	// 	});
+	// 	controls.set({
+	// 		position: [694662.1, 3916358.1, 17.2], 
+	// 		pivot: [694689.4, 3916377.7, -3.4],
+	// 	});
+	// 	// controls.set({
+	// 	// 	position: [695519.3840013768, 3918738.880881983, 174.79076714030535],
+	// 	// 	pivot: [695414.0628645113, 3918897.936389257, 201.34908755874508],
+	// 	// });
 		
-		scene.root.children.push(pointcloud);
-	});
+	// 	scene.root.children.push(pointcloud);
+	// });
 
 	let origin = new Vector3(0, 0, 0);
 	let X = new Vector3(10, 0, 0);

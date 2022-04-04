@@ -1,38 +1,38 @@
 
 
 const vs = `
-[[block]] struct Uniforms {
-	[[size(64)]] worldView : mat4x4<f32>;
-	[[size(64)]] proj : mat4x4<f32>;
-	[[size(4)]] screen_width : f32;
-	[[size(4)]] screen_height : f32;
+struct Uniforms {
+	[[size(64)]] worldView : mat4x4<f32>,
+	[[size(64)]] proj : mat4x4<f32>,
+	[[size(4)]] screen_width : f32,
+	[[size(4)]] screen_height : f32,
 };
 
-[[block]] struct ColorAdjustments {
-	[[size(4)]] shift : f32;
-	[[size(4)]] scale : f32;
-	[[size(4)]] gamma : f32;
-	[[size(4)]] brightness : f32;
-	[[size(4)]] contrast : f32;
+struct ColorAdjustments {
+	[[size(4)]] shift : f32,
+	[[size(4)]] scale : f32,
+	[[size(4)]] gamma : f32,
+	[[size(4)]] brightness : f32,
+	[[size(4)]] contrast : f32,
 };
 
-[[block]] struct U32s {
-	[[offset(0)]] values : [[stride(4)]] array<u32>;
+struct U32s {
+	[[offset(0)]] values : array<u32>,
 };
 
-[[binding(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), set(0)]] var<uniform> in_adjust : ColorAdjustments;
-[[binding(3), set(0)]] var<storage_buffer> ssbo_attribute : [[access(read)]]U32s;
+@binding(0) var<uniform> uniforms : Uniforms;
+@binding(1) @set(0) var<uniform> in_adjust : ColorAdjustments;
+@binding(3) @set(0) var<storage_buffer> ssbo_attribute : [[access(read)]]U32s;
 
-[[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
-[[binding(11), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
+@binding(10) @group(0) var<uniform_constant> mySampler: sampler;
+@binding(11) @group(0) var<uniform_constant> myTexture: texture_2d<f32>;
 
-[[location(0)]] var<in> in_position : vec4<f32>;
+@location(0) var<in> in_position : vec4<f32>;
 
-[[builtin(instance_index)]] var<in> instanceIdx : i32;
-[[builtin(vertex_index)]] var<in> vertexID : u32;
-[[builtin(position)]] var<out> out_pos : vec4<f32>;
-[[location(0)]] var<out> out_color : vec4<f32>;
+@builtin(instance_index) var<in> instanceIdx : i32;
+@builtin(vertex_index) var<in> vertexID : u32;
+@builtin(position) var<out> out_pos : vec4<f32>;
+@location(0) var<out> out_color : vec4<f32>;
 
 // formula adapted from: http://www.dfstudios.co.uk/articles/programming/image-programming-algorithms/image-processing-algorithms-part-5-contrast-adjustment/
 fn getContrastFactor(contrast : f32) -> f32{
@@ -69,7 +69,7 @@ fn readU32(offset : u32) -> u32{
 import {getColor};
 
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main() -> void {
 
 	var viewPos : vec4<f32> = uniforms.worldView * in_position;
@@ -82,13 +82,13 @@ fn main() -> void {
 `;
 
 const fs = `
-[[location(0)]] var<in> fragColor : vec4<f32>;
-[[location(0)]] var<out> outColor : vec4<f32>;
+@location(0) var<in> fragColor : vec4<f32>;
+@location(0) var<out> outColor : vec4<f32>;
 
 [[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
 [[binding(11), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main() -> void {
 	outColor = fragColor;
 

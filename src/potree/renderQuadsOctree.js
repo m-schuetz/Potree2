@@ -5,46 +5,46 @@ import {Timer} from "potree";
 
 
 let vsBase = `
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
-	hqs_flag : u32;
-	colorMode : u32;
-	point_size : f32;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
+	screen_width : f32,
+	screen_height : f32,
+	hqs_flag : u32,
+	colorMode : u32,
+	point_size : f32,
 };
 
 struct Node {
-	numPoints   : u32;
-	dbg         : u32;
-	min_x       : f32;
-	min_y       : f32;
-	min_z       : f32;
-	max_x       : f32;
-	max_y       : f32;
-	max_z       : f32;
+	numPoints   : u32,
+	dbg         : u32,
+	min_x       : f32,
+	min_y       : f32,
+	min_z       : f32,
+	max_x       : f32,
+	max_y       : f32,
+	max_z       : f32,
 };
 
 struct AttributeDescriptor{
-	offset      : u32;
-	numElements : u32;
-	valuetype   : u32;
-	range_min   : f32;
-	range_max   : f32;
-	clamp       : u32;
+	offset      : u32,
+	numElements : u32,
+	valuetype   : u32,
+	range_min   : f32,
+	range_max   : f32,
+	clamp       : u32,
 };
 
-[[block]] struct Nodes{
-	values : [[stride(32)]] array<Node>;
+struct Nodes{
+	values : array<Node>,
 };
 
-[[block]] struct AttributeDescriptors{
-	values : [[stride(24)]] array<AttributeDescriptor>;
+struct AttributeDescriptors{
+	values : [[stride(24)]] array<AttributeDescriptor>,
 };
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
+struct U32s {
+	values : array<u32>,
 };
 
 let TYPES_U8            =  0u;
@@ -67,23 +67,23 @@ let OUTSIDE  = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 
 let PRIMITIVE_NUM_VERTICES = 6u;
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var<storage, read> attributes : AttributeDescriptors;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+@binding(1) @group(0) var<storage, read> attributes : AttributeDescriptors;
 
-[[binding(0), group(1)]] var mySampler: sampler;
-[[binding(1), group(1)]] var myTexture: texture_2d<f32>;
+@binding(0) @group(1) var mySampler: sampler;
+@binding(1) @group(1) var myTexture: texture_2d<f32>;
 
-[[binding(0), group(2)]] var<storage, read> buffer : U32s;
-[[binding(0), group(3)]] var<storage, read> nodes : Nodes;
+@binding(0) @group(2) var<storage, read> buffer : U32s;
+@binding(0) @group(3) var<storage, read> nodes : Nodes;
 
 struct VertexInput {
-	[[builtin(instance_index)]] instanceID : u32;
-	[[builtin(vertex_index)]] vertexID : u32;
+	@builtin(instance_index) instanceID : u32,
+	@builtin(vertex_index) vertexID : u32,
 };
 
 struct VertexOutput {
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
 };
 
 fn readU8(offset : u32) -> u32{
@@ -147,7 +147,7 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	if(attribute.valuetype == TYPES_U8){
 		var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
 		value = f32(readU8(offset));
-	}elseif(attribute.valuetype == TYPES_F64){
+	}else if(attribute.valuetype == TYPES_F64){
 		var offset = node.numPoints * attribute.offset + 8u * vertex.vertexID;
 
 		var b0 = readU8(offset + 0u);
@@ -174,9 +174,9 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 		var value_f32 = bitcast<f32>(value_u32);
 
 		value = value_f32;
-	}elseif(attribute.valuetype == TYPES_ELEVATION){
+	}else if(attribute.valuetype == TYPES_ELEVATION){
 		value = position.z;
-	}elseif(attribute.valuetype == TYPES_U16){
+	}else if(attribute.valuetype == TYPES_U16){
 		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
 		value = f32(readU16(offset));
 	}
@@ -213,7 +213,7 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 }
 
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	{ // reference all potentially unused variables, 
@@ -264,9 +264,9 @@ fn main(vertex : VertexInput) -> VertexOutput {
 
 				// if(quadVertexIndex == 0u){
 				// 	pos_quad = vec3<f32>(-1.0, -1.0, 0.0);
-				// }elseif(quadVertexIndex == 1u){
+				// }else if(quadVertexIndex == 1u){
 				// 	pos_quad = vec3<f32>( 1.0, -1.0, 0.0);
-				// }elseif(quadVertexIndex == 2u){
+				// }else if(quadVertexIndex == 2u){
 				// 	pos_quad = vec3<f32>( 1.0,  1.0, 0.0);
 				// }
 
@@ -344,14 +344,14 @@ fn main(vertex : VertexInput) -> VertexOutput {
 const fsBase = `
 
 struct FragmentInput {
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 struct FragmentOutput {
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main(fragment : FragmentInput) -> FragmentOutput {
 	var output : FragmentOutput;
 	output.color = fragment.color;

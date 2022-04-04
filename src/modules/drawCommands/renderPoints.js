@@ -2,28 +2,28 @@
 import {Vector3, Matrix4, Geometry} from "potree";
 
 const vs = `
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
+	screen_width : f32,
+	screen_height : f32,
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 struct VertexIn{
-	[[location(0)]] position : vec3<f32>;
-	[[location(1)]] color : vec3<f32>;
-	[[builtin(vertex_index)]] vertexID : u32;
+	@location(0) position : vec3<f32>;
+	@location(1) color : vec3<f32>;
+	@builtin(vertex_index) vertexID : u32,
 };
 
 struct VertexOut{
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
 };
 
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main(vertex : VertexIn) -> VertexOut {
 
 	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
@@ -39,14 +39,14 @@ fn main(vertex : VertexIn) -> VertexOut {
 const fs = `
 
 struct FragmentIn{
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 struct FragmentOut{
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

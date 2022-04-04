@@ -2,34 +2,33 @@
 import {Vector3, Matrix4} from "potree";
 
 const vs = `
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
-	point_size : f32;
-	size : f32;
-	min_pixel_size : f32;
-	max_pixel_size: f32;
+struct Uniforms {
+	worldView      : mat4x4<f32>,
+	proj           : mat4x4<f32>,
+	screen_width   : f32,
+	screen_height  : f32,
+	point_size     : f32,
+	size           : f32,
+	min_pixel_size : f32,
+	max_pixel_size : f32,
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 struct VertexIn{
-	[[location(0)]] position : vec3<f32>;
-	[[builtin(vertex_index)]] vertexID : u32;
+	@location(0) position : vec3<f32>,
+	@builtin(vertex_index) vertexID : u32,
 };
 
 struct VertexOut{
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] uv    : vec2<f32>;
-	// [[location(2)]] depth : f32;
-	[[location(2)]] viewPos : vec3<f32>;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
+	@location(1) uv    : vec2<f32>,
+	@location(2) viewPos : vec3<f32>,
 };
 
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main(vertex : VertexIn) -> VertexOut {
 
 	var QUAD_POS : array<vec3<f32>, 6> = array<vec3<f32>, 6>(
@@ -82,32 +81,32 @@ fn main(vertex : VertexIn) -> VertexOut {
 const fs = `
 
 struct FragmentIn{
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] uv    : vec2<f32>;
-	[[location(2)]] viewPos : vec3<f32>;
+	@location(0) color : vec4<f32>,
+	@location(1) uv    : vec2<f32>,
+	@location(2) viewPos : vec3<f32>,
 };
 
 struct FragmentOut{
-	[[location(0)]] color : vec4<f32>;
-	[[builtin(frag_depth)]] depth : f32;
+	@location(0) color : vec4<f32>,
+	@builtin(frag_depth) depth : f32,
 };
 
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
-	point_size : f32;
-	size : f32;
-	min_pixel_size : f32;
-	max_pixel_size: f32;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
+	screen_width : f32,
+	screen_height : f32,
+	point_size : f32,
+	size : f32,
+	min_pixel_size : f32,
+	max_pixel_size: f32,
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(2), group(0)]] var mySampler: sampler;
-[[binding(3), group(0)]] var myTexture: texture_2d<f32>;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+@binding(2) @group(0) var mySampler: sampler;
+@binding(3) @group(0) var myTexture: texture_2d<f32>;
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

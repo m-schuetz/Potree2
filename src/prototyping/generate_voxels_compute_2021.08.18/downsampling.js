@@ -8,7 +8,7 @@ import {SPECTRAL} from "potree";
 
 export let csDownsampling = `
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	numTriangles     : u32;
 	gridSize         : u32;
 	firstTriangle    : u32;
@@ -19,7 +19,7 @@ export let csDownsampling = `
 	level            : u32;            // offset(52)
 };
 
-[[block]] struct Metadata {
+struct Metadata {
 	offsetCounter   : atomic<u32>;
 	numVoxelsAdded  : atomic<u32>;
 	pad1 : u32;
@@ -56,17 +56,17 @@ struct Chunk{
 	pad2         : u32;
 };
 
-[[block]] struct F32s { values : [[stride(4)]] array<f32>; };
-[[block]] struct U32s { values : [[stride(4)]] array<u32>; };
-[[block]] struct I32s { values : [[stride(4)]] array<i32>; };
-[[block]] struct AU32s { values : [[stride(4)]] array<atomic<u32>>; };
-[[block]] struct AI32s { values : [[stride(4)]] array<atomic<i32>>; };
+struct F32s { values : array<f32>; };
+struct U32s { values : array<u32> };
+struct I32s { values : array<i32>; };
+struct AU32s { values : array<atomic<u32>>; };
+struct AI32s { values : array<atomic<i32>>; };
 
-[[block]] struct Chunks { values : [[stride(32)]] array<Chunk>; };
-[[block]] struct Voxels { values : [[stride(32)]] array<Voxel>; };
+struct Chunks { values : array<Chunk>; };
+struct Voxels { values : array<Voxel> };
 
 // IN
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 [[binding(10), group(0)]] var<storage, read_write> indices    : U32s;
 [[binding(11), group(0)]] var<storage, read_write> positions  : F32s;
 [[binding(12), group(0)]] var<storage, read_write> colors     : U32s;

@@ -1,18 +1,18 @@
 
 export const vs = `
-[[block]] struct Uniforms {
+struct Uniforms {
   [[offset(0)]] modelViewProjectionMatrix : mat4x4<f32>;
 };
 
-[[binding(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> position : vec4<f32>;
-[[location(1)]] var<in> color : vec4<f32>;
+@location(0) var<in> position : vec4<f32>;
+@location(1) var<in> color : vec4<f32>;
 
-[[builtin(position)]] var<out> Position : vec4<f32>;
-[[location(0)]] var<out> fragColor : vec4<f32>;
+@builtin(position) var<out> Position : vec4<f32>;
+@location(0) var<out> fragColor : vec4<f32>;
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main() -> void {
 	Position = uniforms.modelViewProjectionMatrix * position;
 	fragColor = color;
@@ -21,10 +21,10 @@ fn main() -> void {
 `;
 
 export const fs = `
-[[location(0)]] var<in> fragColor : vec4<f32>;
-[[location(0)]] var<out> outColor : vec4<f32>;
+@location(0) var<in> fragColor : vec4<f32>;
+@location(0) var<out> outColor : vec4<f32>;
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main() -> void {
 	outColor = fragColor;
 	return;
@@ -33,20 +33,20 @@ fn main() -> void {
 
 export let csTest = `
 
-[[block]] struct Positions {
+struct Positions {
 	[[offset(0)]] values : [[stride(16)]] array<vec4<f32>>;
 };
 
-[[block]] struct Colors {
+struct Colors {
 	[[offset(0)]] values : [[stride(16)]] array<vec4<f32>>;
 };
 
-[[binding(0)]] var<storage_buffer> positions : Positions;
-[[binding(1), set(0)]] var<storage_buffer> colors : Colors;
+@binding(0) var<storage_buffer> positions : Positions;
+@binding(1) @set(0) var<storage_buffer> colors : Colors;
 
-[[builtin(global_invocation_id)]] var<in> GlobalInvocationID : vec3<u32>;
+@builtin(global_invocation_id) var<in> GlobalInvocationID : vec3<u32>;
 
-[[stage(compute)]]
+@stage(compute)
 fn main() -> void{
 
 	var index : u32 = GlobalInvocationID.x;
@@ -58,11 +58,11 @@ fn main() -> void{
 	var i_pos : u32 = (index * 3u) / 4u;
 	if(index % 4u == 0){
 		positions.values[i_pos].x = 0.0;
-	}elseif(index % 4u == 1){
+	}else if(index % 4u == 1){
 		positions.values[i_pos].w = 0.0;
-	}elseif(index % 4u == 2){
+	}else if(index % 4u == 2){
 		positions.values[i_pos].z = 0.0;
-	}elseif(index % 4u == 3){
+	}else if(index % 4u == 3){
 		positions.values[i_pos].y = 0.0;
 	}
 
@@ -81,30 +81,30 @@ fn main() -> void{
 
 export let csLasToVBO = `
 
-[[block]] struct LasData {
-	[[offset(0)]] values : [[stride(4)]] array<u32>;
+struct LasData {
+	[[offset(0)]] values : array<u32>;
 };
 
-[[block]] struct Positions {
-	[[offset(0)]] values : [[stride(4)]] array<f32>;
+struct Positions {
+	[[offset(0)]] values : array<f32>;
 };
 
-[[block]] struct Colors {
+struct Colors {
 	[[offset(0)]] values : [[stride(16)]] array<vec4<f32>>;
 };
 
-[[block]] struct Params {
+struct Params {
   [[offset(0)]] start : u32;
   [[offset(4)]] numPoints : u32;
 };
 
-[[binding(0)]] var<storage_buffer> lasdata : LasData;
-[[binding(1), set(0)]] var<storage_buffer> positions : Positions;
-[[binding(2), set(0)]] var<storage_buffer> colors : Colors;
+@binding(0) var<storage_buffer> lasdata : LasData;
+@binding(1) @set(0) var<storage_buffer> positions : Positions;
+@binding(2) @set(0) var<storage_buffer> colors : Colors;
 
-[[binding(3), set(0)]] var<uniform> params : Params;
+@binding(3) @set(0) var<uniform> params : Params;
 
-[[builtin(global_invocation_id)]] var<in> GlobalInvocationID : vec3<u32>;
+@builtin(global_invocation_id) var<in> GlobalInvocationID : vec3<u32>;
 
 var<private> recordLength : u32 = 26u;
 
@@ -121,13 +121,13 @@ fn readU32(byteOffset : u32) -> u32{
 
 	if(overlapCase == 0){
 		result = lasdata.values[b0SourceIndex];
-	}elseif(overlapCase == 1){
+	}else if(overlapCase == 1){
 		result = result | lasdata.values[b0SourceIndex] << 8;
 		result = result | lasdata.values[b0SourceIndex + 1] >> 24;
-	}elseif(overlapCase == 2){
+	}else if(overlapCase == 2){
 		result = result | lasdata.values[b0SourceIndex] << 16;
 		result = result | lasdata.values[b0SourceIndex + 1] >> 16;
-	}elseif(overlapCase == 3){
+	}else if(overlapCase == 3){
 		result = result | lasdata.values[b0SourceIndex] << 24;
 		result = result | lasdata.values[b0SourceIndex + 1] >> 8;
 	}
@@ -139,7 +139,7 @@ fn readI32(byteOffset : u32) -> i32{
 	return i32(readU32(byteOffset));
 }
 
-[[stage(compute)]]
+@stage(compute)
 fn main() -> void{
 
 	var index : u32 = GlobalInvocationID.x;

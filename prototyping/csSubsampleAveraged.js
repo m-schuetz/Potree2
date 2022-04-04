@@ -3,23 +3,23 @@ import {LasLoader, Header} from "LasLoader";
 import {Timer} from "potree";
 
 const csSource = `
-[[block]] struct F32s {
-	values : [[stride(4)]] array<f32>;
+struct F32s {
+	values : array<f32>;
 };
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
+struct U32s {
+	values : array<u32>;
 };
 
-[[block]] struct U32As {
-	values : [[stride(4)]] array<atomic<u32>>;
+struct U32As {
+	values : array<atomic<u32>>;
 };
 
-[[block]] struct Result {
+struct Result {
 	value : atomic<u32>;
 };
 
-[[block]] struct SimParams {
+struct SimParams {
 	gridSize : f32;
 	min_x : f32;
 	min_y : f32;
@@ -29,9 +29,9 @@ const csSource = `
 	max_z : f32;
 };
 
-[[binding(0), group(0)]] var<uniform> params : SimParams;
-[[binding(1), group(0)]] var<storage, read> vertices : F32s;
-[[binding(2), group(0)]] var<storage, read_write> result : Result; 
+@binding(0) @group(0) var<uniform> params : SimParams;
+@binding(1) @group(0) var<storage, read> vertices : F32s;
+@binding(2) @group(0) var<storage, read_write> result : Result; 
 
 [[binding(5), group(0)]] var<storage, read> in_colors : U32s;
 
@@ -84,23 +84,23 @@ fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 `;
 
 let csSums = `
-[[block]] struct F32s {
-	values : [[stride(4)]] array<f32>;
+struct F32s {
+	values : array<f32>;
 };
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
+struct U32s {
+	values : array<u32>;
 };
 
-[[block]] struct U32As {
-	values : [[stride(4)]] array<atomic<u32>>;
+struct U32As {
+	values : array<atomic<u32>>;
 };
 
-[[block]] struct Result {
+struct Result {
 	value : atomic<u32>;
 };
 
-[[block]] struct SimParams {
+struct SimParams {
 	gridSize : f32;
 	min_x : f32;
 	min_y : f32;
@@ -110,9 +110,9 @@ let csSums = `
 	max_z : f32;
 };
 
-[[binding(0), group(0)]] var<uniform> params : SimParams;
-[[binding(1), group(0)]] var<storage, read> vertices : F32s;
-[[binding(2), group(0)]] var<storage, read_write> result : Result; 
+@binding(0) @group(0) var<uniform> params : SimParams;
+@binding(1) @group(0) var<storage, read> vertices : F32s;
+@binding(2) @group(0) var<storage, read_write> result : Result; 
 
 [[binding(5), group(0)]] var<storage, read> in_colors : U32s;
 
@@ -159,23 +159,23 @@ fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 `;
 
 let csGridToVbo = `
-[[block]] struct F32s {
-	values : [[stride(4)]] array<f32>;
+struct F32s {
+	values : array<f32>;
 };
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
+struct U32s {
+	values : array<u32>;
 };
 
-[[block]] struct U32As {
-	values : [[stride(4)]] array<atomic<u32>>;
+struct U32As {
+	values : array<atomic<u32>>;
 };
 
-[[block]] struct Result {
+struct Result {
 	value : atomic<u32>;
 };
 
-[[block]] struct SimParams {
+struct SimParams {
 	gridSize : f32;
 	min_x : f32;
 	min_y : f32;
@@ -185,9 +185,9 @@ let csGridToVbo = `
 	max_z : f32;
 };
 
-[[binding(0), group(0)]] var<uniform> params : SimParams;
-[[binding(1), group(0)]] var<storage, read> vertices : F32s;
-[[binding(2), group(0)]] var<storage, read_write> result : Result; 
+@binding(0) @group(0) var<uniform> params : SimParams;
+@binding(1) @group(0) var<storage, read> vertices : F32s;
+@binding(2) @group(0) var<storage, read_write> result : Result; 
 
 [[binding(5), group(0)]] var<storage, read> in_colors : U32s;
 
