@@ -197,8 +197,8 @@ export async function installSidebar(elPotree, potree){
 	let secAttributes = createAttributesSection();
 
 	addSection(secMain);
-	addSection(secAttributes);
-	addSection(secMeasure);
+	// addSection(secAttributes);
+	// addSection(secMeasure);
 
 	setActiveSection(secMain);
 

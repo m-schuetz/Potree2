@@ -106,6 +106,8 @@ export class PotreeControls{
 					radius: newRadius,
 				});
 			}
+
+			this.update(0);
 			
 
 		});

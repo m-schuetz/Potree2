@@ -162,6 +162,7 @@ export class Image360{
 
 	constructor(){
 		this.position = new Vector3();
+		this.rotation = new Vector3();
 		this.name = "";
 	}
 
@@ -216,6 +217,45 @@ export class Images360 extends SceneNode{
 				let imageBitmap = await createImageBitmap(blob);
 
 				this.stationaryControls.sphereMap.setImage(imageBitmap);
+
+				window.factors = window.factors = [
+					-1, -2 * Math.PI / 4, 
+					1, 0, 
+					1, 0,
+				]
+				// let [a, b, c, d, e, f] = window.factors ?? [0, 0, 0, 0, 0, 0];
+
+				// let yaw = new Matrix4().rotate(
+				// 	a * image.rotation.x - b,
+				// 	new Vector3(0, 0, 1));
+				// let pitch = new Matrix4().rotate(
+				// 	-image.rotation.y,
+				// 	new Vector3(1, 0, 0));
+				// let roll = new Matrix4().rotate(
+				// 	+image.rotation.z - 0 * Math.PI / 4,
+				// 	new Vector3(0, 1, 0));
+				
+				// let radians = (degrees) => Math.PI * degrees / 180;
+				// let yaw = new Matrix4().rotate(
+				// 	-image.rotation.x - 2 * Math.PI / 4,
+				// 	new Vector3(0, 0, 1));
+				// let pitch = new Matrix4().rotate(
+				// 	-image.rotation.y,
+				// 	new Vector3(1, 0, 0));
+				// let roll = new Matrix4().rotate(
+				// 	+image.rotation.z - 0 * Math.PI / 4,
+				// 	new Vector3(0, 1, 0));
+
+				// let rotation = new Matrix4()
+				// 	.multiplyMatrices(yaw, pitch);
+
+				// let rotation = new Matrix4().multiply(pitch).multiply(yaw);
+				// let rotation = new Matrix4().multiply(roll).multiply(pitch).multiply(yaw);
+				// let rotation = new Matrix4().multiply(yaw).multiply(pitch);
+
+				this.stationaryControls.sphereMap.imageRotation = image.rotation;
+				// this.stationaryControls.sphereMap.rotation.copy(rotation);
+
 			}
 
 			console.log(position);

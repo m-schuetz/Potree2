@@ -110,5 +110,5 @@ export function createSphere(detail){
 }
 
 
-export const sphere = createSphere(32);
+export const sphere = createSphere(128);
 
