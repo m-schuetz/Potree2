@@ -179,6 +179,6 @@ export function writeBuffer(renderer, {target, targetOffset, source, sourceOffse
 	// passEncoder.dispatch(groups, 1, 1);
 	passEncoder.dispatch(Math.ceil(size) / 4);
 
-	passEncoder.endPass();
+	passEncoder.end();
 	device.queue.submit([commandEncoder.finish()]);
 }

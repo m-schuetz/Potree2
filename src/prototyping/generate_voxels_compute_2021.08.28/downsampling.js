@@ -477,7 +477,7 @@ async function processChunk(renderer, node, chunk){
 		}
 
 
-		passEncoder.endPass();
+		passEncoder.end();
 		
 		device.queue.submit([commandEncoder.finish()]);
 

@@ -87,6 +87,7 @@ export class Renderer{
 				| GPUTextureUsage.COPY_DST 
 				| GPUTextureUsage.COPY_SRC
 				| GPUTextureUsage.TEXTURE_BINDING,
+			compositingAlphaMode: "opaque",
 		});
 
 		this.swapChain = this.context.getCurrentTexture();
@@ -171,6 +172,7 @@ export class Renderer{
 					| GPUTextureUsage.COPY_SRC
 					| GPUTextureUsage.TEXTURE_BINDING,
 				size: {width, height},
+				compositingAlphaMode: "opaque",
 			});
 
 			this.depthTexture = this.device.createTexture({
@@ -316,7 +318,7 @@ export class Renderer{
 		}
 
 		passEncoder.dispatch(...dispatchGroups);
-		passEncoder.endPass();
+		passEncoder.end();
 		
 		device.queue.submit([commandEncoder.finish()]);
 	}

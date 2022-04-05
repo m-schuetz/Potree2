@@ -156,7 +156,7 @@ function init(renderer){
 // 	passEncoder.setPipeline(pipeline);
 // 	passEncoder.setBindGroup(0, bindGroup);
 // 	passEncoder.dispatch(width, height);
-// 	passEncoder.endPass();
+// 	passEncoder.end();
 	
 // 	device.queue.submit([commandEncoder.finish()]);
 
@@ -204,7 +204,7 @@ export function readPixels(renderer, texture, x, y, width, height, callback){
 	passEncoder.setPipeline(pipeline_color);
 	passEncoder.setBindGroup(0, bindGroup);
 	passEncoder.dispatch(width, height);
-	passEncoder.endPass();
+	passEncoder.end();
 	
 	device.queue.submit([commandEncoder.finish()]);
 
@@ -251,7 +251,7 @@ export function readDepth(renderer, texture, x, y, width, height, callback){
 	passEncoder.setPipeline(pipeline_depth);
 	passEncoder.setBindGroup(0, bindGroup);
 	passEncoder.dispatch(width, height);
-	passEncoder.endPass();
+	passEncoder.end();
 	
 	device.queue.submit([commandEncoder.finish()]);
 

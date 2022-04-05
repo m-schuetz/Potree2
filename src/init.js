@@ -138,14 +138,24 @@ function startPass(renderer, target, args = {}){
 	let view = target.colorAttachments[0].texture.createView();
 
 	let colorAttachments = [
-		{view, loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 }}
+		{
+			view, 
+			loadOp: "clear", 
+			clearValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
+			storeOp: 'store',
+		}
 	];
 
 	// let disable_multi_attachments = args.disable_multi_attachments ?? false;
 	if(target.colorAttachments.length === 2){
 		let view = target.colorAttachments[1].texture.createView();
 		colorAttachments.push(
-			{view, loadValue: { r: 0, g: 0, b: 0, a: 0}}
+			{
+				view, 
+				loadOp: "clear", 
+				clearValue: { r: 0, g: 0, b: 0, a: 0},
+				storeOp: 'store',
+			}
 		);
 	}
 
@@ -153,7 +163,7 @@ function startPass(renderer, target, args = {}){
 		colorAttachments,
 		depthStencilAttachment: {
 			view: target.depth.texture.createView(),
-			depthLoadValue: 0,
+			depthLoadOp: "clear", depthClearValue: 0,
 			depthStoreOp: "store",
 		},
 		sampleCount: 1,
@@ -169,19 +179,19 @@ function revisitPass(renderer, target){
 	let view = target.colorAttachments[0].texture.createView();
 
 	let colorAttachments = [
-		{view, loadValue: "load"}
+		{view, loadOp: "load", storeOp: 'store'}
 	];
 
 	if(target.colorAttachments.length === 2){
 		let view = target.colorAttachments[1].texture.createView();
-		colorAttachments.push({view, loadValue: "load"});
+		colorAttachments.push({view, loadOp: "load", storeOp: 'store'});
 	}
 
 	let renderPassDescriptor = {
 		colorAttachments,
 		depthStencilAttachment: {
 			view: target.depth.texture.createView(),
-			depthLoadValue: "load",
+			depthLoadOp: "load",
 			depthStoreOp: "store",
 		},
 		sampleCount: 1,
@@ -197,14 +207,24 @@ function startSumPass(renderer, target){
 	let view = target.colorAttachments[0].texture.createView();
 
 	let colorAttachments = [
-		{view, loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }}
+		{
+			view, 
+			loadOp: "clear", 
+			clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+			storeOp: 'store',
+		}
 	];
 
 	// let disable_multi_attachments = args.disable_multi_attachments ?? false;
 	if(target.colorAttachments.length === 2){
 		let view = target.colorAttachments[1].texture.createView();
 		colorAttachments.push(
-			{view, loadValue: { r: 0, g: 0, b: 0, a: 0}}
+			{
+				view, 
+				loadOp: "clear", 
+				clearValue: { r: 0, g: 0, b: 0, a: 0},
+				storeOp: 'store',
+			}
 		);
 	}
 
@@ -212,7 +232,7 @@ function startSumPass(renderer, target){
 		colorAttachments,
 		depthStencilAttachment: {
 			view: target.depth.texture.createView(),
-			depthLoadValue: "load",
+			depthLoadOp: "load",
 			depthStoreOp: "store",
 		},
 		sampleCount: 1,
@@ -228,7 +248,7 @@ function endPass(pass){
 
 	let {passEncoder, commandEncoder} = pass;
 
-	passEncoder.endPass();
+	passEncoder.end();
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.queue.submit([commandBuffer]);
 }

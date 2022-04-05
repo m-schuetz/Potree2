@@ -82,7 +82,7 @@ export function fillBuffer(renderer, buffer, value, numU32Elements){
 
 	let groups = Math.ceil(numU32Elements / 128);
 	passEncoder.dispatch(groups);
-	passEncoder.endPass();
+	passEncoder.end();
 	
 	device.queue.submit([commandEncoder.finish()]);
 }

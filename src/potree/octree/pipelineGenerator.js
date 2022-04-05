@@ -1,11 +1,15 @@
 
 import {generate as generateShaders} from "./shaderGenerator.js";
+import {Potree} from "potree";
 
 export function generate(renderer, args = {}){
 
 	let {device} = renderer;
 	let {shaderSource} = generateShaders(args);
 	let {flags} = args;
+
+
+	// `${Potree.basePath}/potree/octree/octree.wgsl`
 
 	let depthWrite = true;
 	let blend = {

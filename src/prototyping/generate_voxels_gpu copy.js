@@ -206,7 +206,7 @@ export function generateVoxelsGpu(renderer, node){
 	let numGroups = Math.floor(numTriangles / 128);
 	passEncoder.dispatch(numGroups);
 
-	passEncoder.endPass();
+	passEncoder.end();
 	device.queue.submit([commandEncoder.finish()]);
 
 

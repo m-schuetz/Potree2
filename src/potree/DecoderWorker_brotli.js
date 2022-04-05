@@ -151,9 +151,22 @@ async function load(event){
 				// outView.setUint8(targetByteOffset + 4 * j + 3, 255, true);
 			}
 
-			sourceByteOffset += 4 * numPoints;
+			sourceByteOffset += 8 * numPoints;
 			targetByteOffset += 6 * numPoints;
 		}else{
+
+			for (let j = 0; j < numPoints; j++) {
+
+				for(let k = 0; k < pointAttribute.byteSize; k++){
+					let sourceOffset = sourceByteOffset + j * pointAttribute.byteSize + k;
+					let targetOffset = targetByteOffset + j * pointAttribute.byteSize + k;
+
+					// targetBuffer[targetOffset] = buffer[sourceOffset];
+					outView.setUint8(targetOffset, view.getUint8(sourceOffset));
+				}
+
+			}
+
 			sourceByteOffset += numPoints * pointAttribute.byteSize;
 			targetByteOffset += numPoints * pointAttribute.byteSize;
 		}
@@ -164,6 +177,8 @@ async function load(event){
 	let statsList = new Array();
 	if(name === "r")
 	{ // compute stats
+
+		// debugger;
 
 		let outView = new DataView(outBuffer);
 

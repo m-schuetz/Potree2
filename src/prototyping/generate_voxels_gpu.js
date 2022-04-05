@@ -390,11 +390,12 @@ async function voxelize(renderer, node, boundingBox, chunkName){
 	let renderPassDescriptor = {
 		colorAttachments: [{
 			view: fbo.colorAttachments[0].texture.createView(), 
-			loadValue: { r: 0.5, g: 0, b: 0, a: 1.0 }
+			loadOp: "clear", clearValue: { r: 0.5, g: 0, b: 0, a: 1.0 },
+			storeOp: 'store',
 		}],
 		depthStencilAttachment: {
 			view: fbo.depth.texture.createView(),
-			depthLoadValue: "load",
+			depthLoadOp: "load",
 			depthStoreOp: "store",
 		},
 		sampleCount: 1,
@@ -432,7 +433,7 @@ async function voxelize(renderer, node, boundingBox, chunkName){
 
 	passEncoder.draw(node.geometry.indices.length, 1, 0, 0);
 
-	passEncoder.endPass();
+	passEncoder.end();
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.queue.submit([commandBuffer]);
 

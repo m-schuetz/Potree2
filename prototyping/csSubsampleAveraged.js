@@ -310,7 +310,7 @@ export async function csSubsample(las, renderer){
 
 		Timer.timestamp(passEncoder,"sample-end", {print: true});
 		
-		passEncoder.endPass();
+		passEncoder.end();
 		device.queue.submit([commandEncoder.finish()]);
 	}
 
@@ -328,7 +328,7 @@ export async function csSubsample(las, renderer){
 
 		Timer.timestamp(passEncoder,"sums-end", {print: true});
 		
-		passEncoder.endPass();
+		passEncoder.end();
 		device.queue.submit([commandEncoder.finish()]);
 	}
 
@@ -346,7 +346,7 @@ export async function csSubsample(las, renderer){
 
 	// 	Timer.timestamp(passEncoder,"sums-end", {print: true});
 		
-	// 	passEncoder.endPass();
+	// 	passEncoder.end();
 	// 	device.queue.submit([commandEncoder.finish()]);
 	// }
 
