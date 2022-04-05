@@ -2,7 +2,7 @@
 import {Vector3, Matrix4, Geometry} from "potree";
 
 const shaderSource = `
-[[block]] struct Uniforms {
+struct Uniforms {
 	worldView          : mat4x4<f32>;
 	proj               : mat4x4<f32>;  // 128
 	screen_width       : f32;
@@ -32,8 +32,8 @@ struct LOD {
 	npos      : vec3<f32>;
 };
 
-[[block]] struct U32s {values : [[stride(4)]] array<u32>;};
-[[block]] struct F32s {values : [[stride(4)]] array<f32>;};
+struct U32s {values : array<u32>;};
+struct F32s {values : array<f32>;};
 
 var<private> CUBE_POS : array<vec3<f32>, 36> = array<vec3<f32>, 36>(
 	vec3<f32>(-0.5, -0.5, -0.5),
@@ -81,29 +81,29 @@ var<private> GRADIENT : array<vec3<f32>, 4> = array<vec3<f32>, 4>(
 	vec3<f32>( 43.0, 131.0, 186.0),
 );
 
-[[block]] struct Nodes{ values : [[stride(32)]] array<Node>; };
+struct Nodes{ values : array<Node> };
 
-[[binding(0), group(0)]] var<uniform> uniforms         : Uniforms;
-[[binding(1), group(0)]] var<storage, read> positions  : F32s;
-[[binding(2), group(0)]] var<storage, read> colors     : U32s;
-[[binding(3), group(0)]] var<storage, read> nodes      : Nodes;
+@binding(0) @group(0) var<uniform> uniforms         : Uniforms;
+@binding(1) @group(0) var<storage, read> positions  : F32s;
+@binding(2) @group(0) var<storage, read> colors     : U32s;
+@binding(3) @group(0) var<storage, read> nodes      : Nodes;
 
 struct VertexIn{
-	[[builtin(vertex_index)]] index : u32;
-	[[builtin(instance_index)]] instance_index : u32;
+	@builtin(vertex_index) index : u32,
+	@builtin(instance_index) instance_index : u32,
 };
 
 struct VertexOut{
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
 };
 
 struct FragmentIn{
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 struct FragmentOut{
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 fn toChildIndex(npos : vec3<f32>) -> u32 {
@@ -180,7 +180,7 @@ fn doIgnore(){
 	_ = &colors;
 }
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	doIgnore();
@@ -224,7 +224,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

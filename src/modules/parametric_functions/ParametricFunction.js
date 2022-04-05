@@ -2,33 +2,33 @@
 import {SceneNode, Matrix4} from "potree";
 
 const shaderSource = `
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
+	screen_width : f32,
+	screen_height : f32,
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 struct VertexIn{
-	[[builtin(vertex_index)]] index : u32;
+	@builtin(vertex_index) index : u32,
 };
 
 struct VertexOut{
-	[[builtin(position)]] pos : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
+	@builtin(position) pos : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 struct FragmentIn{
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 struct FragmentOut{
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main_vertex_points(vertex : VertexIn) -> VertexOut {
 
 	_ = uniforms;
@@ -88,7 +88,7 @@ fn sampleNormal(u : f32, v : f32, spacing : f32) -> vec4<f32> {
 	return vec4<f32>(N, 1.0);
 }
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main_vertex_triangles(vertex : VertexIn) -> VertexOut {
 
 	_ = uniforms;
@@ -128,7 +128,7 @@ fn main_vertex_triangles(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	_ = uniforms;

@@ -4,41 +4,41 @@ import {sphere} from "../geometries/sphere.js";
 
 
 const shaderSource = `
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
+	screen_width : f32,
+	screen_height : f32,
 };
 
-[[block]] struct Mat4s { values : [[stride(64)]] array<mat4x4<f32>>; };
+struct Mat4s { values : array<mat4x4<f32>> };
 
-[[binding(0), group(0)]] var<uniform> uniforms     : Uniforms;
-[[binding(1), group(0)]] var<storage, read> worldViewArray : Mat4s;
+@binding(0) @group(0) var<uniform> uniforms     : Uniforms;
+@binding(1) @group(0) var<storage, read> worldViewArray : Mat4s;
 
 struct VertexIn{
-	[[builtin(instance_index)]] instanceID    : u32;
-	[[location(0)]]             sphere_pos    : vec4<f32>;
-	[[location(1)]]             sphere_radius : f32;
-	[[location(2)]]             point_pos     : vec4<f32>;
-	[[location(3)]]             point_normal  : vec4<f32>;
+	@builtin(instance_index) instanceID    : u32,
+	@location(0)             sphere_pos    : vec4<f32>,
+	@location(1)             sphere_radius : f32,
+	@location(2)             point_pos     : vec4<f32>,
+	@location(3)             point_normal  : vec4<f32>,
 };
 
 struct VertexOut{
-	[[builtin(position)]]   out_pos   : vec4<f32>;
-	[[location(0)]]         fragColor : vec4<f32>;
+	@builtin(position)   out_pos   : vec4<f32>,
+	@location(0)         fragColor : vec4<f32>,
 };
 
 struct FragmentIn{
-	[[location(0)]] fragColor : vec4<f32>;
+	@location(0) fragColor : vec4<f32>,
 };
 
 struct FragmentOut{
-	[[location(0)]] outColor : vec4<f32>;
-	[[location(1)]] id : u32;
+	@location(0) outColor : vec4<f32>,
+	@location(1) id : u32,
 };
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var worldView = worldViewArray.values[vertex.instanceID];
@@ -55,7 +55,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

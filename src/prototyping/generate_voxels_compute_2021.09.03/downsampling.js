@@ -5,7 +5,7 @@ import {renderVoxelsLOD} from "./renderVoxelsLOD.js";
 
 export let csVoxelizing = `
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	numTriangles       : u32;
 	firstTriangle      : u32;
 	chunkGridSize      : u32;
@@ -38,13 +38,13 @@ struct Voxel {
 	pad1  : f32;
 };
 
-[[block]] struct F32s { values : [[stride(4)]] array<f32>; };
-[[block]] struct U32s { values : [[stride(4)]] array<u32>; };
-[[block]] struct I32s { values : [[stride(4)]] array<i32>; };
-[[block]] struct AU32s { values : [[stride(4)]] array<atomic<u32>>; };
-[[block]] struct AI32s { values : [[stride(4)]] array<atomic<i32>>; };
-[[block]] struct Chunks { values : [[stride(32)]] array<Chunk>; };
-[[block]] struct Voxels { values : [[stride(32)]] array<Voxel>; };
+struct F32s { values : array<f32>; };
+struct U32s { values : array<u32> };
+struct I32s { values : array<i32>; };
+struct AU32s { values : array<atomic<u32>>; };
+struct AI32s { values : array<atomic<i32>>; };
+struct Chunks { values : array<Chunk>; };
+struct Voxels { values : array<Voxel> };
 
 [[binding( 0), group(0)]] var<uniform> uniforms : Uniforms;
 [[binding(10), group(0)]] var<storage, read_write> indices : U32s;

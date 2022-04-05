@@ -59,7 +59,7 @@ class Panel{
 			</tr>-->
 			`;
 
-			let attributes = pointcloud.loader.attributes;
+			let attributes = octree.loader.attributes;
 			for(let i = 0; i < attributes.attributes.length; i++){
 				let attribute = attributes.attributes[i];
 

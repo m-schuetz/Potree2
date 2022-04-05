@@ -2,42 +2,42 @@
 function createShaderSource(args){
 
 let shaderSource = `
-[[block]] struct Uniforms {
-	world           : mat4x4<f32>;   //   0
-	view            : mat4x4<f32>;   //  64
-	proj            : mat4x4<f32>;   // 128
-	worldView       : mat4x4<f32>;   // 192
-	screen_width    : f32;           // 256
-	screen_height   : f32;           // 260
-	hqs_flag        : u32;           // 264
-	colorMode       : u32;           // 268
+struct Uniforms {
+	world           : mat4x4<f32>,   //   0
+	view            : mat4x4<f32>,   //  64
+	proj            : mat4x4<f32>,   // 128
+	worldView       : mat4x4<f32>,   // 192
+	screen_width    : f32,           // 256
+	screen_height   : f32,           // 260
+	hqs_flag        : u32,           // 264
+	colorMode       : u32,           // 268
 };
 
 struct Node {
-	numPoints   : u32;
-	counter     : u32;
-	min_x       : f32;
-	min_y       : f32;
-	min_z       : f32;
-	max_x       : f32;
-	max_y       : f32;
-	max_z       : f32;
+	numPoints   : u32,
+	counter     : u32,
+	min_x       : f32,
+	min_y       : f32,
+	min_z       : f32,
+	max_x       : f32,
+	max_y       : f32,
+	max_z       : f32,
 };
 
 struct AttributeDescriptor{
-	offset      : u32;
-	numElements : u32;
-	valuetype   : u32;
-	range_min   : f32;
-	range_max   : f32;
-	clamp       : u32;
-	byteSize    : u32;
-	datatype    : u32;
+	offset      : u32,
+	numElements : u32,
+	valuetype   : u32,
+	range_min   : f32,
+	range_max   : f32,
+	clamp       : u32,
+	byteSize    : u32,
+	datatype    : u32,
 };
 
-[[block]] struct Nodes{ values : [[stride(32)]] array<Node>; };
-[[block]] struct AttributeDescriptors{ values : [[stride(32)]] array<AttributeDescriptor>; };
-[[block]] struct U32s { values : [[stride(4)]] array<u32>; };
+struct Nodes{ values : array<Node> };
+struct AttributeDescriptors{ values : array<AttributeDescriptor> };
+struct U32s { values : array<u32> };
 
 let COLORMODE_UNDEFINED     = 0u;
 let COLORMODE_RGBA          = 1u;
@@ -66,15 +66,15 @@ let GREEN    = vec4<f32>(0.0, 1.0, 0.0, 1.0);
 let BLUE     = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 let OUTSIDE  = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 
-[[binding(0), group(0)]] var<uniform> uniforms           : Uniforms;
-[[binding(1), group(0)]] var<storage, read> attributes   : AttributeDescriptors;
-[[binding(2), group(0)]] var<storage, read> colormap     : U32s;
+@binding(0) @group(0) var<uniform> uniforms           : Uniforms;
+@binding(1) @group(0) var<storage, read> attributes   : AttributeDescriptors;
+@binding(2) @group(0) var<storage, read> colormap     : U32s;
 
-[[binding(0), group(1)]] var mySampler                   : sampler;
-[[binding(1), group(1)]] var myTexture                   : texture_2d<f32>;
+@binding(0) @group(1) var mySampler                   : sampler;
+@binding(1) @group(1) var myTexture                   : texture_2d<f32>;
 
-[[binding(0), group(2)]] var<storage, read> buffer       : U32s;
-[[binding(0), group(3)]] var<storage, read> nodes        : Nodes;
+@binding(0) @group(2) var<storage, read> buffer       : U32s;
+@binding(0) @group(3) var<storage, read> nodes        : Nodes;
 
 
 fn readU8(offset : u32) -> u32{
@@ -141,14 +141,14 @@ fn readF32(offset : u32) -> f32{
 }
 
 struct VertexInput {
-	[[builtin(instance_index)]] instanceID : u32;
-	[[builtin(vertex_index)]] vertexID : u32;
+	@builtin(instance_index) instanceID : u32,
+	@builtin(vertex_index) vertexID : u32,
 };
 
 struct VertexOutput {
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
-	[[location(1), interpolate(flat)]] point_id : u32;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
+	@location(1) @interpolate(flat) point_id : u32,
 };
 
 fn colorFromListing(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
@@ -179,7 +179,7 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	if(attribute.valuetype == TYPES_UINT8){
 		var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
 		value = f32(readU8(offset));
-	}elseif(attribute.valuetype == TYPES_DOUBLE){
+	}else if(attribute.valuetype == TYPES_DOUBLE){
 		var offset = node.numPoints * attribute.offset + 8u * vertex.vertexID;
 
 		var b0 = readU8(offset + 0u);
@@ -206,12 +206,12 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 		var value_f32 = bitcast<f32>(value_u32);
 
 		value = value_f32;
-	}elseif(attribute.valuetype == TYPES_ELEVATION){
+	}else if(attribute.valuetype == TYPES_ELEVATION){
 		value = (uniforms.world * position).z;
-	}elseif(attribute.valuetype == TYPES_UINT16){
+	}else if(attribute.valuetype == TYPES_UINT16){
 		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
 		value = f32(readU16(offset));
-	}elseif(attribute.valuetype == TYPES_INT16){
+	}else if(attribute.valuetype == TYPES_INT16){
 		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
 		value = f32(readI16(offset));
 	}
@@ -248,7 +248,7 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 			r = f32(readU8(offset + 0u));
 			g = f32(readU8(offset + 1u));
 			b = f32(readU8(offset + 2u));
-		}elseif(attribute.datatype == TYPES_UINT16){
+		}else if(attribute.datatype == TYPES_UINT16){
 			r = f32(readU16(offset + 0u));
 			g = f32(readU16(offset + 2u));
 			b = f32(readU16(offset + 4u));
@@ -287,7 +287,7 @@ fn doIgnores(){
 
 }
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 	doIgnores();
@@ -358,7 +358,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		if(uniforms.colorMode == COLORMODE_LISTING){
 			color = colorFromListing(vertex, attribute, node);
-		}elseif(attribute.numElements == 1u){
+		}else if(attribute.numElements == 1u){
 			color = scalarToColor(vertex, attribute, node, position);
 		}else{
 			color = vectorToColor(vertex, attribute, node);
@@ -378,16 +378,16 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 }
 
 struct FragmentInput {
-	[[location(0)]] color : vec4<f32>;
-	[[location(1), interpolate(flat)]] point_id : u32;
+	@location(0) color : vec4<f32>,
+	@location(1) @interpolate(flat) point_id : u32,
 };
 
 struct FragmentOutput {
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] point_id : u32;
+	@location(0) color : vec4<f32>,
+	@location(1) point_id : u32,
 };
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 
 	doIgnores();

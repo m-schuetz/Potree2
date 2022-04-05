@@ -4,7 +4,7 @@
 const cs = `
 
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	numTriangles     : u32;
 	gridSize         : u32;
 	bbMin            : vec3<f32>;      // offset(16)
@@ -12,20 +12,20 @@ const cs = `
 };
 
 
-[[block]] struct Dbg {
+struct Dbg {
 	counter : atomic<u32>;
 };
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
+struct U32s {
+	values : array<u32>;
 };
 
-[[block]] struct F32s {
-	values : [[stride(4)]] array<f32>;
+struct F32s {
+	values : array<f32>;
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var<storage, read_write> dbg : Dbg;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+@binding(1) @group(0) var<storage, read_write> dbg : Dbg;
 [[binding(10), group(0)]] var<storage, read> indices : U32s;
 [[binding(11), group(0)]] var<storage, read> positions : F32s;
 [[binding(12), group(0)]] var<storage, read> uvs : F32s;

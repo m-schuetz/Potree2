@@ -5,7 +5,7 @@ import {storage_flags, uniform_flags} from "./common.js";
 
 let csChunking = `
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	numTriangles     : u32;
 	gridSize         : u32;
 	pad1             : u32;
@@ -14,7 +14,7 @@ let csChunking = `
 	bbMax            : vec3<f32>;      // offset(32)
 };
 
-[[block]] struct Dbg {
+struct Dbg {
 	offsetCounter : atomic<u32>;
 	pad0 : u32;
 	pad1 : u32;
@@ -29,14 +29,14 @@ let csChunking = `
 	value_f32_3 : f32;
 };
 
-[[block]] struct F32s { values : [[stride(4)]] array<f32>; };
-[[block]] struct U32s { values : [[stride(4)]] array<u32>; };
-[[block]] struct I32s { values : [[stride(4)]] array<i32>; };
-[[block]] struct AU32s { values : [[stride(4)]] array<atomic<u32>>; };
-[[block]] struct AI32s { values : [[stride(4)]] array<atomic<i32>>; };
+struct F32s { values : array<f32>; };
+struct U32s { values : array<u32> };
+struct I32s { values : array<i32>; };
+struct AU32s { values : array<atomic<u32>>; };
+struct AI32s { values : array<atomic<i32>>; };
 
 // IN
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 [[binding(10), group(0)]] var<storage, read_write> indices : U32s;
 [[binding(11), group(0)]] var<storage, read_write> positions : F32s;
 [[binding(12), group(0)]] var<storage, read_write> colors : U32s;

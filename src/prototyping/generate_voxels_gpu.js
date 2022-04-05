@@ -7,19 +7,19 @@ let fboSize = 64;
 
 const sourceTriangleProjection = `
 
-[[block]] struct F32s {
-	values : [[stride(4)]] array<f32>;
+struct F32s {
+	values : array<f32>;
 };
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
+struct U32s {
+	values : array<u32>;
 };
 
-[[block]] struct AU32s {
-	values : [[stride(4)]] array<atomic<u32>>;
+struct AU32s {
+	values : array<atomic<u32>>;
 };
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	screen_width     : f32;
 	screen_height    : f32;
 	instance         : u32;
@@ -27,38 +27,38 @@ const sourceTriangleProjection = `
 	bbMax            : vec3<f32>;      // offset(32)
 };
 
-[[block]] struct Dbg {
+struct Dbg {
 	value : u32;
 	triangleCount : atomic<u32>;
 };
 
 struct VertexInput {
-	[[builtin(instance_index)]] instanceIndex : u32;
-	[[builtin(vertex_index)]] index : u32;
+	@builtin(instance_index) instanceIndex : u32;
+	@builtin(vertex_index) index : u32,
 };
 
 struct VertexOutput {
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] voxelPos : vec3<f32>;
-	[[location(2)]] triangleIndex : u32;
-	[[location(3)]] objectPos : vec3<f32>;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
+	@location(1) voxelPos : vec3<f32>;
+	@location(2) triangleIndex : u32;
+	@location(3) objectPos : vec3<f32>;
 };
 
 struct FragmentInput {
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] voxelPos : vec3<f32>;
-	[[location(2)]] triangleIndex : u32;
-	[[location(3)]] objectPos : vec3<f32>;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
+	@location(1) voxelPos : vec3<f32>;
+	@location(2) triangleIndex : u32;
+	@location(3) objectPos : vec3<f32>;
 };
 
 struct FragmentOutput {
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 [[binding(10), group(0)]] var<storage, read> indices : U32s;
 [[binding(11), group(0)]] var<storage, read> positions : F32s;
@@ -128,7 +128,7 @@ fn loadPosition(vertexIndex : u32) -> vec3<f32> {
 
 
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 	var result : VertexOutput;
@@ -167,7 +167,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	if(localIndex == 0u){
 		result.position = vec4<f32>(-1.0, -1.0, 0.0, 1.0);
 		vertexPosition = p0;
-	}elseif(localIndex == 1u){
+	}else if(localIndex == 1u){
 		result.position = vec4<f32>(n_length_01 - 1.0, -1.0, 0.0, 1.0);
 		vertexPosition = p1;
 	}if(localIndex == 2u){
@@ -198,7 +198,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 }
 
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 
 	{
@@ -396,8 +396,6 @@ async function voxelize(renderer, node, boundingBox, chunkName){
 			view: fbo.depth.texture.createView(),
 			depthLoadValue: "load",
 			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
 		},
 		sampleCount: 1,
 	};

@@ -3,43 +3,43 @@ import {Vector3, Matrix4, Geometry} from "potree";
 
 const shaderSource = `
 
-[[block]] struct U32s {values : [[stride(4)]] array<u32>;};
-[[block]] struct F32s {values : [[stride(4)]] array<f32>;};
+struct U32s {values : array<u32>};
+struct F32s {values : array<f32>};
 
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
-	screen_width : f32;
-	screen_height : f32;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
+	screen_width : f32,
+	screen_height : f32,
 };
 
 struct Box{
-	position    : vec3<f32>;
-	size        : vec3<f32>;
-	color       : vec3<f32>;
+	position    : vec3<f32>,
+	size        : vec3<f32>,
+	color       : vec3<f32>,
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms              : Uniforms;
-[[binding(1), group(0)]] var<storage, read> boxPositions    : F32s;
-[[binding(2), group(0)]] var<storage, read> boxSizes        : F32s;
-[[binding(3), group(0)]] var<storage, read> boxColors       : U32s;
+@binding(0) @group(0) var<uniform> uniforms              : Uniforms;
+@binding(1) @group(0) var<storage, read> boxPositions    : F32s;
+@binding(2) @group(0) var<storage, read> boxSizes        : F32s;
+@binding(3) @group(0) var<storage, read> boxColors       : U32s;
 
 struct VertexIn{
-	[[builtin(vertex_index)]] index : u32;
+	@builtin(vertex_index) index : u32,
 };
 
 struct VertexOut{
-	[[builtin(position)]] pos : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
+	@builtin(position) pos : vec4<f32>,
+	@location(0) color : vec4<f32>,
 };
 
 struct FragmentIn{
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 struct FragmentOut{
-	[[location(0)]] color : vec4<f32>;
-	[[location(1)]] id : u32;
+	@location(0) color : vec4<f32>,
+	@location(1) id : u32,
 };
 
 fn loadBox(boxIndex : u32) -> Box {
@@ -68,7 +68,7 @@ fn loadBox(boxIndex : u32) -> Box {
 };
 
 
-[[stage(vertex)]]
+@stage(vertex)
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var boxIndex = vertex.index / 72u;
@@ -160,7 +160,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	_ = uniforms;

@@ -205,7 +205,7 @@ export class PointCloudOctree extends SceneNode{
 			"uint64"  : view.getBigUint64.bind(view),
 		};
 
-		let attributes = pointcloud.attributes;
+		let attributes = this.attributes;
 		let attributeByteOffset = 0;
 		for(let i = 0; i < attributes.attributes.length; i++){
 			let attribute = attributes.attributes[i];

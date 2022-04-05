@@ -1,20 +1,20 @@
 
 let csColor = `
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	x : u32;
 	y : u32;
 	width: u32;
 	height: u32;
 };
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
+struct U32s {
+	values : array<u32>;
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var source : texture_2d<f32>;
-[[binding(2), group(0)]] var<storage, read_write> target : U32s;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+@binding(1) @group(0) var source : texture_2d<f32>;
+@binding(2) @group(0) var<storage, read_write> target : U32s;
 
 [[stage(compute), workgroup_size(1)]]
 fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
@@ -40,20 +40,20 @@ fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 
 let csDepth = `
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	x : u32;
 	y : u32;
 	width: u32;
 	height: u32;
 };
 
-[[block]] struct U32s {
-	values : [[stride(4)]] array<u32>;
+struct U32s {
+	values : array<u32>;
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), group(0)]] var source : texture_depth_2d;
-[[binding(2), group(0)]] var<storage, read_write> target : U32s;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+@binding(1) @group(0) var source : texture_depth_2d;
+@binding(2) @group(0) var<storage, read_write> target : U32s;
 
 [[stage(compute), workgroup_size(1)]]
 fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
