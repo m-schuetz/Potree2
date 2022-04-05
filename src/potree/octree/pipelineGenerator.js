@@ -2,14 +2,16 @@
 import {generate as generateShaders} from "./shaderGenerator.js";
 import {Potree} from "potree";
 
-export function generate(renderer, args = {}){
+export async function* generate(renderer, args = {}){
 
 	let {device} = renderer;
-	let {shaderSource} = generateShaders(args);
 	let {flags} = args;
 
+	let shaderPath = `${import.meta.url}/../octree.wgsl`;
+	let response = await fetch(shaderPath);
+	let shaderSource = await response.text();
 
-	// `${Potree.basePath}/potree/octree/octree.wgsl`
+	yield "source loaded";
 
 	let depthWrite = true;
 	let blend = {
@@ -139,5 +141,5 @@ export function generate(renderer, args = {}){
 		},
 	});
 
-	return pipeline;
+	return {pipeline, shaderSource, stage: "created pipeline"};
 }

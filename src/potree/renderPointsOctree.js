@@ -46,18 +46,15 @@ function getGradient(renderer, pipeline, gradient){
 	return gradientTextureMap.get(gradient);
 }
  
- let ids = 0;
+let ids = 0;
 
 function getOctreeState(renderer, octree, attributeName, flags = []){
 
 	let {device} = renderer;
 
-
 	let attributes = octree.loader.attributes.attributes;
 	let mapping = "intensity";
 	let attribute = attributes.find(a => a.name === mapping);
-
-	// let key = `${attribute.name}_${attribute.numElements}_${attribute.type.name}_${mapping}_${flags.join("_")}`;
 
 	if(typeof octree.state_id === "undefined"){
 		octree.state_id = ids;
@@ -67,16 +64,34 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 	let key = `${octree.state_id}_${flags.join("_")}`;
 
 	let state = octreeStates.get(key);
+	
+	// TEST: try to use this to recompile shaders at runtime
+	// {
+	// 	let shaderPath = `${import.meta.url}/../octree/octree.wgsl`;
+	// 	fetch(shaderPath).then(async response => {
+	// 		let shaderSource = await response.text();
+
+	// 		if(shaderSource !== state.shaderSource){
+	// 			console.log("changed!");
+	// 		}
+	// 	});
+		
+	// }
 
 	if(!state){
-		let pipeline = generatePipeline(renderer, {attribute, mapping, flags});
+		state = generatePipeline(renderer, {attribute, mapping, flags});
+
+		octreeStates.set(key, state);
+
+		return null;
+	}else if(state?.stage == "created pipeline"){
+		
+		let pipeline = state.pipeline;
 
 		const uniformBuffer = device.createBuffer({
 			size: 512,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
-
-		// let gradientTexture = getGradient(Potree.settings.gradient);
 
 		let nodesBuffer = new ArrayBuffer(10_000 * 32);
 		let nodesGpuBuffer = device.createBuffer({
@@ -117,12 +132,31 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			nodesBuffer, nodesGpuBuffer, nodesBindGroup,
 			attributesDescBuffer, attributesDescGpuBuffer,
 			colormapBuffer, colormapGpuBuffer,
+			shaderSource: state.shaderSource,
+			stage: "finished",
 		};
 
 		octreeStates.set(key, state);
+
+		return state;
+		
+	}else if(state?.stage != "finished"){
+		state.next().then(result => {
+			console.log(result);
+
+			if(result.value?.stage === "created pipeline"){
+
+				octreeStates.set(key, result.value);
+
+			}
+		});
+
+		return null;
+	}else{
+		return state;
 	}
 
-	return state;
+
 }
 
 const TYPES = {
@@ -331,13 +365,18 @@ function getCachedBufferBindGroup(renderer, pipeline, node){
 	
 }
 
-function renderOctree(octree, drawstate, flags){
+async function renderOctree(octree, drawstate, flags){
 	
 	let {renderer, pass} = drawstate;
 	
 	let attributeName = Potree.settings.attribute;
 
 	let octreeState = getOctreeState(renderer, octree, attributeName, flags);
+
+	if(!octreeState){
+		return;
+	}
+
 	let nodes = octree.visibleNodes;
 
 	updateUniforms(octree, octreeState, drawstate, flags);
