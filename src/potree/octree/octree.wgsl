@@ -1,13 +1,14 @@
 
 struct Uniforms {
-	world           : mat4x4<f32>,   //   0
-	view            : mat4x4<f32>,   //  64
-	proj            : mat4x4<f32>,   // 128
-	worldView       : mat4x4<f32>,   // 192
-	screen_width    : f32,           // 256
-	screen_height   : f32,           // 260
-	hqs_flag        : u32,           // 264
-	colorMode       : u32,           // 268
+	world             : mat4x4<f32>,   //   0
+	view              : mat4x4<f32>,   //  64
+	proj              : mat4x4<f32>,   // 128
+	worldView         : mat4x4<f32>,   // 192
+	screen_width      : f32,           // 256
+	screen_height     : f32,           // 260
+	hqs_flag          : u32,           // 264
+	colorMode         : u32,           // 268
+	selectedAttribute : u32,           // 272
 };
 
 struct Node {
@@ -363,6 +364,8 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		output.color = color;
 	}
+
+	output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 
 	// bit pattern
 	// 12 node counter : 20 point id

@@ -215,6 +215,8 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			view.setUint32(268, 4, true);
 		}
 
+		view.setUint32(272, 0, true);
+
 		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 512);
 	}
 
@@ -223,11 +225,9 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		let {attributesDescBuffer, attributesDescGpuBuffer} = octreeState;
 		let {renderer} = drawstate;
 
-		let view = new DataView(attributesDescBuffer);
+		let attributeView = new DataView(attributesDescBuffer);
 
-		let selectedAttribute = Potree.settings.attribute;
-
-		let set = (args) => {
+		let set = (index, args) => {
 
 			let clampBool = args.clamp ?? false;
 			let clamp = clampBool ? 1 : 0;
@@ -244,17 +244,20 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				range_max = args.settings.range[1];
 			}
 
-			view.setUint32(   0,         args.offset, true);
-			view.setUint32(   4,         numElements, true);
-			view.setUint32(   8,           args.type, true);
-			view.setFloat32( 12,           range_min, true);
-			view.setFloat32( 16,           range_max, true);
-			view.setUint32(  20,               clamp, true);
-			view.setUint32(  24,            byteSize, true);
-			view.setUint32(  28,            dataType, true);
+			let stride = 8 * 4;
+
+			attributeView.setUint32(  index * stride +  0,         args.offset, true);
+			attributeView.setUint32(  index * stride +  4,         numElements, true);
+			attributeView.setUint32(  index * stride +  8,           args.type, true);
+			attributeView.setFloat32( index * stride + 12,           range_min, true);
+			attributeView.setFloat32( index * stride + 16,           range_max, true);
+			attributeView.setUint32(  index * stride + 20,               clamp, true);
+			attributeView.setUint32(  index * stride + 24,            byteSize, true);
+			attributeView.setUint32(  index * stride + 28,            dataType, true);
 		};
 
 		let attributes = octree.loader.attributes;
+		let selectedAttribute = Potree.settings.attribute;
 
 		let offset = 0;
 		let offsets = new Map();
@@ -265,74 +268,76 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			offset += attribute.byteSize;
 		}
 
-		let attribute = attributes.attributes.find(a => a.name === selectedAttribute);
-		let settings = octree.material?.attributes?.get(selectedAttribute);
+		for(let i = 0; i < attributes.attributes.length; i++){
+			let attribute = attributes.attributes[i];
+			let settings = octree.material?.attributes?.get(attribute.name);
 
-		if(selectedAttribute === "rgba"){
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.RGBA,
-				range        : [0, 255],
-				attribute, settings,
-			});
-		}
-		else if(selectedAttribute === "elevation"){
-			let materialValues = octree.material.attributes.get(selectedAttribute);
-			set({
-				offset       : 0,
-				type         : TYPES.ELEVATION,
-				range        : materialValues.range,
-				clamp        : true,
-				attribute, settings,
-			});
-		}
-		else if(selectedAttribute === "intensity"){
-			
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.UINT16,
-				range        : [0, 255],
-				attribute, settings,
-			});
-		}
-		else if(selectedAttribute === "number of returns"){
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.UINT8,
-				range        : [0, 4],
-				attribute, settings,
-			});
-		}
-		else if(octree.material?.attributes.has(selectedAttribute)){
-			let materialValues = octree.material.attributes.get(selectedAttribute);
-
-			if(materialValues.constructor.name === "Attribute_Scalar"){
-				set({
-					offset       : offsets.get(selectedAttribute),
-					type         : attribute.type.ordinal,
-					range        : materialValues.range,
+			if(attribute.name === "rgba"){
+				set(i, {
+					offset       : offsets.get(attribute.name),
+					type         : TYPES.RGBA,
+					range        : [0, 255],
 					attribute, settings,
 				});
-			}else if(materialValues.constructor.name === "Attribute_Listing"){
-				set({
-					offset       : offsets.get(selectedAttribute),
-					type         : attribute.type.ordinal,
-					attribute, settings,
-				});
-			}else{
-				debugger;
 			}
+			else if(attribute.name === "elevation"){
+				let materialValues = octree.material.attributes.get(attribute.name);
+				set(i, {
+					offset       : 0,
+					type         : TYPES.ELEVATION,
+					range        : materialValues.range,
+					clamp        : true,
+					attribute, settings,
+				});
+			}
+			else if(attribute.name === "intensity"){
+				
+				set(i, {
+					offset       : offsets.get(attribute.name),
+					type         : TYPES.UINT16,
+					range        : [0, 255],
+					attribute, settings,
+				});
+			}
+			else if(attribute.name === "number of returns"){
+				set(i, {
+					offset       : offsets.get(attribute.name),
+					type         : TYPES.UINT8,
+					range        : [0, 4],
+					attribute, settings,
+				});
+			}
+			else if(octree.material?.attributes.has(attribute.name)){
+				let materialValues = octree.material.attributes.get(attribute.name);
 
-		}
-		else{
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.U8,
-				range        : [0, 10_000],
-				attribute, settings,
-			});
-		}
+				if(materialValues.constructor.name === "Attribute_Scalar"){
+					set(i, {
+						offset       : offsets.get(attribute.name),
+						type         : attribute.type.ordinal,
+						range        : materialValues.range,
+						attribute, settings,
+					});
+				}else if(materialValues.constructor.name === "Attribute_Listing"){
+					set(i, {
+						offset       : offsets.get(attribute.name),
+						type         : attribute.type.ordinal,
+						attribute, settings,
+					});
+				}else{
+					debugger;
+				}
 
+			}
+			else{
+				set(i, {
+					offset       : offsets.get(attribute.name),
+					type         : TYPES.U8,
+					range        : [0, 10_000],
+					attribute, settings,
+				});
+			}
+		}
+		
 		renderer.device.queue.writeBuffer(
 			attributesDescGpuBuffer, 0, 
 			attributesDescBuffer, 0, 1024);
