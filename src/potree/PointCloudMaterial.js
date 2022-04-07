@@ -24,6 +24,7 @@ export class Attribute_Scalar{
 		this.stats = stats;
 		this.range = [stats.min, stats.max];
 		this.filterRange = [-Infinity, Infinity];
+		this.clamp = false;
 	}
 };
 
@@ -112,6 +113,8 @@ export class PointCloudMaterial{
 				attribute.set(ListingSchemes.LAS_RETURN_NUMBER);
 			}else if(stats.name === "scan angle"){
 				attribute = new Attribute_Scalar(stats);
+			}else if(stats.name === "Normal"){
+				attribute = new Attribute_RGB(stats);
 			}else{
 				attribute = new Attribute_Scalar(stats);
 			}
@@ -130,6 +133,7 @@ export class PointCloudMaterial{
 					max: xyz.max[2],
 				};
 				let attribute = new Attribute_Scalar(stats);
+				attribute.clamp = true;
 				this.attributes.set(stats.name, attribute);
 			}
 		}

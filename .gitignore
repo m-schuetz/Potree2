@@ -47,3 +47,5 @@ resources/models/Big5M.glb
 autzen-classified.copc.laz
 las14_extra_attributes.las
 sofi.copc.laz
+resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip/
+resources/pointclouds/las14_extra_attributes/

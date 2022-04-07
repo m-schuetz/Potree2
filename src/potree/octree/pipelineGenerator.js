@@ -54,9 +54,10 @@ export async function* generate(renderer, args = {}){
 	console.log(shaderSource);
 	console.groupEnd();
 
-	let module = device.createShaderModule({code: shaderSource});
+	let module = device.createShaderModule({code: shaderSource, label: "point cloud shader"});
 
 	const layout_0 = renderer.device.createBindGroupLayout({
+		label: "point cloud shader bind group layout",
 		entries: [
 			{
 				binding: 0,
@@ -82,6 +83,10 @@ export async function* generate(renderer, args = {}){
 				sampler: {sampleType: 'filtering'},
 			},{
 				binding: 1,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				sampler: {sampleType: 'filtering'},
+			},{
+				binding: 2,
 				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
 				texture: {sampleType : 'float'},
 			}

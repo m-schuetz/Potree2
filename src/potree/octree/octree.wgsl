@@ -68,8 +68,9 @@ let OUTSIDE  = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 @binding(1) @group(0) var<storage, read> attributes   : AttributeDescriptors;
 @binding(2) @group(0) var<storage, read> colormap     : U32s;
 
-@binding(0) @group(1) var mySampler                   : sampler;
-@binding(1) @group(1) var myTexture                   : texture_2d<f32>;
+@binding(0) @group(1) var sampler_repeat              : sampler;
+@binding(1) @group(1) var sampler_clamp               : sampler;
+@binding(2) @group(1) var gradientTexture             : texture_2d<f32>;
 
 @binding(0) @group(2) var<storage, read> buffer       : U32s;
 @binding(0) @group(3) var<storage, read> nodes        : Nodes;
@@ -138,6 +139,36 @@ fn readF32(offset : u32) -> f32{
 	return value_f32;
 }
 
+fn readF64(offset : u32) -> f32{
+	
+	//var offset = node.numPoints * attribute.offset + 8u * vertex.vertexID;
+
+	var b0 = readU8(offset + 0u);
+	var b1 = readU8(offset + 1u);
+	var b2 = readU8(offset + 2u);
+	var b3 = readU8(offset + 3u);
+	var b4 = readU8(offset + 4u);
+	var b5 = readU8(offset + 5u);
+	var b6 = readU8(offset + 6u);
+	var b7 = readU8(offset + 7u);
+
+	var exponent_f64_bin = (b7 << 4u) | (b6 >> 4u);
+	var exponent_f64 = exponent_f64_bin - 1023u;
+
+	var exponent_f32_bin = exponent_f64 + 127u;
+	var mantissa_f32 = (b6 & 0x0Fu) << 19u
+		| b5 << 11u
+		| b4 << 3u;
+	var sign = (b7 >> 7u) & 1u;
+	var value_u32 = sign << 31u
+		| exponent_f32_bin << 23u
+		| mantissa_f32;
+
+	var value_f32 = bitcast<f32>(value_u32);
+
+	return value_f32;
+}
+
 struct VertexInput {
 	@builtin(instance_index) instanceID : u32,
 	@builtin(vertex_index) vertexID : u32,
@@ -180,30 +211,7 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	}else if(attribute.valuetype == TYPES_DOUBLE){
 		var offset = node.numPoints * attribute.offset + 8u * vertex.vertexID;
 
-		var b0 = readU8(offset + 0u);
-		var b1 = readU8(offset + 1u);
-		var b2 = readU8(offset + 2u);
-		var b3 = readU8(offset + 3u);
-		var b4 = readU8(offset + 4u);
-		var b5 = readU8(offset + 5u);
-		var b6 = readU8(offset + 6u);
-		var b7 = readU8(offset + 7u);
-
-		var exponent_f64_bin = (b7 << 4u) | (b6 >> 4u);
-		var exponent_f64 = exponent_f64_bin - 1023u;
-
-		var exponent_f32_bin = exponent_f64 + 127u;
-		var mantissa_f32 = (b6 & 0x0Fu) << 19u
-			| b5 << 11u
-			| b4 << 3u;
-		var sign = (b7 >> 7u) & 1u;
-		var value_u32 = sign << 31u
-			| exponent_f32_bin << 23u
-			| mantissa_f32;
-
-		var value_f32 = bitcast<f32>(value_u32);
-
-		value = value_f32;
+		value = readF64(offset);
 	}else if(attribute.valuetype == TYPES_ELEVATION){
 		value = (uniforms.world * position).z;
 	}else if(attribute.valuetype == TYPES_UINT16){
@@ -216,14 +224,14 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 
 	var w = (value - attribute.range_min) / (attribute.range_max - attribute.range_min);
 
-	if(attribute.clamp == CLAMP_ENABLED){
-		w = clamp(w, 0.0, 1.0);
-	}
-
+	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
-	var color = textureSampleLevel(myTexture, mySampler, uv, 0.0);
 
-	
+	if(attribute.clamp == CLAMP_ENABLED){
+		color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
+	}else{
+		color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
+	}
 
 	return color;
 }
@@ -233,8 +241,6 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
 	if(attribute.valuetype == TYPES_RGBA){
-		
-
 		var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
 		// var offset = 29u * node.numPoints + 4u * vertex.vertexID;
 
@@ -269,6 +275,14 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 		}
 
 		color = vec4<f32>(r, g, b, 255.0) / 255.0;
+	}if(attribute.valuetype == TYPES_DOUBLE){
+		var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
+
+		var x = readF64(offset +  0u);
+		var y = readF64(offset +  8u);
+		var z = readF64(offset + 16u);
+
+		color = vec4<f32>(x, y, z, 1.0);
 	}
 
 	return color;
@@ -278,8 +292,9 @@ fn doIgnores(){
 
 	_ = uniforms;
 	_ = &attributes;
-	_ = mySampler;
-	_ = myTexture;
+	_ = sampler_repeat;
+	_ = sampler_clamp;
+	_ = gradientTexture;
 	_ = &buffer;
 	_ = &nodes;
 
@@ -349,7 +364,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	}
 
 	{ // COLORIZE BY ATTRIBUTE DESCRIPTORS
-		var attribute = attributes.values[0];
+		var attribute = attributes.values[uniforms.selectedAttribute];
 		var value : f32 = 0.0;
 
 		var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
@@ -365,7 +380,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		output.color = color;
 	}
 
-	output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	//output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 
 	// bit pattern
 	// 12 node counter : 20 point id

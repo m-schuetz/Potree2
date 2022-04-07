@@ -151,18 +151,45 @@ canvas{
 
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	Potree.load("./nocommit/F_pointclouds/CA13_morro_bay/morro_bay.las_converted/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/las14_extra_attributes/metadata.json").then(pointcloud => {
 
 		window.pointcloud = pointcloud;
-		pointcloud.name = "CA13";
+		pointcloud.name = "sitn extra attributes";
 
 		controls.set({
-			position: [694616.5, 3916084.9, 216.0], 
-			pivot: [694733.8, 3916401.9, 19.8]
+			position: [2561569.7, 1204855.7, 818.0], 
+			pivot: [2561737.6, 1205229.8, 439.5]
 		});
 
 		scene.root.children.push(pointcloud);
 	});
+
+	// Potree.load("./resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip/metadata.json").then(pointcloud => {
+
+	// 	window.pointcloud = pointcloud;
+	// 	pointcloud.name = "sitn dip";
+
+	// 	controls.set({
+	// 		position: [2524961.6, 1198245.8, 1646.2], 
+	// 		pivot: [2524503.6, 1197488.7, 1098.6]
+	// 	});
+
+	// 	scene.root.children.push(pointcloud);
+	// });
+
+
+	// Potree.load("./nocommit/F_pointclouds/CA13_morro_bay/morro_bay.las_converted/metadata.json").then(pointcloud => {
+
+	// 	window.pointcloud = pointcloud;
+	// 	pointcloud.name = "CA13";
+
+	// 	controls.set({
+	// 		position: [694616.5, 3916084.9, 216.0], 
+	// 		pivot: [694733.8, 3916401.9, 19.8]
+	// 	});
+
+	// 	scene.root.children.push(pointcloud);
+	// });
 
 	let origin = new Vector3(0, 0, 0);
 	let X = new Vector3(10, 0, 0);
