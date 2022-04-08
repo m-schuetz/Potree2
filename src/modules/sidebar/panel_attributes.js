@@ -169,24 +169,30 @@ class Panel{
 				<span style="height: 3em">Range</span>
 				<range-select id="sldScalarRange"></range-select>
 
+				<span style="height: 3em">Clamp</span>
+				<input type="checkbox" id="chkClamp"></input>
+
 			</div>
 
 		`;
 
 		let elRange = elScalar.querySelector("#sldScalarRange");
+		let elClamp = elScalar.querySelector("#chkClamp");
 
-		let attributeName = Potree.settings.attribute;
-		// let stats = 
+		let attributeName = Potree.settings.attribute; 
 		let settings = this.pointcloud.material.attributes.get(attributeName);
-
 
 		if(settings){
 			elRange.setRange(...settings.range);
 			elRange.setValue(settings.stats.min, settings.stats.max);
 
 			elRange.addEventListener("input", () => {
-				// console.log(elRange.value);
 				settings.range = elRange.value;
+			});
+
+			elClamp.checked = settings.clamp;
+			elClamp.addEventListener("change", () => {
+				settings.clamp = elClamp.checked;
 			});
 		}
 

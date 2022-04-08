@@ -37,8 +37,9 @@ export class PointAttributes{
 
 		if (pointAttributes != null) {
 			for (let i = 0; i < pointAttributes.length; i++) {
-				let pointAttributeName = pointAttributes[i];
-				let pointAttribute = PointAttribute[pointAttributeName];
+				// let pointAttributeName = pointAttributes[i];
+				// let pointAttribute = PointAttribute[pointAttributeName];
+				let pointAttribute = pointAttributes[i];
 				this.attributes.push(pointAttribute);
 				this.byteSize += pointAttribute.byteSize;
 				this.size++;

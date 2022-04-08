@@ -5,7 +5,8 @@ import {generate as generatePipeline} from "./octree/pipelineGenerator.js";
 import {Gradients} from "potree";
 
 let octreeStates = new Map();
-let gradientSampler = null;
+let gradientSampler_repeat = null;
+let gradientSampler_clamp = null;
 let initialized = false;
 let gradientTextureMap = new Map();
 
@@ -15,7 +16,18 @@ function init(renderer){
 		return;
 	}
 
-	gradientSampler = renderer.device.createSampler({
+	gradientSampler_repeat = renderer.device.createSampler({
+		label: "gradient_sampler_repeat",
+		magFilter: 'linear',
+		minFilter: 'linear',
+		mipmapFilter : 'linear',
+		addressModeU: "clamp-to-edge",
+		addressModeV: "clamp-to-edge",
+		maxAnisotropy: 1,
+	});
+
+	gradientSampler_clamp = renderer.device.createSampler({
+		label: "gradient_sampler_clamp",
 		magFilter: 'linear',
 		minFilter: 'linear',
 		mipmapFilter : 'linear',
@@ -35,8 +47,9 @@ function getGradient(renderer, pipeline, gradient){
 		let bindGroup = renderer.device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(1),
 			entries: [
-				{binding: 0, resource: gradientSampler},
-				{binding: 1, resource: texture.createView()},
+				{binding: 0, resource: gradientSampler_repeat},
+				{binding: 1, resource: gradientSampler_clamp},
+				{binding: 2, resource: texture.createView()},
 			],
 		});
 
@@ -187,15 +200,16 @@ const TYPES = {
 
 function updateUniforms(octree, octreeState, drawstate, flags){
 
+	let {uniformBuffer} = octreeState;
+	let data = new ArrayBuffer(512);
+	let uniformsView = new DataView(data);
+
 	{
-		let {uniformBuffer} = octreeState;
 		let {renderer} = drawstate;
 		let isHqsDepth = flags.includes("hqs-depth");
-
-		let data = new ArrayBuffer(512);
+		
 		let f32 = new Float32Array(data);
-		let view = new DataView(data);
-
+		
 		let world = octree.world;
 		let camView = camera.view;
 		let worldView = new Matrix4().multiplyMatrices(camView, world);
@@ -207,26 +221,24 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 
 		let size = renderer.getSize();
 
-		view.setFloat32(256, size.width, true);
-		view.setFloat32(260, size.height, true);
-		view.setUint32(264, isHqsDepth ? 1 : 0, true);
+		uniformsView.setFloat32(256, size.width, true);
+		uniformsView.setFloat32(260, size.height, true);
+		uniformsView.setUint32(264, isHqsDepth ? 1 : 0, true);
 
 		let attributeName = Potree.settings.attribute;
 		let settings = octree?.material?.attributes?.get(attributeName);
 
 		if(!settings){
-			view.setUint32(268, 0, true);
+			uniformsView.setUint32(268, 0, true);
 		}else if(settings?.constructor.name === "Attribute_RGB"){
-			view.setUint32(268, 1, true);
+			uniformsView.setUint32(268, 1, true);
 		}else if(settings?.constructor.name === "Attribute_Scalar"){
-			view.setUint32(268, 2, true);
+			uniformsView.setUint32(268, 2, true);
 		}else if(attributeName === "elevation"){
-			view.setUint32(268, 3, true);
+			uniformsView.setUint32(268, 3, true);
 		}else if(settings?.constructor.name === "Attribute_Listing"){
-			view.setUint32(268, 4, true);
+			uniformsView.setUint32(268, 4, true);
 		}
-
-		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 512);
 	}
 
 
@@ -234,13 +246,11 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		let {attributesDescBuffer, attributesDescGpuBuffer} = octreeState;
 		let {renderer} = drawstate;
 
-		let view = new DataView(attributesDescBuffer);
+		let attributeView = new DataView(attributesDescBuffer);
 
-		let selectedAttribute = Potree.settings.attribute;
+		let set = (index, args) => {
 
-		let set = (args) => {
-
-			let clampBool = args.clamp ?? false;
+			let clampBool = args?.settings?.clamp ?? false;
 			let clamp = clampBool ? 1 : 0;
 
 			let byteSize = args.attribute?.byteSize ?? 0;
@@ -255,17 +265,20 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				range_max = args.settings.range[1];
 			}
 
-			view.setUint32(   0,         args.offset, true);
-			view.setUint32(   4,         numElements, true);
-			view.setUint32(   8,           args.type, true);
-			view.setFloat32( 12,           range_min, true);
-			view.setFloat32( 16,           range_max, true);
-			view.setUint32(  20,               clamp, true);
-			view.setUint32(  24,            byteSize, true);
-			view.setUint32(  28,            dataType, true);
+			let stride = 8 * 4;
+
+			attributeView.setUint32(  index * stride +  0,         args.offset, true);
+			attributeView.setUint32(  index * stride +  4,         numElements, true);
+			attributeView.setUint32(  index * stride +  8,           args.type, true);
+			attributeView.setFloat32( index * stride + 12,           range_min, true);
+			attributeView.setFloat32( index * stride + 16,           range_max, true);
+			attributeView.setUint32(  index * stride + 20,               clamp, true);
+			attributeView.setUint32(  index * stride + 24,            byteSize, true);
+			attributeView.setUint32(  index * stride + 28,            dataType, true);
 		};
 
 		let attributes = octree.loader.attributes;
+		let selectedAttribute = Potree.settings.attribute;
 
 		let offset = 0;
 		let offsets = new Map();
@@ -276,74 +289,92 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			offset += attribute.byteSize;
 		}
 
-		let attribute = attributes.attributes.find(a => a.name === selectedAttribute);
-		let settings = octree.material?.attributes?.get(selectedAttribute);
+		let i = 0;
+		for(let [attributeName, settings] of octree.material.attributes){
+			// let attribute = octree.material.attributes[i];
+			// let settings = octree.material?.attributes?.get(attribute.name);
+			let attribute = attributes.attributes.find(a => a.name === attributeName);
 
-		if(selectedAttribute === "rgba"){
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.RGBA,
-				range        : [0, 255],
-				attribute, settings,
-			});
-		}
-		else if(selectedAttribute === "elevation"){
-			let materialValues = octree.material.attributes.get(selectedAttribute);
-			set({
-				offset       : 0,
-				type         : TYPES.ELEVATION,
-				range        : materialValues.range,
-				clamp        : true,
-				attribute, settings,
-			});
-		}
-		else if(selectedAttribute === "intensity"){
-			
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.UINT16,
-				range        : [0, 255],
-				attribute, settings,
-			});
-		}
-		else if(selectedAttribute === "number of returns"){
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.UINT8,
-				range        : [0, 4],
-				attribute, settings,
-			});
-		}
-		else if(octree.material?.attributes.has(selectedAttribute)){
-			let materialValues = octree.material.attributes.get(selectedAttribute);
+			if(selectedAttribute === attributeName){
+				uniformsView.setUint32(272, i, true);
+			}
 
-			if(materialValues.constructor.name === "Attribute_Scalar"){
-				set({
-					offset       : offsets.get(selectedAttribute),
-					type         : attribute.type.ordinal,
+			if(attributeName === "rgba"){
+				set(i, {
+					offset       : offsets.get(attributeName),
+					type         : TYPES.RGBA,
+					range        : [0, 255],
+					attribute, settings,
+				});
+			}
+			else if(attributeName === "elevation"){
+				let materialValues = octree.material.attributes.get(attributeName);
+				set(i, {
+					offset       : 0,
+					type         : TYPES.ELEVATION,
 					range        : materialValues.range,
 					attribute, settings,
 				});
-			}else if(materialValues.constructor.name === "Attribute_Listing"){
-				set({
-					offset       : offsets.get(selectedAttribute),
-					type         : attribute.type.ordinal,
+			}
+			else if(attributeName === "intensity"){
+				
+				set(i, {
+					offset       : offsets.get(attributeName),
+					type         : TYPES.UINT16,
+					range        : [0, 255],
 					attribute, settings,
 				});
-			}else{
-				debugger;
+			}
+			else if(attributeName === "number of returns"){
+				set(i, {
+					offset       : offsets.get(attributeName),
+					type         : TYPES.UINT8,
+					range        : [0, 4],
+					attribute, settings,
+				});
+			}
+			else if(octree.material?.attributes.has(attributeName)){
+				let materialValues = octree.material.attributes.get(attributeName);
+
+				if(materialValues.constructor.name === "Attribute_RGB"){
+					set(i, {
+						offset       : offsets.get(attributeName),
+						type         : attribute.type.ordinal,
+						range        : materialValues.range,
+						attribute, settings,
+					});
+				}else if(materialValues.constructor.name === "Attribute_Scalar"){
+					set(i, {
+						offset       : offsets.get(attributeName),
+						type         : attribute.type.ordinal,
+						range        : materialValues.range,
+						attribute, settings,
+					});
+				}else if(materialValues.constructor.name === "Attribute_Listing"){
+					set(i, {
+						offset       : offsets.get(attributeName),
+						type         : attribute.type.ordinal,
+						attribute, settings,
+					});
+				}else{
+					debugger;
+				}
+
+			}
+			else{
+				set(i, {
+					offset       : offsets.get(attributeName),
+					type         : TYPES.U8,
+					range        : [0, 10_000],
+					attribute, settings,
+				});
 			}
 
-		}
-		else{
-			set({
-				offset       : offsets.get(selectedAttribute),
-				type         : TYPES.U8,
-				range        : [0, 10_000],
-				attribute, settings,
-			});
+			i++;
 		}
 
+		renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, 512);
+		
 		renderer.device.queue.writeBuffer(
 			attributesDescGpuBuffer, 0, 
 			attributesDescBuffer, 0, 1024);

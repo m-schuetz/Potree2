@@ -56,11 +56,12 @@ function createChildAABB(aabb, index){
 
 function parseAttributes(jsonAttributes){
 
-	let attributes = new PointAttributes();
 
 	let replacements = {
 		"rgb": "rgba",
 	};
+
+	let attributeList = [];
 
 	for(let jsonAttribute of jsonAttributes){
 		let {name, description, size, numElements, elementSize, min, max} = jsonAttribute;
@@ -79,8 +80,33 @@ function parseAttributes(jsonAttributes){
 		
 		attribute.initialRange = attribute.range;
 
-		attributes.add(attribute);
+		// attributes.add(attribute);
+		attributeList.push(attribute);
 	}
+
+	let hasNX = attributeList.find(a => a.name === "NormalX") != null;
+	let hasNY = attributeList.find(a => a.name === "NormalY") != null;
+	let hasNZ = attributeList.find(a => a.name === "NormalZ") != null;
+	if(hasNX && hasNY && hasNZ){
+
+		let aNormalX = attributeList.find(a => a.name === "NormalX");
+		let aNormalY = attributeList.find(a => a.name === "NormalY");
+		let aNormalZ = attributeList.find(a => a.name === "NormalZ");
+		let aNormal = new PointAttribute("Normal", aNormalX.type, 3);
+		aNormal.range = [
+			[aNormalX.range[0], aNormalY.range[0], aNormalZ.range[0]],
+			[aNormalX.range[1], aNormalY.range[1], aNormalZ.range[1]],
+		];
+
+		let indexX = attributeList.indexOf(aNormalX);
+		attributeList[indexX] = aNormalX;
+		attributeList = attributeList.filter(a => !["NormalX", "NormalY", "NormalZ"].includes(a.name));
+
+		attributeList.push(aNormal);
+
+	}
+	
+	let attributes = new PointAttributes(attributeList);
 
 	return attributes;
 }
