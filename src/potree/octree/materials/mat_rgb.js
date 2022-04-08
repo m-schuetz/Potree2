@@ -1,7 +1,7 @@
 
-export const wgsl = `
+const wgsl = `
 
-fn mapping_RGB(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32>{
+fn map_rgb(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32>{
 
 	var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
 
@@ -33,5 +33,14 @@ fn mapping_RGB(vertex : VertexInput, attribute : AttributeDescriptor, node : Nod
 
 	return color;
 }
+
 `;
 
+class RgbMaterial{
+
+	constructor(){
+		this.attributeIndex = 0;
+		this.wgsl = wgsl;
+	}
+
+}

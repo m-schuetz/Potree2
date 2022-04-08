@@ -102,7 +102,20 @@ fn readI16(offset : u32) -> i32{
 	var first = readU8(offset + 0u);
 	var second = readU8(offset + 1u);
 
-	var value = i32(first | (second << 8u));
+	var sign = second >> 7u;
+	second = second & 127u;
+
+	var value = -2;
+
+	if(sign == 0u){
+		value = 0;
+	}else{
+		value = -1;
+	}
+	var mask = 0xFFFF << 16u;
+	value = value & mask;
+	value = value | i32(first) << 0u;
+	value = value | i32(second) << 8u;
 
 	return value;
 }
@@ -201,6 +214,51 @@ fn colorFromListing(vertex : VertexInput, attribute : AttributeDescriptor, node 
 	return color;
 }
 
+fn map_normal_trimble_2_15_15(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+	var PI = 3.1415;
+	var HML = (2.0 * PI) / 32767.0;
+	var VML = PI / 32767.0;
+	
+	var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
+	var value = readU32(offset);
+
+	var mask_15b = (1u << 15u) - 1u;
+	var dim = value >> 30u;
+	var vertAngle = f32((value >>  0u) & mask_15b);
+	var horzAngle = f32((value >> 15u) & mask_15b);
+
+	var ang = (VML * vertAngle) - 0.5 * PI;
+	var zvl = sin(ang);
+	var xml = sqrt( 1.0 - (zvl * zvl));
+
+	var normal : vec3<f32>;
+	normal.x = xml * cos(HML * horzAngle);
+	normal.y = xml * sin(HML * horzAngle);
+	normal.z = zvl;
+
+	var color = vec4<f32>(normal, 1.0);
+
+	color = vec4<f32>(
+		1.0 * normal.x, 
+		1.0 * normal.y, 
+		1.0 * normal.z,
+		1.0,
+	);
+
+	// if(dim == 0u){
+	// 	color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	// }else if(dim == 1u){
+	// 	color = vec4<f32>(0.0, 1.0, 0.0, 1.0);
+	// }else if(dim == 2u){
+	// 	color = vec4<f32>(0.0, 0.0, 1.0, 1.0);
+	// }else if(dim == 3u){
+	// 	color = vec4<f32>(1.0, 0.0, 1.0, 1.0);
+	// }
+
+	return color;
+}
+
 fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
 	var value : f32 = 0.0;
@@ -220,6 +278,9 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	}else if(attribute.valuetype == TYPES_INT16){
 		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
 		value = f32(readI16(offset));
+	}else if(attribute.valuetype == TYPES_UINT32){
+		var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
+		value = f32(readU32(offset));
 	}
 
 	var w = (value - attribute.range_min) / (attribute.range_max - attribute.range_min);
@@ -227,11 +288,42 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
 
+	
+
 	if(attribute.clamp == CLAMP_ENABLED){
 		color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
 	}else{
 		color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 	}
+
+	// {
+	// 	var w = (value - 20000.0) / 40000.0;
+	// 	// w = value / 20000.0;
+
+	// 	if(value < 0.0){
+	// 		w = 0.0;
+	// 	}else{
+	// 		w = 0.7;
+	// 	}
+
+	// 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
+	// 	color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
+	// }
+
+	// {
+	// 	color.a = 1.0;
+	// 	// var aIntensity = attributes.values[1];
+	// 	var aPointSource = attributes.values[8];
+	// 	var offset = node.numPoints * aPointSource.offset + 2u * vertex.vertexID;
+	// 	var sourceID = readU16(offset);
+
+	// 	// if(w > 0.5)
+	// 	if(sourceID < 120u){
+	// 		color.a = 0.0;
+	// 	}
+	// }
+
+	// color.r = 1.0;
 
 	return color;
 }
@@ -373,11 +465,17 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 			color = colorFromListing(vertex, attribute, node);
 		}else if(attribute.numElements == 1u){
 			color = scalarToColor(vertex, attribute, node, position);
+			// color = map_normal_trimble_2_15_15(vertex, attribute, node, position);
 		}else{
 			color = vectorToColor(vertex, attribute, node);
 		}
 
+
 		output.color = color;
+	}
+
+	if(output.color.a == 0.0){
+		output.position.w = 0.0;
 	}
 
 	//output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
