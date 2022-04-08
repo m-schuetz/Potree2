@@ -19,8 +19,8 @@ function init(renderer){
 		magFilter: 'linear',
 		minFilter: 'linear',
 		mipmapFilter : 'linear',
-		addressModeU: "repeat",
-		addressModeV: "repeat",
+		addressModeU: "clamp-to-edge",
+		addressModeV: "clamp-to-edge",
 		maxAnisotropy: 1,
 	});
 }
@@ -79,84 +79,95 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 	// }
 
 	if(!state){
-		state = generatePipeline(renderer, {attribute, mapping, flags});
-
-		octreeStates.set(key, state);
-
-		return null;
-	}else if(state?.stage == "created pipeline"){
-		
-		let pipeline = state.pipeline;
-
-		const uniformBuffer = device.createBuffer({
-			size: 512,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-		});
-
-		let nodesBuffer = new ArrayBuffer(10_000 * 32);
-		let nodesGpuBuffer = device.createBuffer({
-			size: nodesBuffer.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		});
-
-		let attributesDescBuffer = new ArrayBuffer(1024);
-		let attributesDescGpuBuffer = device.createBuffer({
-			size: attributesDescBuffer.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		});
-
-		let colormapBuffer = new ArrayBuffer(4 * 256);
-		let colormapGpuBuffer = device.createBuffer({
-			size: colormapBuffer.byteLength,
-			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-		});
-
-		let nodesBindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(3),
-			entries: [
-				{binding: 0, resource: {buffer: nodesGpuBuffer}},
-			],
-		});
-
-		const uniformBindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [
-				{binding: 0, resource: {buffer: uniformBuffer}},
-				{binding: 1, resource: {buffer: attributesDescGpuBuffer}},
-				{binding: 2, resource: {buffer: colormapGpuBuffer}},
-			],
-		});
-
 		state = {
-			pipeline, uniformBuffer, uniformBindGroup, 
-			nodesBuffer, nodesGpuBuffer, nodesBindGroup,
-			attributesDescBuffer, attributesDescGpuBuffer,
-			colormapBuffer, colormapGpuBuffer,
-			shaderSource: state.shaderSource,
-			stage: "finished",
+			generator: generatePipeline(renderer, {attribute, mapping, flags}),
 		};
 
 		octreeStates.set(key, state);
-
-		return state;
+	}else if(state.nextCheckAt != null && Date.now() > state.nextCheckAt){
 		
-	}else if(state?.stage != "finished"){
-		state.next().then(result => {
-			console.log(result);
+		state.nextCheckAt = Date.now() + Math.random() * 200 + 200;
+		
+		let shaderPath = `${import.meta.url}/../octree/octree.wgsl`;
+		fetch(shaderPath).then(async response => {
+			let shaderSource = await response.text();
 
-			if(result.value?.stage === "created pipeline"){
-
-				octreeStates.set(key, result.value);
-
+			if(shaderSource !== state.shaderSource){
+				console.log("changed!");
+				state.generator = generatePipeline(renderer, {attribute, mapping, flags});
 			}
 		});
-
-		return null;
-	}else{
-		return state;
 	}
 
+	if(state.generator){
+		state.generator.next().then(result => {
+			if(result.value?.stage === "created pipeline"){
 
+				let pipeline = result.value.pipeline;
+
+				const uniformBuffer = device.createBuffer({
+					size: 512,
+					usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+				});
+
+				let nodesBuffer = new ArrayBuffer(10_000 * 32);
+				let nodesGpuBuffer = device.createBuffer({
+					size: nodesBuffer.byteLength,
+					usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+				});
+
+				let attributesDescBuffer = new ArrayBuffer(1024);
+				let attributesDescGpuBuffer = device.createBuffer({
+					size: attributesDescBuffer.byteLength,
+					usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+				});
+
+				let colormapBuffer = new ArrayBuffer(4 * 256);
+				let colormapGpuBuffer = device.createBuffer({
+					size: colormapBuffer.byteLength,
+					usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+				});
+
+				let nodesBindGroup = device.createBindGroup({
+					layout: pipeline.getBindGroupLayout(3),
+					entries: [
+						{binding: 0, resource: {buffer: nodesGpuBuffer}},
+					],
+				});
+
+				const uniformBindGroup = device.createBindGroup({
+					layout: pipeline.getBindGroupLayout(0),
+					entries: [
+						{binding: 0, resource: {buffer: uniformBuffer}},
+						{binding: 1, resource: {buffer: attributesDescGpuBuffer}},
+						{binding: 2, resource: {buffer: colormapGpuBuffer}},
+					],
+				});
+
+				state.pipeline = pipeline;
+				state.uniformBuffer = uniformBuffer;
+				state.uniformBindGroup = uniformBindGroup;
+				state.nodesBuffer = nodesBuffer;
+				state.nodesGpuBuffer = nodesGpuBuffer;
+				state.nodesBindGroup = nodesBindGroup;
+				state.attributesDescBuffer = attributesDescBuffer;
+				state.attributesDescGpuBuffer = attributesDescGpuBuffer;
+				state.colormapBuffer = colormapBuffer;
+				state.colormapGpuBuffer = colormapGpuBuffer;
+				state.shaderSource = result.value.shaderSource,
+				state.generator = null;
+				state.timestamp = Date.now();
+				state.nextCheckAt = Date.now() + Math.random() * 300 + 100;
+				state.stage = "ready";
+			}
+		});
+	}
+	
+	if(state.stage === "ready"){
+		return state;
+	}else{
+		return null;
+	}
 }
 
 const TYPES = {

@@ -89,8 +89,8 @@ export class RangeSelect extends HTMLElement{
 			<span class="selected"></span>
 			<span class="marker" id="marker_min">abc</span>
 			<span class="marker" id="marker_max">abc</span>
-			<input type="range" min="${this.range[0]}" max="${this.range[1]}" value="${this.value[0]}" class="abc" />
-			<input type="range" min="${this.range[0]}" max="${this.range[1]}" value="${this.value[1]}" class="abc" />
+			<input type="range" min="${this.range[0]}" max="${this.range[1]}" value="${this.value[0]}" step="0.01" class="abc" />
+			<input type="range" min="${this.range[0]}" max="${this.range[1]}" value="${this.value[1]}" step="0.01" class="abc" />
 
 		`;
 
