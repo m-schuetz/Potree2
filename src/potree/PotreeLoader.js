@@ -369,12 +369,11 @@ export class PotreeLoader{
 		octree.boundingBox.max.sub(octree.boundingBox.min);
 		octree.boundingBox.min.set(0, 0, 0);
 		octree.updateWorld();
-		// octree.world = new Matrix4();
-		// octree.world.translate(...metadata.boundingBox.min);
 
 		octree.attributes = attributes;
 		octree.loader = loader;
 		loader.octree = octree;
+		octree.material.init(octree);
 
 		let root = new PointCloudOctreeNode("r");
 		root.boundingBox = octree.boundingBox.clone();

@@ -7,8 +7,7 @@ struct Uniforms {
 	screen_width      : f32,           // 256
 	screen_height     : f32,           // 260
 	hqs_flag          : u32,           // 264
-	colorMode         : u32,           // 268
-	selectedAttribute : u32,           // 272
+	selectedAttribute : u32,           // 268
 };
 
 struct Node {
@@ -31,17 +30,20 @@ struct AttributeDescriptor{
 	clamp       : u32,
 	byteSize    : u32,
 	datatype    : u32,
+	mapping     : u32,
 };
 
 struct Nodes{ values : array<Node> };
 struct AttributeDescriptors{ values : array<AttributeDescriptor> };
 struct U32s { values : array<u32> };
 
-let COLORMODE_UNDEFINED     = 0u;
-let COLORMODE_RGBA          = 1u;
-let COLORMODE_SCALAR        = 2u;
-let COLORMODE_ELEVATION     = 3u;
-let COLORMODE_LISTING       = 4u;
+let MAPPING_UNDEFINED     =  0u;
+let MAPPING_RGBA          =  1u;
+let MAPPING_SCALAR        =  2u;
+let MAPPING_ELEVATION     =  3u;
+let MAPPING_LISTING       =  4u;
+let MAPPING_VECTOR        =  5u;
+let MAPPING_CUSTOM        =  6u;
 
 let TYPES_DOUBLE          =  0u;
 let TYPES_FLOAT           =  1u;
@@ -193,7 +195,7 @@ struct VertexOutput {
 	@location(1) @interpolate(flat) point_id : u32,
 };
 
-fn colorFromListing(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
+fn map_listing(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
 	var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
 
 	var value = readU8(offset);
@@ -259,7 +261,7 @@ fn map_normal_trimble_2_15_15(vertex : VertexInput, attribute : AttributeDescrip
 	return color;
 }
 
-fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+fn map_scalar(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
 	var value : f32 = 0.0;
 
@@ -288,53 +290,21 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
 
-	
-
 	if(attribute.clamp == CLAMP_ENABLED){
 		color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
 	}else{
 		color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 	}
 
-	// {
-	// 	var w = (value - 20000.0) / 40000.0;
-	// 	// w = value / 20000.0;
-
-	// 	if(value < 0.0){
-	// 		w = 0.0;
-	// 	}else{
-	// 		w = 0.7;
-	// 	}
-
-	// 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
-	// 	color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
-	// }
-
-	// {
-	// 	color.a = 1.0;
-	// 	// var aIntensity = attributes.values[1];
-	// 	var aPointSource = attributes.values[8];
-	// 	var offset = node.numPoints * aPointSource.offset + 2u * vertex.vertexID;
-	// 	var sourceID = readU16(offset);
-
-	// 	// if(w > 0.5)
-	// 	if(sourceID < 120u){
-	// 		color.a = 0.0;
-	// 	}
-	// }
-
-	// color.r = 1.0;
-
 	return color;
 }
 
-fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
+fn map_vector(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
 
 	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
 	if(attribute.valuetype == TYPES_RGBA){
 		var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
-		// var offset = 29u * node.numPoints + 4u * vertex.vertexID;
 
 		var r = 0.0;
 		var g = 0.0;
@@ -350,21 +320,9 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 			b = f32(readU16(offset + 4u));
 		}
 
-		// {
-		// 	r = f32(readU8(offset + 0u));
-		// 	g = f32(readU8(offset + 1u));
-		// 	b = f32(readU8(offset + 2u));
-		// }
-
-		if(r > 255.0){
-			r = r / 256.0;
-		}
-		if(g > 255.0){
-			g = g / 256.0;
-		}
-		if(b > 255.0){
-			b = b / 256.0;
-		}
+		if(r > 255.0) { r = r / 256.0; }
+		if(g > 255.0) { g = g / 256.0; }
+		if(b > 255.0) { b = b / 256.0; }
 
 		color = vec4<f32>(r, g, b, 255.0) / 255.0;
 	}if(attribute.valuetype == TYPES_DOUBLE){
@@ -375,6 +333,23 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 		var z = readF64(offset + 16u);
 
 		color = vec4<f32>(x, y, z, 1.0);
+	}
+
+	return color;
+}
+
+fn map_elevation(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+	var value = (uniforms.world * position).z;
+	var w = (value - attribute.range_min) / (attribute.range_max - attribute.range_min);
+
+	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+	var uv : vec2<f32> = vec2<f32>(w, 0.0);
+
+	if(attribute.clamp == CLAMP_ENABLED){
+		color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
+	}else{
+		color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 	}
 
 	return color;
@@ -461,15 +436,18 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
-		if(uniforms.colorMode == COLORMODE_LISTING){
-			color = colorFromListing(vertex, attribute, node);
-		}else if(attribute.numElements == 1u){
-			color = scalarToColor(vertex, attribute, node, position);
+		if(attribute.mapping == MAPPING_LISTING){
+			color = map_listing(vertex, attribute, node);
+		}else if(attribute.mapping == MAPPING_SCALAR){
+			color = map_scalar(vertex, attribute, node, position);
 			// color = map_normal_trimble_2_15_15(vertex, attribute, node, position);
-		}else{
-			color = vectorToColor(vertex, attribute, node);
+		}else if(attribute.mapping == MAPPING_ELEVATION){
+			color = map_elevation(vertex, attribute, node, position);
+		}else if(attribute.mapping == MAPPING_RGBA){
+			color = map_vector(vertex, attribute, node);
+		}else if(attribute.mapping == MAPPING_VECTOR){
+			color = map_vector(vertex, attribute, node);
 		}
-
 
 		output.color = color;
 	}

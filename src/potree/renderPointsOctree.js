@@ -93,7 +93,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 
 	if(!state){
 		state = {
-			generator: generatePipeline(renderer, {attribute, mapping, flags}),
+			generator: generatePipeline(renderer, {octree, attribute, mapping, flags}),
 		};
 
 		octreeStates.set(key, state);
@@ -107,9 +107,12 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 
 			if(shaderSource !== state.shaderSource){
 				console.log("changed!");
-				state.generator = generatePipeline(renderer, {attribute, mapping, flags});
+				state.generator = generatePipeline(renderer, {octree, attribute, mapping, flags});
 			}
 		});
+	}else if(octree.material.needsCompilation){
+		state.generator = generatePipeline(renderer, {octree, attribute, mapping, flags});
+		octree.material.needsCompilation = false;
 	}
 
 	if(state.generator){
@@ -227,18 +230,6 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 
 		let attributeName = Potree.settings.attribute;
 		let settings = octree?.material?.attributes?.get(attributeName);
-
-		if(!settings){
-			uniformsView.setUint32(268, 0, true);
-		}else if(settings?.constructor.name === "Attribute_RGB"){
-			uniformsView.setUint32(268, 1, true);
-		}else if(settings?.constructor.name === "Attribute_Scalar"){
-			uniformsView.setUint32(268, 2, true);
-		}else if(attributeName === "elevation"){
-			uniformsView.setUint32(268, 3, true);
-		}else if(settings?.constructor.name === "Attribute_Listing"){
-			uniformsView.setUint32(268, 4, true);
-		}
 	}
 
 
@@ -265,7 +256,25 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				range_max = args.settings.range[1];
 			}
 
-			let stride = 8 * 4;
+			let stride = 9 * 4;
+
+			let attributeName = Potree.settings.attribute;
+			let mapping = 0;
+			if(!args?.settings){
+				mapping = 0;
+			}else if(args?.settings?.constructor.name === "Attribute_RGB"){
+				mapping = 1;
+			}else if(args?.settings?.constructor.name === "Attribute_Scalar"){
+				mapping = 2;
+			}else if(attributeName === "elevation"){
+				mapping = 3;
+			}else if(args?.settings?.constructor.name === "Attribute_Listing"){
+				mapping = 4;
+			}else if(args?.settings?.constructor.name === "Attribute_Vector"){
+				mapping = 5;
+			}else if(args?.settings?.constructor.name === "Attribute_Custom"){
+				mapping = 6;
+			}
 
 			attributeView.setUint32(  index * stride +  0,         args.offset, true);
 			attributeView.setUint32(  index * stride +  4,         numElements, true);
@@ -275,6 +284,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			attributeView.setUint32(  index * stride + 20,               clamp, true);
 			attributeView.setUint32(  index * stride + 24,            byteSize, true);
 			attributeView.setUint32(  index * stride + 28,            dataType, true);
+			attributeView.setUint32(  index * stride + 32,             mapping, true);
 		};
 
 		let attributes = octree.loader.attributes;
@@ -296,7 +306,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			let attribute = attributes.attributes.find(a => a.name === attributeName);
 
 			if(selectedAttribute === attributeName){
-				uniformsView.setUint32(272, i, true);
+				uniformsView.setUint32(268, i, true);
 			}
 
 			if(attributeName === "rgba"){
@@ -355,6 +365,11 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 						offset       : offsets.get(attributeName),
 						type         : attribute.type.ordinal,
 						attribute, settings,
+					});
+				}else if(materialValues.constructor.name === "Attribute_Custom"){
+					set(i, {
+						offset       : offsets.get(attributeName),
+						settings,
 					});
 				}else{
 					debugger;

@@ -1,11 +1,14 @@
 
 import {generate as generateShaders} from "./shaderGenerator.js";
 import {Potree} from "potree";
+import { Attribute_Custom } from "../PointCloudMaterial.js";
 
 export async function* generate(renderer, args = {}){
 
+	console.log("generating octree pipeline");
+
 	let {device} = renderer;
-	let {flags} = args;
+	let {octree, flags} = args;
 
 	let shaderPath = `${import.meta.url}/../octree.wgsl`;
 	let response = await fetch(shaderPath);
@@ -48,13 +51,20 @@ export async function* generate(renderer, args = {}){
 			},
 		};
 	}
+
+	let modifiedShaderSource = shaderSource;
+	for(let [name, attribute] of octree.material.attributes){
+		if(attribute instanceof Attribute_Custom){
+			modifiedShaderSource += attribute.wgsl;
+		}
+	}
 	
 	console.groupCollapsed("compiling octree shader");
 	console.log("==== SHADER ====");
-	console.log(shaderSource);
+	console.log(modifiedShaderSource);
 	console.groupEnd();
 
-	let module = device.createShaderModule({code: shaderSource, label: "point cloud shader"});
+	let module = device.createShaderModule({code: modifiedShaderSource, label: "point cloud shader"});
 
 	const layout_0 = renderer.device.createBindGroupLayout({
 		label: "point cloud shader bind group layout",

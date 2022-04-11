@@ -48,8 +48,8 @@ export class PointCloudOctree extends SceneNode{
 
 		let tStart = performance.now();
 
-		if(!this.material.initialized && this.root?.geometry?.statsList != null){
-			this.material.init(this);
+		if(this.root?.geometry?.statsList != null){
+			this.material.update(this);
 		}
 
 		let visibleNodes = [];

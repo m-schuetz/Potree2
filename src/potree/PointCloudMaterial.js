@@ -1,13 +1,17 @@
 import { EventDispatcher } from "potree";
 
+export class Attribute_Custom{
+	constructor(name, wgsl){
+		this.name = name;
+		this.wgsl = wgsl;
+		this.stats = null;
+	}
+};
 
 export class Attribute_Misc{
-
 	constructor(stats){
 		this.stats = stats;
-
 	}
-
 };
 
 export class Attribute_RGB{
@@ -22,7 +26,9 @@ export class Attribute_Scalar{
 
 	constructor(stats){
 		this.stats = stats;
-		this.range = [stats.min, stats.max];
+		// this.range = [stats.min, stats.max];
+		// this.range = [0, 1];
+		this.range = null;
 		this.filterRange = [-Infinity, Infinity];
 		this.clamp = false;
 	}
@@ -76,7 +82,9 @@ export class PointCloudMaterial{
 	constructor(){
 		
 		this.initialized = false;
+		this.statsUpdated = false;
 		this.attributes = new Map();
+		this.needsCompilation = false;
 		
 		let dispatcher = new EventDispatcher();
 		this.events = {
@@ -85,60 +93,115 @@ export class PointCloudMaterial{
 		};
 	}
 
+	recompile(){
+		this.needsCompilation = true;
+	}
+
+	registerAttribute({name, wgsl}){
+
+		if(this.attributes.has(name)){
+			throw `an attribute with the id '${name}' is already registered`;
+		}
+
+		let attribute = new Attribute_Custom(name, wgsl);
+
+		this.attributes.set(name, attribute);
+
+		this.recompile();
+		this.events.dispatcher.dispatch("change", {material: this});
+	}
+
+	update(pointcloud){
+
+		let statsList = pointcloud?.root?.geometry?.statsList;
+
+		if(statsList && !this.statsUpdated){
+
+			for(let stats of statsList){
+
+				if(this.attributes.has(stats.name)){
+					let attribute = this.attributes.get(stats.name);
+
+					attribute.stats = stats;
+
+					if(attribute instanceof Attribute_Scalar){
+						attribute.range = [stats.min, stats.max];
+					}
+				}
+			}
+
+			{ // elevation
+
+				let xyz = statsList.find(stats => ["XYZ", "position"].includes(stats.name));
+
+				if(xyz){
+					let stats = {
+						name: "elevation",
+						min: xyz.min[2],
+						max: xyz.max[2],
+					};
+					let size = stats.max - stats.min;
+
+					let attribute = this.attributes.get("elevation");
+					attribute.stats = stats;
+					attribute.clamp = true;
+					attribute.range = [stats.min - 0.05 * size, stats.max + 0.05 * size];
+				}
+			}
+
+			this.statsUpdated = true;
+
+			this.events.dispatcher.dispatch("change", {material: this});
+		}
+
+		
+
+	}
+
 	init(pointcloud){
 
 		if(this.initialized){
 			return;
 		}
 
-		let statsList = pointcloud.root.geometry.statsList;
+		for(let attribute of pointcloud.attributes.attributes){
 
-		for(let stats of statsList){
+			let stats = null;
 
-			let attribute = null;
-
-			if(stats.name === "rgba"){
-				attribute = new Attribute_RGB(stats);
-			}else if(stats.name === "intensity"){
-				attribute = new Attribute_Scalar(stats);
-			}else if(stats.name === "point source id"){
-				attribute = new Attribute_Scalar(stats);
-			}else if(stats.name === "gps-time"){
-				attribute = new Attribute_Scalar(stats);
-			}else if(stats.name === "classification"){
-				attribute = new Attribute_Listing(stats);
-				attribute.set(ListingSchemes.LAS_CLASSIFICATION);
-			}else if(stats.name === "return number"){
-				attribute = new Attribute_Listing(stats);
-				attribute.set(ListingSchemes.LAS_RETURN_NUMBER);
-			}else if(stats.name === "scan angle"){
-				attribute = new Attribute_Scalar(stats);
-			}else if(stats.name === "Normal"){
-				attribute = new Attribute_RGB(stats);
+			let mapping = null;
+			if(attribute.name === "rgba"){
+				mapping = new Attribute_RGB(stats);
+			}else if(attribute.name === "intensity"){
+				mapping = new Attribute_Scalar(stats);
+			}else if(attribute.name === "point source id"){
+				mapping = new Attribute_Scalar(stats);
+			}else if(attribute.name === "gps-time"){
+				mapping = new Attribute_Scalar(stats);
+			}else if(attribute.name === "classification"){
+				mapping = new Attribute_Listing(stats);
+				mapping.set(ListingSchemes.LAS_CLASSIFICATION);
+			}else if(attribute.name === "return number"){
+				mapping = new Attribute_Listing(stats);
+				mapping.set(ListingSchemes.LAS_RETURN_NUMBER);
+			}else if(attribute.name === "scan angle"){
+				mapping = new Attribute_Scalar(stats);
+			}else if(attribute.name === "Normal"){
+				mapping = new Attribute_RGB(stats);
 			}else{
-				attribute = new Attribute_Scalar(stats);
+				mapping = new Attribute_Scalar(stats);
 			}
 
-			this.attributes.set(stats.name, attribute);
+			this.attributes.set(attribute.name, mapping);
 		}
 
 		{ // elevation
-
-			let xyz = statsList.find(stats => ["XYZ", "position"].includes(stats.name));
-
-			if(xyz){
-				let stats = {
-					name: "elevation",
-					min: xyz.min[2],
-					max: xyz.max[2],
-				};
-				let attribute = new Attribute_Scalar(stats);
-				attribute.clamp = true;
-				this.attributes.set(stats.name, attribute);
-			}
+			let stats = null;
+			let attribute = new Attribute_Scalar(stats);
+			attribute.clamp = true;
+			this.attributes.set("elevation", attribute);
 		}
 
-		console.log(statsList);
+		// console.log(statsList);
 		console.log(this.attributes);
 
 		this.initialized = true;

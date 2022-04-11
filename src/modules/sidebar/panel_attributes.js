@@ -311,29 +311,29 @@ class Panel{
 
 		let blacklist = ["XYZ", "position"];
 
-		let statsList = this.pointcloud.root?.geometry?.statsList;
-
-		if(!statsList){
-			return;
-		}
+		let attributes = this.pointcloud.material.attributes;
 
 		let weighted = [];
-		for(let i = 0; i < statsList.length; i++){
-			let stats = statsList[i];
-			let index = preferredOrder.indexOf(stats.name);
+		let i = 0;
+		for(let [name, attribute] of attributes){
+			let index = preferredOrder.indexOf(name);
 
-			if(blacklist.includes(stats.name)){
+			if(blacklist.includes(name)){
 				continue;
 			}
 
 			let weight = index >= 0 ? index : 100 + i;
 
-			weighted.push({name: stats.name, weight: weight});
+			weighted.push({name: name, weight: weight});
+			i++;
 		}
-		weighted.push({name: "elevation", weight: 4});
+
+		// weighted.push({name: "elevation", weight: 4});
 		weighted.sort( (a, b) => {
 			return a.weight - b.weight;
 		});
+
+		this.elAttributeList.innerHTML = "";
 
 		for(let item of weighted){
 			let name = item.name;
@@ -346,11 +346,7 @@ class Panel{
 
 		this.elAttributeList.size = weighted.length;
 		this.elAttributeList.value = Potree.settings.attribute;
-
-
 	}
-
-	
 
 	set(pointcloud){
 
