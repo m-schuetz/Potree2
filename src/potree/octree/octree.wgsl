@@ -8,6 +8,7 @@ struct Uniforms {
 	screen_height     : f32,           // 260
 	hqs_flag          : u32,           // 264
 	selectedAttribute : u32,           // 268
+	time              : f32,           // 272
 };
 
 struct Node {
@@ -44,6 +45,7 @@ let MAPPING_ELEVATION     =  3u;
 let MAPPING_LISTING       =  4u;
 let MAPPING_VECTOR        =  5u;
 let MAPPING_CUSTOM        =  6u;
+<<TEMPLATE_MAPPING_ENUM>>
 
 let TYPES_DOUBLE          =  0u;
 let TYPES_FLOAT           =  1u;
@@ -448,6 +450,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		}else if(attribute.mapping == MAPPING_VECTOR){
 			color = map_vector(vertex, attribute, node);
 		}
+		<<TEMPLATE_MAPPING_SELECTION>>
 
 		output.color = color;
 	}
@@ -489,3 +492,5 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 
 	return output;
 }
+
+<<TEMPLATE_MAPPING_FUNCTIONS>>

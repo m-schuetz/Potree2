@@ -165,19 +165,47 @@ canvas{
 
 		console.log(material.attributes);
 
+
+
+
+
+
+
+
+
+
 		material.registerAttribute({
-			name: "test attribute",
+			name: "animated elevation",
 			wgsl: `
-				fn map_test(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-					var color = vec4<f32>(0.5, 1.0, 0.0, 1.0);
+				fn map_animated_elevation(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+					var u = position.x / 500.0;
+					var v = position.y / 500.0;
+					var d = length(vec2<f32>(u - 0.5, v - 0.5));
+
+					var value = (uniforms.world * position).z;
+					var w = (value - 430.0) / (570.0 - 430.0);
+					var uv : vec2<f32> = vec2<f32>(w, 0.0);
+					var color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
+
+					if(cos(30.0 * d - 2.0 * uniforms.time) < -0.7){
+						color.w = 0.0;
+					}
+
 					return color;
 				}
 			`,
-			functionName: "map_test",
 		});
 
 		scene.root.children.push(pointcloud);
 	});
+
+
+
+
+
+
+
+
 
 	// Potree.load("./resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip/metadata.json").then(pointcloud => {
 

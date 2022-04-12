@@ -1,5 +1,5 @@
 
-import {Gradients, Utils, Potree} from "potree";
+import {Gradients, Utils, Potree, Attribute_Custom} from "potree";
 
 function toHexString(color){
 
@@ -303,13 +303,14 @@ class Panel{
 	updateAttributesList(){
 
 		let preferredOrder = [
-			"rgb", "rgba", "RGB", "RGBA",
-			"intensity",
-			"classification",
-			"gps-time",
+			// "rgb", "rgba", "RGB", "RGBA",
+			// "intensity",
+			// "classification",
+			// "gps-time",
 		];
 
-		let blacklist = ["XYZ", "position"];
+		let blacklist = [];
+		// let blacklist = ["XYZ", "position"];
 
 		let attributes = this.pointcloud.material.attributes;
 
@@ -324,7 +325,7 @@ class Panel{
 
 			let weight = index >= 0 ? index : 100 + i;
 
-			weighted.push({name: name, weight: weight});
+			weighted.push({name, weight, attribute});
 			i++;
 		}
 
@@ -335,16 +336,33 @@ class Panel{
 
 		this.elAttributeList.innerHTML = "";
 
+		let customGroupStarted = false;
+
+		let elOptgroupStandard = document.createElement("optgroup");
+		elOptgroupStandard.label = "standard attributes";
+		let elOptgroupCustom = document.createElement("optgroup");
+		elOptgroupCustom.label = "extended attributes";
+
 		for(let item of weighted){
+
 			let name = item.name;
 			let elOption = document.createElement("option");
 			elOption.innerText = name;
 			elOption.value = name;
 
-			this.elAttributeList.appendChild(elOption);
+			if(item.attribute.extended){
+				elOptgroupCustom.appendChild(elOption);
+			}else{
+				elOptgroupStandard.appendChild(elOption);
+			}
+
+			// this.elAttributeList.appendChild(elOption);
 		}
 
-		this.elAttributeList.size = weighted.length;
+		this.elAttributeList.appendChild(elOptgroupStandard);
+		this.elAttributeList.appendChild(elOptgroupCustom);
+
+		this.elAttributeList.size = weighted.length + 3;
 		this.elAttributeList.value = Potree.settings.attribute;
 	}
 

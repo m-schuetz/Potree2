@@ -3,6 +3,7 @@ import {Vector3, Matrix4} from "potree";
 import {Timer} from "potree";
 import {generate as generatePipeline} from "./octree/pipelineGenerator.js";
 import {Gradients} from "potree";
+import {Attribute_Custom} from "./PointCloudMaterial.js";
 
 let octreeStates = new Map();
 let gradientSampler_repeat = null;
@@ -227,6 +228,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		uniformsView.setFloat32(256, size.width, true);
 		uniformsView.setFloat32(260, size.height, true);
 		uniformsView.setUint32(264, isHqsDepth ? 1 : 0, true);
+		uniformsView.setFloat32(272, performance.now() / 1000.0, true);
 
 		let attributeName = Potree.settings.attribute;
 		let settings = octree?.material?.attributes?.get(attributeName);
@@ -276,6 +278,10 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				mapping = 6;
 			}
 
+			if(args.settings?.shaderBinding != null){
+				mapping = args.settings?.shaderBinding;
+			}
+
 			attributeView.setUint32(  index * stride +  0,         args.offset, true);
 			attributeView.setUint32(  index * stride +  4,         numElements, true);
 			attributeView.setUint32(  index * stride +  8,           args.type, true);
@@ -297,6 +303,17 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			offsets.set(attribute.name, offset);
 
 			offset += attribute.byteSize;
+		}
+
+		let customAttributes = [];
+		for(let [name, attribute] of octree.material.attributes){
+			if(attribute instanceof Attribute_Custom){
+				customAttributes.push([name, attribute]);
+			}
+		}
+		for(let i = 0; i < customAttributes.length; i++){
+			let customAttribute = customAttributes[i][1];
+			customAttribute.shaderBinding = 128 + i;
 		}
 
 		let i = 0;

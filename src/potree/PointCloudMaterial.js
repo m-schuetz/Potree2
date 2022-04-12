@@ -5,12 +5,14 @@ export class Attribute_Custom{
 		this.name = name;
 		this.wgsl = wgsl;
 		this.stats = null;
+		this.extended = true;
 	}
 };
 
 export class Attribute_Misc{
 	constructor(stats){
 		this.stats = stats;
+		this.extended = false;
 	}
 };
 
@@ -18,6 +20,7 @@ export class Attribute_RGB{
 
 	constructor(stats){
 		this.stats = stats;
+		this.extended = false;
 	}
 
 };
@@ -31,6 +34,7 @@ export class Attribute_Scalar{
 		this.range = null;
 		this.filterRange = [-Infinity, Infinity];
 		this.clamp = false;
+		this.extended = false;
 	}
 };
 
@@ -198,6 +202,7 @@ export class PointCloudMaterial{
 			let stats = null;
 			let attribute = new Attribute_Scalar(stats);
 			attribute.clamp = true;
+			attribute.extended = true;
 			this.attributes.set("elevation", attribute);
 		}
 

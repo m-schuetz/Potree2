@@ -53,11 +53,32 @@ export async function* generate(renderer, args = {}){
 	}
 
 	let modifiedShaderSource = shaderSource;
+	let customAttributes = [];
 	for(let [name, attribute] of octree.material.attributes){
 		if(attribute instanceof Attribute_Custom){
-			modifiedShaderSource += attribute.wgsl;
+			// modifiedShaderSource += attribute.wgsl;
+			customAttributes.push([name, attribute]);
 		}
 	}
+
+	let template_mapping_enum = "";
+	let template_mapping_selection = "";
+	let template_mapping_functions = "";
+
+	for(let i = 0; i < customAttributes.length; i++){
+		let attribute = customAttributes[i][1];
+		template_mapping_enum += `let MAPPING_${128 + i} = ${128 + i}u;`;
+		template_mapping_selection += `
+			else if(attribute.mapping == MAPPING_${128 + i}){
+				color = map_${128 + i}(vertex, attribute, node, position);
+			}`;
+
+		template_mapping_functions += attribute.wgsl.replaceAll(/fn .*\(/g, `fn map_${128 + i}(`);
+	}
+
+	modifiedShaderSource = modifiedShaderSource.replace("<<TEMPLATE_MAPPING_ENUM>>", template_mapping_enum);
+	modifiedShaderSource = modifiedShaderSource.replace("<<TEMPLATE_MAPPING_SELECTION>>", template_mapping_selection);
+	modifiedShaderSource = modifiedShaderSource.replace("<<TEMPLATE_MAPPING_FUNCTIONS>>", template_mapping_functions);
 	
 	console.groupCollapsed("compiling octree shader");
 	console.log("==== SHADER ====");
