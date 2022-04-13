@@ -139,6 +139,22 @@ fn readU32(offset : u32) -> u32{
 	return value;
 }
 
+
+fn readI32(offset : u32) -> i32{
+	
+	var d0 = readU8(offset + 0u);
+	var d1 = readU8(offset + 1u);
+	var d2 = readU8(offset + 2u);
+	var d3 = readU8(offset + 3u);
+
+	var value = d0
+		| (d1 <<  8u)
+		| (d2 << 16u)
+		| (d3 << 24u);
+
+	return i32(value);
+}
+
 fn readF32(offset : u32) -> f32{
 	
 	var d0 = readU8(offset + 0u);
@@ -218,52 +234,68 @@ fn map_listing(vertex : VertexInput, attribute : AttributeDescriptor, node : Nod
 	return color;
 }
 
-fn map_normal_trimble_2_15_15(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-
-	var PI = 3.1415;
-	var HML = (2.0 * PI) / 32767.0;
-	var VML = PI / 32767.0;
+// fn map_normal_terrascan_2_15_15(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+// 	var PI = 3.1415;
+// 	var HML = (2.0 * PI) / 32767.0;
+// 	var VML = PI / 32767.0;
 	
-	var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
-	var value = readU32(offset);
+// 	var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
+// 	var value = readU32(offset);
 
-	var mask_15b = (1u << 15u) - 1u;
-	var dim = value >> 30u;
-	var vertAngle = f32((value >>  0u) & mask_15b);
-	var horzAngle = f32((value >> 15u) & mask_15b);
+// 	var mask_15b = (1u << 15u) - 1u;
 
-	var ang = (VML * vertAngle) - 0.5 * PI;
-	var zvl = sin(ang);
-	var xml = sqrt( 1.0 - (zvl * zvl));
+// 	var dim = value & 3u;
+// 	var horzAngle = f32((value >>  2u) & mask_15b);
+// 	var vertAngle = f32((value >> 17u) & mask_15b);
 
-	var normal : vec3<f32>;
-	normal.x = xml * cos(HML * horzAngle);
-	normal.y = xml * sin(HML * horzAngle);
-	normal.z = zvl;
+// 	var ang = (VML * vertAngle) - 0.5 * PI;
+// 	var zvl = sin(ang);
+// 	var xml = sqrt( 1.0 - (zvl * zvl));
 
-	// normal.z = sin((vertAngle / (32767.0 / PI)) - 0.5 * PI);
+// 	var normal : vec3<f32>;
+// 	normal.x = xml * cos(HML * horzAngle);
+// 	normal.y = xml * sin(HML * horzAngle);
+// 	normal.z = zvl;
 
-	var color = vec4<f32>(normal, 1.0);
+// 	var color = vec4<f32>(normal, 1.0);
 
-	color = vec4<f32>(
-		1.0 * normal.x, 
-		1.0 * normal.y, 
-		1.0 * normal.z,
-		1.0,
-	);
+// 	color = vec4<f32>(
+// 		1.0 * normal.x, 
+// 		1.0 * normal.y, 
+// 		1.0 * normal.z,
+// 		1.0,
+// 	);
 
-	// if(dim == 0u){
-	// 	color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-	// }else if(dim == 1u){
-	// 	color = vec4<f32>(0.0, 1.0, 0.0, 1.0);
-	// }else if(dim == 2u){
-	// 	color = vec4<f32>(0.0, 0.0, 1.0, 1.0);
-	// }else if(dim == 3u){
-	// 	color = vec4<f32>(1.0, 0.0, 1.0, 1.0);
-	// }
+// 	return color;
+// }
 
-	return color;
-}
+// fn map_terrascan_group(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+// 	var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
+// 	var value = readU32(offset);
+
+// 	var w = f32(value) / 1234.0;
+// 	w = f32(value % 10u) / 10.0;
+// 	var uv = vec2<f32>(w, 0.0);
+
+// 	var color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
+
+// 	return color;
+// }
+
+// fn map_terrascan_distance(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+// 	var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
+// 	var value = readI32(offset);
+
+// 	// assuming distance in meters
+// 	var distance = f32(value) / 1000.0;
+// 	var w = distance / 5.0;
+// 	var uv = vec2<f32>(w, 0.0);
+
+// 	var color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
+
+// 	return color;
+// }
+
 
 fn map_scalar(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
@@ -299,8 +331,6 @@ fn map_scalar(vertex : VertexInput, attribute : AttributeDescriptor, node : Node
 	}else{
 		color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 	}
-
-	// color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 
 	return color;
 }
@@ -455,7 +485,9 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		}
 		<<TEMPLATE_MAPPING_SELECTION>>
 		
-		// color = map_normal_trimble_2_15_15(vertex, attribute, node, position);
+		// color = map_normal_terrascan_2_15_15(vertex, attribute, node, position);
+		// color = map_terrascan_group(vertex, attribute, node, position);
+		// color = map_terrascan_distance(vertex, attribute, node, position);
 
 		output.color = color;
 	}
