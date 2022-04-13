@@ -1,18 +1,19 @@
 import { EventDispatcher } from "potree";
 
 export class Attribute_Custom{
-	constructor(name, wgsl){
+	constructor(name){
 		this.name = name;
-		this.wgsl = wgsl;
 		this.stats = null;
-		this.extended = true;
+		this.runtime = true;
+		this.mapping = null;
 	}
 };
 
 export class Attribute_Misc{
 	constructor(stats){
 		this.stats = stats;
-		this.extended = false;
+		this.runtime = false;
+		this.mapping = null;
 	}
 };
 
@@ -20,7 +21,8 @@ export class Attribute_RGB{
 
 	constructor(stats){
 		this.stats = stats;
-		this.extended = false;
+		this.runtime = false;
+		this.mapping = null;
 	}
 
 };
@@ -34,7 +36,8 @@ export class Attribute_Scalar{
 		this.range = null;
 		this.filterRange = [-Infinity, Infinity];
 		this.clamp = false;
-		this.extended = false;
+		this.runtime = false;
+		this.mapping = null;
 	}
 };
 
@@ -74,6 +77,7 @@ export class Attribute_Listing{
 	constructor(stats){
 		this.stats = stats;
 		this.listing = ListingSchemes.NONE;
+		this.mapping = null;
 	}
 
 	set(scheme){
@@ -88,6 +92,7 @@ export class PointCloudMaterial{
 		this.initialized = false;
 		this.statsUpdated = false;
 		this.attributes = new Map();
+		this.mappings = new Map();
 		this.needsCompilation = false;
 		
 		let dispatcher = new EventDispatcher();
@@ -101,18 +106,41 @@ export class PointCloudMaterial{
 		this.needsCompilation = true;
 	}
 
-	registerAttribute({name, wgsl}){
+	registerAttribute(name){
 
 		if(this.attributes.has(name)){
 			throw `an attribute with the id '${name}' is already registered`;
 		}
 
-		let attribute = new Attribute_Custom(name, wgsl);
+		let attribute = new Attribute_Custom(name);
 
 		this.attributes.set(name, attribute);
 
 		this.recompile();
 		this.events.dispatcher.dispatch("change", {material: this});
+	}
+
+	registerMapping({name, condition, wgsl}){
+
+		if(this.mappings.has(name)){
+			throw `a mapping with the id '${name}' is already registered`;
+		}
+
+		let mapping = {name, condition, wgsl};
+		let index = 128 + this.mappings.size;
+
+		this.mappings.set(name, mapping);
+
+		this.recompile();
+		this.events.dispatcher.dispatch("change", {material: this});
+
+		for(let [name, attribute] of this.attributes){
+			if(attribute.attribute && condition(attribute.attribute)){
+				attribute.mapping = index;
+			}
+		}
+
+		return index;
 	}
 
 	update(pointcloud){
@@ -195,6 +223,8 @@ export class PointCloudMaterial{
 				mapping = new Attribute_Scalar(stats);
 			}
 
+			mapping.attribute = attribute;
+
 			this.attributes.set(attribute.name, mapping);
 		}
 
@@ -202,7 +232,7 @@ export class PointCloudMaterial{
 			let stats = null;
 			let attribute = new Attribute_Scalar(stats);
 			attribute.clamp = true;
-			attribute.extended = true;
+			attribute.runtime = true;
 			this.attributes.set("elevation", attribute);
 		}
 

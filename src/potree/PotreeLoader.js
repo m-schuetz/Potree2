@@ -64,7 +64,7 @@ function parseAttributes(jsonAttributes){
 	let attributeList = [];
 
 	for(let jsonAttribute of jsonAttributes){
-		let {name, description, size, numElements, elementSize, min, max} = jsonAttribute;
+		let {name, description, size, numElements, elementSize, min, max, scale, offset} = jsonAttribute;
 
 		let type = typenameTypeattributeMap[jsonAttribute.type];
 
@@ -79,8 +79,10 @@ function parseAttributes(jsonAttributes){
 		}
 		
 		attribute.initialRange = attribute.range;
+		attribute.description = description;
+		attribute.scale = scale;
+		attribute.offset = offset;
 
-		// attributes.add(attribute);
 		attributeList.push(attribute);
 	}
 

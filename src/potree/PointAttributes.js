@@ -20,8 +20,11 @@ export class PointAttribute{
 		this.name = name;
 		this.type = type;
 		this.numElements = numElements;
+		this.byteOffset = null;
 		this.byteSize = this.numElements * this.type.size;
 		this.description = "";
+		this.scale = [1.0, 1.0, 1.0];
+		this.offset = [0.0, 0.0, 0.0];
 		this.range = [Infinity, -Infinity];
 	}
 
@@ -37,10 +40,9 @@ export class PointAttributes{
 
 		if (pointAttributes != null) {
 			for (let i = 0; i < pointAttributes.length; i++) {
-				// let pointAttributeName = pointAttributes[i];
-				// let pointAttribute = PointAttribute[pointAttributeName];
 				let pointAttribute = pointAttributes[i];
 				this.attributes.push(pointAttribute);
+				pointAttribute.byteOffset = this.byteSize;
 				this.byteSize += pointAttribute.byteSize;
 				this.size++;
 			}
@@ -50,6 +52,7 @@ export class PointAttributes{
 
 	add(pointAttribute){
 		this.attributes.push(pointAttribute);
+		pointAttribute.byteOffset = this.byteSize;
 		this.byteSize += pointAttribute.byteSize;
 		this.size++;
 	};

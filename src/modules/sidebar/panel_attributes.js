@@ -39,6 +39,7 @@ class Panel{
 
 			<div class="subsubsection" id="attributes_listing" style="display: grid; grid-template-columns: 3em 1fr 3em"></div>
 
+			<div class="subsubsection" id="attributes_data" style="display: grid; grid-template-columns: 8em 1fr"></div>
 		`;
 
 		this.elAttributeList = this.element.querySelector("#attributes_list");
@@ -46,6 +47,7 @@ class Panel{
 		this.elGammaBrightnessContrast = this.element.querySelector("#attributes_gamma_brightness_contrast");
 		this.elScalar = this.element.querySelector("#attributes_scalar");
 		this.elListing = this.element.querySelector("#attributes_listing");
+		this.elData = this.element.querySelector("#attributes_data");
 
 		this.elAttributeList.onchange = () => {
 			this.onAttributeSelected();
@@ -66,12 +68,14 @@ class Panel{
 		let elScalar = this.elScalar;
 		let elGradient = this.elGradientSchemes;
 		let elListing = this.elListing;
+		let elData = this.elData;
 
 		let show = (...args) => {
 			elGammaBrightnessContrast.style.display = args.includes(elGammaBrightnessContrast) ? "flex" : "none";
 			elScalar.style.display = args.includes(elScalar) ? "flex" : "none";
 			elGradient.style.display = args.includes(elGradient) ? "flex" : "none";
 			elListing.style.display = args.includes(elListing) ? "grid" : "none";
+			elData.style.display = args.includes(elData) ? "grid" : "none";
 
 			if(args.includes(elGammaBrightnessContrast)){
 				this.updateGammaBrightnessContrast();
@@ -88,6 +92,10 @@ class Panel{
 			if(args.includes(elGradient)){
 				this.updateGradientSchemes();
 			}
+
+			if(args.includes(elData)){
+				this.updateDataInfos();
+			}
 		};
 
 		if(!this.pointcloud){
@@ -101,11 +109,11 @@ class Panel{
 		if(!settings){
 			return;
 		}else if(settings.constructor.name === "Attribute_RGB"){
-			show();
+			show(elData);
 		}else if(settings.constructor.name === "Attribute_Scalar"){
-			show(elScalar, elGradient);
+			show(elScalar, elGradient, elData);
 		}else if(settings.constructor.name === "Attribute_Listing"){
-			show(elListing);
+			show(elListing, elData);
 		}else{
 			show();
 		}
@@ -244,6 +252,80 @@ class Panel{
 			elListing.append(elIndex, elLabel, elColorPicker);
 
 		}
+	}
+
+	updateDataInfos(){
+		let elData = this.elData;
+		elData.innerHTML = "";
+
+		let attributeName = Potree.settings.attribute;
+		// let setting = this.pointcloud.material.attributes.get(attributeName);
+
+		let attribute = this.pointcloud.attributes.attributes.find(a => a.name === attributeName);
+
+		if(!attribute){
+			return;
+		}
+
+		let rangeToString = (range) => {
+			if(range[0] instanceof Array){
+				let result = "";
+				for(let i = 0; i < range.length; i++){
+					result += `[ ${range[0][i]}, ${range[1][i]}]\n`;
+				}
+				return result;
+			}else{
+				return `[${range[0]}, ${range[1]}]`;
+			}
+		};
+
+		let scaleOffsetToString = (value) => {
+			if(value instanceof Array){
+				return `[${value.join(", ")}]`;
+			}else{
+				return value;
+			}
+		};
+
+		let items = [
+			{name: "name",          value: attribute.name},
+			{name: "description",   value: attribute.description},
+			{name: "offset",        value: attribute.byteOffset},
+			{name: "byteSize",      value: attribute.byteSize},
+			{name: "type",          value: attribute.type.name},
+			{name: "numElements",   value: attribute.numElements},
+			{name: "range",         value: rangeToString(attribute.range)},
+			{name: "scale",         value: scaleOffsetToString(attribute.scale)},
+			{name: "offset",        value: scaleOffsetToString(attribute.offset)},
+		];
+
+		for(let item of items){
+			let elLabel = document.createElement("span");
+			let elvalue = document.createElement("span");
+			elLabel.innerText = item.name;
+			elvalue.innerText = item.value;
+
+			elData.append(elLabel, elvalue);
+		}
+
+		// {
+		// 	let elLabel = document.createElement("span");
+		// 	let elvalue = document.createElement("span");
+		// 	elLabel.innerText = "name";
+		// 	elvalue.innerText = attribute.name;
+
+		// 	elData.append(elLabel, elvalue);
+		// }
+
+		// {
+		// 	let elLabel = document.createElement("span");
+		// 	let elvalue = document.createElement("span");
+		// 	elLabel.innerText = "byteSize";
+		// 	elvalue.innerText = attribute.byteSize;
+
+		// 	elData.append(elLabel, elvalue);
+		// }
+
 
 	}
 
@@ -336,12 +418,10 @@ class Panel{
 
 		this.elAttributeList.innerHTML = "";
 
-		let customGroupStarted = false;
-
-		let elOptgroupStandard = document.createElement("optgroup");
-		elOptgroupStandard.label = "standard attributes";
-		let elOptgroupCustom = document.createElement("optgroup");
-		elOptgroupCustom.label = "extended attributes";
+		let elOptgroupFile = document.createElement("optgroup");
+		elOptgroupFile.label = "file attributes";
+		let elOptgroupRuntime = document.createElement("optgroup");
+		elOptgroupRuntime.label = "runtime attributes";
 
 		for(let item of weighted){
 
@@ -350,17 +430,17 @@ class Panel{
 			elOption.innerText = name;
 			elOption.value = name;
 
-			if(item.attribute.extended){
-				elOptgroupCustom.appendChild(elOption);
+			if(item.attribute.runtime){
+				elOptgroupRuntime.appendChild(elOption);
 			}else{
-				elOptgroupStandard.appendChild(elOption);
+				elOptgroupFile.appendChild(elOption);
 			}
 
 			// this.elAttributeList.appendChild(elOption);
 		}
 
-		this.elAttributeList.appendChild(elOptgroupStandard);
-		this.elAttributeList.appendChild(elOptgroupCustom);
+		this.elAttributeList.appendChild(elOptgroupFile);
+		this.elAttributeList.appendChild(elOptgroupRuntime);
 
 		this.elAttributeList.size = weighted.length + 3;
 		this.elAttributeList.value = Potree.settings.attribute;

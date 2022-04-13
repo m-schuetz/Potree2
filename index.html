@@ -95,7 +95,7 @@ canvas{
 	// 	version: "abc",
 	// };
 
-	installSidebar(elPotree, potree);
+	window.sidebar = installSidebar(elPotree, potree);
 
 	window.Potree = Potree;
 	window.potree = potree;
@@ -173,9 +173,12 @@ canvas{
 
 
 
+		// register a new "runtime attribute"
+		material.registerAttribute("animated elevation");
 
-		material.registerAttribute({
+		material.registerMapping({
 			name: "animated elevation",
+			condition: (attribute) => (attribute.name === "animated elevation"),
 			wgsl: `
 				fn map_animated_elevation(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 					var u = position.x / 500.0;
@@ -195,6 +198,34 @@ canvas{
 				}
 			`,
 		});
+
+		// register an attribute->color mapping that automatically applies 
+		// to attributes that fullfill a given condition
+		material.registerMapping({
+			name: "normal (trimble 2-15-15)",
+			condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
+			wgsl: `
+				fn map_normal_trimble(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+					var color = vec4<f32>(1.0, 0.0, 1.0, 1.0);
+
+					return color;
+				}
+			`,
+		});
+
+		material.registerMapping({
+			name: "group",
+			condition: (attribute) => (attribute.name === "Group"),
+			wgsl: `
+				fn map_group(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+					var color = vec4<f32>(0.0, 1.0, 1.0, 1.0);
+
+					return color;
+				}
+			`,
+		});
+
+		Potree.settings.attribute = "Normal";
 
 		scene.root.children.push(pointcloud);
 	});

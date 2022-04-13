@@ -241,6 +241,8 @@ fn map_normal_trimble_2_15_15(vertex : VertexInput, attribute : AttributeDescrip
 	normal.y = xml * sin(HML * horzAngle);
 	normal.z = zvl;
 
+	// normal.z = sin((vertAngle / (32767.0 / PI)) - 0.5 * PI);
+
 	var color = vec4<f32>(normal, 1.0);
 
 	color = vec4<f32>(
@@ -297,6 +299,8 @@ fn map_scalar(vertex : VertexInput, attribute : AttributeDescriptor, node : Node
 	}else{
 		color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 	}
+
+	// color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 
 	return color;
 }
@@ -442,7 +446,6 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 			color = map_listing(vertex, attribute, node);
 		}else if(attribute.mapping == MAPPING_SCALAR){
 			color = map_scalar(vertex, attribute, node, position);
-			// color = map_normal_trimble_2_15_15(vertex, attribute, node, position);
 		}else if(attribute.mapping == MAPPING_ELEVATION){
 			color = map_elevation(vertex, attribute, node, position);
 		}else if(attribute.mapping == MAPPING_RGBA){
@@ -451,6 +454,8 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 			color = map_vector(vertex, attribute, node);
 		}
 		<<TEMPLATE_MAPPING_SELECTION>>
+		
+		// color = map_normal_trimble_2_15_15(vertex, attribute, node, position);
 
 		output.color = color;
 	}

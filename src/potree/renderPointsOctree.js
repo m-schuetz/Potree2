@@ -22,8 +22,8 @@ function init(renderer){
 		magFilter: 'linear',
 		minFilter: 'linear',
 		mipmapFilter : 'linear',
-		addressModeU: "clamp-to-edge",
-		addressModeV: "clamp-to-edge",
+		addressModeU: "repeat",
+		addressModeV: "repeat",
 		maxAnisotropy: 1,
 	});
 
@@ -280,6 +280,10 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 
 			if(args.settings?.shaderBinding != null){
 				mapping = args.settings?.shaderBinding;
+			}
+
+			if(args.settings?.mapping){
+				mapping = args.settings.mapping;
 			}
 
 			attributeView.setUint32(  index * stride +  0,         args.offset, true);
