@@ -112,12 +112,14 @@ canvas{
 		pivot: [-0.0, 2.2, 3.9],
 	});
 
-	import {CopcLoader, Image360, Images360} from "potree";
+	import {CopcLoader, Image360, Images360, SplatType} from "potree";
 	Potree.settings.pointBudget = 4_000_000;
+	Potree.settings.pointBudget = 30_000;
 	// Potree.settings.attribute = "classification";
 
 	Potree.settings.attribute = "rgba";
-	Potree.settings.pointSize = 7;
+	Potree.settings.pointSize = 3;
+	Potree.settings.splatType = SplatType.QUADS;
 	// Potree.settings.pointBudget = 30085;
 
 	
@@ -276,7 +278,7 @@ canvas{
 			`,
 		});
 
-		Potree.settings.attribute = "Normal";
+		// Potree.settings.attribute = "Normal";
 
 		scene.root.children.push(pointcloud);
 	});

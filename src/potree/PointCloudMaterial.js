@@ -1,4 +1,4 @@
-import { EventDispatcher } from "potree";
+import {EventDispatcher, SplatType} from "potree";
 
 export class Attribute_Custom{
 	constructor(name){
@@ -94,6 +94,7 @@ export class PointCloudMaterial{
 		this.attributes = new Map();
 		this.mappings = new Map();
 		this.needsCompilation = false;
+		this.splatType = SplatType.POINTS;
 		
 		let dispatcher = new EventDispatcher();
 		this.events = {

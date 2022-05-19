@@ -2,7 +2,7 @@
 import {Vector3, Matrix4} from "potree";
 import {Timer} from "potree";
 import {generate as generatePipeline} from "./octree/pipelineGenerator.js";
-import {Gradients} from "potree";
+import {Gradients, SplatType} from "potree";
 import {Attribute_Custom} from "./PointCloudMaterial.js";
 
 let octreeStates = new Map();
@@ -78,19 +78,12 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 	let key = `${octree.state_id}_${flags.join("_")}`;
 
 	let state = octreeStates.get(key);
-	
-	// TEST: try to use this to recompile shaders at runtime
-	// {
-	// 	let shaderPath = `${import.meta.url}/../octree/octree.wgsl`;
-	// 	fetch(shaderPath).then(async response => {
-	// 		let shaderSource = await response.text();
 
-	// 		if(shaderSource !== state.shaderSource){
-	// 			console.log("changed!");
-	// 		}
-	// 	});
-		
-	// }
+	let needsCompilation = false;
+	if(state?.splatType !== octree.material.splatType){
+		needsCompilation = true;
+	}
+	
 
 	if(!state){
 		state = {
@@ -111,7 +104,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 				state.generator = generatePipeline(renderer, {octree, attribute, mapping, flags});
 			}
 		});
-	}else if(octree.material.needsCompilation){
+	}else if(state?.stage === "ready" && (octree.material.needsCompilation || needsCompilation)){
 		state.generator = generatePipeline(renderer, {octree, attribute, mapping, flags});
 		octree.material.needsCompilation = false;
 	}
@@ -175,6 +168,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 				state.generator = null;
 				state.timestamp = Date.now();
 				state.nextCheckAt = Date.now() + Math.random() * 300 + 100;
+				state.splatType = result.value.splatType;
 				state.stage = "ready";
 			}
 		});
@@ -229,6 +223,8 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		uniformsView.setFloat32(260, size.height, true);
 		uniformsView.setUint32(264, isHqsDepth ? 1 : 0, true);
 		uniformsView.setFloat32(272, performance.now() / 1000.0, true);
+		uniformsView.setFloat32(276, Potree.settings.pointSize, true);
+		uniformsView.setUint32(280, Potree.settings.splatType, true);
 
 		let attributeName = Potree.settings.attribute;
 		let settings = octree?.material?.attributes?.get(attributeName);
@@ -449,7 +445,12 @@ async function renderOctree(octree, drawstate, flags){
 	
 	let attributeName = Potree.settings.attribute;
 
+	if(octree.material.splatType !== Potree.settings.splatType){
+		octree.material.splatType = Potree.settings.splatType;
+	}
+
 	let octreeState = getOctreeState(renderer, octree, attributeName, flags);
+	// let octreeState = getOctreeState(renderer, octree, attributeName, {...flags, splatType: Potree.settings.splatType});
 
 	if(!octreeState){
 		return;
@@ -552,7 +553,13 @@ async function renderOctree(octree, drawstate, flags){
 		}
 
 		let numElements = node.geometry.numElements;
-		pass.passEncoder.draw(numElements, 1, 0, i);
+
+		if(octree.material.splatType === SplatType.POINTS){
+			pass.passEncoder.draw(numElements, 1, 0, i);
+		}else if(octree.material.splatType === SplatType.QUADS){
+			pass.passEncoder.draw(6 * numElements, 1, 0, i);
+		}
+
 		// Potree.state.numPoints += numElements;
 		Potree.state.renderedElements += numElements;
 		Potree.state.renderedObjects.push({node, numElements});

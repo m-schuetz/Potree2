@@ -67,7 +67,7 @@ export class RangeSelect extends HTMLElement{
 				}
 
 				.marker{
-					position: fixed;
+					position: absolute;
 					left: 100px;
 					top: 100px;
 					border: 1px solid black;
@@ -143,13 +143,19 @@ export class RangeSelect extends HTMLElement{
 			this.elMin.innerText = min.toLocaleString();
 			let elMinBox = this.elMin.getBoundingClientRect();
 
-			this.elMin.style.left = `calc(${selectionBox.left - 0.5 * elMinBox.width}px)`;
-			this.elMin.style.top = `calc(${selectionBox.top}px - 2em)`;
+			// this.elMin.style.left = `calc(${selectionBox.left - 0.5 * elMinBox.width}px)`;
+			// this.elMin.style.top = `calc(${selectionBox.top}px - 2em)`;
+
+			let elSlidersBox = this.elSliders[0].getBoundingClientRect();
+			this.elMin.style.left = `calc(${elSlidersBox.width * u_min - elMinBox.width / 2}px)`;
+			this.elMin.style.top = `0px`;
 
 			this.elMax.innerText = max.toLocaleString();
 			let elMaxBox = this.elMax.getBoundingClientRect();
-			this.elMax.style.left = `calc(${selectionBox.right - 0.5 * elMaxBox.width}px)`;
-			this.elMax.style.top = `calc(${selectionBox.top}px - 2em)`;
+			// this.elMax.style.left = `calc(${selectionBox.right - 0.5 * elMaxBox.width}px)`;
+			// this.elMax.style.top = `calc(${selectionBox.top}px - 2em)`;
+			this.elMax.style.left = `calc(${elSlidersBox.width * u_max - elMaxBox.width / 2}px)`;
+			this.elMax.style.top = `0px`;
 		}
 
 		this.value = [min, max];

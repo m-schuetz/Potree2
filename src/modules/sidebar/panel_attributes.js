@@ -177,7 +177,7 @@ class Panel{
 				<span style="height: 3em">Range</span>
 				<range-select id="sldScalarRange"></range-select>
 
-				<span style="height: 3em">Clamp</span>
+				<span style="">Clamp</span>
 				<input type="checkbox" id="chkClamp"></input>
 
 			</div>

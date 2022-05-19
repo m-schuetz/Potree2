@@ -143,6 +143,7 @@ fn readF32(offset : u32) -> f32{
 struct VertexInput {
 	@builtin(instance_index) instanceID : u32,
 	@builtin(vertex_index) vertexID : u32,
+	pointID : u32;
 };
 
 struct VertexOutput {
@@ -152,7 +153,7 @@ struct VertexOutput {
 };
 
 fn colorFromListing(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
-	var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
+	var offset = node.numPoints * attribute.offset + 1u * vertex.pointID;
 
 	var value = readU8(offset);
 
@@ -177,10 +178,10 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	var value : f32 = 0.0;
 
 	if(attribute.valuetype == TYPES_UINT8){
-		var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 1u * vertex.pointID;
 		value = f32(readU8(offset));
 	}else if(attribute.valuetype == TYPES_DOUBLE){
-		var offset = node.numPoints * attribute.offset + 8u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 8u * vertex.pointID;
 
 		var b0 = readU8(offset + 0u);
 		var b1 = readU8(offset + 1u);
@@ -209,10 +210,10 @@ fn scalarToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	}else if(attribute.valuetype == TYPES_ELEVATION){
 		value = (uniforms.world * position).z;
 	}else if(attribute.valuetype == TYPES_UINT16){
-		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 2u * vertex.pointID;
 		value = f32(readU16(offset));
 	}else if(attribute.valuetype == TYPES_INT16){
-		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 2u * vertex.pointID;
 		value = f32(readI16(offset));
 	}
 
@@ -237,8 +238,8 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 	if(attribute.valuetype == TYPES_RGBA){
 		
 
-		var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
-		// var offset = 29u * node.numPoints + 4u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.pointID;
+		// var offset = 29u * node.numPoints + 4u * vertex.pointID;
 
 		var r = 0.0;
 		var g = 0.0;
@@ -296,6 +297,8 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 	var output : VertexOutput;
 
+	vertex.pointID = 1u;
+
 	var position : vec4<f32>;
 	var viewPos : vec4<f32>;
 	{
@@ -311,33 +314,9 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 			);
 			
 			viewPos = uniforms.worldView * position;
-			output.position = uniforms.proj * viewPos;	
+			output.position = uniforms.proj * viewPos;
 		}
-		
 
-		// { // compressed coordinates. 1xUINT32
-		// 	// var offset = 4u * vertex.vertexID;
-		// 	var encoded = readU32( 4u * vertex.vertexID);
-
-		// 	var cubeSize = node.max_x - node.min_x;
-		// 	var X = (encoded >> 20u) & 0x3ffu;
-		// 	var Y = (encoded >> 10u) & 0x3ffu;
-		// 	var Z = (encoded >>  0u) & 0x3ffu;
-
-		// 	var x = (f32(X) / 1024.0) * cubeSize + node.min_x;
-		// 	var y = (f32(Y) / 1024.0) * cubeSize + node.min_y;
-		// 	var z = (f32(Z) / 1024.0) * cubeSize + node.min_z;
-		// 	position = vec4<f32>(x, y, z, 1.0);
-
-		// 	viewPos = uniforms.worldView * position;
-		// 	output.position = uniforms.proj * viewPos;	
-		// }
-
-		
-
-		// if(vertex.instanceID != 0u){
-		// 	output.position = OUTSIDE;
-		// }
 	}
 
 	// in the HQS depth pass, shift points 1% further away from camera
@@ -367,12 +346,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		output.color = color;
 	}
 
-	// bit pattern
-	// 12 node counter : 20 point id
-	
-	// output.point_id = vertex.vertexID;
-	// output.point_id = ((node.counter & 0xFFFu) << 20u) | vertex.vertexID;
-	output.point_id = node.counter + vertex.vertexID;
+	output.point_id = node.counter + vertex.pointID;
 
 	return output;
 }
@@ -395,6 +369,8 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 	var output : FragmentOutput;
 	output.color = fragment.color;
 	output.point_id = fragment.point_id;
+
+	output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 
 	return output;
 }

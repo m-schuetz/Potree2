@@ -9,6 +9,8 @@ struct Uniforms {
 	hqs_flag          : u32,           // 264
 	selectedAttribute : u32,           // 268
 	time              : f32,           // 272
+	pointSize         : f32,           // 276
+	splatType         : u32,           // 280
 };
 
 struct Node {
@@ -174,8 +176,6 @@ fn readF32(offset : u32) -> f32{
 
 fn readF64(offset : u32) -> f32{
 	
-	//var offset = node.numPoints * attribute.offset + 8u * vertex.vertexID;
-
 	var b0 = readU8(offset + 0u);
 	var b1 = readU8(offset + 1u);
 	var b2 = readU8(offset + 2u);
@@ -211,10 +211,11 @@ struct VertexOutput {
 	@builtin(position) position : vec4<f32>,
 	@location(0) color : vec4<f32>,
 	@location(1) @interpolate(flat) point_id : u32,
+	@location(2) @interpolate(flat) point_position : vec4<f32>,
 };
 
-fn map_listing(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
-	var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
+fn map_listing(vertex : VertexInput, pointID : u32, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
+	var offset = node.numPoints * attribute.offset + 1u * pointID;
 
 	var value = readU8(offset);
 
@@ -297,27 +298,27 @@ fn map_listing(vertex : VertexInput, attribute : AttributeDescriptor, node : Nod
 // }
 
 
-fn map_scalar(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+fn map_scalar(vertex : VertexInput, pointID : u32, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
 	var value : f32 = 0.0;
 
 	if(attribute.valuetype == TYPES_UINT8){
-		var offset = node.numPoints * attribute.offset + 1u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 1u * pointID;
 		value = f32(readU8(offset));
 	}else if(attribute.valuetype == TYPES_DOUBLE){
-		var offset = node.numPoints * attribute.offset + 8u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 8u * pointID;
 
 		value = readF64(offset);
 	}else if(attribute.valuetype == TYPES_ELEVATION){
 		value = (uniforms.world * position).z;
 	}else if(attribute.valuetype == TYPES_UINT16){
-		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 2u * pointID;
 		value = f32(readU16(offset));
 	}else if(attribute.valuetype == TYPES_INT16){
-		var offset = node.numPoints * attribute.offset + 2u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 2u * pointID;
 		value = f32(readI16(offset));
 	}else if(attribute.valuetype == TYPES_UINT32){
-		var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + 4u * pointID;
 		value = f32(readU32(offset));
 	}
 
@@ -335,12 +336,12 @@ fn map_scalar(vertex : VertexInput, attribute : AttributeDescriptor, node : Node
 	return color;
 }
 
-fn map_vector(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
+fn map_vector(vertex : VertexInput, pointID : u32, attribute : AttributeDescriptor, node : Node) -> vec4<f32> {
 
 	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
 	if(attribute.valuetype == TYPES_RGBA){
-		var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + attribute.byteSize * pointID;
 
 		var r = 0.0;
 		var g = 0.0;
@@ -362,7 +363,7 @@ fn map_vector(vertex : VertexInput, attribute : AttributeDescriptor, node : Node
 
 		color = vec4<f32>(r, g, b, 255.0) / 255.0;
 	}if(attribute.valuetype == TYPES_DOUBLE){
-		var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
+		var offset = node.numPoints * attribute.offset + attribute.byteSize * pointID;
 
 		var x = readF64(offset +  0u);
 		var y = readF64(offset +  8u);
@@ -374,7 +375,7 @@ fn map_vector(vertex : VertexInput, attribute : AttributeDescriptor, node : Node
 	return color;
 }
 
-fn map_elevation(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+fn map_elevation(vertex : VertexInput, pointID : u32, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
 	var value = (uniforms.world * position).z;
 	var w = (value - attribute.range_min) / (attribute.range_max - attribute.range_min);
@@ -413,11 +414,20 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	var output : VertexOutput;
 
 	var position : vec4<f32>;
+	var point_position : vec4<f32>;
 	var viewPos : vec4<f32>;
+
+	var pointID = 0u;
+	if(uniforms.splatType == 0u){
+		pointID = vertex.vertexID;
+	}else if(uniforms.splatType == 1u){
+		pointID = vertex.vertexID / 6u;
+	}
+
 	{
 
 		{ // 3xFLOAT
-			var offset = 12u * vertex.vertexID;
+			var offset = 12u * pointID;
 			
 			position = vec4<f32>(
 				readF32(offset + 0u),
@@ -427,33 +437,50 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 			);
 			
 			viewPos = uniforms.worldView * position;
-			output.position = uniforms.proj * viewPos;	
+			output.position = uniforms.proj * viewPos;
+
+			{ // point_position
+
+				var ndcPos = output.position.xy / output.position.w;
+				point_position = vec4<f32>(
+					(ndcPos.x * 0.5 + 0.5) * uniforms.screen_width,
+					(ndcPos.y * 0.5 + 0.5) * uniforms.screen_height,
+					0.0, 1.0
+				);
+
+			}
+
+			if(uniforms.splatType == 1u){
+				var localIndex = vertex.vertexID % 6u;
+
+				var pixelSize = uniforms.pointSize;
+
+				var transX = (pixelSize / uniforms.screen_width) * output.position.w;
+				var transY = (pixelSize / uniforms.screen_height) * output.position.w;
+
+				if(localIndex == 0u){
+					output.position.x = output.position.x - transX;
+					output.position.y = output.position.y - transY;
+				}else if(localIndex == 1u){
+					output.position.x = output.position.x + transX;
+					output.position.y = output.position.y - transY;
+				}else if(localIndex == 2u){
+					output.position.x = output.position.x + transX;
+					output.position.y = output.position.y + transY;
+				}else if(localIndex == 3u){
+					output.position.x = output.position.x - transX;
+					output.position.y = output.position.y - transY;
+				}else if(localIndex == 4u){
+					output.position.x = output.position.x + transX;
+					output.position.y = output.position.y + transY;
+				}else if(localIndex == 5u){
+					output.position.x = output.position.x - transX;
+					output.position.y = output.position.y + transY;
+				}
+			}
+
 		}
-		
 
-		// { // compressed coordinates. 1xUINT32
-		// 	// var offset = 4u * vertex.vertexID;
-		// 	var encoded = readU32( 4u * vertex.vertexID);
-
-		// 	var cubeSize = node.max_x - node.min_x;
-		// 	var X = (encoded >> 20u) & 0x3ffu;
-		// 	var Y = (encoded >> 10u) & 0x3ffu;
-		// 	var Z = (encoded >>  0u) & 0x3ffu;
-
-		// 	var x = (f32(X) / 1024.0) * cubeSize + node.min_x;
-		// 	var y = (f32(Y) / 1024.0) * cubeSize + node.min_y;
-		// 	var z = (f32(Z) / 1024.0) * cubeSize + node.min_z;
-		// 	position = vec4<f32>(x, y, z, 1.0);
-
-		// 	viewPos = uniforms.worldView * position;
-		// 	output.position = uniforms.proj * viewPos;	
-		// }
-
-		
-
-		// if(vertex.instanceID != 0u){
-		// 	output.position = OUTSIDE;
-		// }
 	}
 
 	// in the HQS depth pass, shift points 1% further away from camera
@@ -473,15 +500,15 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
 		if(attribute.mapping == MAPPING_LISTING){
-			color = map_listing(vertex, attribute, node);
+			color = map_listing(vertex, pointID, attribute, node);
 		}else if(attribute.mapping == MAPPING_SCALAR){
-			color = map_scalar(vertex, attribute, node, position);
+			color = map_scalar(vertex, pointID, attribute, node, position);
 		}else if(attribute.mapping == MAPPING_ELEVATION){
-			color = map_elevation(vertex, attribute, node, position);
+			color = map_elevation(vertex, pointID, attribute, node, position);
 		}else if(attribute.mapping == MAPPING_RGBA){
-			color = map_vector(vertex, attribute, node);
+			color = map_vector(vertex, pointID, attribute, node);
 		}else if(attribute.mapping == MAPPING_VECTOR){
-			color = map_vector(vertex, attribute, node);
+			color = map_vector(vertex, pointID, attribute, node);
 		}
 		<<TEMPLATE_MAPPING_SELECTION>>
 		
@@ -496,21 +523,17 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		output.position.w = 0.0;
 	}
 
-	//output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-
-	// bit pattern
-	// 12 node counter : 20 point id
-	
-	// output.point_id = vertex.vertexID;
-	// output.point_id = ((node.counter & 0xFFFu) << 20u) | vertex.vertexID;
-	output.point_id = node.counter + vertex.vertexID;
-
+	output.point_id = node.counter + pointID;
+	output.point_position = point_position;
+ 
 	return output;
 }
 
 struct FragmentInput {
 	@location(0) color : vec4<f32>,
 	@location(1) @interpolate(flat) point_id : u32,
+	@location(2) @interpolate(flat) point_position : vec4<f32>,
+	@builtin(position) frag_position : vec4<f32>,
 };
 
 struct FragmentOutput {
@@ -526,6 +549,30 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 	var output : FragmentOutput;
 	output.color = fragment.color;
 	output.point_id = fragment.point_id;
+
+	var uv = vec2<f32>(
+		fragment.frag_position.x - fragment.point_position.x,
+		(uniforms.screen_height - fragment.frag_position.y) - fragment.point_position.y
+	);
+
+	if(uniforms.splatType == 0u){
+		output.color = vec4<f32>(fragment.color.xyz, 1.0);
+	}else if(uniforms.splatType == 1u){
+		var d = length(uv / (uniforms.pointSize * 0.5));
+		var weight = pow(1.0 - d * d, 8.0);
+		weight = clamp(weight, 0.001, 10.0);
+
+		if(d > 1.0){
+			weight = 0.0;
+			discard;
+		}
+
+		var weighted = fragment.color.xyz * weight;
+
+		output.color = vec4<f32>(weighted, weight);
+	}
+
+	
 
 	return output;
 }

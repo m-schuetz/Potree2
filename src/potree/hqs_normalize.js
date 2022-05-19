@@ -206,6 +206,40 @@ let shaderCode = `
 
 		return output;
 	}
+
+	@stage(fragment)
+	fn main_fs_quads(input : FragmentInput) -> FragmentOutput {
+
+		_ = mySampler;
+		_ = myTexture;
+		_ = myDepth;
+		_ = tex_pointID;
+
+		var color = textureLoad(myTexture, vec2<i32>(input.fragCoord.xy), 0);
+
+		color.x = color.x / color.w;
+		color.y = color.y / color.w;
+		color.z = color.z / color.w;
+
+		// color.x = color.w;
+		// color.y = color.w;
+		// color.z = color.w;
+
+		var output : FragmentOutput;
+
+		// if(c.w == 0.0){
+		// 	discard;
+		// }
+		
+		// c = c / c.w;
+
+
+		output.color = color;
+		output.depth = textureLoad(myDepth, vec2<i32>(input.fragCoord.xy), 0);
+		output.pointID = textureLoad(tex_pointID, vec2<i32>(input.fragCoord.xy), 0).r;
+
+		return output;
+	}
 `;
 
 let pipeline = null;
@@ -228,7 +262,7 @@ function init(renderer){
 		},
 		fragment: {
 			module,
-			entryPoint: "main_fs",
+			entryPoint: "main_fs_quads",
 			targets: [
 				{format: "bgra8unorm"},
 				{format: "r32uint", blend: undefined}

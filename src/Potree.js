@@ -79,6 +79,11 @@ const events = {
 	onRootNodeLoaded: (callback, args) => dispatcher.add("root_node_loaded", callback, args),
 };
 
+export const SplatType = {
+	POINTS:  0,
+	QUADS:   1,
+};
+
 const settings = {
 	pointSize: 3,
 	pointBudget: 2_000_000,
@@ -92,6 +97,7 @@ const settings = {
 	edlEnabled: false,
 	updateEnabled: true,
 	gradient: Gradients.SPECTRAL,
+	splatType: SplatType.POINTS,
 };
 
 const state = {

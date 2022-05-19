@@ -1,6 +1,6 @@
 
 import {generate as generateShaders} from "./shaderGenerator.js";
-import {Potree} from "potree";
+import {Potree, SplatType} from "potree";
 import { Attribute_Custom } from "../PointCloudMaterial.js";
 
 export async function* generate(renderer, args = {}){
@@ -158,6 +158,11 @@ export async function* generate(renderer, args = {}){
 		],
 	});
 
+	let topology = "point-list";
+	if(octree.material.splatType === SplatType.QUADS){
+		topology = "triangle-list";
+	}
+
 	const pipeline = device.createRenderPipeline({
 		layout: device.createPipelineLayout({
 			bindGroupLayouts: [
@@ -181,7 +186,7 @@ export async function* generate(renderer, args = {}){
 			],
 		},
 		primitive: {
-			topology: 'point-list',
+			topology: topology,
 			cullMode: 'none',
 		},
 		depthStencil: {
@@ -191,5 +196,11 @@ export async function* generate(renderer, args = {}){
 		},
 	});
 
-	return {pipeline, shaderSource, stage: "created pipeline"};
+	pipeline.dbg_topology = topology;
+
+	return {
+		pipeline, shaderSource, 
+		splatType: octree.material.splatType,
+		stage: "created pipeline",
+	};
 }
