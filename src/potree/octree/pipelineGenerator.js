@@ -1,7 +1,6 @@
 
-import {generate as generateShaders} from "./shaderGenerator.js";
 import {Potree, SplatType} from "potree";
-import { Attribute_Custom } from "../PointCloudMaterial.js";
+import {Attribute_Custom} from "../PointCloudMaterial.js";
 
 export async function* generate(renderer, args = {}){
 
