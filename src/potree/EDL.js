@@ -242,6 +242,7 @@ function init(renderer){
 	let {device, swapChainFormat} = renderer;
 
 	pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
 			module: device.createShaderModule({code: vs, label: "vs_edl"}),
 			entryPoint: "main",

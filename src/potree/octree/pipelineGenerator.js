@@ -2,18 +2,22 @@
 import {Potree, SplatType} from "potree";
 import {Attribute_Custom} from "../PointCloudMaterial.js";
 
-export async function* generate(renderer, args = {}){
+export async function makePipeline(renderer, args = {}){
 
 	console.log("generating octree pipeline");
 
 	let {device} = renderer;
-	let {octree, flags} = args;
+	let {octree, state, flags} = args;
+
+	state.stage = "building";
 
 	let shaderPath = `${import.meta.url}/../octree.wgsl`;
 	let response = await fetch(shaderPath);
 	let shaderSource = await response.text();
 
-	yield "source loaded";
+	let splatType = octree.material.splatType;
+
+	console.log("source loaded");
 
 	let depthWrite = true;
 	let blend = {
@@ -66,7 +70,7 @@ export async function* generate(renderer, args = {}){
 
 	let mappings = [...octree.material.mappings].map(value => value[1]);
 	mappings.forEach( (mapping, i) => {
-		template_mapping_enum += `let MAPPING_${128 + i} = ${128 + i}u;`;
+		template_mapping_enum += `let MAPPING_${128 + i} = ${128 + i}u;\n`;
 		template_mapping_selection += `
 			else if(attribute.mapping == MAPPING_${128 + i}){
 				color = map_${128 + i}(vertex, attribute, node, position);
@@ -74,20 +78,6 @@ export async function* generate(renderer, args = {}){
 
 		template_mapping_functions += mapping.wgsl.replaceAll(/fn .*\(/g, `fn map_${128 + i}(`);
 	});
-
-	console.log(mappings);
-
-
-	// for(let i = 0; i < mappings.length; i++){
-	// 	let attribute = customAttributes[i][1];
-	// 	template_mapping_enum += `let MAPPING_${128 + i} = ${128 + i}u;`;
-	// 	template_mapping_selection += `
-	// 		else if(attribute.mapping == MAPPING_${128 + i}){
-	// 			color = map_${128 + i}(vertex, attribute, node, position);
-	// 		}`;
-
-	// 	template_mapping_functions += attribute.wgsl.replaceAll(/fn .*\(/g, `fn map_${128 + i}(`);
-	// }
 
 	modifiedShaderSource = modifiedShaderSource.replace("<<TEMPLATE_MAPPING_ENUM>>", template_mapping_enum);
 	modifiedShaderSource = modifiedShaderSource.replace("<<TEMPLATE_MAPPING_SELECTION>>", template_mapping_selection);
@@ -195,11 +185,28 @@ export async function* generate(renderer, args = {}){
 		},
 	});
 
+	let nodesBindGroup = device.createBindGroup({
+		layout: layout_3,
+		entries: [
+			{binding: 0, resource: {buffer: state.nodesGpuBuffer}},
+		],
+	});
+
+	let uniformBindGroup = device.createBindGroup({
+		layout: layout_0,
+		entries: [
+			{binding: 0, resource: {buffer: state.uniformBuffer}},
+			{binding: 1, resource: {buffer: state.attributesDescGpuBuffer}},
+			{binding: 2, resource: {buffer: state.colormapGpuBuffer}},
+		],
+	});
+
 	pipeline.dbg_topology = topology;
 
-	return {
-		pipeline, shaderSource, 
-		splatType: octree.material.splatType,
-		stage: "created pipeline",
-	};
+	state.pipeline = pipeline;
+	state.uniformBindGroup = uniformBindGroup;
+	state.nodesBindGroup = nodesBindGroup;
+	state.shaderSource = shaderSource;
+	state.splatType = splatType;
+	state.stage = "ready";
 }

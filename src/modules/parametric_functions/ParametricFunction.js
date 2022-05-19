@@ -156,6 +156,7 @@ function initialize(renderer){
 	let shaderModule = device.createShaderModule({code: shaderSource});
 
 	pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
 			module: shaderModule,
 			entryPoint: "main_vertex_triangles",

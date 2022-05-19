@@ -223,6 +223,7 @@ function init(renderer){
 	let module = device.createShaderModule({code: shaderSource});
 
 	pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
 			module: module,
 			entryPoint: "main_vertex",

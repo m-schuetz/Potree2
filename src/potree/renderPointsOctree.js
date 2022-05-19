@@ -1,7 +1,7 @@
 
 import {Vector3, Matrix4} from "potree";
 import {Timer} from "potree";
-import {generate as generatePipeline} from "./octree/pipelineGenerator.js";
+import {makePipeline} from "./octree/pipelineGenerator.js";
 import {Gradients, SplatType} from "potree";
 import {Attribute_Custom} from "./PointCloudMaterial.js";
 
@@ -66,119 +66,64 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 
 	let {device} = renderer;
 
-	let attributes = octree.loader.attributes.attributes;
-	let mapping = "intensity";
-	let attribute = attributes.find(a => a.name === mapping);
-
 	if(typeof octree.state_id === "undefined"){
 		octree.state_id = ids;
 		ids++;
 	}
 
-	let key = `${octree.state_id}_${flags.join("_")}`;
+	let k_splat = `SPLAT_TYPE_${octree.material.splatType}`;
+	let key = `${octree.state_id}_${flags.join("_")}_${k_splat}`;
 
 	let state = octreeStates.get(key);
 
-	let needsCompilation = false;
-	if(state?.splatType !== octree.material.splatType){
-		needsCompilation = true;
-	}
-	
+	if(state === undefined){
+		// create new state
 
-	if(!state){
-		state = {
-			generator: generatePipeline(renderer, {octree, attribute, mapping, flags}),
-		};
+		const uniformBuffer = device.createBuffer({
+			size: 512,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		let nodesBuffer = new ArrayBuffer(10_000 * 32);
+		let nodesGpuBuffer = device.createBuffer({
+			size: nodesBuffer.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		let attributesDescBuffer = new ArrayBuffer(1024);
+		let attributesDescGpuBuffer = device.createBuffer({
+			size: attributesDescBuffer.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		let colormapBuffer = new ArrayBuffer(4 * 256);
+		let colormapGpuBuffer = device.createBuffer({
+			size: colormapBuffer.byteLength,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
+		let state = {};
+		state.uniformBuffer = uniformBuffer;
+		state.nodesBuffer = nodesBuffer;
+		state.nodesGpuBuffer = nodesGpuBuffer;
+		state.attributesDescBuffer = attributesDescBuffer;
+		state.attributesDescGpuBuffer = attributesDescGpuBuffer;
+		state.colormapBuffer = colormapBuffer;
+		state.colormapGpuBuffer = colormapGpuBuffer;
 
 		octreeStates.set(key, state);
-	}else if(state.nextCheckAt != null && Date.now() > state.nextCheckAt){
-		
-		state.nextCheckAt = Date.now() + Math.random() * 200 + 200;
-		
-		let shaderPath = `${import.meta.url}/../octree/octree.wgsl`;
-		fetch(shaderPath).then(async response => {
-			let shaderSource = await response.text();
 
-			if(shaderSource !== state.shaderSource){
-				console.log("changed!");
-				state.generator = generatePipeline(renderer, {octree, attribute, mapping, flags});
-			}
-		});
-	}else if(state?.stage === "ready" && (octree.material.needsCompilation || needsCompilation)){
-		state.generator = generatePipeline(renderer, {octree, attribute, mapping, flags});
-		octree.material.needsCompilation = false;
-	}
+		makePipeline(renderer, {octree, state, flags});
 
-	if(state.generator){
-		state.generator.next().then(result => {
-			if(result.value?.stage === "created pipeline"){
-
-				let pipeline = result.value.pipeline;
-
-				const uniformBuffer = device.createBuffer({
-					size: 512,
-					usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-				});
-
-				let nodesBuffer = new ArrayBuffer(10_000 * 32);
-				let nodesGpuBuffer = device.createBuffer({
-					size: nodesBuffer.byteLength,
-					usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-				});
-
-				let attributesDescBuffer = new ArrayBuffer(1024);
-				let attributesDescGpuBuffer = device.createBuffer({
-					size: attributesDescBuffer.byteLength,
-					usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-				});
-
-				let colormapBuffer = new ArrayBuffer(4 * 256);
-				let colormapGpuBuffer = device.createBuffer({
-					size: colormapBuffer.byteLength,
-					usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-				});
-
-				let nodesBindGroup = device.createBindGroup({
-					layout: pipeline.getBindGroupLayout(3),
-					entries: [
-						{binding: 0, resource: {buffer: nodesGpuBuffer}},
-					],
-				});
-
-				const uniformBindGroup = device.createBindGroup({
-					layout: pipeline.getBindGroupLayout(0),
-					entries: [
-						{binding: 0, resource: {buffer: uniformBuffer}},
-						{binding: 1, resource: {buffer: attributesDescGpuBuffer}},
-						{binding: 2, resource: {buffer: colormapGpuBuffer}},
-					],
-				});
-
-				state.pipeline = pipeline;
-				state.uniformBuffer = uniformBuffer;
-				state.uniformBindGroup = uniformBindGroup;
-				state.nodesBuffer = nodesBuffer;
-				state.nodesGpuBuffer = nodesGpuBuffer;
-				state.nodesBindGroup = nodesBindGroup;
-				state.attributesDescBuffer = attributesDescBuffer;
-				state.attributesDescGpuBuffer = attributesDescGpuBuffer;
-				state.colormapBuffer = colormapBuffer;
-				state.colormapGpuBuffer = colormapGpuBuffer;
-				state.shaderSource = result.value.shaderSource,
-				state.generator = null;
-				state.timestamp = Date.now();
-				state.nextCheckAt = Date.now() + Math.random() * 300 + 100;
-				state.splatType = result.value.splatType;
-				state.stage = "ready";
-			}
-		});
-	}
-	
-	if(state.stage === "ready"){
-		return state;
-	}else{
 		return null;
+	}else if(state.stage === "building"){
+		// just wait until its done 
+		
+		return null;
+	}else if(state.stage === "ready"){
+		return state;
 	}
+
 }
 
 const TYPES = {

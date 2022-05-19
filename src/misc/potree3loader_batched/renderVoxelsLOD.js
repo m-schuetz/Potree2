@@ -244,6 +244,7 @@ function getState(renderer, node){
 		let {device} = renderer;
 
 		let pipeline = device.createRenderPipeline({
+			layout: "auto",
 			vertex: {
 				module: device.createShaderModule({code: shaderSource}),
 				entryPoint: "main_vertex",

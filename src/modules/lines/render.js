@@ -67,6 +67,7 @@ function createPipeline(renderer, vbos){
 	let {device} = renderer;
 
 	const pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertexStage: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",

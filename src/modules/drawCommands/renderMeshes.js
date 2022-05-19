@@ -128,6 +128,7 @@ export function render(meshes, drawstate){
 	init(renderer);
 
 	let pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
 			module: device.createShaderModule({code: shaderSource}),
 			entryPoint: "main_vertex",

@@ -173,6 +173,7 @@ function createPipeline(renderer){
 	let module = device.createShaderModule({code: shaderCode});
 
 	pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
 			module,
 			entryPoint: "main_vertex",
