@@ -1,5 +1,5 @@
 
-import {Timer} from "potree";
+import {SplatType, Timer} from "potree";
 
 let shaderCode = `
 	struct Uniforms {
@@ -242,12 +242,16 @@ let shaderCode = `
 	}
 `;
 
-let pipeline = null;
+// let pipeline = null;
 let uniformBuffer = null;
+
+let initialized = false;
+let pipeline_points = null;
+let pipeline_quads = null;
 
 function init(renderer){
 
-	if(pipeline !== null){
+	if(initialized){
 		return;
 	}
 
@@ -255,7 +259,32 @@ function init(renderer){
 
 	let module = device.createShaderModule({code: shaderCode});
 
-	pipeline = device.createRenderPipeline({
+	pipeline_points = device.createRenderPipeline({
+		layout: "auto",
+		vertex: {
+			module,
+			entryPoint: "main_vs",
+		},
+		fragment: {
+			module,
+			entryPoint: "main_fs",
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint", blend: undefined}
+			],
+		},
+		primitive: {
+			topology: 'triangle-list',
+			cullMode: 'none',
+		},
+		depthStencil: {
+				depthWriteEnabled: true,
+				depthCompare: "always",
+				format: "depth32float",
+		},
+	});
+
+	pipeline_quads = device.createRenderPipeline({
 		layout: "auto",
 		vertex: {
 			module,
@@ -285,6 +314,8 @@ function init(renderer){
 		size: uniformBufferSize,
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	});
+
+	initialized = true;
 }
 
 export function hqs_normalize(source, drawstate){
@@ -303,6 +334,14 @@ export function hqs_normalize(source, drawstate){
 
 	// TODO: possible issue: re-creating bind group every frame
 	// doing that because the render target attachments may change after resize
+
+	let pipeline = pipeline_points;
+	if(Potree.settings.splatType === SplatType.POINTS){
+		pipeline = pipeline_points;
+	}else if(Potree.settings.splatType === SplatType.QUADS){
+		pipeline = pipeline_quads;
+	}
+
 	let uniformBindGroup = renderer.device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [

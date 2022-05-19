@@ -307,6 +307,19 @@ export class InputHandler extends EventDispatcher {
 					hovered,
 					event: e,
 				});
+			}else{
+				for (let inputListener of this.getSortedListeners()) {
+					inputListener.dispatch("mouseup", {
+						viewer: this.viewer,
+						mouse: this.mouse,
+						consume: consume,
+						event: e,
+					});
+
+					if(consumed){
+						break;
+					}
+				}
 			}
 		}
 

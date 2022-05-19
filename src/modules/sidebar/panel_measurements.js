@@ -33,9 +33,7 @@ export function createMeasurementsPanel(){
 		elButton.style.backgroundImage = `url(${dir}/icons/point.svg)`;
 
 		elButton.addEventListener("click", () => {
-			potree.measure.startMeasuring({
-				
-			});
+			potree.measure.startMeasuring({maxMarkers: 1});
 		});
 
 		elPanel.append(elButton);
@@ -49,9 +47,7 @@ export function createMeasurementsPanel(){
 		elButton.style.backgroundImage = `url(${dir}/icons/distance.svg)`;
 
 		elButton.addEventListener("click", () => {
-			potree.measure.startMeasuring({
-				
-			});
+			potree.measure.startMeasuring({});
 		});
 
 		elPanel.append(elButton);
@@ -65,9 +61,7 @@ export function createMeasurementsPanel(){
 		elButton.style.backgroundImage = `url(${dir}/icons/height.svg)`;
 
 		elButton.addEventListener("click", () => {
-			potree.measure.startMeasuring({
-				
-			});
+			potree.measure.startMeasuring({});
 		});
 
 		elPanel.append(elButton);
@@ -81,9 +75,7 @@ export function createMeasurementsPanel(){
 		elButton.style.backgroundImage = `url(${dir}/icons/circle.svg)`;
 
 		elButton.addEventListener("click", () => {
-			potree.measure.startMeasuring({
-				
-			});
+			potree.measure.startMeasuring({});
 		});
 
 		elPanel.append(elButton);

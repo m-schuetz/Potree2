@@ -198,9 +198,9 @@ export async function installSidebar(elPotree, potree){
 
 	addSection(secMain);
 	addSection(secAttributes);
-	// addSection(secMeasure);
+	addSection(secMeasure);
 
-	setActiveSection(secMain);
+	setActiveSection(secMeasure);
 
 	return sidebar;
 }
