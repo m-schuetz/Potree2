@@ -77,7 +77,7 @@ canvas{
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	import "range-select";
 	import {proj4} from "./libs/proj4js/proj4-src.js";
-	// import {loadGLB} from "./src/prototyping/glbloader/loadGLB.js";
+	import {load as loadGLB} from "./src/misc/GLBLoader.js";
 	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 
 	console.log(proj4.version);
@@ -151,6 +151,40 @@ canvas{
 	// 	scene.root.children.push(pointcloud);
 	// });
 
+	loadGLB("./resources/models/australia_gas.glb", {
+		onStart: (node) => {
+			node.rotation.makeIdentity();
+			node.rotation.rotate(1.2, {x: 1, y: 0, z: 0});
+			node.rotation.rotate(-0.1, {x: 0, y: 1, z: 0});
+			node.scale.set(2, 2, 2);
+			node.position.set(-25, -10, 10);
+
+			node.name = "australia_gas";
+
+			scene.root.children.push(node);
+		}, onNode: (mesh) => {
+			console.log(mesh);
+		}
+	});
+
+	// Potree.load("./resources/models/ruins.glb").then(model => {
+
+	// 	console.log(model);
+
+	// 	// scene.root.children.push(model);
+
+	// });
+
+	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+
+		scene.root.children.push(pointcloud);
+
+		controls.set({
+			position: [20, 20, 20], 
+			pivot: [0, 0, 0]
+		});
+
+	});
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
 	Potree.load("./resources/pointclouds/las14_extra_attributes/metadata.json").then(pointcloud => {
@@ -158,12 +192,12 @@ canvas{
 		window.pointcloud = pointcloud;
 		pointcloud.name = "sitn extra attributes";
 
-		controls.set({
-			position: [2561569.7, 1204855.7, 818.0], 
-			pivot: [2561737.6, 1205229.8, 439.5]
-			// position: [2561582.3, 1205181.5, 524.3], 
-			// pivot: [2561594.6, 1205221.8, 480.1]
-		});
+		// controls.set({
+		// 	position: [2561569.7, 1204855.7, 818.0], 
+		// 	pivot: [2561737.6, 1205229.8, 439.5]
+		// 	// position: [2561582.3, 1205181.5, 524.3], 
+		// 	// pivot: [2561594.6, 1205221.8, 480.1]
+		// });
 
 		let material = pointcloud.material;
 
@@ -330,11 +364,11 @@ canvas{
 
 	potree.onUpdate( () => {
 
-		potree.renderer.drawLine(origin, X, red);
-		potree.renderer.drawLine(origin, Y, green);
-		potree.renderer.drawLine(origin, Z, blue);
+		// potree.renderer.drawLine(origin, X, red);
+		// potree.renderer.drawLine(origin, Y, green);
+		// potree.renderer.drawLine(origin, Z, blue);
 
-		potree.renderer.drawSphere(origin, 2);
+		// potree.renderer.drawSphere(origin, 2);
 	});
 
 

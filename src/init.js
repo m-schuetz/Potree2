@@ -611,6 +611,43 @@ function renderNotSoBasic(){
 					image, images, position,
 					object: images,
 				};
+			}else if(node?.constructor.name === "Mesh"){
+				let {geometry} = node;
+				let positions = geometry.buffers.find(buffer => buffer.name === "position");
+				let view = new DataView(positions.buffer.buffer);
+
+				let p0 = new Vector3(
+					view.getFloat32(3 * 12 * elementIndex +  0, true),
+					view.getFloat32(3 * 12 * elementIndex +  4, true),
+					view.getFloat32(3 * 12 * elementIndex +  8, true),
+				);
+				let p1 = new Vector3(
+					view.getFloat32(3 * 12 * elementIndex + 12, true),
+					view.getFloat32(3 * 12 * elementIndex + 16, true),
+					view.getFloat32(3 * 12 * elementIndex + 20, true),
+				);
+				let p2 = new Vector3(
+					view.getFloat32(3 * 12 * elementIndex + 24, true),
+					view.getFloat32(3 * 12 * elementIndex + 28, true),
+					view.getFloat32(3 * 12 * elementIndex + 32, true),
+				);
+
+				let center = p0.clone().add(p1).add(p2).divideScalar(3);
+
+				center.applyMatrix4(node.world);
+
+				Potree.pickPosition.copy(center);
+
+				Potree.hoveredItem = {
+					type: node?.constructor.name,
+					instance: node,
+					node: node,
+					pointIndex: elementIndex,
+					position: center,
+					object: node,
+				};
+				
+				
 			}else{
 				Potree.hoveredItem = null;
 			}

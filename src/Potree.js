@@ -3,13 +3,27 @@ import {PotreeLoader} from "./potree/PotreeLoader.js";
 import {render} from "./potree/renderQuads.js";
 import {EventDispatcher} from "./misc/EventDispatcher.js";
 import {Vector3} from "./math/math.js";
+import {load as loadGLB} from "./misc/GLBLoader.js";
+
 
 async function load(url, args = {}){
-	let octree = await PotreeLoader.load(url);
 
-	octree.name = args.name ?? "octree";
 
-	return octree;
+	if(url.endsWith(".json")){
+		// load potree
+		let octree = await PotreeLoader.load(url);
+
+		octree.name = args.name ?? "octree";
+
+		return octree;
+	}else if(url.endsWith(".glb")){
+		// load binary GLTF
+		let model = await loadGLB(url);
+
+		return model;
+	}
+
+	
 }
 
 const pickPosition = new Vector3();
@@ -68,7 +82,7 @@ export const geometries = {createPointsData, createPointsSphere, cube, sphere};
 export * as math from "./math/math.js";
 
 import {init} from "./init.js";
-import {load as loadGLB} from "./misc/GLBLoader.js";
+// import {load as loadGLB} from "./misc/GLBLoader.js";
 import * as Gradients from "./misc/Gradients.js";
 
 const dispatcher = new EventDispatcher();
