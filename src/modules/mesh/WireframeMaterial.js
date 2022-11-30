@@ -34,7 +34,7 @@ struct VertexOutput {
 	@builtin(position) position  : vec4<f32>;
 };
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var triangleIndex = vertex.vertexID / 6u;
@@ -71,7 +71,7 @@ struct FragmentOutput {
 	@builtin(frag_depth) depth : f32,
 };
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentInput) -> FragmentOutput {
 
 	var output : FragmentOutput;

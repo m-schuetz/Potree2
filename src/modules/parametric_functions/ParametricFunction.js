@@ -28,7 +28,7 @@ struct FragmentOut{
 	@location(0) color : vec4<f32>,
 };
 
-@stage(vertex)
+@vertex
 fn main_vertex_points(vertex : VertexIn) -> VertexOut {
 
 	_ = uniforms;
@@ -88,7 +88,7 @@ fn sampleNormal(u : f32, v : f32, spacing : f32) -> vec4<f32> {
 	return vec4<f32>(N, 1.0);
 }
 
-@stage(vertex)
+@vertex
 fn main_vertex_triangles(vertex : VertexIn) -> VertexOut {
 
 	_ = uniforms;
@@ -128,7 +128,7 @@ fn main_vertex_triangles(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	_ = uniforms;

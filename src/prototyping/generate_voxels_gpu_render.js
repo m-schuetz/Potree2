@@ -170,7 +170,7 @@ fn getLOD(vertex : VertexIn) -> u32 {
 	return depth;
 }
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var abc = nodes.values[0];
@@ -237,7 +237,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

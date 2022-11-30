@@ -213,7 +213,7 @@ fn vectorToColor(vertex : VertexInput, attribute : AttributeDescriptor, node : N
 }
 
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	{ // reference all potentially unused variables, 
@@ -351,7 +351,7 @@ struct FragmentOutput {
 	@location(0) color : vec4<f32>,
 };
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentInput) -> FragmentOutput {
 	var output : FragmentOutput;
 	output.color = fragment.color;

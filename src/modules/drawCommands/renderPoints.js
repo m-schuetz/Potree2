@@ -23,7 +23,7 @@ struct VertexOut{
 };
 
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexIn) -> VertexOut {
 
 	var viewPos : vec4<f32> = uniforms.worldView * vec4<f32>(vertex.position, 1.0);
@@ -46,7 +46,7 @@ struct FragmentOut{
 	@location(0) color : vec4<f32>,
 };
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

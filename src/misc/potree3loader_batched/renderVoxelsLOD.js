@@ -180,7 +180,7 @@ fn doIgnore(){
 	_ = &colors;
 }
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	doIgnore();
@@ -224,7 +224,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

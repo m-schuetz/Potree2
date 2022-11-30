@@ -32,7 +32,7 @@ let vs = `
 
 	@location(0) var<out> fragUV : vec2<f32>;
 
-	@stage(vertex)
+	@vertex
 	fn main() -> void {
 		Position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
 		fragUV = uv[VertexIndex];
@@ -70,7 +70,7 @@ let fs = `
 
 	@location(0) var<in> fragUV: vec2<f32>;
 
-	@stage(fragment)
+	@fragment
 	fn main() -> void {
 
 		#outColor = vec4<f32>(1.0, 0.0, 0.0, 1.0);

@@ -27,7 +27,7 @@ const source = `
 		@location(0) uv: vec2<f32>,
 	};
 
-	@stage(vertex)
+	@vertex
 	fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
@@ -75,7 +75,7 @@ const source = `
 		return output;
 	}
 
-	@stage(fragment)
+	@fragment
 	fn main_fragment(input : FragmentInput) -> @location(0) vec4<f32> {
 
 		var uv : vec2<f32> = input.uv;

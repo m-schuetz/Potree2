@@ -404,7 +404,7 @@ fn doIgnores(){
 
 }
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 	doIgnores();
@@ -541,7 +541,7 @@ struct FragmentOutput {
 	@location(1) point_id : u32,
 };
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 
 	doIgnores();

@@ -22,7 +22,7 @@ struct U32s {
 
 @binding(0) var<uniform> uniforms : Uniforms;
 @binding(1) @set(0) var<uniform> in_adjust : ColorAdjustments;
-@binding(3) @set(0) var<storage_buffer> ssbo_attribute : [[access(read)]]U32s;
+@binding(3) @set(0) var<storage> ssbo_attribute : [[access(read)]]U32s;
 
 @binding(10) @group(0) var<uniform_constant> mySampler: sampler;
 @binding(11) @group(0) var<uniform_constant> myTexture: texture_2d<f32>;
@@ -69,7 +69,7 @@ fn readU32(offset : u32) -> u32{
 import {getColor};
 
 
-@stage(vertex)
+@vertex
 fn main() -> void {
 
 	var viewPos : vec4<f32> = uniforms.worldView * in_position;
@@ -88,7 +88,7 @@ const fs = `
 [[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
 [[binding(11), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
 
-@stage(fragment)
+@fragment
 fn main() -> void {
 	outColor = fragColor;
 

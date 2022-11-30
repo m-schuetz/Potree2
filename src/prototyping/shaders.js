@@ -12,7 +12,7 @@ struct Uniforms {
 @builtin(position) var<out> Position : vec4<f32>;
 @location(0) var<out> fragColor : vec4<f32>;
 
-@stage(vertex)
+@vertex
 fn main() -> void {
 	Position = uniforms.modelViewProjectionMatrix * position;
 	fragColor = color;
@@ -24,7 +24,7 @@ export const fs = `
 @location(0) var<in> fragColor : vec4<f32>;
 @location(0) var<out> outColor : vec4<f32>;
 
-@stage(fragment)
+@fragment
 fn main() -> void {
 	outColor = fragColor;
 	return;
@@ -41,12 +41,12 @@ struct Colors {
 	[[offset(0)]] values : [[stride(16)]] array<vec4<f32>>;
 };
 
-@binding(0) var<storage_buffer> positions : Positions;
-@binding(1) @set(0) var<storage_buffer> colors : Colors;
+@binding(0) var<storage> positions : Positions;
+@binding(1) @set(0) var<storage> colors : Colors;
 
 @builtin(global_invocation_id) var<in> GlobalInvocationID : vec3<u32>;
 
-@stage(compute)
+@compute
 fn main() -> void{
 
 	var index : u32 = GlobalInvocationID.x;
@@ -98,9 +98,9 @@ struct Params {
   [[offset(4)]] numPoints : u32;
 };
 
-@binding(0) var<storage_buffer> lasdata : LasData;
-@binding(1) @set(0) var<storage_buffer> positions : Positions;
-@binding(2) @set(0) var<storage_buffer> colors : Colors;
+@binding(0) var<storage> lasdata : LasData;
+@binding(1) @set(0) var<storage> positions : Positions;
+@binding(2) @set(0) var<storage> colors : Colors;
 
 @binding(3) @set(0) var<uniform> params : Params;
 
@@ -139,7 +139,7 @@ fn readI32(byteOffset : u32) -> i32{
 	return i32(readU32(byteOffset));
 }
 
-@stage(compute)
+@compute
 fn main() -> void{
 
 	var index : u32 = GlobalInvocationID.x;

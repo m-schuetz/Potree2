@@ -28,7 +28,7 @@ struct VertexOut{
 };
 
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexIn) -> VertexOut {
 
 	var QUAD_POS : array<vec3<f32>, 6> = array<vec3<f32>, 6>(
@@ -106,7 +106,7 @@ struct Uniforms {
 @binding(2) @group(0) var mySampler: sampler;
 @binding(3) @group(0) var myTexture: texture_2d<f32>;
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

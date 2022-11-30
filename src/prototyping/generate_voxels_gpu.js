@@ -128,7 +128,7 @@ fn loadPosition(vertexIndex : u32) -> vec3<f32> {
 
 
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 	var result : VertexOutput;
@@ -198,7 +198,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 }
 
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 
 	{

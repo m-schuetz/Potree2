@@ -10,8 +10,8 @@ struct Uniforms {
 	[[offset(4)]] size : u32;
 };
 [[binding(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), set(0)]] var<storage_buffer> ssbo_source : U32s;
-[[binding(2), set(0)]] var<storage_buffer> ssbo_target : U32s;
+[[binding(1), set(0)]] var<storage> ssbo_source : U32s;
+[[binding(2), set(0)]] var<storage> ssbo_target : U32s;
 
 [[builtin(global_invocation_id)]] var<in> GlobalInvocationID : vec3<u32>;
 
@@ -25,7 +25,7 @@ fn readU8(offset : u32) -> u32{
 	return val_u8;
 }
 
-@stage(compute)
+@compute
 fn main() -> void {
 
 	var index : u32 = GlobalInvocationID.x;

@@ -54,7 +54,7 @@ fn toScreen(worldPos : vec4<f32>) -> vec2<f32> {
 	return screenPos;
 }
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	// A line is made of 2 triangles / 6 vertices
@@ -145,7 +145,7 @@ struct FragmentOut{
 	@location(1) id : u32,
 };
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

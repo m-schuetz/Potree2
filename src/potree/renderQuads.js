@@ -21,7 +21,7 @@ struct Uniforms {
 @builtin(position) var<out> out_pos : vec4<f32>;
 @location(0) var<out> fragColor : vec4<f32>;
 
-@stage(vertex)
+@vertex
 fn main() -> void {
 
 	var viewPos : vec4<f32> = uniforms.worldView * pos_point;
@@ -45,7 +45,7 @@ const fs = `
 @location(0) var<in> fragColor : vec4<f32>;
 @location(0) var<out> outColor : vec4<f32>;
 
-@stage(fragment)
+@fragment
 fn main() -> void {
 	outColor = fragColor;
 	return;

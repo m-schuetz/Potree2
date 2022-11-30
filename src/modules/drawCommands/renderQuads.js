@@ -24,7 +24,7 @@ struct VertexOut{
 };
 
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexIn) -> VertexOut {
 
 	var QUAD_POS : array<vec3<f32>, 6> = array<vec3<f32>, 6>(
@@ -69,7 +69,7 @@ struct FragmentOut{
 	@location(0) color : vec4<f32>,
 };
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

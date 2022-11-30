@@ -68,7 +68,7 @@ fn loadBox(boxIndex : u32) -> Box {
 };
 
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var boxIndex = vertex.index / 72u;
@@ -160,7 +160,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	_ = uniforms;

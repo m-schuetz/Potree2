@@ -38,7 +38,7 @@ struct FragmentOut{
 	@location(1) id : u32,
 };
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var worldView = worldViewArray.values[vertex.instanceID];
@@ -55,7 +55,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

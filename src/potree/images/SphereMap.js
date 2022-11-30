@@ -49,7 +49,7 @@ fn rotate(x : f32, y : f32, angle : f32){
 
 let PI = 3.141592653589793;
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	_ = uniforms;
@@ -111,7 +111,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	return vout;
 }
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	_ = sphereTexture;

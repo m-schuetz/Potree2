@@ -23,7 +23,7 @@ let vs = `
 		@location(0) uv : vec2<f32>,
 	};
 
-	@stage(vertex)
+	@vertex
 	fn main(vertex : VertexInput) -> VertexOutput {
 
 		var output : VertexOutput;
@@ -159,7 +159,7 @@ let fs = `
 		return response;
 	}
 
-	@stage(fragment)
+	@fragment
 	fn main(input : FragmentInput) -> FragmentOutput {
 
 		_ = mySampler;

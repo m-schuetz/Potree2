@@ -80,7 +80,7 @@ let shaderSource = `
 	//=================================================
 	//=================================================
 
-	@stage(vertex)
+	@vertex
 	fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
@@ -131,7 +131,7 @@ let shaderSource = `
 	//=================================================
 	//=================================================
 
-	@stage(fragment)
+	@fragment
 	fn main_fragment(input : FragmentInput) -> FragmentOutput {
 
 		_ = myTexture;

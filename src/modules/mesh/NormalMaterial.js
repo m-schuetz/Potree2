@@ -19,7 +19,7 @@ struct VertexOutput {
 	@location(3) color           : vec4<f32>,
 };
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var output : VertexOutput;
@@ -51,7 +51,7 @@ struct FragmentOutput {
 	@location(1) id : vec4<u32>,
 };
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentInput) -> FragmentOutput {
 
 	// var N : vec3<f32> = (uniforms.worldView * vec4<f32>(in_normal.xyz, 0.0)).xyz;

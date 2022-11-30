@@ -39,7 +39,7 @@ struct FragmentOut{
 };
 
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	_ = vertex.uv;
@@ -62,7 +62,7 @@ var<private> GRADIENT : array<vec3<f32>, 4> = array<vec3<f32>, 4>(
 	vec3<f32>( 43.0, 131.0, 186.0),
 );
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

@@ -25,7 +25,7 @@ struct VertexOut{
 	@location(0)         fragColor : vec4<f32>,
 };
 
-@stage(vertex)
+@vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 	
 	var worldPos : vec4<f32> = vertex.box_pos + vertex.point_pos * vertex.box_scale;
@@ -47,7 +47,7 @@ struct FragmentOut{
 	@location(1) id : u32,
 };
 
-@stage(fragment)
+@fragment
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

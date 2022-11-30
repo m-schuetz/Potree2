@@ -22,7 +22,7 @@ struct VertexOut{
 };
 
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexIn) -> VertexOut {
 
 	var vout : VertexOut;
@@ -49,7 +49,7 @@ struct FragmentOut{
 	@builtin(frag_depth) depth : f32,
 };
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

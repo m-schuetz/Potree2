@@ -36,7 +36,7 @@ struct VertexOutput {
 	@location(0) color : vec4<f32>,
 };
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var abc = triangleIDs.values[0];
@@ -94,7 +94,7 @@ struct FragmentOutput {
 	@builtin(frag_depth) depth : f32,
 };
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentInput) -> FragmentOutput {
 
 	var output : FragmentOutput;

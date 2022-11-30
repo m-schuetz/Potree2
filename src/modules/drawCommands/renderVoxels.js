@@ -62,7 +62,7 @@ var<private> CUBE_POS : array<vec3<f32>, 36> = array<vec3<f32>, 36>(
 	vec3<f32>(-0.5, -0.5,  0.5),
 );
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexIn) -> VertexOut {
 
 	let cubeVertexIndex : u32 = vertex.vertexID % 36u;
@@ -90,7 +90,7 @@ struct FragmentOut{
 	@location(0) color : vec4<f32>,
 };
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;

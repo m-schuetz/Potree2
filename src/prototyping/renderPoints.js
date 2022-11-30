@@ -21,7 +21,7 @@ struct VertexOutput{
 
 @binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
-@stage(vertex)
+@vertex
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var viewPos : vec4<f32> = uniforms.worldView * vertex.pos_point;
@@ -46,7 +46,7 @@ struct FragmentInput{
 	@location(0) color : vec4<f32>,
 };
 
-@stage(fragment)
+@fragment
 fn main(fragment : FragmentInput) -> @location(0) vec4<f32> {
 	return fragment.color;
 }

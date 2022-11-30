@@ -42,7 +42,7 @@ let shaderCode = `
 		return near / depth;
 	}
 
-	@stage(vertex)
+	@vertex
 	fn main_vs(vertex : VertexInput) -> VertexOutput {
 
 		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
@@ -111,7 +111,7 @@ let shaderCode = `
 		return newDepth;
 	}
 
-	@stage(fragment)
+	@fragment
 	fn main_fs(input : FragmentInput) -> FragmentOutput {
 
 		_ = mySampler;
@@ -207,7 +207,7 @@ let shaderCode = `
 		return output;
 	}
 
-	@stage(fragment)
+	@fragment
 	fn main_fs_quads(input : FragmentInput) -> FragmentOutput {
 
 		_ = mySampler;
