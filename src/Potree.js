@@ -66,6 +66,7 @@ export * from "./InputHandler.js";
 export * from "./potree/CopcLoader.js";
 export * from "./potree/images/Images360.js";
 export * from "./potree/images/SphereMap.js";
+export * from "./potree/Potree2Loader.js";
 
 export {render as renderPoints} from "./prototyping/renderPoints.js";
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";

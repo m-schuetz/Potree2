@@ -29,6 +29,14 @@ export class Box3{
 		return this.max.clone().sub(this.min);
 	}
 
+	containsPoint(point){
+		if(point.x < this.min.x || point.x > this.max.x) return false;
+		if(point.y < this.min.y || point.y > this.max.y) return false;
+		if(point.z < this.min.z || point.z > this.max.z) return false;
+
+		return true;
+	}
+
 	center(){
 		return this.min.clone().add(this.max).multiplyScalar(0.5);
 	}

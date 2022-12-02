@@ -64,7 +64,8 @@ canvas{
 		"stats":         "./libs/stats.js/stats.module.js",
 		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
 		"tween":         "./libs/tween/tween.esm.js",
-		"range-select":  "./libs/range-select/RangeSelect.js"
+		"range-select":  "./libs/range-select/RangeSelect.js",
+		"json5":         "./libs/json5/json5.mjs"
 	}
 }
 </script>
@@ -91,20 +92,11 @@ canvas{
 	let {scene, controls} = potree;
 	// installToolbar(potree.renderer.canvas, potree);
 
-	// window.Potree = {
-	// 	version: "abc",
-	// };
-
 	window.sidebar = installSidebar(elPotree, potree);
 
 	window.Potree = Potree;
 	window.potree = potree;
 	window.Vector3 = Vector3;
-
-	Potree.settings.edlEnabled = true;
-	Potree.settings.dilateEnabled = false;
-	Potree.settings.hqsEnabled = true;
-
 
 	// default, if not overriden later on
 	controls.set({
@@ -113,263 +105,69 @@ canvas{
 	});
 
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
+	Potree.settings.edlEnabled = true;
+	Potree.settings.dilateEnabled = false;
+	Potree.settings.hqsEnabled = true;
 	Potree.settings.pointBudget = 4_000_000;
-	// Potree.settings.pointBudget = 30_000;
-	// Potree.settings.attribute = "classification";
-
 	Potree.settings.attribute = "rgba";
 	Potree.settings.pointSize = 3;
 	Potree.settings.splatType = SplatType.POINTS;
-	// Potree.settings.pointBudget = 30085;
 
-	
-	// // CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
-	// CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
+	// loadGLB("./resources/models/australia_gas.glb", {
+	// 	onStart: (node) => {
+	// 		node.rotation.makeIdentity();
+	// 		node.rotation.rotate(1.2, {x: 1, y: 0, z: 0});
+	// 		node.rotation.rotate(-0.1, {x: 0, y: 1, z: 0});
+	// 		node.scale.set(2, 2, 2);
+	// 		node.position.set(-25, -10, 10);
 
-	// 	window.pointcloud = pointcloud;
-	// 	pointcloud.name = "Autzen Stadium";
+	// 		node.name = "australia_gas";
 
-	// 	let min = new Vector3(...pointcloud.loader.header.min);
-	// 	let max = new Vector3(...pointcloud.loader.header.max);
-
-	// 	let center = min.add(max).multiplyScalar(0.5);
-	// 	let size = min.distanceTo(max);
-		
-	// 	controls.set({
-	// 		yaw: -0.2,
-	// 		pitch: 0.8,
-	// 		radius: 1.5 * size,
-	// 		pivot: center,
-	// 	});
-
-	// 	scene.add(scene.root, pointcloud);
-	// });
-	
-
-	// Potree.load("./resources/pointclouds/heidentor/metadata.json", {name: "CA13"}).then(pointcloud => {
-	// 	pointcloud.name = "Heidentor";
-	// 	scene.root.children.push(pointcloud);
-	// });
-
-	loadGLB("./resources/models/australia_gas.glb", {
-		onStart: (node) => {
-			node.rotation.makeIdentity();
-			node.rotation.rotate(1.2, {x: 1, y: 0, z: 0});
-			node.rotation.rotate(-0.1, {x: 0, y: 1, z: 0});
-			node.scale.set(2, 2, 2);
-			node.position.set(-25, -10, 10);
-
-			node.name = "australia_gas";
-
-			scene.root.children.push(node);
-		}, onNode: (mesh) => {
-			console.log(mesh);
-		}
-	});
-
-	// Potree.load("./resources/models/ruins.glb").then(model => {
-
-	// 	console.log(model);
-
-	// 	// scene.root.children.push(model);
-
+	// 		scene.root.children.push(node);
+	// 	}, onNode: (mesh) => {
+	// 		console.log(mesh);
+	// 	}
 	// });
 
 	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
-
 		scene.root.children.push(pointcloud);
 
 		controls.set({
 			position: [20, 20, 20], 
 			pivot: [0, 0, 0]
 		});
-
 	});
 
-	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	Potree.load("./resources/pointclouds/las14_extra_attributes/metadata.json").then(pointcloud => {
-
-		window.pointcloud = pointcloud;
-		pointcloud.name = "sitn extra attributes";
-
-		// controls.set({
-		// 	position: [2561569.7, 1204855.7, 818.0], 
-		// 	pivot: [2561737.6, 1205229.8, 439.5]
-		// 	// position: [2561582.3, 1205181.5, 524.3], 
-		// 	// pivot: [2561594.6, 1205221.8, 480.1]
-		// });
-
-		let material = pointcloud.material;
-
-		console.log(material.attributes);
-
-
-		// register a new "runtime attribute"
-		material.registerAttribute("animated elevation");
-
-		material.registerMapping({
-			name: "animated elevation",
-			condition: (attribute) => (attribute.name === "animated elevation"),
-			wgsl: `
-				fn map_animated_elevation(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-					var u = position.x / 500.0;
-					var v = position.y / 500.0;
-					var d = length(vec2<f32>(u - 0.5, v - 0.5));
-
-					var value = (uniforms.world * position).z;
-					var w = (value - 430.0) / (570.0 - 430.0);
-					var uv : vec2<f32> = vec2<f32>(w, 0.0);
-					var color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
-
-					if(cos(30.0 * d - 2.0 * uniforms.time) < -0.7){
-						color.w = 0.0;
-					}
-
-					return color;
-				}
-			`,
-		});
-
-		// register an attribute->color mapping that automatically applies 
-		// to attributes that fullfill a given condition
-		material.registerMapping({
-			name: "normal (trimble 2-15-15)",
-			condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
-			wgsl: `
-				fn map_normal_trimble_2_15_15(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-					var PI = 3.1415;
-					var HML = (2.0 * PI) / 32767.0;
-					var VML = PI / 32767.0;
-					
-					var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
-					var value = readU32(offset);
-
-					var mask_15b = (1u << 15u) - 1u;
-
-					var dim = value & 3u;
-					var horzAngle = f32((value >>  2u) & mask_15b);
-					var vertAngle = f32((value >> 17u) & mask_15b);
-
-					var ang = (VML * vertAngle) - 0.5 * PI;
-					var zvl = sin(ang);
-					var xml = sqrt( 1.0 - (zvl * zvl));
-
-					var normal : vec3<f32>;
-					normal.x = xml * cos(HML * horzAngle);
-					normal.y = xml * sin(HML * horzAngle);
-					normal.z = zvl;
-
-					var color = vec4<f32>(normal, 1.0);
-
-					color = vec4<f32>(
-						1.0 * normal.x, 
-						1.0 * normal.y, 
-						1.0 * normal.z,
-						1.0,
-					);
-
-					return color;
-				}
-			`,
-		});
-
-		material.registerMapping({
-			name: "group",
-			condition: (attribute) => (attribute.name === "Group"),
-			wgsl: `
-				fn map_terrascan_group(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-					var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
-					var value = readU32(offset);
-
-					var w = f32(value) / 1234.0;
-					w = f32(value % 10u) / 10.0;
-					var uv = vec2<f32>(w, 0.0);
-
-					var color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
-
-					return color;
-				}
-			`,
-		});
-
-		material.registerMapping({
-			name: "distance",
-			condition: (attribute) => (attribute.name === "Distance"),
-			wgsl: `
-				fn map_terrascan_distance(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-					var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
-					var value = readI32(offset);
-
-					// assuming distance in meters
-					var distance = f32(value) / 1000.0;
-					var w = distance / 30.0;
-					var uv = vec2<f32>(w, 0.0);
-
-					var color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
-
-					return color;
-				}
-			`,
-		});
-
-		// Potree.settings.attribute = "Normal";
-
+	import {Potree2Loader} from "potree";
+	Potree2Loader.load("./resources/F/temp/test").then(pointcloud => {
 		scene.root.children.push(pointcloud);
+
+		controls.set({
+			position: [0.5, 5.6, -3.5], 
+			pivot: [-5.1, 7.9, -8.8]
+		});
+		
+		
 	});
 
+	// let origin = new Vector3(0, 0, 0);
+	// let X = new Vector3(10, 0, 0);
+	// let Y = new Vector3(0, 10, 0);
+	// let Z = new Vector3(0, 0, 10);
+	// let red = new Vector3(255, 0, 0);
+	// let green = new Vector3(0, 255, 0);
+	// let blue = new Vector3(0, 0, 255);
 
+	// import {sphere} from "./src/modules/geometries/sphere.js";
 
+	// potree.onUpdate( () => {
 
+	// 	// potree.renderer.drawLine(origin, X, red);
+	// 	// potree.renderer.drawLine(origin, Y, green);
+	// 	// potree.renderer.drawLine(origin, Z, blue);
 
-
-
-
-
-	// Potree.load("./resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip/metadata.json").then(pointcloud => {
-
-	// 	window.pointcloud = pointcloud;
-	// 	pointcloud.name = "sitn dip";
-
-	// 	controls.set({
-	// 		position: [2524961.6, 1198245.8, 1646.2], 
-	// 		pivot: [2524503.6, 1197488.7, 1098.6]
-	// 	});
-
-	// 	scene.root.children.push(pointcloud);
+	// 	// potree.renderer.drawSphere(origin, 2);
 	// });
-
-
-	// Potree.load("./nocommit/F_pointclouds/CA13_morro_bay/morro_bay.las_converted/metadata.json").then(pointcloud => {
-
-	// 	window.pointcloud = pointcloud;
-	// 	pointcloud.name = "CA13";
-
-	// 	controls.set({
-	// 		position: [694616.5, 3916084.9, 216.0], 
-	// 		pivot: [694733.8, 3916401.9, 19.8]
-	// 	});
-
-	// 	scene.root.children.push(pointcloud);
-	// });
-
-	let origin = new Vector3(0, 0, 0);
-	let X = new Vector3(10, 0, 0);
-	let Y = new Vector3(0, 10, 0);
-	let Z = new Vector3(0, 0, 10);
-	let red = new Vector3(255, 0, 0);
-	let green = new Vector3(0, 255, 0);
-	let blue = new Vector3(0, 0, 255);
-
-	import {sphere} from "./src/modules/geometries/sphere.js";
-
-	potree.onUpdate( () => {
-
-		// potree.renderer.drawLine(origin, X, red);
-		// potree.renderer.drawLine(origin, Y, green);
-		// potree.renderer.drawLine(origin, Z, blue);
-
-		// potree.renderer.drawSphere(origin, 2);
-	});
 
 
 

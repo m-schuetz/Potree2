@@ -1,19 +1,19 @@
 
 export const wgsl = `
 
-fn mapping_RGB(vertex : VertexInput, attribute : AttributeDescriptor, node : Node) -> vec4<f32>{
+fn mapping_RGB(vertex : VertexInput, attrib : AttributeDescriptor, node : Node) -> vec4<f32>{
 
-	var offset = node.numPoints * attribute.offset + attribute.byteSize * vertex.vertexID;
+	var offset = node.numPoints * attrib.offset + attrib.byteSize * vertex.vertexID;
 
 	var r = 0.0;
 	var g = 0.0;
 	var b = 0.0;
 
-	if(attribute.datatype == TYPES_UINT8){
+	if(attrib.datatype == TYPES_UINT8){
 		r = f32(readU8(offset + 0u));
 		g = f32(readU8(offset + 1u));
 		b = f32(readU8(offset + 2u));
-	}else if(attribute.datatype == TYPES_UINT16){
+	}else if(attrib.datatype == TYPES_UINT16){
 		r = f32(readU16(offset + 0u));
 		g = f32(readU16(offset + 2u));
 		b = f32(readU16(offset + 4u));

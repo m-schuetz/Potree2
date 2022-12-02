@@ -87,7 +87,7 @@ export class Renderer{
 				| GPUTextureUsage.COPY_DST 
 				| GPUTextureUsage.COPY_SRC
 				| GPUTextureUsage.TEXTURE_BINDING,
-			compositingAlphaMode: "opaque",
+			alphaMode: "opaque",
 		});
 
 		this.swapChain = this.context.getCurrentTexture();
@@ -163,17 +163,17 @@ export class Renderer{
 
 			let size = {width, height};
 
-			console.log(`configure`, {width, height});
-			this.context.configure({
-				device: this.device,
-				format: this.swapChainFormat,
-				usage: GPUTextureUsage.RENDER_ATTACHMENT 
-					| GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.COPY_SRC
-					| GPUTextureUsage.TEXTURE_BINDING,
-				size: {width, height},
-				compositingAlphaMode: "opaque",
-			});
+			// console.log(`configure`, {width, height});
+			// this.context.configure({
+			// 	device: this.device,
+			// 	format: this.swapChainFormat,
+			// 	usage: GPUTextureUsage.RENDER_ATTACHMENT 
+			// 		| GPUTextureUsage.COPY_DST 
+			// 		| GPUTextureUsage.COPY_SRC
+			// 		| GPUTextureUsage.TEXTURE_BINDING,
+			// 	size: {width, height},
+			// 	alphaMode: "opaque",
+			// });
 
 			this.depthTexture = this.device.createTexture({
 				size: size,
