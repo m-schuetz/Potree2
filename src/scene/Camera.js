@@ -1,6 +1,5 @@
 
-import {toRadians, toDegrees} from "../math/PMath.js";
-import {Matrix4, Vector3} from "potree";
+import {Matrix4, Vector3, toRadians, toDegrees} from "potree";
 import {SceneNode} from "./SceneNode.js";
 
 export class Camera extends SceneNode{

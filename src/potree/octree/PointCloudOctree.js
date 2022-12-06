@@ -1,9 +1,8 @@
 
 import {Vector3, Matrix4, Box3, Frustum, math, EventDispatcher} from "potree";
-import {SceneNode, PointCloudOctreeNode} from "potree";
+import {SceneNode, PointCloudOctreeNode, PointCloudMaterial} from "potree";
 import {renderPointsOctree} from "potree";
 import {BinaryHeap} from "BinaryHeap";
-import {PointCloudMaterial} from "./PointCloudMaterial.js";
 
 export class PointCloudOctree extends SceneNode{
 

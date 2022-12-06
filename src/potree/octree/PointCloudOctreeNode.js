@@ -1,5 +1,5 @@
 
-import {Box3} from "../math/Box3.js";
+import {Vector3, Box3} from "potree";
 
 export class PointCloudOctreeNode{
 	constructor(name){

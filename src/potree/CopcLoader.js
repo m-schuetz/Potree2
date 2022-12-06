@@ -1,6 +1,5 @@
 
-import {PointCloudOctree} from "potree";
-import {PointCloudOctreeNode} from "./PointCloudOctreeNode.js";
+import {PointCloudOctree, PointCloudOctreeNode} from "potree";
 import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
 import {WorkerPool} from "../misc/WorkerPool.js";
 import {Geometry} from "potree";

@@ -1,6 +1,6 @@
 
-import {Vector3} from "../../math/math.js";
-import {Geometry} from "../../core/Geometry.js";
+import {Vector3} from "potree";
+import {Geometry} from "potree";
 
 
 // from https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array

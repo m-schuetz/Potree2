@@ -1,6 +1,5 @@
 
-// import {Vector3, Box3} from "potree";
-import {Vector3, Box3} from "../math/math.js";
+import {Vector3, Box3} from "potree";
 
 function makeGeometry(numVertices){
 	let positions = new Float32Array(3 * numVertices);

@@ -1,6 +1,6 @@
 
-import {SceneNode} from "../../scene/SceneNode.js";
-import {Vector3, Box3, Matrix4, Ray} from "../../math/math.js";
+import {SceneNode} from "potree";
+import {Vector3, Box3, Matrix4, Ray} from "potree";
 
 
 class ProgressiveItem{

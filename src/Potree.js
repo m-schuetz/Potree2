@@ -1,8 +1,8 @@
 
+import {Vector3} from "./math/math.js";
 import {PotreeLoader} from "./potree/PotreeLoader.js";
 import {render} from "./potree/renderQuads.js";
 import {EventDispatcher} from "./misc/EventDispatcher.js";
-import {Vector3} from "./math/math.js";
 import {load as loadGLB} from "./misc/GLBLoader.js";
 
 
@@ -51,8 +51,8 @@ export * from "./navigation/StationaryControls.js";
 export * from "./renderer/Renderer.js";
 export * from "./modules/points/Points.js";
 export * as Timer from "./renderer/Timer.js";
-export * from "./potree/PointCloudOctree.js";
-export * from "./potree/PointCloudOctreeNode.js";
+export * from "./potree/octree/PointCloudOctree.js";
+export * from "./potree/octree/PointCloudOctreeNode.js";
 export * from "./potree/PointCloudMaterial.js";
 export * from "./modules/mesh/renderMesh.js";
 export * from "./modules/quads/renderQuads.js";
