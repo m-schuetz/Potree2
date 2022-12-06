@@ -1,5 +1,5 @@
 
-import {BrotliDecode} from "../../libs/brotli/decode.js";
+import {BrotliDecode} from "../../../../libs/brotli/decode.js";
 
 class Stats{
 	constructor(){

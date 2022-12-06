@@ -1,7 +1,7 @@
 
 import {PointCloudOctree, PointCloudOctreeNode} from "potree";
-import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
-import {WorkerPool} from "../misc/WorkerPool.js";
+import {PointAttribute, PointAttributes, PointAttributeTypes} from "potree";
+import {WorkerPool} from "potree";
 import {Geometry} from "potree";
 import {Vector3, Box3, Matrix4} from "potree";
 
@@ -409,7 +409,7 @@ export class CopcLoader{
 				await this.loadHierarchy(node);
 			}
 
-			let workerPath = "./src/potree/DecoderWorker_copc.js";
+			let workerPath = "./src/potree/octree/loader/DecoderWorker_copc.js";
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
 			worker.onmessage = (e) => {

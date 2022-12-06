@@ -1,8 +1,8 @@
 
+import {PointAttributeTypes, PointAttribute, PointAttributes} from "potree";
 import {Vector3, Box3, Matrix4} from "potree";
 import {PointCloudOctree, PointCloudOctreeNode} from "potree";
-import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
-import {WorkerPool} from "../misc/WorkerPool.js";
+import {WorkerPool} from "potree";
 import {Geometry} from "potree";
 
 let nodesLoading = 0;
@@ -275,9 +275,9 @@ export class PotreeLoader{
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
 			let workerPath = null;
 			if(!this.metadata.encoding || this.metadata.encoding === "DEFAULT"){
-				workerPath = "../src/potree/DecoderWorker_default.js";
+				workerPath = "../src/potree/octree/loader/DecoderWorker_default.js";
 			}else if(this.metadata.encoding === "BROTLI"){
-				workerPath = "../src/potree/DecoderWorker_brotli.js";
+				workerPath = "../src/potree/octree/loader/DecoderWorker_brotli.js";
 			}
 			
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});

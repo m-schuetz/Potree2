@@ -1,5 +1,5 @@
 
-import {createLazPerf} from "../../libs/laz-perf/laz-perf.js";
+import {createLazPerf} from "../../../../libs/laz-perf/laz-perf.js";
 
 let lazperf = null;
 
