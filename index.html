@@ -110,8 +110,9 @@ canvas{
 	Potree.settings.hqsEnabled = true;
 	Potree.settings.pointBudget = 4_000_000;
 	Potree.settings.attribute = "rgba";
-	Potree.settings.pointSize = 3;
+	Potree.settings.pointSize = 7;
 	Potree.settings.splatType = SplatType.POINTS;
+	// Potree.settings.minNodeSize = 1000;
 
 	// loadGLB("./resources/models/australia_gas.glb", {
 	// 	onStart: (node) => {
@@ -132,23 +133,33 @@ canvas{
 	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 		scene.root.children.push(pointcloud);
 
-		controls.set({
-			position: [20, 20, 20], 
-			pivot: [0, 0, 0]
-		});
+		pointcloud.position.set(0, 10, 0);
+
+		// controls.set({
+		// 	position: [28.7, 6.5, 11.3], 
+		// 	pivot: [7.6, 11.8, 5.0]
+		// });
 	});
 
 	import {Potree2Loader} from "potree";
 	Potree2Loader.load("./resources/F/temp/test").then(pointcloud => {
 		scene.root.children.push(pointcloud);
 
-		controls.set({
-			position: [0.5, 5.6, -3.5], 
-			pivot: [-5.1, 7.9, -8.8]
-		});
-		
-		
+		pointcloud.position.set(0, -5, 0);
+
+		// controls.set({
+		// 	position: [28.7, 6.5, 11.3], 
+		// 	pivot: [7.6, 11.8, 5.0]
+		// });
 	});
+
+controls.set({
+		position: [58.1, 8.3, 15.3], 
+		pivot: [10.1, 20.4, 0.9]
+	});
+
+	
+	
 
 	// let origin = new Vector3(0, 0, 0);
 	// let X = new Vector3(10, 0, 0);

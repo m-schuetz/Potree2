@@ -139,6 +139,7 @@ let shaderSource = `
 		_ = tex_pointID;
 
 		var window : i32 = uniforms.window;
+		window = 0;
 		var DEFAULT_CLOSEST = 10000000.0;
 		var closest = DEFAULT_CLOSEST;
 		var closestCoords = vec2<f32>(0.0, 0.0);
@@ -149,23 +150,44 @@ let shaderSource = `
 			coords.x = i32(input.fragCoord.x) + i;
 			coords.y = i32(input.fragCoord.y) + j;
 
-			// var distance = sqrt(f32(i * i + j * j));
-
 			var d : f32 = getLinearDepthAt(input, vec2<f32>(coords));
-
-			if(d == 0.0){
-				continue;
-			}
-
 			closest = min(closest, d);
+
+			if(d == 0.0) {continue;}
 
 			if(closest == d){
 				closestCoords = input.fragCoord.xy + vec2<f32>(f32(i), f32(j));
 			}
-		}
-		}
+		}}
 
-		var output : FragmentOutput;
+		var outColor = vec4<f32>(0.0f, 0.0f, 0.0f, 0.0f);
+
+		for(var dx : i32 = -window; dx <= window; dx = dx + 1){
+		for(var dy : i32 = -window; dy <= window; dy = dy + 1){
+			var coords : vec2<i32>;
+			coords.x = i32(input.fragCoord.x) + dx;
+			coords.y = i32(input.fragCoord.y) + dy;
+
+			var fx = f32(dx);
+			var fy = f32(dy);
+			var ll = fx * fx + fy * fy;
+			ll = ll / 5.0;
+			ll = max(abs(fx), abs(fy));
+
+			var w = exp(-ll * 100.5f);
+			w =  clamp(w, 0.01f, 1.0f);
+
+			var depth = getLinearDepthAt(input, vec2<f32>(coords));
+			var color = textureLoad(myTexture, coords, 0);
+
+			if(depth <= closest * 1.01){
+				outColor.x = outColor.x + f32(color.x) * w;
+				outColor.y = outColor.y + f32(color.y) * w;
+				outColor.z = outColor.z + f32(color.z) * w;
+				outColor.w = outColor.w + w;
+			}
+		}}
+
 
 		if(closest != DEFAULT_CLOSEST){
 
@@ -175,36 +197,18 @@ let shaderSource = `
 			var pixelDepth = textureLoad(myDepth, vec2<i32>(source), 0);
 			var d = getLinearDepthAt(input, source);
 
+			outColor = outColor / outColor.w;
+
+			var output = FragmentOutput();
 			output.depth = pixelDepth;
-			output.color = color;
+			output.color = outColor;
 			output.pointID = textureLoad(tex_pointID, vec2<i32>(source), 0).r;
-
-			// var w = (uniforms.near / pixelDepth) / 50000.0;
-
-			// var cval = output.pointID * 123u;
-			// var R = ((cval >>  0u) & 0xFu) << 4u;
-			// var G = ((cval >>  8u) & 0xFu) << 4u;
-			// var B = ((cval >> 16u) & 0xFu) << 4u;
 			
-			// var w = getWeight(input, source);
-			// output.color = vec4<f32>(
-			// 	w, w, w, 1.0
-			// );
-
-			// output.color = vec4<f32>(
-			// 	f32(R) / 256.0, 
-			// 	f32(G) / 256.0, 
-			// 	f32(B) / 256.0, 
-			// 	1.0
-			// );
-
-
 			return output;
 		}else{
 			discard;
 		}
 
-		// return output;
 	}
 `;
 

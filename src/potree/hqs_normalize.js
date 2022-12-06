@@ -131,21 +131,15 @@ let shaderCode = `
 			coords.x = i32(input.fragCoord.x) + i;
 			coords.y = i32(input.fragCoord.y) + j;
 
-			// var distance = sqrt(f32(i * i + j * j));
-
 			var d : f32 = getLinearDepthAt(input, vec2<f32>(coords));
-
-			if(d == 0.0){
-				continue;
-			}
-
 			closest = min(closest, d);
+
+			if(d == 0.0) {continue;}
 
 			if(closest == d){
 				closestCoords = input.fragCoord.xy + vec2<f32>(f32(i), f32(j));
 			}
-		}
-		}
+		}}
 
 
 		var c = vec4<f32>(0.0, 0.0, 0.0, 0.0);
@@ -159,34 +153,22 @@ let shaderCode = `
 			var d : f32 = getLinearDepthAt(input, vec2<f32>(coords));
 
 			if(d <= (closest * 1.01)){
+
+				var fx = f32(i);
+				var fy = f32(j);
+				var ll = fx * fx + fy * fy;
+				ll = ll / 5.0;
+				ll = max(abs(fx), abs(fy));
+
+				var w = exp(-ll * 100.5f);
+				w =  clamp(w, 0.01f, 1.0f);
+
 				var color = textureLoad(myTexture, coords, 0);
-
-				// // var distance = sqrt(f32(i * i + j * j)) / f32(window);
-				// var distance = f32(i + j) / f32(window + window);
-				// // float distance = 2.0 * length(gl_PointCoord.xy - 0.5);
-				// var w = max(0.0, 1.0 - distance);
-				// w = pow(w, 10.5);
-
-				// var a = 1.0;
-				
-				// if(window > 0){
-				// 	a = f32(window);
-				// }
-
-				var a = 1.0;
-				var distance = sqrt(f32(i * i + j * j)); // / sqrt(1.0 + 1.0);
-				var w = a * exp(- (pow(distance / a, 2.0)) / 0.1);
-
 				color = color * w;
 
 				c = c + color;
 			}
-
-			
-
-		}
-		}
-
+		}}
 
 		var output : FragmentOutput;
 
@@ -194,13 +176,9 @@ let shaderCode = `
 		coords.x = i32(input.fragCoord.x);
 		coords.y = i32(input.fragCoord.y);
 
-		if(c.w == 0.0){
-			discard;
-		}
-		
-		c = c / c.w;
+		if(c.w == 0.0) {discard;}
 
-		output.color = c;
+		output.color = c / c.w;
 		output.depth = textureLoad(myDepth, vec2<i32>(closestCoords), 0);
 		output.pointID = textureLoad(tex_pointID, vec2<i32>(closestCoords), 0).r;
 
@@ -221,18 +199,7 @@ let shaderCode = `
 		color.y = color.y / color.w;
 		color.z = color.z / color.w;
 
-		// color.x = color.w;
-		// color.y = color.w;
-		// color.z = color.w;
-
 		var output : FragmentOutput;
-
-		// if(c.w == 0.0){
-		// 	discard;
-		// }
-		
-		// c = c / c.w;
-
 
 		output.color = color;
 		output.depth = textureLoad(myDepth, vec2<i32>(input.fragCoord.xy), 0);

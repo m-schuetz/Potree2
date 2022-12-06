@@ -165,65 +165,11 @@ let fs = `
 		_ = mySampler;
 
 		fragXY = input.fragCoord.xy;
-
 		var coords : vec2<i32> = vec2<i32>(input.fragCoord.xy);
 
-		var c = textureLoad(myTexture, coords, 0);
-		var response = getEdlResponse(input);
-		var shade = exp(-response * 30.0) ;
-
 		var output : FragmentOutput;
-		output.color = vec4<f32>(
-			c.r * shade, 
-			c.g * shade, 
-			c.b * shade, 
-			1.0);
-
-
-		var d : f32 = textureLoad(myDepth, coords, 0);
-		output.depth = d;
-
-		// var sourceDim = vec4<i32>(400, 400, 400 + 100, 400 + 100);
-		// var targetDim = vec4<i32>(100, 800, 100 + 400, 800 + 400);
-
-		// var sourceSize = vec2<i32>(
-		// 	sourceDim.z - sourceDim.x,
-		// 	sourceDim.w - sourceDim.y,
-		// );
-		// var targetSize = vec2<i32>(
-		// 	targetDim.z - targetDim.x,
-		// 	targetDim.w - targetDim.y,
-		// );
-
-		// if(
-		// 	coords.x > targetDim.x && coords.x < targetDim.z && 
-		// 	coords.y > targetDim.y && coords.y < targetDim.w
-		// 	){
-
-		// 		var u = f32(coords.x - targetDim.x) / f32(targetSize.x);
-		// 		var v = f32(coords.y - targetDim.y) / f32(targetSize.y);
-
-		// 		var texSize = textureDimensions(myTexture);
-
-		// 		var sourceCoord = vec2<i32>(
-		// 			i32(u * f32(sourceSize.x)) + sourceDim.x,
-		// 			i32(v * f32(sourceSize.y)) + sourceDim.y,
-		// 		);
-		// 		var cs = textureLoad(myTexture, sourceCoord, 0);
-
-		// 		output.color = cs;
-		// 		output.color.a = 1.0;
-
-		// 		// output.color.r = u;
-		// 		// output.color.g = v;
-		// 		// output.color.b = 0.0;
-		// 		// output.color.a = 1.0;
-
-		// }
-
-		// output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-
-		// output.color = c;
+		output.color = textureLoad(myTexture, coords, 0);
+		output.depth = textureLoad(myDepth, coords, 0);
 
 		return output;
 	}
