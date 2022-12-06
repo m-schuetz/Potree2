@@ -51,6 +51,10 @@ export class PointCloudOctree extends SceneNode{
 			this.material.update(this);
 		}
 
+		for(let node of this.visibleNodes){
+			node.visible = false;
+		}
+
 		let visibleNodes = [];
 		let loadQueue = [];
 		let priorityQueue = new BinaryHeap(function (x) { return 1 / x.weight; });
@@ -84,10 +88,6 @@ export class PointCloudOctree extends SceneNode{
 				continue;
 			}
 
-			// if(numPoints + node.numPoints > this.pointBudget){
-			// 	break;
-			// }
-
 			let box = node.boundingBox.clone();
 			box.applyMatrix4(this.world);
 			let insideFrustum = frustum.intersectsBox(box);
@@ -96,6 +96,8 @@ export class PointCloudOctree extends SceneNode{
 
 			let visible = fitsInPointBudget && insideFrustum;
 			visible = visible || isLowLevel;
+
+			node.visible = visible;
 
 			if(!visible){
 				continue;
@@ -108,6 +110,9 @@ export class PointCloudOctree extends SceneNode{
 				if(!child){
 					continue;
 				}
+
+				let box = child.boundingBox.clone();
+				box.applyMatrix4(this.world);
 
 				let center = box.center();
 				
@@ -123,7 +128,6 @@ export class PointCloudOctree extends SceneNode{
 				let fov = math.toRadians(camera.fov);
 				let slope = Math.tan(fov / 2);
 				let projFactor = 1 / (slope * distance);
-				// let projFactor = (0.5 * domHeight) / (slope * distance);
 
 				let weight = radius * projFactor;
 				let pixelSize = weight * renderer.getSize().height;

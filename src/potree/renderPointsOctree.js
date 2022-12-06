@@ -84,7 +84,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
-		let nodesBuffer = new ArrayBuffer(10_000 * 32);
+		let nodesBuffer = new ArrayBuffer(10_000 * 36);
 		let nodesGpuBuffer = device.createBuffer({
 			size: nodesBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -460,23 +460,34 @@ async function renderOctree(octree, drawstate, flags){
 		for(let i = 0; i < nodes.length; i++){
 			let node = nodes[i];
 
-			view.setUint32(32 * i + 0, node.geometry.numElements, true);
-			view.setUint32(32 * i + 4, Potree.state.renderedElements + counter, true);
-			counter += node.geometry.numElements;
-
 			let bb = node.boundingBox;
 			let bbWorld = octree.boundingBox;
-			view.setFloat32(32 * i +  8, bbWorld.min.x + bb.min.x, true);
-			view.setFloat32(32 * i + 12, bbWorld.min.y + bb.min.y, true);
-			view.setFloat32(32 * i + 16, bbWorld.min.z + bb.min.z, true);
-			view.setFloat32(32 * i + 20, bbWorld.min.x + bb.max.x, true);
-			view.setFloat32(32 * i + 24, bbWorld.min.y + bb.max.y, true);
-			view.setFloat32(32 * i + 28, bbWorld.min.z + bb.max.z, true);
+
+			let childmask = 0;
+			for(let j = 0; j < 8; j++){
+				let visible = node.children[j]?.visible ?? false;
+
+				if(visible){
+					childmask = childmask | (1 << j);
+				}
+			}
+
+			view.setUint32(36 * i + 0, node.geometry.numElements, true);
+			view.setUint32(36 * i + 4, Potree.state.renderedElements + counter, true);
+			view.setFloat32(36 * i +  8, bbWorld.min.x + bb.min.x, true);
+			view.setFloat32(36 * i + 12, bbWorld.min.y + bb.min.y, true);
+			view.setFloat32(36 * i + 16, bbWorld.min.z + bb.min.z, true);
+			view.setFloat32(36 * i + 20, bbWorld.min.x + bb.max.x, true);
+			view.setFloat32(36 * i + 24, bbWorld.min.y + bb.max.y, true);
+			view.setFloat32(36 * i + 28, bbWorld.min.z + bb.max.z, true);
+			view.setUint32(36 * i + 32, childmask, true);
+
+			counter += node.geometry.numElements;
 		}
 
 		renderer.device.queue.writeBuffer(
 			nodesGpuBuffer, 0, 
-			nodesBuffer, 0, 32 * nodes.length
+			nodesBuffer, 0, 36 * nodes.length
 		);
 
 		pass.passEncoder.setBindGroup(3, nodesBindGroup);

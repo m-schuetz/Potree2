@@ -22,6 +22,7 @@ struct Node {
 	max_x       : f32,
 	max_y       : f32,
 	max_z       : f32,
+	childmask   : u32,
 };
 
 struct AttributeDescriptor{
@@ -527,6 +528,52 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 	output.point_id = node.counter + pointID;
 	output.point_position = point_position;
+
+	{ // DEBUG
+		var offset = 12u * pointID;
+			
+		var position = vec4<f32>(
+			readF32(offset + 0u),
+			readF32(offset + 4u),
+			readF32(offset + 8u),
+			1.0,
+		);
+
+		var size = node.max_x - node.min_x;
+
+		var ix = i32(2.0 * (position.x - node.min_x) / size);
+		var iy = i32(2.0 * (position.y - node.min_y) / size);
+		var iz = i32(2.0 * (position.z - node.min_z) / size);
+
+		ix = min(ix, 1);
+		iy = min(iy, 1);
+		iz = min(iz, 1);
+
+		var childIndex = u32((ix << 2) | (iy << 1) | iz);
+
+		var isChildVisible = (node.childmask & (1u << childIndex)) != 0;
+
+		if(isChildVisible){
+			// output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+			output.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
+		}
+
+		// if(vertex.instanceID == 0u){
+		// 	output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+		// }
+		// output.color = vec4<f32>(
+		// 	f32(childIndex) / 8.0, 
+		// 	0.0, 
+		// 	0.0, 
+		// 	1.0
+		// );
+
+		// if(node.childmask == 0u){
+		// 	output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+		// }
+
+	}
+
  
 	return output;
 }

@@ -137,14 +137,12 @@ function getSumBuffer(renderer){
 function startPass(renderer, target, args = {}){
 	let view = target.colorAttachments[0].texture.createView();
 
-	let colorAttachments = [
-		{
-			view, 
-			loadOp: "clear", 
-			clearValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
-			storeOp: 'store',
-		}
-	];
+	let colorAttachments = [{
+		view, 
+		loadOp: "clear", 
+		clearValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
+		storeOp: 'store',
+	}];
 
 	// let disable_multi_attachments = args.disable_multi_attachments ?? false;
 	if(target.colorAttachments.length === 2){
@@ -475,20 +473,20 @@ function renderNotSoBasic(){
 	}
 
 
-	// DILATE
-	if(dilateEnabled && Potree.settings.pointSize >= 2){ // dilate
-		// let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
-		let fboTarget = fbo_1;
+	// // DILATE
+	// if(dilateEnabled && Potree.settings.pointSize >= 2){ // dilate
+	// 	// let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
+	// 	let fboTarget = fbo_1;
 
-		let pass = startPass(renderer, fboTarget);
-		let drawstate = {renderer, camera, renderables, pass};
+	// 	let pass = startPass(renderer, fboTarget);
+	// 	let drawstate = {renderer, camera, renderables, pass};
 
-		dilate(fbo_source, drawstate);
+	// 	dilate(fbo_source, drawstate);
 
-		endPass(pass);
+	// 	endPass(pass);
 
-		fbo_source = fboTarget;
-	}
+	// 	fbo_source = fboTarget;
+	// }
 
 	{ // render everything but point clouds
 		let pass = revisitPass(renderer, fbo_source);
@@ -518,11 +516,6 @@ function renderNotSoBasic(){
 		let drawstate = {renderer, camera, renderables, pass};
 
 		EDL(fbo_source, drawstate);
-
-		// if(window.fbo){
-		// 	let texture = window.fbo.colorAttachments[0].texture;
-		// 	drawTexture(renderer, pass, texture, 0.1, 0.1, 0.2, 0.2);
-		// }
 
 		endPass(pass);
 	}
@@ -672,31 +665,6 @@ function renderNotSoBasic(){
 
 	}
 
-	// renderer.drawSphere(
-	// 	// dbgSphere.position,
-	// 	new Vector3(637290.76, 851209.905, 510.7),
-	// 	200
-	// );
-
-
-
-	// {
-	// 	let layer = layers.get(10);
-
-	// 	if(layer){
-
-	// 		let renderables = layer.renderables;
-
-	// 		let pass = revisitPass(renderer, fbo_source);
-	// 		let drawstate = {renderer, camera, renderables, pass};
-
-	// 		let meshes = renderables.get("Mesh") ?? [];
-	// 		renderMeshes(meshes, drawstate);
-
-	// 		endPass(pass);
-	// 	}
-
-	// }
 
 	renderer.finish();
 
