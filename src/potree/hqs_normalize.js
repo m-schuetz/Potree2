@@ -131,6 +131,14 @@ let shaderCode = `
 			coords.x = i32(input.fragCoord.x) + i;
 			coords.y = i32(input.fragCoord.y) + j;
 
+
+			var fx = f32(i);
+			var fy = f32(j);
+			var ll = fx * fx + fy * fy;
+			var nl = sqrt(ll) / f32(window);
+
+			if(nl >= 1.0) {continue;}
+
 			var d : f32 = getLinearDepthAt(input, vec2<f32>(coords));
 			closest = min(closest, d);
 
@@ -143,6 +151,19 @@ let shaderCode = `
 
 
 		var c = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+
+		// // const weights = array(1.0, 0.5, 0.25, 0.12, 0.06, 0.03);
+		// const weights = array(
+		// 	1.000, 
+		// 	0.250, 
+		// 	0.060, 
+		// 	0.015, 
+		// 	0.004, 
+		// 	0.001
+		// );
+
+		// var weighted = 
+
 
 		for(var i : i32 = -window; i <= window; i = i + 1){
 		for(var j : i32 = -window; j <= window; j = j + 1){
@@ -157,16 +178,26 @@ let shaderCode = `
 				var fx = f32(i);
 				var fy = f32(j);
 				var ll = fx * fx + fy * fy;
-				ll = ll / 5.0;
-				ll = max(abs(fx), abs(fy));
+				var nl = sqrt(ll) / f32(window);
 
-				var w = exp(-ll * 100.5f);
-				w =  clamp(w, 0.01f, 1.0f);
+				if(nl >= 1.0) {continue;}
 
-				var color = textureLoad(myTexture, coords, 0);
-				color = color * w;
+				var w = exp(-nl * nl * 5.5f);
+				w = clamp(w, 0.01f, 1.0f);
 
-				c = c + color;
+				// var w = exp(-nl * nl * 5.5f);
+				// w = clamp(w, 0.01f, 1.0f);
+
+				// var w = weights[i32(nl * 6.0)];
+
+
+
+				if(w > 0.0){
+					var color = textureLoad(myTexture, coords, 0);
+					color = color * w;
+
+					c = c + color;
+				}
 			}
 		}}
 

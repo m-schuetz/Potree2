@@ -42,6 +42,10 @@ export class Potree2Loader{
 
 		console.log(`processing ${node.name}, #voxels: ${metanode.numVoxels}`);
 
+		let box = node.boundingBox;
+		let boxSize = box.size();
+		let gridSize = 128;
+
 		if(node.name === "r"){
 
 			let imageData;
@@ -83,12 +87,12 @@ export class Potree2Loader{
 			let offset_rgb = 12 * n;
 
 			for(let i = 0; i < n; i++){
-				let x = sourceView.getFloat32(12 * i + 0, true);
-				let y = sourceView.getFloat32(12 * i + 4, true);
-				let z = sourceView.getFloat32(12 * i + 8, true);
-				let r = 255;
-				let g = 0;
-				let b = 0;
+				let cx = sourceView.getUint8(3 * i + 0) + 0.5;
+				let cy = sourceView.getUint8(3 * i + 1) + 0.5;
+				let cz = sourceView.getUint8(3 * i + 2) + 0.5;
+				let x = (cx / 128.0) * boxSize.x + box.min.x;
+				let y = (cy / 128.0) * boxSize.y + box.min.y;
+				let z = (cz / 128.0) * boxSize.z + box.min.z;
 
 				targetView.setFloat32(offset_xyz + 12 * i + 0, x, true);
 				targetView.setFloat32(offset_xyz + 12 * i + 4, y, true);
