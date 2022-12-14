@@ -1,7 +1,7 @@
 
 import {PointCloudOctree, PointCloudOctreeNode} from "potree";
-import {PointAttribute, PointAttributes, PointAttributeTypes} from "./PointAttributes.js";
-import {WorkerPool} from "../misc/WorkerPool.js";
+import {PointAttribute, PointAttributes, PointAttributeTypes} from "potree";
+import {WorkerPool} from "potree";
 import {Geometry} from "potree";
 import {Vector3, Box3, Matrix4} from "potree";
 import JSON5 from "json5";
@@ -32,6 +32,7 @@ export class Potree2Loader{
 		this.metanodeMap = new Map();
 		this.nodeMap = new Map();
 		this.batches = new Map();
+		this.octree = null;
 	}
 
 	async loadActualNode(node){
@@ -42,7 +43,7 @@ export class Potree2Loader{
 
 		let metanode = this.metanodeMap.get(node.name);
 
-		console.log(`processing ${node.name}, #voxels: ${metanode.numVoxels}`);
+		// console.log(`processing ${node.name}, #voxels: ${metanode.numVoxels}`);
 
 		let box = node.boundingBox;
 		let boxSize = box.size();
@@ -196,10 +197,7 @@ export class Potree2Loader{
 
 
 			let childVoxels = [];
-			// FIXME: source.byteLength should be same as parentVoxels.length but isnt!!!
-			for(let i = 0; i < source.byteLength; i++)
-			// for(let i = 0; i < parentVoxels.length; i++)
-			{
+			for(let i = 0; i < source.byteLength; i++){
 				let parentVoxel = parentVoxels[nodeIndex][i];
 				let childmask = sourceView.getUint8(i);
 
@@ -235,7 +233,6 @@ export class Potree2Loader{
 					}
 
 				}
-
 			}
 
 			let n = childVoxels.length;
@@ -324,7 +321,6 @@ export class Potree2Loader{
 
 		let batch = node.batch;
 
-
 		if(batch.loading === true) return;
 		if(batch.loaded === true) return;
 		
@@ -336,10 +332,94 @@ export class Potree2Loader{
 			return a.name.length - b.name.length;
 		});
 
-		for(let bmetanode of batch.nodes){
-			let node = this.nodeMap.get(bmetanode.name);
-			await this.loadActualNode(node);
+		// for(let bmetanode of batch.nodes){
+		// 	let node = this.nodeMap.get(bmetanode.name);
+		// 	await this.loadActualNode(node);
+		// }
+
+
+		{
+			let workerPath = "../src/potree/octree/loader/DecoderWorker_Potree2Batch.js";
+			
+			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
+
+			worker.onmessage = (e) => {
+
+				let data = e.data;
+
+				// if(data === "failed"){
+				// 	console.log(`failed to load ${node.name}. trying again!`);
+
+				// 	node.loaded = false;
+				// 	node.loading = false;
+				// 	nodesLoading--;
+
+				// 	WorkerPool.returnWorker(workerPath, worker);
+
+				// 	return;
+				// }
+
+				for(let workernode of data.nodes){
+					let geometry = new Geometry();
+					geometry.numElements = workernode.numVoxels;
+					geometry.buffer = new Uint8Array(workernode.buffer);
+					// geometry.statsList = data.statsList;
+
+					let node = this.nodeMap.get(workernode.name);
+					node.loaded = true;
+					node.loading = false;
+					node.geometry = geometry;
+					// nodesLoading--;
+				}
+
+				WorkerPool.returnWorker(workerPath, worker);
+
+				batch.loaded = true;
+				batch.loading = false;
+
+				// if(node.name === "r"){
+				// 	this.octree.events.dispatcher.dispatch("root_node_loaded", {octree: this.octree, node});
+				// }
+			};
+
+			let url = new URL(`${this.octree.url}/${batch.name}.batch`, document.baseURI).href;
+
+			let parent = this.nodeMap.get(batch.name).parent;
+
+			let parentMsg = null;
+			if(parent){
+				let parentMetanode = this.metanodeMap.get(parent.name);
+				parentMsg = {
+					name: parent.name,
+					min: parent.boundingBox.min.toArray(),
+					max: parent.boundingBox.max.toArray(),
+					numVoxels: parentMetanode.numVoxels,
+					buffer: parent.geometry.buffer.buffer.slice(),
+				};
+			}
+
+			let nodes = batch.nodes;
+			let spacing = this.octree.spacing;
+
+			let message = {
+				batchName: batch.name,
+				url, nodes, spacing,
+				parent: parentMsg,
+			};
+
+			worker.postMessage(message, []);
+
 		}
+
+
+
+
+
+
+
+
+
+
 
 		batch.loading = false;
 		batch.loaded = true;
