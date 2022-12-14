@@ -49,3 +49,5 @@ las14_extra_attributes.las
 sofi.copc.laz
 resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip/
 resources/pointclouds/las14_extra_attributes/
+resources/pointclouds/lifeboat/
+resources/pointclouds/lifeboat_potree2/

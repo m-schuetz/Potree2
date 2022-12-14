@@ -339,7 +339,7 @@ export class Potree2Loader{
 
 
 		{
-			let workerPath = "../src/potree/octree/loader/DecoderWorker_Potree2Batch.js";
+			let workerPath = "./src/potree/octree/loader/DecoderWorker_Potree2Batch.js";
 			
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
@@ -359,10 +359,12 @@ export class Potree2Loader{
 				// 	return;
 				// }
 
-				for(let workernode of data.nodes){
+				// for(let workernode of data.nodes)
+				let workernode = data.node;
+				{
 					let geometry = new Geometry();
 					geometry.numElements = workernode.numVoxels;
-					geometry.buffer = new Uint8Array(workernode.buffer);
+					geometry.buffer = new Uint8Array(data.buffer);
 					// geometry.statsList = data.statsList;
 
 					let node = this.nodeMap.get(workernode.name);

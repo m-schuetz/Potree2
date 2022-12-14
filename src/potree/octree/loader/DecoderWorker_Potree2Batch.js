@@ -197,14 +197,18 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 
 	}
 
-	node.buffer = target;
-	console.log("loaded ", node.name);
+	node.buffer = target.slice();
+	// console.log("loaded ", node.name);
+
+	let message = {
+		node, buffer: target
+	};
+	let transferables = [target];
+
+	postMessage(message, transferables);
 }
 
 async function load(event){
-
-	console.log(`worker message: `);
-	console.log(event);
 
 	let response = await fetch(event.data.url);
 	let buffer = await response.arrayBuffer();
@@ -230,6 +234,7 @@ async function load(event){
 	// 	buffer: new Uint8Array(outBuffer), statsList
 	// };
 
+
 	return event.data.nodes;
 }
 
@@ -242,15 +247,15 @@ onmessage = async function (event) {
 			nodes,
 		};
 		
-		let transferables = [];
+		// let transferables = [];
 
-		for(let node of nodes){
-			transferables.push(node.buffer);
-		}
+		// for(let node of nodes){
+		// 	transferables.push(node.buffer);
+		// }
 
 		// transferables.push(loaded.buffer.buffer);
 
-		postMessage(message, transferables);
+		// postMessage(message, transferables);
 	}catch(e){
 		console.log(e);
 		postMessage("failed");

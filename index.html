@@ -1,6 +1,6 @@
 <html>
 <head>
-<meta http-equiv="origin-trial" content="ApM2LRrizp8n6n1p9IaYNL9tbGYTRob0jgm5wOr1jPQeXXyKTqNbaZKaC2LgVTyizCde6tC6XL0ZeH28L/z3EAEAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY0MzE1NTE5OSwiaXNTdWJkb21haW4iOnRydWV9">
+<meta http-equiv="origin-trial" content="AmgwKkyLeQetn/dhGSsOlfOa/QLp1JOUgqyYSeFTadHtP83gkgHrDEj62CN//MgSjDbVwOY/LAr4qg/XyU2YYwMAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY3NTIwOTU5OSwiaXNTdWJkb21haW4iOnRydWV9">
 <style>
 
 td{
@@ -92,7 +92,11 @@ canvas{
 	let {scene, controls} = potree;
 	// installToolbar(potree.renderer.canvas, potree);
 
-	window.sidebar = installSidebar(elPotree, potree);
+	installSidebar(elPotree, potree).then(sidebar => {
+		window.sidebar = sidebar;
+		sidebar.toggle();
+	});
+	// window.sidebar.toggle();
 
 	window.Potree = Potree;
 	window.potree = potree;
@@ -130,24 +134,26 @@ canvas{
 	// 	}
 	// });
 
-	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/lifeboat/metadata.json").then(pointcloud => {
 		scene.root.children.push(pointcloud);
-
 		pointcloud.position.set(0, 10, 0);
-
 	});
+	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
+	// 	pointcloud.position.set(0, 10, 0);
+	// });
 
 	import {Potree2Loader} from "potree";
 	Potree2Loader.load("./resources/F/temp/test").then(pointcloud => {
 		scene.root.children.push(pointcloud);
 
-		pointcloud.position.set(0, -5, 0);
+		pointcloud.position.set(3, -10, 0);
 
 	});
 
 	controls.set({
-		position: [18.8, -10.1, 15.1], 
-		pivot: [9.1, 0.4, 6.7]
+		position: [-11.0, 5.4, 13.2], 
+		pivot: [9.3, 7.6, 6.2]
 	});
 
 	

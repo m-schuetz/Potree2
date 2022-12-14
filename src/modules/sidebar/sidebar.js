@@ -188,7 +188,8 @@ export async function installSidebar(elPotree, potree){
 	sidebar = {
 		elContainer: elPotree,
 		potree,
-		elSidebar, elSectionSelection, elSectionContent
+		elSidebar, elSectionSelection, elSectionContent,
+		toggle
 	};
 
 
