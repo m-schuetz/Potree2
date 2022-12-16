@@ -171,6 +171,9 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		uniformsView.setFloat32(276, Potree.settings.pointSize, true);
 		uniformsView.setUint32(280, Potree.settings.splatType, true);
 
+		let isAdditive = !(octree.loader.constructor.name === "Potree2Loader");
+		uniformsView.setUint32(284, isAdditive ? 1 : 0, true);
+
 		let attributeName = Potree.settings.attribute;
 		let settings = octree?.material?.attributes?.get(attributeName);
 	}
@@ -496,24 +499,27 @@ async function renderOctree(octree, drawstate, flags){
 	let i = 0;
 	for(let node of nodes){
 
-		let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
-		pass.passEncoder.setBindGroup(2, bufferBindGroup);
-		
-		if(octree.showBoundingBox === true){
-			let box = node.boundingBox.clone().applyMatrix4(octree.world);
-			let position = box.min.clone();
-			position.add(box.max).multiplyScalar(0.5);
-			let size = box.size();
-			let color = new Vector3(255, 255, 0);
-			renderer.drawBoundingBox(position, size, color);
-		}
-
 		let numElements = node.geometry.numElements;
+		if(numElements > 0){
 
-		if(octree.material.splatType === SplatType.POINTS){
-			pass.passEncoder.draw(numElements, 1, 0, i);
-		}else if(octree.material.splatType === SplatType.QUADS){
-			pass.passEncoder.draw(6 * numElements, 1, 0, i);
+			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
+			pass.passEncoder.setBindGroup(2, bufferBindGroup);
+			
+			if(octree.showBoundingBox === true){
+				let box = node.boundingBox.clone().applyMatrix4(octree.world);
+				let position = box.min.clone();
+				position.add(box.max).multiplyScalar(0.5);
+				let size = box.size();
+				let color = new Vector3(255, 255, 0);
+				renderer.drawBoundingBox(position, size, color);
+			}
+
+
+			if(octree.material.splatType === SplatType.POINTS){
+				pass.passEncoder.draw(numElements, 1, 0, i);
+			}else if(octree.material.splatType === SplatType.QUADS){
+				pass.passEncoder.draw(6 * numElements, 1, 0, i);
+			}
 		}
 
 		// Potree.state.numPoints += numElements;

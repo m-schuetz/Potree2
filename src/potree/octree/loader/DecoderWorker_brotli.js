@@ -44,6 +44,8 @@ async function load(event){
 
 	let {name, pointAttributes, numPoints, scale, offset, min, nodeMin, nodeMax} = event.data;
 
+	if(numPoints === 0) return {buffer: new Uint8Array(0)};
+
 	let buffer;
 	if(event.data.byteSize === 0){
 		buffer = new ArrayBuffer(0);

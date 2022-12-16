@@ -116,7 +116,7 @@ canvas{
 	Potree.settings.attribute = "rgba";
 	Potree.settings.pointSize = 5;
 	Potree.settings.splatType = SplatType.POINTS;
-	// Potree.settings.minNodeSize = 828;
+	Potree.settings.minNodeSize = 90;
 
 	// loadGLB("./resources/models/australia_gas.glb", {
 	// 	onStart: (node) => {
@@ -134,27 +134,73 @@ canvas{
 	// 	}
 	// });
 
-	Potree.load("./resources/pointclouds/lifeboat/metadata.json").then(pointcloud => {
-		scene.root.children.push(pointcloud);
-		pointcloud.position.set(0, 10, 0);
-	});
-	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
-	// 	scene.root.children.push(pointcloud);
-	// 	pointcloud.position.set(0, 10, 0);
-	// });
+		import {Potree2Loader} from "potree";
+	{
 
-	import {Potree2Loader} from "potree";
-	Potree2Loader.load("./resources/F/temp/test").then(pointcloud => {
-		scene.root.children.push(pointcloud);
+		let pc1, pc2;
+		Potree.load("./resources/F/dev/deploy/sitn_test_2022.12.16/potree1/metadata.json").then(pointcloud => {
+			scene.root.children.push(pointcloud);
+			pointcloud.position.set(0, 0, 0);
+			pointcloud.visible = false;
 
-		pointcloud.position.set(3, -10, 0);
+			pc1 = pointcloud;
+		});
 
-	});
+		Potree2Loader.load("./resources/F/dev/deploy/sitn_test_2022.12.16/potree2").then(pointcloud => {
+			scene.root.children.push(pointcloud);
+			pointcloud.position.set(0, 0, 0);
 
-	controls.set({
-		position: [-11.0, 5.4, 13.2], 
-		pivot: [9.3, 7.6, 6.2]
-	});
+			pc2 = pointcloud;
+		});
+
+		controls.set({
+			position: [486.4, 386.0, 36.2],
+			pivot:    [457.7, 351.1, 3.2],
+		});
+
+		let canvas = potree.renderer.canvas;
+		let container = canvas.parentElement;
+
+		let button = document.createElement("input");
+		button.value = "toggle (currently showing Potree 2 dataset)";
+		button.type = "button";
+		button.style.bottom = "10px";
+		button.style.left = "10px";
+		button.style.position = "absolute";
+
+		button.onclick = () => {
+			pc1.visible = pc2.visible;
+			pc2.visible = !pc1.visible;
+
+			if(pc1.visible){
+				button.value = "toggle (currently showing Potree 1 dataset)";
+			}else{
+				button.value = "toggle (currently showing Potree 2 dataset)";
+			}
+		};
+		
+		
+		container.append(button);
+		
+	}
+
+	// {
+	// 	Potree.load("./resources/pointclouds/lifeboat/metadata.json").then(pointcloud => {
+	// 		scene.root.children.push(pointcloud);
+	// 		pointcloud.position.set(0, 10, 0);
+	// 	});
+
+	// 	import {Potree2Loader} from "potree";
+	// 	Potree2Loader.load("./resources/F/temp/test").then(pointcloud => {
+	// 		scene.root.children.push(pointcloud);
+	// 		pointcloud.position.set(3, -10, 0);
+	// 	});
+
+	// 	controls.set({
+	// 		position: [-11.0, 5.4, 13.2], 
+	// 		pivot: [9.3, 7.6, 6.2]
+	// 	});
+	// }
 
 	
 	

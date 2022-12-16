@@ -11,6 +11,7 @@ struct Uniforms {
 	time              : f32,           // 272
 	pointSize         : f32,           // 276
 	splatType         : u32,           // 280
+	isAdditive        : u32,           // 284
 };
 
 struct Node {
@@ -529,6 +530,8 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	output.point_id = node.counter + pointID;
 	output.point_position = point_position;
 
+	// replacing LOD => discard regions where child is visible
+	if(uniforms.isAdditive == 0)
 	{ // DEBUG
 		var offset = 12u * pointID;
 			
@@ -557,21 +560,6 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 			// output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 			output.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 		}
-
-		// if(vertex.instanceID == 0u){
-		// 	output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-		// }
-		// output.color = vec4<f32>(
-		// 	f32(childIndex) / 8.0, 
-		// 	0.0, 
-		// 	0.0, 
-		// 	1.0
-		// );
-
-		// if(node.childmask == 0u){
-		// 	output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-		// }
-
 	}
 
  
@@ -620,8 +608,6 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 
 		output.color = vec4<f32>(weighted, weight);
 	}
-
-	
 
 	return output;
 }
