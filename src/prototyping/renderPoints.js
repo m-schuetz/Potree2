@@ -145,36 +145,14 @@ function getState(renderer, node){
 	return states.get(node);
 }
 
-export function render(args = {}){
+export function render(nodes, drawstate){
 
-	let nodes = args.in;
-	let target = args.target;
-	let drawstate = args.drawstate;
-	let {renderer, camera} = drawstate;
+	let {renderer, pass} = drawstate;
+	let {passEncoder} = pass;
 	let {device} = renderer;
 
 	init(renderer);
 
-	let firstDraw = target.version < renderer.frameCounter;
-	let view = target.colorAttachments[0].texture.createView();
-	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
-	let depthLoadValue = firstDraw ? 0 : "load";
-	let renderPassDescriptor = {
-		colorAttachments: [{view, loadValue}],
-		depthStencilAttachment: {
-			view: target.depth.texture.createView(),
-			depthLoadValue: depthLoadValue,
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
-	target.version = renderer.frameCounter;
-
-	const commandEncoder = renderer.device.createCommandEncoder();
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-	
 	Timer.timestamp(passEncoder, "points-start");
 
 	passEncoder.setPipeline(pipeline);
@@ -221,9 +199,5 @@ export function render(args = {}){
 	}
 
 	Timer.timestamp(passEncoder, "points-end");
-
-	passEncoder.endPass();
-	let commandBuffer = commandEncoder.finish();
-	renderer.device.queue.submit([commandBuffer]);
 
 }

@@ -10,7 +10,7 @@ let csDepth = `
 
 #version 450
 
-layout(local_size_x = 128, local_size_y = 1) in;
+layout(local_size_x = 32, local_size_y = 1) in;
 
 layout(set = 0, binding = 0) uniform Uniforms {
 	mat4 worldView;
@@ -36,6 +36,9 @@ layout(std430, set = 0, binding = 3) buffer SSBO_color {
 // layout(binding = 4) writeonly  uniform image2D destTex;
 // uniform layout(set = 0, binding = 4, rgba8ui) writeonly  uimage2D uFractalTexture;
 
+shared uint sX;
+shared uint sY;
+shared uint sDiverging;
 
 void main(){
 
@@ -52,8 +55,9 @@ void main(){
 
 	pos.xyz = pos.xyz / pos.w;
 
+	bool isClipped = false;
 	if(pos.w <= 0.0 || pos.x < -1.0 || pos.x > 1.0 || pos.y < -1.0 || pos.y > 1.0){
-		return;
+		isClipped = true;
 	}
 
 	ivec2 imageSize = ivec2(
@@ -68,9 +72,46 @@ void main(){
 	uint depth = floatBitsToUint(pos.w);
 	uint old = framebuffer[pixelID];
 
-	if(depth < old){
+	if(depth < old && !isClipped){
 		atomicMin(framebuffer[pixelID], depth);
 	}
+
+	// if(gl_LocalInvocationID.x == 0){
+	// 	sX = pixelCoords.x;
+	// 	sY = pixelCoords.y;
+	// 	sDiverging = 0;
+	// }
+
+	// barrier();
+
+	// if(pixelCoords.x != sX || pixelCoords.y != sY){
+	// 	atomicAdd(sDiverging, 1);
+	// }
+
+	// barrier();
+
+	// bool inDifferentPixels = sDiverging > 0;
+	// bool inSamePixel = !inDifferentPixels;
+
+	// if(isClipped){
+
+	// }else if(inDifferentPixels){
+	// 	uint depth = floatBitsToUint(pos.w);
+	// 	uint old = framebuffer[pixelID];
+
+	// 	if(depth < old){
+	// 		atomicMin(framebuffer[pixelID], depth);
+	// 	}
+	// }else if(inSamePixel && gl_LocalInvocationID.x == 0){
+	// 	uint depth = floatBitsToUint(pos.w);
+	// 	uint old = framebuffer[pixelID];
+
+	// 	if(depth < old){
+	// 		atomicMin(framebuffer[pixelID], depth);
+	// 	}
+	// }
+
+	
 }
 
 `;
@@ -552,7 +593,7 @@ function reset(renderer, ssbo, numUints, value){
 	device.queue.submit([commandEncoder.finish()]);
 }
 
-function depthPass(renderer, nodes, camera, target){
+function depthPass(renderer, nodes, camera){
 
 	let {device} = renderer;
 
@@ -624,7 +665,7 @@ function depthPass(renderer, nodes, camera, target){
 			// ];
 			// passEncoder.dispatch(...groups);
 			passEncoder.dispatch(
-				Math.ceil(node.geometry.numElements / 128)
+				Math.ceil(node.geometry.numElements / 32)
 			);
 
 			// passEncoder.dispatch(node.geometry.numElements);
@@ -712,7 +753,7 @@ function colorPass(renderer, nodes, camera){
 			passEncoder.setBindGroup(0, bindGroup);
 
 			let groups = [
-				Math.floor(node.geometry.numElements / 128),
+				Math.ceil(node.geometry.numElements / 128),
 				1, 1
 			];
 			passEncoder.dispatch(...groups);
@@ -734,7 +775,7 @@ function colorPass(renderer, nodes, camera){
 }
 
 
-export function render(args = {}){
+export function render(nodes, drawstate){
 
 	if(glslang === undefined){
 
@@ -749,13 +790,10 @@ export function render(args = {}){
 		return;
 	}
 
-	let nodes = args.in;
-	let target = args.target;
-	let drawstate = args.drawstate;
 	let {renderer, camera} = drawstate;
 	let {device} = renderer;
 
-	Timer.timestampSep(renderer,"render-hqs-start");
+	Timer.timestampSep(renderer,"compute-start");
 
 	// init(renderer);
 
@@ -769,30 +807,12 @@ export function render(args = {}){
 		reset(renderer, ssbo_colors, 4 * numUints, 0);
 	}
 
-	depthPass(renderer, nodes, camera, target);
+	depthPass(renderer, nodes, camera);
 	colorPass(renderer, nodes, camera);
 
-	let firstDraw = target.version < renderer.frameCounter;
-	let view = target.colorAttachments[0].texture.createView();
-	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
-	let depthLoadValue = firstDraw ? 0 : "load";
-	let renderPassDescriptor = {
-		colorAttachments: [{view, loadValue}],
-		depthStencilAttachment: {
-			view: target.depth.texture.createView(),
-			depthLoadValue: depthLoadValue,
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
-	target.version = renderer.frameCounter;
-
-	const commandEncoder = renderer.device.createCommandEncoder();
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
 	{ // resolve
+		let {pass} = drawstate;
+		let {passEncoder} = pass;
 		let {ssbo_colors} = getColorState(renderer);
 		let {pipeline, uniformBuffer} = getScreenPassState(renderer);
 		let size = renderer.getSize();
@@ -839,10 +859,6 @@ export function render(args = {}){
 
 	}
 
-	passEncoder.endPass();
-	let commandBuffer = commandEncoder.finish();
-	renderer.device.queue.submit([commandBuffer]);
-
-	Timer.timestampSep(renderer,"render-hqs-end");
+	Timer.timestampSep(renderer,"compute-end");
 
 }

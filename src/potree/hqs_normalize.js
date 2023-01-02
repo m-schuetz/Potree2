@@ -1,6 +1,5 @@
 
-import {RenderTarget} from "../core/RenderTarget.js";
-import * as Timer from "../renderer/Timer.js";
+import {Timer} from "potree";
 
 let vs = `
 	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
@@ -109,76 +108,23 @@ let fs = `
 
 		var output : FragmentOutput;
 
-		var avg : vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-
-		var window : i32 = uniforms.window;
-		var closest : f32 = 0.0;
-
-		for(var i : i32 = -window; i <= window; i = i + 1){
-		for(var j : i32 = -window; j <= window; j = j + 1){
-			var coords : vec2<i32>;
-			coords.x = i32(input.fragCoord.x) + i;
-			coords.y = i32(input.fragCoord.y) + j;
-
-			var d : f32 = textureLoad(myDepth, coords, 0).x;
-
-			closest = max(closest, d);
-		}
-		}
-
-		var closestLinear : f32 = toLinear(closest, uniforms.near);
+		var coords : vec2<i32>;
+		coords.x = i32(input.fragCoord.x);
+		coords.y = i32(input.fragCoord.y);
 		
-		for(var i : i32 = -window; i <= window; i = i + 1){
-		for(var j : i32 = -window; j <= window; j = j + 1){
-			var coords : vec2<i32>;
-			coords.x = i32(input.fragCoord.x) + i;
-			coords.y = i32(input.fragCoord.y) + j;
+		var c : vec4<f32> = textureLoad(myTexture, coords, 0);
+		// c.w = 1.0;
+		c.r = c.r / c.w;
+		c.g = c.g / c.w;
+		c.b = c.b / c.w;
+		// c.r = c.w / 10.0;
+		// c.g = c.w / 10.0;
+		// c.b = c.w / 10.0;
 
-			var d : f32 = textureLoad(myDepth, coords, 0).x;
-			var linearD : f32 = toLinear(d, uniforms.near);
+		var d : f32 = textureLoad(myDepth, coords, 0).x;
 
-			var isBackground : bool = d == 0.0;
-			var isInRange : bool = linearD <= closestLinear * 1.01;
-
-			if(isInRange && !isBackground){
-				var manhattanDistance : f32 = f32(abs(i) + abs(j));
-
-				var weight : f32 = 1.0;
-
-				if(manhattanDistance <= 0.0){
-					weight = 10.0;
-				}elseif(manhattanDistance <= 1.0){
-					weight = 0.3;
-				}elseif(manhattanDistance <= 2.0){
-					weight = 0.01;
-				}else{
-					weight = 0.001;
-				}
-				
-				var color : vec4<f32> = textureLoad(myTexture, coords, 0);
-				color.x = color.x * weight;
-				color.y = color.y * weight;
-				color.z = color.z * weight;
-				color.w = color.w * weight;
-
-				avg = avg + color;
-			}
-		}
-		}
-
-		if(avg.w == 0.0){
-			output.color = vec4<f32>(0.1, 0.2, 0.3, 1.0);
-			output.depth = 0.0;
-		}else{
-			// avg = avg / avg.w;
-			avg.x = avg.x / avg.w;
-			avg.y = avg.y / avg.w;
-			avg.z = avg.z / avg.w;
-			avg.w = 1.0;
-
-			output.color = avg;
-			output.depth = closest;
-		}
+		output.color = c;
+		output.depth = d;
 
 		return output;
 	}
@@ -212,7 +158,7 @@ function init(renderer){
 		},
 		depthStencil: {
 				depthWriteEnabled: true,
-				depthCompare: "greater",
+				depthCompare: "always",
 				format: "depth32float",
 		},
 	});
@@ -224,7 +170,7 @@ function init(renderer){
 	});
 }
 
-export function dilate(source, drawstate){
+export function hqs_normalize(source, drawstate){
 
 	let {renderer, camera, pass} = drawstate;
 	let {passEncoder} = pass;

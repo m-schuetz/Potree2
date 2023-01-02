@@ -1,6 +1,5 @@
 
-import {RenderTarget} from "../core/RenderTarget.js";
-import * as Timer from "../renderer/Timer.js";
+import {Timer} from "potree";
 
 let vs = `
 	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
@@ -78,6 +77,13 @@ let fs = `
 	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
 	[[binding(3), set(0)]] var myDepth: texture_2d<f32>;
 
+	let sampleOffsets : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
+		vec2<f32>(-1.0,  0.0),
+		vec2<f32>( 1.0,  0.0),
+		vec2<f32>( 0.0, -1.0),
+		vec2<f32>( 0.0,  1.0)
+	);
+
 	[[block]] struct Uniforms {
 		uTest   : u32;
 		x       : f32;
@@ -100,85 +106,66 @@ let fs = `
 		[[location(0)]] color : vec4<f32>;
 	};
 
+	var<private> fragXY : vec2<f32>;
+
 	fn toLinear(depth: f32, near: f32) -> f32{
 		return near / depth;
+	}
+
+	fn readLinearDepth(offsetX : f32, offsetY : f32, near : f32) -> f32 {
+
+		var fCoord : vec2<f32> = vec2<f32>(fragXY.x + offsetX, fragXY.y + offsetY);
+		var iCoord : vec2<i32> = vec2<i32>(fCoord);
+
+		var d : f32 = textureLoad(myDepth, iCoord, 0).x;
+		var dl : f32 = toLinear(d, uniforms.near);
+
+		// Artificially reduce depth precision to visualize artifacts
+		// var di : u32 = u32(10.0 * dl);
+		// dl = f32(di);
+
+		return dl;
+	}
+
+	fn getEdlResponse(input : FragmentInput) -> f32 {
+
+		var depth : f32 = readLinearDepth(0.0, 0.0, uniforms.near);
+
+		var sum : f32 = 0.0;
+		
+		for(var i : i32 = 0; i < 4; i = i + 1){
+			var offset : vec2<f32> = sampleOffsets[i];
+			var neighbourDepth : f32 = readLinearDepth(offset.x, offset.y, uniforms.near);
+
+			sum = sum + max(log2(depth) - log2(neighbourDepth), 0.0);
+			// sum = sum + min(log2(depth) - log2(neighbourDepth), 0.0);
+		}
+		
+		var response : f32 = sum / 4.0;
+
+		return response;
 	}
 
 	[[stage(fragment)]]
 	fn main(input : FragmentInput) -> FragmentOutput {
 
+		fragXY = input.fragCoord.xy;
+
+		var coords : vec2<i32> = vec2<i32>(input.fragCoord.xy);
+
+		var c : vec4<f32> = textureLoad(myTexture, coords, 0);
+		var response : f32 = getEdlResponse(input);
+		var shade : f32 = exp(-response * 100.0);
+
 		var output : FragmentOutput;
+		output.color = vec4<f32>(
+			c.r * shade, 
+			c.g * shade, 
+			c.b * shade, 
+			1.0);
 
-		var avg : vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-
-		var window : i32 = uniforms.window;
-		var closest : f32 = 0.0;
-
-		for(var i : i32 = -window; i <= window; i = i + 1){
-		for(var j : i32 = -window; j <= window; j = j + 1){
-			var coords : vec2<i32>;
-			coords.x = i32(input.fragCoord.x) + i;
-			coords.y = i32(input.fragCoord.y) + j;
-
-			var d : f32 = textureLoad(myDepth, coords, 0).x;
-
-			closest = max(closest, d);
-		}
-		}
-
-		var closestLinear : f32 = toLinear(closest, uniforms.near);
-		
-		for(var i : i32 = -window; i <= window; i = i + 1){
-		for(var j : i32 = -window; j <= window; j = j + 1){
-			var coords : vec2<i32>;
-			coords.x = i32(input.fragCoord.x) + i;
-			coords.y = i32(input.fragCoord.y) + j;
-
-			var d : f32 = textureLoad(myDepth, coords, 0).x;
-			var linearD : f32 = toLinear(d, uniforms.near);
-
-			var isBackground : bool = d == 0.0;
-			var isInRange : bool = linearD <= closestLinear * 1.01;
-
-			if(isInRange && !isBackground){
-				var manhattanDistance : f32 = f32(abs(i) + abs(j));
-
-				var weight : f32 = 1.0;
-
-				if(manhattanDistance <= 0.0){
-					weight = 10.0;
-				}elseif(manhattanDistance <= 1.0){
-					weight = 0.3;
-				}elseif(manhattanDistance <= 2.0){
-					weight = 0.01;
-				}else{
-					weight = 0.001;
-				}
-				
-				var color : vec4<f32> = textureLoad(myTexture, coords, 0);
-				color.x = color.x * weight;
-				color.y = color.y * weight;
-				color.z = color.z * weight;
-				color.w = color.w * weight;
-
-				avg = avg + color;
-			}
-		}
-		}
-
-		if(avg.w == 0.0){
-			output.color = vec4<f32>(0.1, 0.2, 0.3, 1.0);
-			output.depth = 0.0;
-		}else{
-			// avg = avg / avg.w;
-			avg.x = avg.x / avg.w;
-			avg.y = avg.y / avg.w;
-			avg.z = avg.z / avg.w;
-			avg.w = 1.0;
-
-			output.color = avg;
-			output.depth = closest;
-		}
+		var d : f32 = textureLoad(myDepth, coords, 0).x;
+		output.depth = d;
 
 		return output;
 	}
@@ -224,14 +211,14 @@ function init(renderer){
 	});
 }
 
-export function dilate(source, drawstate){
+export function EDL(source, drawstate){
 
 	let {renderer, camera, pass} = drawstate;
 	let {passEncoder} = pass;
 
 	init(renderer);
 
-	Timer.timestamp(passEncoder,"dilate-start");
+	Timer.timestamp(passEncoder,"EDL-start");
 
 	let sampler = renderer.device.createSampler({
 		magFilter: "linear",
@@ -277,6 +264,5 @@ export function dilate(source, drawstate){
 
 	passEncoder.draw(6, 1, 0, 0);
 
-	Timer.timestamp(passEncoder,"dilate-end");
-
+	Timer.timestamp(passEncoder,"EDL-end");
 }

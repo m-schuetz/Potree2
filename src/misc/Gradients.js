@@ -42,3 +42,7 @@ export let SPECTRAL = new Gradient([
 	[50,136,189, 255],
 	[94,79,162, 255],
 ]);
+
+export const Gradients = {
+	SPECTRAL
+};

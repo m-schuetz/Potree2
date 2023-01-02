@@ -27,3 +27,4 @@ resources/pointclouds/ca13_sample/octree.bin
 resources/pointclouds/66_73/hierarchy.bin
 resources/pointclouds/66_73/metadata.json
 resources/pointclouds/66_73/octree.bin
+resources/models/vcity_sitn.glb
