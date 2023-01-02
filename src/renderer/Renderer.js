@@ -57,19 +57,26 @@ export class Renderer{
 			nonGuaranteedFeatures: ["timestamp-query"],
 		});
 		this.canvas = document.getElementById("canvas");
-		this.context = this.canvas.getContext("gpupresent");
+		this.context = this.canvas.getContext("webgpu");
 
 		this.swapChainFormat = "bgra8unorm";
-		this.swapChain = this.context.configureSwapChain({
+		// this.swapChain = this.context.configureSwapChain({
+		// 	device: this.device,
+		// 	format: this.swapChainFormat,
+		// 	usage: GPUTextureUsage.RENDER_ATTACHMENT 
+		// 		| GPUTextureUsage.COPY_DST 
+		// 		| GPUTextureUsage.COPY_SRC
+		// 		| GPUTextureUsage.SAMPLED,
+		// });
+		let size = this.getSize();
+
+		this.context.configure({
 			device: this.device,
+			size: [size.width, size.height],
 			format: this.swapChainFormat,
-			usage: GPUTextureUsage.RENDER_ATTACHMENT 
-				| GPUTextureUsage.COPY_DST 
-				| GPUTextureUsage.COPY_SRC
-				| GPUTextureUsage.SAMPLED,
+			alphaMode: 'opaque',
 		});
 
-		let size = this.getSize();
 		this.depthTexture = this.device.createTexture({
 			size: {width: size.width, height: size.height},
 			format: "depth32float",
@@ -100,7 +107,7 @@ export class Renderer{
 					| GPUTextureUsage.COPY_DST 
 					| GPUTextureUsage.RENDER_ATTACHMENT,
 			},
-			texture: this.swapChain.getCurrentTexture(),
+			texture: this.context.getCurrentTexture(),
 		}];
 		this.screenbuffer.depth = {
 			descriptor: {
