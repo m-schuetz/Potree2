@@ -347,6 +347,8 @@ export class Potree2Loader{
 
 				let data = e.data;
 
+				// if(data.node.name === "r66440") debugger;
+
 				// if(data === "failed"){
 				// 	console.log(`failed to load ${node.name}. trying again!`);
 

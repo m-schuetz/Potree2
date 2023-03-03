@@ -530,6 +530,9 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	output.point_id = node.counter + pointID;
 	output.point_position = point_position;
 
+	// var neginf = 1.0f / 0.0f;
+	// var neginf = bitcast<f32>(0xff800000u);
+
 	// replacing LOD => discard regions where child is visible
 	if(uniforms.isAdditive == 0)
 	{ // DEBUG

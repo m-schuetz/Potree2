@@ -58,6 +58,8 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 		return [r, g, b, a];
 	};
 
+	if(node.name === "r66440") debugger;
+
 	if(node.name === "r"){
 		// root node, directly encoded in voxel coordinates
 

@@ -154,7 +154,8 @@ export let Potree = {
 	scene: null,
 	instance: null,
 	version: "2.0 (WebGPU prototype)",
-	basePath: scriptPath
+	basePath: scriptPath,
+	debug: {}
 };
 
 

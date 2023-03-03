@@ -116,7 +116,7 @@ canvas{
 	Potree.settings.attribute = "rgba";
 	Potree.settings.pointSize = 5;
 	Potree.settings.splatType = SplatType.POINTS;
-	Potree.settings.minNodeSize = 766;
+	Potree.settings.minNodeSize = 100;
 
 	// loadGLB("./resources/models/australia_gas.glb", {
 	// 	onStart: (node) => {
@@ -138,7 +138,15 @@ canvas{
 	{
 
 		let pc1, pc2;
-		Potree.load("./resources/F/dev/deploy/sitn_test_2022.12.16/potree1/metadata.json").then(pointcloud => {
+		// Potree.load("./resources/G/temp/heidentor/").then(pointcloud => {
+		// 	scene.root.children.push(pointcloud);
+		// 	pointcloud.position.set(0, 0, 0);
+		// 	pointcloud.visible = false;
+
+		// 	pc1 = pointcloud;
+		// });
+
+		Potree2Loader.load("./resources/G/temp/heidentor_weighted/").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 			pointcloud.visible = false;
@@ -146,7 +154,7 @@ canvas{
 			pc1 = pointcloud;
 		});
 
-		Potree2Loader.load("./resources/F/dev/deploy/sitn_test_2022.12.16/potree2").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/heidentor/").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 
@@ -154,8 +162,8 @@ canvas{
 		});
 
 		controls.set({
-			position: [482.9, 366.1, 23.5],
-			pivot:    [478.8, 389.3, 7.1]
+			position: [-13.2, 16.8, 13.2], 
+			pivot:    [7.5, 7.5, 4.9]
 		});
 
 
@@ -180,12 +188,11 @@ canvas{
 			pc2.visible = !pc1.visible;
 
 			if(pc1.visible){
-				button.value = "toggle (currently showing Potree 1 dataset)";
+				button.value = "toggle (currently showing weighted dataset)";
 			}else{
-				button.value = "toggle (currently showing Potree 2 dataset)";
+				button.value = "toggle (currently showing random sampled dataset)";
 			}
 		};
-		
 		
 		container.append(button);
 		

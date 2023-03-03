@@ -103,8 +103,17 @@ export class PointCloudOctree extends SceneNode{
 				continue;
 			}
 
-			visibleNodes.push(node);
-			numPoints += node.numPoints;
+			if(Potree.debug.allowedNodes){
+				if(Potree.debug.allowedNodes.includes(node.name)){
+					visibleNodes.push(node);
+					numPoints += node.numPoints;
+				}
+			}else{
+				visibleNodes.push(node);
+				numPoints += node.numPoints;
+
+			}
+
 
 			for(let child of node.children){
 				if(!child){
