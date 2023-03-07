@@ -22,6 +22,8 @@ function getBoxSize(min, max){
 
 async function loadNode(node, nodeSpacing, parent, buffer){
 
+	let tStart = performance.now();
+
 	let view_voxel = new DataView(buffer, node.voxelBufferOffset);
 	let view_jpeg = new DataView(buffer, node.jpegBufferOffset);
 
@@ -46,6 +48,7 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 
 		imageData = context.getImageData(0, 0, width, height);
 	}
+	let dJpeg = performance.now() - tStart;
 
 	let readPixel = (x, y) => {
 		let pixelID = x + imageData.width * y;
@@ -58,8 +61,9 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 		return [r, g, b, a];
 	};
 
-	if(node.name === "r66440") debugger;
+	// if(node.name === "r064") debugger;
 
+	let tVoxelStart = performance.now();
 	if(node.name === "r"){
 		// root node, directly encoded in voxel coordinates
 
@@ -110,6 +114,13 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 			let y = view_parent.getFloat32(12 * i + 4, true);
 			let z = view_parent.getFloat32(12 * i + 8, true);
 
+			// PROTOTYPING
+			// debugger;
+			// if(offset_rgb + 6 * i + 4 + 2 >= view_parent.byteLength) debugger;
+			let r = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 0, true);
+			let g = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 2, true);
+			let b = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 4, true);
+
 			let vx = 2 * (x - parent.min[0]) / parentSize[0];
 			let vy = 2 * (y - parent.min[1]) / parentSize[1];
 			let vz = 2 * (z - parent.min[2]) / parentSize[2];
@@ -120,7 +131,11 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 
 			let childIndex = (vx << 2) | (vy << 1) | (vz << 0);
 
-			let voxel = {x, y, z};
+			if(childIndex < 0 || childIndex > 7){
+				debugger;
+			}
+
+			let voxel = {x, y, z, r, g, b};
 			parentVoxels[childIndex].push(voxel);
 		}
 
@@ -159,24 +174,40 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 					childCoordOffset.y = childCoordOffset.y * nodeSpacing * 0.5;
 					childCoordOffset.z = childCoordOffset.z * nodeSpacing * 0.5;
 
+					// debugger;
 					let childCoord = {
 						x: (parentVoxel.x + childCoordOffset.x),
 						y: (parentVoxel.y + childCoordOffset.y),
 						z: (parentVoxel.z + childCoordOffset.z),
 					};
 
-					childVoxels.push(childCoord);
+					// PROTOTYPING
+					let childVoxel = {
+						x: childCoord.x, y: childCoord.y, z: childCoord.z,
+						parent: parentVoxel
+					};
+
+					childVoxels.push(childVoxel);
 				}
 
 			}
 		}
 
-		for(let i = 0; i < childVoxels.length; i++){
-			let pos = childVoxels[i];
+		if(childVoxels.length !== node.numVoxels){
+			console.assert(`reproduced wrong amount of voxels. expected: ${node.numVoxels}, got: ${childVoxels.length}`);
+			debugger;
+		}
 
-			view_target.setFloat32(offset_xyz + 12 * i + 0, pos.x, true);
-			view_target.setFloat32(offset_xyz + 12 * i + 4, pos.y, true);
-			view_target.setFloat32(offset_xyz + 12 * i + 8, pos.z, true);
+		for(let i = 0; i < childVoxels.length; i++){
+			let childVoxel = childVoxels[i];
+
+			if(childVoxel.x == 0 && childVoxel.y == 0 && childVoxel.z == 0){
+				debugger;
+			}
+
+			view_target.setFloat32(offset_xyz + 12 * i + 0, childVoxel.x, true);
+			view_target.setFloat32(offset_xyz + 12 * i + 4, childVoxel.y, true);
+			view_target.setFloat32(offset_xyz + 12 * i + 8, childVoxel.z, true);
 
 			let mortoncode = i;
 				
@@ -192,12 +223,63 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 
 			let color = readPixel(x, y);
 
-			view_target.setUint16(offset_rgb + 6 * i + 0, color[0], true);
-			view_target.setUint16(offset_rgb + 6 * i + 2, color[1], true);
-			view_target.setUint16(offset_rgb + 6 * i + 4, color[2], true);
+			{ // PROTOTYPING: LOGRATHMIC ENCODING
+
+				// first difference-encoding to parent voxel
+				let diffR = color[0] - childVoxel.parent.r;
+				let diffG = color[1] - childVoxel.parent.g;
+				let diffB = color[2] - childVoxel.parent.b;
+
+				// then take log2 of difference and quantize to integer
+				let {abs, log2, sign, round, pow} = Math;
+				let diffR_i = round(log2(abs(diffR)));
+				let diffG_i = round(log2(abs(diffG)));
+				let diffB_i = round(log2(abs(diffB)));
+
+				// see what happens when we reconstruct the color from the quantized, log2 and difference encoded color
+				let recoveredR = sign(diffR) * pow(2, diffR_i) + childVoxel.parent.r;
+				let recoveredG = sign(diffG) * pow(2, diffG_i) + childVoxel.parent.g;
+				let recoveredB = sign(diffB) * pow(2, diffB_i) + childVoxel.parent.b;
+
+				view_target.setUint16(offset_rgb + 6 * i + 0, recoveredR, true);
+				view_target.setUint16(offset_rgb + 6 * i + 2, recoveredG, true);
+				view_target.setUint16(offset_rgb + 6 * i + 4, recoveredB, true);
+			}
+
+			// { // PROTOTYPING
+			// 	let diffR = color[0] - childVoxel.parent.r;
+			// 	let diffG = color[1] - childVoxel.parent.g;
+			// 	let diffB = color[2] - childVoxel.parent.b;
+
+			// 	let {abs, log2, sign, round, pow} = Math;
+			// 	// let diffR_i = round(log2(abs(diffR)));
+			// 	// let diffG_i = round(log2(abs(diffG)));
+			// 	// let diffB_i = round(log2(abs(diffB)));
+
+			// 	let recoveredR = diffR + childVoxel.parent.r;
+			// 	let recoveredG = diffG + childVoxel.parent.g;
+			// 	let recoveredB = diffB + childVoxel.parent.b;
+
+			// 	view_target.setUint16(offset_rgb + 6 * i + 0, recoveredR, true);
+			// 	view_target.setUint16(offset_rgb + 6 * i + 2, recoveredG, true);
+			// 	view_target.setUint16(offset_rgb + 6 * i + 4, recoveredB, true);
+			// }
+
+			// NORMAL ENCODING
+			// view_target.setUint16(offset_rgb + 6 * i + 0, color[0], true);
+			// view_target.setUint16(offset_rgb + 6 * i + 2, color[1], true);
+			// view_target.setUint16(offset_rgb + 6 * i + 4, color[2], true);
 		}
 
 	}
+
+	let tEnd = performance.now();
+	let ms = tEnd - tStart;
+	let msJpeg = dJpeg;
+	let msVoxels = tEnd - tVoxelStart;
+	let mVoxelsSec = (1000 * node.numVoxels / ms) / 1_000_000;
+	console.log(`node: ${node.name}, #voxels: ${node.numVoxels}, dJpeg: ${msJpeg.toFixed(1)}ms, dVoxels: ${msVoxels.toFixed(1)}ms, dTotal: ${ms.toFixed(1)}ms, voxels/sec: ${mVoxelsSec.toFixed(2)} M`);
+
 
 	node.buffer = target.slice();
 	// console.log("loaded ", node.name);

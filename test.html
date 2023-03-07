@@ -103,10 +103,10 @@ canvas{
 	window.Vector3 = Vector3;
 
 	// default, if not overriden later on
-	controls.set({
-		position: [-19.0, 13.6, 12.2],
-		pivot: [-0.0, 2.2, 3.9],
-	});
+	// controls.set({
+	// 	position: [-19.0, 13.6, 12.2],
+	// 	pivot: [-0.0, 2.2, 3.9],
+	// });
 
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
 	Potree.settings.edlEnabled = true;
@@ -146,7 +146,7 @@ canvas{
 		// 	pc1 = pointcloud;
 		// });
 
-		Potree2Loader.load("./resources/G/temp/heidentor_weighted/").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/retz_first/").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 			pointcloud.visible = false;
@@ -154,17 +154,39 @@ canvas{
 			pc1 = pointcloud;
 		});
 
-		Potree2Loader.load("./resources/G/temp/heidentor/").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/retz_weighted/").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 
+			// debugger;
+
+			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
+			let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
+
+			let center = max.clone().sub(min).multiplyScalar(0.5);
+			let diagonal = max.sub(min);
+			let campos = center.clone().add(diagonal);
+
+			// let center = min.clone().add(max).multiplyScalar(0.5);
+			// let diagonal = max.sub(min);
+			// let campos = center.clone().add(diagonal);
+
+
+			controls.set({
+				position: campos.toArray(), 
+				pivot:    center.toArray()
+			});
+
+			// debugger;
+
+			
 			pc2 = pointcloud;
 		});
 
-		controls.set({
-			position: [-13.2, 16.8, 13.2], 
-			pivot:    [7.5, 7.5, 4.9]
-		});
+		// controls.set({
+		// 	position: [-13.2, 16.8, 13.2], 
+		// 	pivot:    [7.5, 7.5, 4.9]
+		// });
 
 
 		

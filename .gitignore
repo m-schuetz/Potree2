@@ -52,3 +52,12 @@ resources/pointclouds/las14_extra_attributes/
 resources/pointclouds/lifeboat/
 resources/pointclouds/lifeboat_potree2/
 resources/G
+prototyping/encoding/encoded_i32.bin
+prototyping/encoding/encoded_u8_l2.7z
+prototyping/encoding/encoded_u8_l2.bin
+prototyping/encoding/encoded_u8.bin
+prototyping/encoding/encoded.bin
+prototyping/encoding/r075.7z
+prototyping/encoding/r075.batch
+prototyping/encoding/r0.csv
+prototyping/encoding/r.csv
