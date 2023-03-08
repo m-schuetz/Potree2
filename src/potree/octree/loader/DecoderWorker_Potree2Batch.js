@@ -1,6 +1,8 @@
 
 // import {Box3, Vector3} from "potree";
 
+import {BrotliDecode} from "../../../../libs/brotli/decode.js";
+
 class Stats{
 	constructor(){
 		this.name = "";
@@ -26,6 +28,7 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 
 	let view_voxel = new DataView(buffer, node.voxelBufferOffset);
 	let view_jpeg = new DataView(buffer, node.jpegBufferOffset);
+	let view_colBuffer = new DataView(buffer, node.colBufferOffset);
 
 	let boxSize = getBoxSize(node.min, node.max);
 
@@ -35,33 +38,42 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 	let offset_xyz = 0;
 	let offset_rgb = 12 * node.numVoxels;
 
-	let imageData;
-	{ // try loading image
-		let blob = new Blob([new Uint8Array(buffer, node.jpegBufferOffset, node.jpegBufferSize)]);
-		let bitmap = await createImageBitmap(blob);
+	// LOAD BROTLI COMPRESSED COLORS
+	let compressedBuffer = new Int8Array(buffer, node.colCompressedBufferOffset,node.colCompressedBufferSize);
+	let decoded = BrotliDecode(compressedBuffer);
+	let decodedView = new DataView(decoded.buffer);
+	view_colBuffer = decodedView;
+	let dDecompressColor = performance.now() - tStart;
 
-		let [width, height] = [bitmap.width, bitmap.height];
+	// debugger;
 
-		const canvas = new OffscreenCanvas(256, 256);
-		const context = canvas.getContext("2d");
-		context.drawImage(bitmap, 0, 0);
+	// LOAD JPEG ENCODED COLORS
+	// let imageData;
+	// { // try loading image
+	// 	let blob = new Blob([new Uint8Array(buffer, node.jpegBufferOffset, node.jpegBufferSize)]);
+	// 	let bitmap = await createImageBitmap(blob);
 
-		imageData = context.getImageData(0, 0, width, height);
-	}
-	let dJpeg = performance.now() - tStart;
+	// 	let [width, height] = [bitmap.width, bitmap.height];
 
-	let readPixel = (x, y) => {
-		let pixelID = x + imageData.width * y;
+	// 	const canvas = new OffscreenCanvas(256, 256);
+	// 	const context = canvas.getContext("2d");
+	// 	context.drawImage(bitmap, 0, 0);
 
-		let r = imageData.data[4 * pixelID + 0];
-		let g = imageData.data[4 * pixelID + 1];
-		let b = imageData.data[4 * pixelID + 2];
-		let a = imageData.data[4 * pixelID + 3];
+	// 	imageData = context.getImageData(0, 0, width, height);
+	// }
+	// let dJpeg = performance.now() - tStart;
 
-		return [r, g, b, a];
-	};
+	// let readPixel = (x, y) => {
+	// 	let pixelID = x + imageData.width * y;
 
-	// if(node.name === "r064") debugger;
+	// 	let r = imageData.data[4 * pixelID + 0];
+	// 	let g = imageData.data[4 * pixelID + 1];
+	// 	let b = imageData.data[4 * pixelID + 2];
+	// 	let a = imageData.data[4 * pixelID + 3];
+
+	// 	return [r, g, b, a];
+	// };
+
 
 	let tVoxelStart = performance.now();
 	if(node.name === "r"){
@@ -91,11 +103,16 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 				my = my | (by << bitindex);
 			}
 
-			let color = readPixel(mx, my);
+			view_target.setUint16(offset_rgb + 6 * i + 0, view_colBuffer.getUint8(3 * i + 0));
+			view_target.setUint16(offset_rgb + 6 * i + 2, view_colBuffer.getUint8(3 * i + 1));
+			view_target.setUint16(offset_rgb + 6 * i + 4, view_colBuffer.getUint8(3 * i + 2));
 
-			view_target.setUint16(offset_rgb + 6 * i + 0, color[0], true);
-			view_target.setUint16(offset_rgb + 6 * i + 2, color[1], true);
-			view_target.setUint16(offset_rgb + 6 * i + 4, color[2], true);
+
+			// let color = readPixel(mx, my);
+
+			// view_target.setUint16(offset_rgb + 6 * i + 0, color[0], true);
+			// view_target.setUint16(offset_rgb + 6 * i + 2, color[1], true);
+			// view_target.setUint16(offset_rgb + 6 * i + 4, color[2], true);
 		}
 
 	}else{
@@ -221,30 +238,34 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 				y = y | (by << bitindex);
 			}
 
-			let color = readPixel(x, y);
+			view_target.setUint16(offset_rgb + 6 * i + 0, view_colBuffer.getUint8(3 * i + 0));
+			view_target.setUint16(offset_rgb + 6 * i + 2, view_colBuffer.getUint8(3 * i + 1));
+			view_target.setUint16(offset_rgb + 6 * i + 4, view_colBuffer.getUint8(3 * i + 2));
 
-			{ // PROTOTYPING: LOGRATHMIC ENCODING
+			// let color = readPixel(x, y);
 
-				// first difference-encoding to parent voxel
-				let diffR = color[0] - childVoxel.parent.r;
-				let diffG = color[1] - childVoxel.parent.g;
-				let diffB = color[2] - childVoxel.parent.b;
+			// { // PROTOTYPING: LOGRATHMIC ENCODING
 
-				// then take log2 of difference and quantize to integer
-				let {abs, log2, sign, round, pow} = Math;
-				let diffR_i = round(log2(abs(diffR)));
-				let diffG_i = round(log2(abs(diffG)));
-				let diffB_i = round(log2(abs(diffB)));
+			// 	// first difference-encoding to parent voxel
+			// 	let diffR = color[0] - childVoxel.parent.r;
+			// 	let diffG = color[1] - childVoxel.parent.g;
+			// 	let diffB = color[2] - childVoxel.parent.b;
 
-				// see what happens when we reconstruct the color from the quantized, log2 and difference encoded color
-				let recoveredR = sign(diffR) * pow(2, diffR_i) + childVoxel.parent.r;
-				let recoveredG = sign(diffG) * pow(2, diffG_i) + childVoxel.parent.g;
-				let recoveredB = sign(diffB) * pow(2, diffB_i) + childVoxel.parent.b;
+			// 	// then take log2 of difference and quantize to integer
+			// 	let {abs, log2, sign, round, pow} = Math;
+			// 	let diffR_i = round(log2(abs(diffR)));
+			// 	let diffG_i = round(log2(abs(diffG)));
+			// 	let diffB_i = round(log2(abs(diffB)));
 
-				view_target.setUint16(offset_rgb + 6 * i + 0, recoveredR, true);
-				view_target.setUint16(offset_rgb + 6 * i + 2, recoveredG, true);
-				view_target.setUint16(offset_rgb + 6 * i + 4, recoveredB, true);
-			}
+			// 	// see what happens when we reconstruct the color from the quantized, log2 and difference encoded color
+			// 	let recoveredR = sign(diffR) * pow(2, diffR_i) + childVoxel.parent.r;
+			// 	let recoveredG = sign(diffG) * pow(2, diffG_i) + childVoxel.parent.g;
+			// 	let recoveredB = sign(diffB) * pow(2, diffB_i) + childVoxel.parent.b;
+
+			// 	view_target.setUint16(offset_rgb + 6 * i + 0, recoveredR, true);
+			// 	view_target.setUint16(offset_rgb + 6 * i + 2, recoveredG, true);
+			// 	view_target.setUint16(offset_rgb + 6 * i + 4, recoveredB, true);
+			// }
 
 			// { // PROTOTYPING
 			// 	let diffR = color[0] - childVoxel.parent.r;
@@ -275,10 +296,19 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 
 	let tEnd = performance.now();
 	let ms = tEnd - tStart;
-	let msJpeg = dJpeg;
-	let msVoxels = tEnd - tVoxelStart;
-	let mVoxelsSec = (1000 * node.numVoxels / ms) / 1_000_000;
-	console.log(`node: ${node.name}, #voxels: ${node.numVoxels}, dJpeg: ${msJpeg.toFixed(1)}ms, dVoxels: ${msVoxels.toFixed(1)}ms, dTotal: ${ms.toFixed(1)}ms, voxels/sec: ${mVoxelsSec.toFixed(2)} M`);
+	// let msJpeg = dJpeg;
+	let msJpeg         = 0;
+	let msVoxels       = tEnd - tVoxelStart;
+	let mVoxelsSec     = (1000 * node.numVoxels / ms) / 1_000_000;
+	let strName        = node.name.padEnd(5, " ");
+	let strVoxels      = node.numVoxels.toLocaleString().padStart(8, " ");
+	// let strColor   = msJpeg.toFixed(1);
+	// let strColor       = "0";
+	let strColor       = dDecompressColor.toFixed(1).padStart(4, " ");
+	let strDVoxels     = msVoxels.toFixed(1).padStart(5, " ");
+	let strDTotal      = ms.toFixed(1).padStart(5, " ");
+	let strThroughput  = mVoxelsSec.toFixed(2).padStart(6);
+	console.log(`node: ${strName}, #voxels: ${strVoxels}, dColor: ${strColor}ms, dVoxels: ${strDVoxels}ms, dTotal: ${strDTotal}ms, voxels/sec: ${strThroughput} M`);
 
 
 	node.buffer = target.slice();
