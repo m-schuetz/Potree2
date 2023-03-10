@@ -25,7 +25,11 @@ let SPECTRAL = [
 	[50,136,189],
 ];
 
+let MAX_BATCHES_LOADING = 4;
+
 export class Potree2Loader{
+
+	static numBatchesLoading = 0;
 
 	constructor(){
 		this.metadata = null;
@@ -319,12 +323,17 @@ export class Potree2Loader{
 
 	async loadBatch(node){
 
+		if(Potree2Loader.numBatchesLoading > MAX_BATCHES_LOADING){
+			return;
+		}
+
 		let batch = node.batch;
 
 		if(batch.loading === true) return;
 		if(batch.loaded === true) return;
 		
 		console.log(`load batch ${batch.name}`)
+		Potree2Loader.numBatchesLoading++;
 
 		batch.loading = true;
 
@@ -332,11 +341,8 @@ export class Potree2Loader{
 			return a.name.length - b.name.length;
 		});
 
-		// for(let bmetanode of batch.nodes){
-		// 	let node = this.nodeMap.get(bmetanode.name);
-		// 	await this.loadActualNode(node);
-		// }
-
+		console.log("load batch")
+		console.log(batch);
 
 		{
 			let workerPath = "./src/potree/octree/loader/DecoderWorker_Potree2Batch.js";
@@ -347,43 +353,25 @@ export class Potree2Loader{
 
 				let data = e.data;
 
-				// if(data.node.name === "r66440") debugger;
 
-				// if(data === "failed"){
-				// 	console.log(`failed to load ${node.name}. trying again!`);
-
-				// 	node.loaded = false;
-				// 	node.loading = false;
-				// 	nodesLoading--;
-
-				// 	WorkerPool.returnWorker(workerPath, worker);
-
-				// 	return;
-				// }
-
-				// for(let workernode of data.nodes)
-				let workernode = data.node;
-				{
+				if(data.type === "node parsed"){
+					let workernode = data.node;
+					
 					let geometry = new Geometry();
 					geometry.numElements = workernode.numVoxels;
 					geometry.buffer = new Uint8Array(data.buffer);
-					// geometry.statsList = data.statsList;
 
 					let node = this.nodeMap.get(workernode.name);
 					node.loaded = true;
 					node.loading = false;
 					node.geometry = geometry;
-					// nodesLoading--;
+				}else if(data.type === "batch finished"){
+					WorkerPool.returnWorker(workerPath, worker);
+
+					batch.loaded = true;
+					batch.loading = false;
+					Potree2Loader.numBatchesLoading--;
 				}
-
-				WorkerPool.returnWorker(workerPath, worker);
-
-				batch.loaded = true;
-				batch.loading = false;
-
-				// if(node.name === "r"){
-				// 	this.octree.events.dispatcher.dispatch("root_node_loaded", {octree: this.octree, node});
-				// }
 			};
 
 			let url = new URL(`${this.octree.url}/${batch.name}.batch`, document.baseURI).href;
@@ -415,18 +403,8 @@ export class Potree2Loader{
 
 		}
 
-
-
-
-
-
-
-
-
-
-
-		batch.loading = false;
-		batch.loaded = true;
+		// batch.loading = false;
+		// batch.loaded = true;
 	}
 
 	async loadNode(node){

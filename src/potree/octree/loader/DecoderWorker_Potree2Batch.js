@@ -39,11 +39,27 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 	let offset_rgb = 12 * node.numVoxels;
 
 	// LOAD BROTLI COMPRESSED COLORS
+	// let compressedBuffer = new Int8Array(buffer, node.colCompressedBufferOffset,node.colCompressedBufferSize);
+	// let decoded = BrotliDecode(compressedBuffer);
+	// let decodedView = new DataView(decoded.buffer);
+	// view_colBuffer = decodedView;
+	// let dDecompressColor = performance.now() - tStart;
+
+	// LOAD BROTLI COMPRESSED COLORS
+	// let compressedBuffer = new Int8Array(buffer, node.colDiffCompressedBufferOffset,node.colDiffCompressedBufferSize);
+	// let decoded = BrotliDecode(compressedBuffer);
+	// let decodedView = new DataView(decoded.buffer);
+	// view_colBuffer = decodedView;
+	// let dDecompressColor = performance.now() - tStart;
+
+	// LOAD COMPRESSED COLORS
 	let compressedBuffer = new Int8Array(buffer, node.colCompressedBufferOffset,node.colCompressedBufferSize);
 	let decoded = BrotliDecode(compressedBuffer);
 	let decodedView = new DataView(decoded.buffer);
 	view_colBuffer = decodedView;
 	let dDecompressColor = performance.now() - tStart;
+
+
 
 	// debugger;
 
@@ -103,9 +119,29 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 				my = my | (by << bitindex);
 			}
 
-			view_target.setUint16(offset_rgb + 6 * i + 0, view_colBuffer.getUint8(3 * i + 0));
-			view_target.setUint16(offset_rgb + 6 * i + 2, view_colBuffer.getUint8(3 * i + 1));
-			view_target.setUint16(offset_rgb + 6 * i + 4, view_colBuffer.getUint8(3 * i + 2));
+			// let decode = (value) => {
+
+			// 	let sign = 1;
+			// 	if(value > 7){
+			// 		sign = -1;
+			// 		value = value - 8;
+			// 	}
+
+			// 	value = sign * (2 ** value);
+
+			// 	return value;
+			// };
+
+			// debugger;
+
+			// view_target.setUint16(offset_rgb + 6 * i + 0, decode(view_colBuffer.getUint8(3 * i + 0)), true);
+			// view_target.setUint16(offset_rgb + 6 * i + 2, decode(view_colBuffer.getUint8(3 * i + 1)), true);
+			// view_target.setUint16(offset_rgb + 6 * i + 4, decode(view_colBuffer.getUint8(3 * i + 2)), true);
+			// 376968
+			// debugger;
+			view_target.setUint16(offset_rgb + 6 * i + 0, view_colBuffer.getUint8(3 * i + 0), true);
+			view_target.setUint16(offset_rgb + 6 * i + 2, view_colBuffer.getUint8(3 * i + 1), true);
+			view_target.setUint16(offset_rgb + 6 * i + 4, view_colBuffer.getUint8(3 * i + 2), true);
 
 
 			// let color = readPixel(mx, my);
@@ -117,6 +153,8 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 
 	}else{
 		// child voxels encoded relative to parent voxels
+
+		let nodeIndex = Number(node.name.slice(-1));
 
 		let parentVoxels = {
 			0: [], 1: [], 2: [], 3: [],
@@ -153,10 +191,13 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 			}
 
 			let voxel = {x, y, z, r, g, b};
-			parentVoxels[childIndex].push(voxel);
+			// debugger;
+
+			if(childIndex === nodeIndex){
+				parentVoxels[childIndex].push(voxel);
+			}
 		}
 
-		let nodeIndex = Number(node.name.slice(-1));
 		let childVoxels = [];
 		for(let i = 0; i < parentVoxels[nodeIndex].length; i++){
 			let parentVoxel = parentVoxels[nodeIndex][i];
@@ -208,7 +249,39 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 				}
 
 			}
+
 		}
+
+		// let clamp = (value, min, max) => {
+		// 	if(value < min) return min;
+		// 	if(value > max) return max;
+			
+		// 	return value;
+		// };
+
+		// let parentSize = getBoxSize(parent.min, parent.max);
+		// let toVoxelIndex = (x, y, z) => {
+
+		// 	let ix = Math.floor(clamp(128 * (x - parent.min.x) / (parentSize.x), 0, 127));
+		// 	let iy = Math.floor(clamp(128 * (y - parent.min.y) / (parentSize.y), 0, 127));
+		// 	let iz = Math.floor(clamp(128 * (z - parent.min.z) / (parentSize.z), 0, 127));
+			
+		// 	let voxelIndex = ix + iy * 128 + iz * 128 * 128;
+		
+		// 	return voxelIndex;
+		// };
+
+		// let i_parent = 0;
+		// for(let i_child = 0; i_child < node.numVoxels; i_child++){
+
+		// 	let parent_x = view_parent.getFloat32(12 * i + 0, true);
+		// 	let parent_y = view_parent.getFloat32(12 * i + 4, true);
+		// 	let parent_z = view_parent.getFloat32(12 * i + 8, true);
+
+		// 	let isParent = toVoxelIndex(v_parent) == toVoxelIndex(v_child);
+
+		// }
+
 
 		if(childVoxels.length !== node.numVoxels){
 			console.assert(`reproduced wrong amount of voxels. expected: ${node.numVoxels}, got: ${childVoxels.length}`);
@@ -237,6 +310,28 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 				x = x | (bx << bitindex);
 				y = y | (by << bitindex);
 			}
+
+
+			// let decode = (value) => {
+
+			// 	let sign = 1;
+			// 	if(value > 7){
+			// 		sign = -1;
+			// 		value = value - 8;
+			// 	}
+
+			// 	value = sign * (2 ** value);
+
+			// 	return value;
+			// };
+
+			// if(node.name === "r0"){
+			// 	debugger;
+			// }
+
+			// view_target.setUint16(offset_rgb + 6 * i + 0, childVoxel.parent.r + decode(view_colBuffer.getUint8(3 * i + 0)));
+			// view_target.setUint16(offset_rgb + 6 * i + 2, childVoxel.parent.g + decode(view_colBuffer.getUint8(3 * i + 1)));
+			// view_target.setUint16(offset_rgb + 6 * i + 4, childVoxel.parent.b + decode(view_colBuffer.getUint8(3 * i + 2)));
 
 			view_target.setUint16(offset_rgb + 6 * i + 0, view_colBuffer.getUint8(3 * i + 0));
 			view_target.setUint16(offset_rgb + 6 * i + 2, view_colBuffer.getUint8(3 * i + 1));
@@ -315,6 +410,7 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 	// console.log("loaded ", node.name);
 
 	let message = {
+		type: "node parsed",
 		node, buffer: target
 	};
 	let transferables = [target];
@@ -344,9 +440,7 @@ async function load(event){
 		nodeMap.set(node.name, node);
 	}
 
-	// return {
-	// 	buffer: new Uint8Array(outBuffer), statsList
-	// };
+	postMessage({type: "batch finished"});
 
 
 	return event.data.nodes;
@@ -360,16 +454,7 @@ onmessage = async function (event) {
 		let message = {
 			nodes,
 		};
-		
-		// let transferables = [];
 
-		// for(let node of nodes){
-		// 	transferables.push(node.buffer);
-		// }
-
-		// transferables.push(loaded.buffer.buffer);
-
-		// postMessage(message, transferables);
 	}catch(e){
 		console.log(e);
 		postMessage("failed");
