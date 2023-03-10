@@ -25,7 +25,7 @@ let SPECTRAL = [
 	[50,136,189],
 ];
 
-let MAX_BATCHES_LOADING = 4;
+let MAX_BATCHES_LOADING = 10;
 
 export class Potree2Loader{
 
@@ -34,6 +34,7 @@ export class Potree2Loader{
 	constructor(){
 		this.metadata = null;
 		this.metanodeMap = new Map();
+		this.batchnodeMap = new Map();
 		this.nodeMap = new Map();
 		this.batches = new Map();
 		this.octree = null;
@@ -323,7 +324,7 @@ export class Potree2Loader{
 
 	async loadBatch(node){
 
-		if(Potree2Loader.numBatchesLoading > MAX_BATCHES_LOADING){
+		if(Potree2Loader.numBatchesLoading >= MAX_BATCHES_LOADING){
 			return;
 		}
 
@@ -332,7 +333,7 @@ export class Potree2Loader{
 		if(batch.loading === true) return;
 		if(batch.loaded === true) return;
 		
-		console.log(`load batch ${batch.name}`)
+		// console.log(`load batch ${batch.name}`)
 		Potree2Loader.numBatchesLoading++;
 
 		batch.loading = true;
@@ -341,8 +342,8 @@ export class Potree2Loader{
 			return a.name.length - b.name.length;
 		});
 
-		console.log("load batch")
-		console.log(batch);
+		// console.log("load batch")
+		// console.log(batch);
 
 		{
 			let workerPath = "./src/potree/octree/loader/DecoderWorker_Potree2Batch.js";
@@ -381,14 +382,19 @@ export class Potree2Loader{
 			let parentMsg = null;
 			if(parent){
 				let parentMetanode = this.metanodeMap.get(parent.name);
+				let parentBMetanode = this.batchnodeMap.get(parent.name);
 				parentMsg = {
 					name: parent.name,
 					min: parent.boundingBox.min.toArray(),
 					max: parent.boundingBox.max.toArray(),
 					numVoxels: parentMetanode.numVoxels,
 					buffer: parent.geometry.buffer.buffer.slice(),
+					numChildVoxels: parentBMetanode.numChildVoxels,
+					numVoxelsPerOctant: parentBMetanode.numVoxelsPerOctant,
 				};
 			}
+
+			// debugger;
 
 			let nodes = batch.nodes;
 			let spacing = this.octree.spacing;
@@ -398,6 +404,8 @@ export class Potree2Loader{
 				url, nodes, spacing,
 				parent: parentMsg,
 			};
+
+			// debugger;
 
 			worker.postMessage(message, []);
 
@@ -514,6 +522,8 @@ export class Potree2Loader{
 				let node = loader.nodeMap.get(bmetanode.name);
 
 				node.batch = batch;
+
+				loader.batchnodeMap.set(node.name, bmetanode);
 			}
 		}
 

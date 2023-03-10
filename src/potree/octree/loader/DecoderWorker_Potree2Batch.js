@@ -38,6 +38,13 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 	let offset_xyz = 0;
 	let offset_rgb = 12 * node.numVoxels;
 
+	// LOAD BROTLI COMPRESSED DIFF COLORS
+	// let compressedBuffer = new Int8Array(buffer, node.colDiffCompressedBufferOffset,node.colDiffCompressedBufferSize);
+	// let decoded = BrotliDecode(compressedBuffer);
+	// let decodedView = new DataView(decoded.buffer);
+	// view_colBuffer = decodedView;
+	// let dDecompressColor = performance.now() - tStart;
+
 	// LOAD BROTLI COMPRESSED COLORS
 	// let compressedBuffer = new Int8Array(buffer, node.colCompressedBufferOffset,node.colCompressedBufferSize);
 	// let decoded = BrotliDecode(compressedBuffer);
@@ -45,19 +52,12 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 	// view_colBuffer = decodedView;
 	// let dDecompressColor = performance.now() - tStart;
 
-	// LOAD BROTLI COMPRESSED COLORS
-	// let compressedBuffer = new Int8Array(buffer, node.colDiffCompressedBufferOffset,node.colDiffCompressedBufferSize);
-	// let decoded = BrotliDecode(compressedBuffer);
+	// LOAD COLORS
+	// let compressedBuffer = new Int8Array(buffer, node.colBufferOffset,node.colBufferSize);
+	// // let decoded = BrotliDecode(compressedBuffer);
 	// let decodedView = new DataView(decoded.buffer);
 	// view_colBuffer = decodedView;
 	// let dDecompressColor = performance.now() - tStart;
-
-	// LOAD COMPRESSED COLORS
-	let compressedBuffer = new Int8Array(buffer, node.colCompressedBufferOffset,node.colCompressedBufferSize);
-	let decoded = BrotliDecode(compressedBuffer);
-	let decodedView = new DataView(decoded.buffer);
-	view_colBuffer = decodedView;
-	let dDecompressColor = performance.now() - tStart;
 
 
 
@@ -156,51 +156,92 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 
 		let nodeIndex = Number(node.name.slice(-1));
 
-		let parentVoxels = {
-			0: [], 1: [], 2: [], 3: [],
-			4: [], 5: [], 6: [], 7: [],
-		};
+		// let parentVoxels = {
+		// 	0: [], 1: [], 2: [], 3: [],
+		// 	4: [], 5: [], 6: [], 7: [],
+		// };
 
 		let view_parent = new DataView(parent.buffer);
 		let parentSize = getBoxSize(parent.min, parent.max);
 
-		for(let i = 0; i < parent.numVoxels; i++){
-			let x = view_parent.getFloat32(12 * i + 0, true);
-			let y = view_parent.getFloat32(12 * i + 4, true);
-			let z = view_parent.getFloat32(12 * i + 8, true);
+		// let prevChildIndex = 0;
 
-			// PROTOTYPING
-			// debugger;
-			// if(offset_rgb + 6 * i + 4 + 2 >= view_parent.byteLength) debugger;
-			let r = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 0, true);
-			let g = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 2, true);
-			let b = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 4, true);
+		// for(let i = 0; i < parent.numVoxels; i++){
+		// 	let x = view_parent.getFloat32(12 * i + 0, true);
+		// 	let y = view_parent.getFloat32(12 * i + 4, true);
+		// 	let z = view_parent.getFloat32(12 * i + 8, true);
 
-			let vx = 2 * (x - parent.min[0]) / parentSize[0];
-			let vy = 2 * (y - parent.min[1]) / parentSize[1];
-			let vz = 2 * (z - parent.min[2]) / parentSize[2];
+		// 	// PROTOTYPING
+		// 	// debugger;
+		// 	// if(offset_rgb + 6 * i + 4 + 2 >= view_parent.byteLength) debugger;
+		// 	let r = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 0, true);
+		// 	let g = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 2, true);
+		// 	let b = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 4, true);
 
-			vx = Math.min(Math.floor(vx), 1);
-			vy = Math.min(Math.floor(vy), 1);
-			vz = Math.min(Math.floor(vz), 1);
+		// 	let vx = 2 * (x - parent.min[0]) / parentSize[0];
+		// 	let vy = 2 * (y - parent.min[1]) / parentSize[1];
+		// 	let vz = 2 * (z - parent.min[2]) / parentSize[2];
 
-			let childIndex = (vx << 2) | (vy << 1) | (vz << 0);
+		// 	vx = Math.min(Math.floor(vx), 1);
+		// 	vy = Math.min(Math.floor(vy), 1);
+		// 	vz = Math.min(Math.floor(vz), 1);
 
-			if(childIndex < 0 || childIndex > 7){
-				debugger;
-			}
+		// 	let childIndex = (vx << 2) | (vy << 1) | (vz << 0);
 
-			let voxel = {x, y, z, r, g, b};
-			// debugger;
+		// 	if(childIndex < 0 || childIndex > 7){
+		// 		debugger;
+		// 	}
 
-			if(childIndex === nodeIndex){
-				parentVoxels[childIndex].push(voxel);
-			}
+		// 	// debugger;
+		// 	// console.log(childIndex);
+		// 	if(childIndex !== prevChildIndex){
+		// 		console.log(childIndex);
+		// 		prevChildIndex = childIndex;
+		// 	}
+
+		// 	let voxel = {x, y, z, r, g, b, i};
+		// 	// debugger;
+
+		// 	// if(childIndex === nodeIndex){
+		// 		parentVoxels[childIndex].push(voxel);
+		// 	// }
+		// }
+
+		// debugger;
+
+		let prefixsum = [0];
+		for(let i = 0; i < 8; i++){
+			prefixsum[i + 1] = prefixsum[i] + parent.numVoxelsPerOctant[i];
 		}
 
 		let childVoxels = [];
-		for(let i = 0; i < parentVoxels[nodeIndex].length; i++){
-			let parentVoxel = parentVoxels[nodeIndex][i];
+
+		// if(parent.numVoxelsPerOctant[nodeIndex] !== parentVoxels[nodeIndex].length){
+		// 	debugger;
+		// }
+
+		// if(node.name === "r00"){
+		// 	debugger;
+		// }
+		
+		for(let i = 0; i < parent.numVoxelsPerOctant[nodeIndex]; i++){
+			// let parentVoxel = parentVoxels[nodeIndex][i];
+			// debugger;
+
+			// if(childVoxels.length >= node.numVoxels) break;
+
+			let poffset = prefixsum[nodeIndex];
+
+			let parent_x = view_parent.getFloat32(12 * (i + poffset) + 0, true);
+			let parent_y = view_parent.getFloat32(12 * (i + poffset) + 4, true);
+			let parent_z = view_parent.getFloat32(12 * (i + poffset) + 8, true);
+
+			// if(parent_x !== parentVoxel.x){
+			// 	// debugger;
+			// 	console.error("parent_x !== parentVoxel.x");
+			// 	return;
+			// }
+
 			let childmask = view_voxel.getUint8(i);
 
 			for(let childIndex = 0; childIndex < 8; childIndex++){
@@ -234,15 +275,15 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 
 					// debugger;
 					let childCoord = {
-						x: (parentVoxel.x + childCoordOffset.x),
-						y: (parentVoxel.y + childCoordOffset.y),
-						z: (parentVoxel.z + childCoordOffset.z),
+						x: (parent_x + childCoordOffset.x),
+						y: (parent_y + childCoordOffset.y),
+						z: (parent_z + childCoordOffset.z),
 					};
 
 					// PROTOTYPING
 					let childVoxel = {
 						x: childCoord.x, y: childCoord.y, z: childCoord.z,
-						parent: parentVoxel
+						// parent: parentVoxel
 					};
 
 					childVoxels.push(childVoxel);
@@ -399,7 +440,8 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 	let strVoxels      = node.numVoxels.toLocaleString().padStart(8, " ");
 	// let strColor   = msJpeg.toFixed(1);
 	// let strColor       = "0";
-	let strColor       = dDecompressColor.toFixed(1).padStart(4, " ");
+	// let strColor       = dDecompressColor.toFixed(1).padStart(4, " ");
+	let strColor       = "0";
 	let strDVoxels     = msVoxels.toFixed(1).padStart(5, " ");
 	let strDTotal      = ms.toFixed(1).padStart(5, " ");
 	let strThroughput  = mVoxelsSec.toFixed(2).padStart(6);
