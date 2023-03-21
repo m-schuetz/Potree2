@@ -119,128 +119,34 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 				my = my | (by << bitindex);
 			}
 
-			// let decode = (value) => {
-
-			// 	let sign = 1;
-			// 	if(value > 7){
-			// 		sign = -1;
-			// 		value = value - 8;
-			// 	}
-
-			// 	value = sign * (2 ** value);
-
-			// 	return value;
-			// };
-
-			// debugger;
-
-			// view_target.setUint16(offset_rgb + 6 * i + 0, decode(view_colBuffer.getUint8(3 * i + 0)), true);
-			// view_target.setUint16(offset_rgb + 6 * i + 2, decode(view_colBuffer.getUint8(3 * i + 1)), true);
-			// view_target.setUint16(offset_rgb + 6 * i + 4, decode(view_colBuffer.getUint8(3 * i + 2)), true);
-			// 376968
-			// debugger;
 			view_target.setUint16(offset_rgb + 6 * i + 0, view_colBuffer.getUint8(3 * i + 0), true);
 			view_target.setUint16(offset_rgb + 6 * i + 2, view_colBuffer.getUint8(3 * i + 1), true);
 			view_target.setUint16(offset_rgb + 6 * i + 4, view_colBuffer.getUint8(3 * i + 2), true);
-
-
-			// let color = readPixel(mx, my);
-
-			// view_target.setUint16(offset_rgb + 6 * i + 0, color[0], true);
-			// view_target.setUint16(offset_rgb + 6 * i + 2, color[1], true);
-			// view_target.setUint16(offset_rgb + 6 * i + 4, color[2], true);
 		}
 
 	}else{
 		// child voxels encoded relative to parent voxels
 
-		let nodeIndex = Number(node.name.slice(-1));
-
-		// let parentVoxels = {
-		// 	0: [], 1: [], 2: [], 3: [],
-		// 	4: [], 5: [], 6: [], 7: [],
-		// };
-
+		let nodeIndex   = Number(node.name.slice(-1));
 		let view_parent = new DataView(parent.buffer);
-		let parentSize = getBoxSize(parent.min, parent.max);
-
-		// let prevChildIndex = 0;
-
-		// for(let i = 0; i < parent.numVoxels; i++){
-		// 	let x = view_parent.getFloat32(12 * i + 0, true);
-		// 	let y = view_parent.getFloat32(12 * i + 4, true);
-		// 	let z = view_parent.getFloat32(12 * i + 8, true);
-
-		// 	// PROTOTYPING
-		// 	// debugger;
-		// 	// if(offset_rgb + 6 * i + 4 + 2 >= view_parent.byteLength) debugger;
-		// 	let r = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 0, true);
-		// 	let g = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 2, true);
-		// 	let b = view_parent.getUint16(12 * parent.numVoxels + 6 * i + 4, true);
-
-		// 	let vx = 2 * (x - parent.min[0]) / parentSize[0];
-		// 	let vy = 2 * (y - parent.min[1]) / parentSize[1];
-		// 	let vz = 2 * (z - parent.min[2]) / parentSize[2];
-
-		// 	vx = Math.min(Math.floor(vx), 1);
-		// 	vy = Math.min(Math.floor(vy), 1);
-		// 	vz = Math.min(Math.floor(vz), 1);
-
-		// 	let childIndex = (vx << 2) | (vy << 1) | (vz << 0);
-
-		// 	if(childIndex < 0 || childIndex > 7){
-		// 		debugger;
-		// 	}
-
-		// 	// debugger;
-		// 	// console.log(childIndex);
-		// 	if(childIndex !== prevChildIndex){
-		// 		console.log(childIndex);
-		// 		prevChildIndex = childIndex;
-		// 	}
-
-		// 	let voxel = {x, y, z, r, g, b, i};
-		// 	// debugger;
-
-		// 	// if(childIndex === nodeIndex){
-		// 		parentVoxels[childIndex].push(voxel);
-		// 	// }
-		// }
-
-		// debugger;
 
 		let prefixsum = [0];
 		for(let i = 0; i < 8; i++){
 			prefixsum[i + 1] = prefixsum[i] + parent.numVoxelsPerOctant[i];
 		}
 
-		let childVoxels = [];
+		let childVoxels = new Float32Array(3 * node.numVoxels);
+		let childVoxelsProcessed = 0;
 
-		// if(parent.numVoxelsPerOctant[nodeIndex] !== parentVoxels[nodeIndex].length){
-		// 	debugger;
-		// }
-
-		// if(node.name === "r00"){
-		// 	debugger;
-		// }
+		// let t_00 = performance.now();
 		
 		for(let i = 0; i < parent.numVoxelsPerOctant[nodeIndex]; i++){
-			// let parentVoxel = parentVoxels[nodeIndex][i];
-			// debugger;
-
-			// if(childVoxels.length >= node.numVoxels) break;
 
 			let poffset = prefixsum[nodeIndex];
 
 			let parent_x = view_parent.getFloat32(12 * (i + poffset) + 0, true);
 			let parent_y = view_parent.getFloat32(12 * (i + poffset) + 4, true);
 			let parent_z = view_parent.getFloat32(12 * (i + poffset) + 8, true);
-
-			// if(parent_x !== parentVoxel.x){
-			// 	// debugger;
-			// 	console.error("parent_x !== parentVoxel.x");
-			// 	return;
-			// }
 
 			let childmask = view_voxel.getUint8(i);
 
@@ -273,170 +179,52 @@ async function loadNode(node, nodeSpacing, parent, buffer){
 					childCoordOffset.y = childCoordOffset.y * nodeSpacing * 0.5;
 					childCoordOffset.z = childCoordOffset.z * nodeSpacing * 0.5;
 
-					// debugger;
-					let childCoord = {
-						x: (parent_x + childCoordOffset.x),
-						y: (parent_y + childCoordOffset.y),
-						z: (parent_z + childCoordOffset.z),
-					};
+					let child_x = (parent_x + childCoordOffset.x);
+					let child_y = (parent_y + childCoordOffset.y);
+					let child_z = (parent_z + childCoordOffset.z);
 
-					// PROTOTYPING
-					let childVoxel = {
-						x: childCoord.x, y: childCoord.y, z: childCoord.z,
-						// parent: parentVoxel
-					};
+					childVoxels[3 * childVoxelsProcessed + 0] = child_x;
+					childVoxels[3 * childVoxelsProcessed + 1] = child_y;
+					childVoxels[3 * childVoxelsProcessed + 2] = child_z;
 
-					childVoxels.push(childVoxel);
+					childVoxelsProcessed++;
 				}
-
 			}
-
 		}
 
-		// let clamp = (value, min, max) => {
-		// 	if(value < min) return min;
-		// 	if(value > max) return max;
-			
-		// 	return value;
-		// };
+		// let t_10 = performance.now();
 
-		// let parentSize = getBoxSize(parent.min, parent.max);
-		// let toVoxelIndex = (x, y, z) => {
-
-		// 	let ix = Math.floor(clamp(128 * (x - parent.min.x) / (parentSize.x), 0, 127));
-		// 	let iy = Math.floor(clamp(128 * (y - parent.min.y) / (parentSize.y), 0, 127));
-		// 	let iz = Math.floor(clamp(128 * (z - parent.min.z) / (parentSize.z), 0, 127));
-			
-		// 	let voxelIndex = ix + iy * 128 + iz * 128 * 128;
-		
-		// 	return voxelIndex;
-		// };
-
-		// let i_parent = 0;
-		// for(let i_child = 0; i_child < node.numVoxels; i_child++){
-
-		// 	let parent_x = view_parent.getFloat32(12 * i + 0, true);
-		// 	let parent_y = view_parent.getFloat32(12 * i + 4, true);
-		// 	let parent_z = view_parent.getFloat32(12 * i + 8, true);
-
-		// 	let isParent = toVoxelIndex(v_parent) == toVoxelIndex(v_child);
-
-		// }
-
-
-		if(childVoxels.length !== node.numVoxels){
-			console.assert(`reproduced wrong amount of voxels. expected: ${node.numVoxels}, got: ${childVoxels.length}`);
-			debugger;
+		for(let i = 0; i < node.numVoxels; i++){
+			view_target.setFloat32(offset_xyz + 12 * i + 0, childVoxels[3 * i + 0], true);
+			view_target.setFloat32(offset_xyz + 12 * i + 4, childVoxels[3 * i + 1], true);
+			view_target.setFloat32(offset_xyz + 12 * i + 8, childVoxels[3 * i + 2], true);
 		}
 
-		for(let i = 0; i < childVoxels.length; i++){
-			let childVoxel = childVoxels[i];
+		// let t_20 = performance.now();
 
-			if(childVoxel.x == 0 && childVoxel.y == 0 && childVoxel.z == 0){
-				debugger;
-			}
-
-			view_target.setFloat32(offset_xyz + 12 * i + 0, childVoxel.x, true);
-			view_target.setFloat32(offset_xyz + 12 * i + 4, childVoxel.y, true);
-			view_target.setFloat32(offset_xyz + 12 * i + 8, childVoxel.z, true);
-
-			let mortoncode = i;
-				
-			let x = 0;
-			let y = 0;
-			for(let bitindex = 0; bitindex < 10; bitindex++){
-				let bx = (mortoncode >> (2 * bitindex + 0)) & 1;
-				let by = (mortoncode >> (2 * bitindex + 1)) & 1;
-
-				x = x | (bx << bitindex);
-				y = y | (by << bitindex);
-			}
-
-
-			// let decode = (value) => {
-
-			// 	let sign = 1;
-			// 	if(value > 7){
-			// 		sign = -1;
-			// 		value = value - 8;
-			// 	}
-
-			// 	value = sign * (2 ** value);
-
-			// 	return value;
-			// };
-
-			// if(node.name === "r0"){
-			// 	debugger;
-			// }
-
-			// view_target.setUint16(offset_rgb + 6 * i + 0, childVoxel.parent.r + decode(view_colBuffer.getUint8(3 * i + 0)));
-			// view_target.setUint16(offset_rgb + 6 * i + 2, childVoxel.parent.g + decode(view_colBuffer.getUint8(3 * i + 1)));
-			// view_target.setUint16(offset_rgb + 6 * i + 4, childVoxel.parent.b + decode(view_colBuffer.getUint8(3 * i + 2)));
-
-			view_target.setUint16(offset_rgb + 6 * i + 0, view_colBuffer.getUint8(3 * i + 0));
-			view_target.setUint16(offset_rgb + 6 * i + 2, view_colBuffer.getUint8(3 * i + 1));
-			view_target.setUint16(offset_rgb + 6 * i + 4, view_colBuffer.getUint8(3 * i + 2));
-
-			// let color = readPixel(x, y);
-
-			// { // PROTOTYPING: LOGRATHMIC ENCODING
-
-			// 	// first difference-encoding to parent voxel
-			// 	let diffR = color[0] - childVoxel.parent.r;
-			// 	let diffG = color[1] - childVoxel.parent.g;
-			// 	let diffB = color[2] - childVoxel.parent.b;
-
-			// 	// then take log2 of difference and quantize to integer
-			// 	let {abs, log2, sign, round, pow} = Math;
-			// 	let diffR_i = round(log2(abs(diffR)));
-			// 	let diffG_i = round(log2(abs(diffG)));
-			// 	let diffB_i = round(log2(abs(diffB)));
-
-			// 	// see what happens when we reconstruct the color from the quantized, log2 and difference encoded color
-			// 	let recoveredR = sign(diffR) * pow(2, diffR_i) + childVoxel.parent.r;
-			// 	let recoveredG = sign(diffG) * pow(2, diffG_i) + childVoxel.parent.g;
-			// 	let recoveredB = sign(diffB) * pow(2, diffB_i) + childVoxel.parent.b;
-
-			// 	view_target.setUint16(offset_rgb + 6 * i + 0, recoveredR, true);
-			// 	view_target.setUint16(offset_rgb + 6 * i + 2, recoveredG, true);
-			// 	view_target.setUint16(offset_rgb + 6 * i + 4, recoveredB, true);
-			// }
-
-			// { // PROTOTYPING
-			// 	let diffR = color[0] - childVoxel.parent.r;
-			// 	let diffG = color[1] - childVoxel.parent.g;
-			// 	let diffB = color[2] - childVoxel.parent.b;
-
-			// 	let {abs, log2, sign, round, pow} = Math;
-			// 	// let diffR_i = round(log2(abs(diffR)));
-			// 	// let diffG_i = round(log2(abs(diffG)));
-			// 	// let diffB_i = round(log2(abs(diffB)));
-
-			// 	let recoveredR = diffR + childVoxel.parent.r;
-			// 	let recoveredG = diffG + childVoxel.parent.g;
-			// 	let recoveredB = diffB + childVoxel.parent.b;
-
-			// 	view_target.setUint16(offset_rgb + 6 * i + 0, recoveredR, true);
-			// 	view_target.setUint16(offset_rgb + 6 * i + 2, recoveredG, true);
-			// 	view_target.setUint16(offset_rgb + 6 * i + 4, recoveredB, true);
-			// }
-
-			// NORMAL ENCODING
-			// view_target.setUint16(offset_rgb + 6 * i + 0, color[0], true);
-			// view_target.setUint16(offset_rgb + 6 * i + 2, color[1], true);
-			// view_target.setUint16(offset_rgb + 6 * i + 4, color[2], true);
+		for(let i = 0; i < node.numVoxels; i++){
+			view_target.setUint16(offset_rgb + 6 * i + 0, view_colBuffer.getUint8(3 * i + 0), true);
+			view_target.setUint16(offset_rgb + 6 * i + 2, view_colBuffer.getUint8(3 * i + 1), true);
+			view_target.setUint16(offset_rgb + 6 * i + 4, view_colBuffer.getUint8(3 * i + 2), true);
 		}
+
+		// let t_30 = performance.now();
+
+		// let d_00 = (t_10 - t_00).toFixed(1);
+		// let d_10 = (t_20 - t_10).toFixed(1);
+		// let d_20 = (t_30 - t_20).toFixed(1);
+		// console.log({d_00, d_10, d_20});
 
 	}
 
 	let tEnd = performance.now();
+
 	let ms = tEnd - tStart;
 	// let msJpeg = dJpeg;
 	let msJpeg         = 0;
 	let msVoxels       = tEnd - tVoxelStart;
 	let mVoxelsSec     = (1000 * node.numVoxels / ms) / 1_000_000;
-	let strName        = node.name.padEnd(5, " ");
+	let strName        = node.name.padEnd(7, " ");
 	let strVoxels      = node.numVoxels.toLocaleString().padStart(8, " ");
 	// let strColor   = msJpeg.toFixed(1);
 	// let strColor       = "0";

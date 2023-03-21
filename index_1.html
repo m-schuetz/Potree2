@@ -103,10 +103,10 @@ canvas{
 	window.Vector3 = Vector3;
 
 	// default, if not overriden later on
-	// controls.set({
-	// 	position: [-19.0, 13.6, 12.2],
-	// 	pivot: [-0.0, 2.2, 3.9],
-	// });
+	controls.set({
+		position: [-19.0, 13.6, 12.2],
+		pivot: [-0.0, 2.2, 3.9],
+	});
 
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
 	Potree.settings.edlEnabled = true;
@@ -116,7 +116,7 @@ canvas{
 	Potree.settings.attribute = "rgba";
 	Potree.settings.pointSize = 5;
 	Potree.settings.splatType = SplatType.POINTS;
-	Potree.settings.minNodeSize = 200;
+	Potree.settings.minNodeSize = 766;
 
 	// loadGLB("./resources/models/australia_gas.glb", {
 	// 	onStart: (node) => {
@@ -138,15 +138,7 @@ canvas{
 	{
 
 		let pc1, pc2;
-		// Potree.load("./resources/G/temp/heidentor/").then(pointcloud => {
-		// 	scene.root.children.push(pointcloud);
-		// 	pointcloud.position.set(0, 0, 0);
-		// 	pointcloud.visible = false;
-
-		// 	pc1 = pointcloud;
-		// });
-
-		Potree2Loader.load("./resources/G/temp/retz_first/").then(pointcloud => {
+		Potree.load("./resources/F/dev/deploy/sitn_test_2022.12.16/potree1/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 			pointcloud.visible = false;
@@ -154,39 +146,17 @@ canvas{
 			pc1 = pointcloud;
 		});
 
-		Potree2Loader.load("./resources/G/temp/test/").then(pointcloud => {
+		Potree2Loader.load("./resources/F/dev/deploy/sitn_test_2022.12.16/potree2").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 
-			// debugger;
-
-			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
-			let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
-
-			let center = max.clone().sub(min).multiplyScalar(0.5);
-			let diagonal = max.sub(min);
-			let campos = center.clone().add(diagonal);
-
-			// let center = min.clone().add(max).multiplyScalar(0.5);
-			// let diagonal = max.sub(min);
-			// let campos = center.clone().add(diagonal);
-
-
-			controls.set({
-				position: campos.toArray(), 
-				pivot:    center.toArray()
-			});
-
-			// debugger;
-
-			
 			pc2 = pointcloud;
 		});
 
-		// controls.set({
-		// 	position: [-13.2, 16.8, 13.2], 
-		// 	pivot:    [7.5, 7.5, 4.9]
-		// });
+		controls.set({
+			position: [482.9, 366.1, 23.5],
+			pivot:    [478.8, 389.3, 7.1]
+		});
 
 
 		
@@ -210,11 +180,12 @@ canvas{
 			pc2.visible = !pc1.visible;
 
 			if(pc1.visible){
-				button.value = "toggle (currently showing weighted dataset)";
+				button.value = "toggle (currently showing Potree 1 dataset)";
 			}else{
-				button.value = "toggle (currently showing random sampled dataset)";
+				button.value = "toggle (currently showing Potree 2 dataset)";
 			}
 		};
+		
 		
 		container.append(button);
 		
