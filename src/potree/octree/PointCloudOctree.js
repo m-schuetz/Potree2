@@ -161,6 +161,15 @@ export class PointCloudOctree extends SceneNode{
 			this.load(node);
 		}
 
+		if(this.loader.constructor.numBatchesLoading + this.loader.constructor.numLeavesLoading > 0){
+			
+			console.log(this.loader.constructor.numBatchesLoading, this.loader.constructor.numLeavesLoading);
+			
+		}
+
+		// if(loadQueue.length > 0)
+		// console.log(loadQueue);
+
 
 		this.visibleNodes = visibleNodes;
 

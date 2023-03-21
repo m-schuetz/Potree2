@@ -25,8 +25,8 @@ let SPECTRAL = [
 	[50,136,189],
 ];
 
-let MAX_BATCHES_LOADING = 5;
-let MAX_LEAVES_LOADING  = 5;
+let MAX_BATCHES_LOADING = 10;
+let MAX_LEAVES_LOADING  = 10;
 
 export class Potree2Loader{
 
@@ -40,6 +40,12 @@ export class Potree2Loader{
 		this.nodeMap = new Map();
 		this.batches = new Map();
 		this.octree = null;
+
+		for(let i = 0; i < 10; i++){
+			let workerPath = "./src/potree/octree/loader/DecoderWorker_Potree2Batch.js";
+			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
+			WorkerPool.returnWorker(workerPath, worker);
+		}
 	}
 
 	async loadPoints(node){
@@ -80,44 +86,6 @@ export class Potree2Loader{
 
 		worker.postMessage(message, []);
 
-		// if(metanode.numPoints > 0)
-		// {
-
-		// 	let n = metanode.numPoints;
-		// 	let bufferSize = round4(18 * n);
-		// 	let buffer = new Uint8Array(bufferSize);
-
-		// 	let response = await fetch(`${node.octree.url}/${node.name}.points`);
-		// 	let source = await response.arrayBuffer();
-		// 	let sourceView = new DataView(source);
-		// 	let targetView = new DataView(buffer.buffer);
-		// 	let offset_xyz = 0;
-		// 	let offset_rgb = 12 * n;
-
-		// 	for(let i = 0; i < n; i++){
-		// 		let x = sourceView.getFloat32(16 * i + 0, true);
-		// 		let y = sourceView.getFloat32(16 * i + 4, true);
-		// 		let z = sourceView.getFloat32(16 * i + 8, true);
-		// 		let r = sourceView.getUint8(16 * i + 12);
-		// 		let g = sourceView.getUint8(16 * i + 13);
-		// 		let b = sourceView.getUint8(16 * i + 14);
-
-		// 		targetView.setFloat32(offset_xyz + 12 * i + 0, x, true);
-		// 		targetView.setFloat32(offset_xyz + 12 * i + 4, y, true);
-		// 		targetView.setFloat32(offset_xyz + 12 * i + 8, z, true);
-		// 		targetView.setUint16(offset_rgb + 6 * i + 0, r, true);
-		// 		targetView.setUint16(offset_rgb + 6 * i + 2, g, true);
-		// 		targetView.setUint16(offset_rgb + 6 * i + 4, b, true);
-		// 	}
-
-		// 	let geometry = new Geometry();
-		// 	geometry.numElements = n;
-		// 	geometry.buffer = buffer;
-		// 	node.geometry = geometry;
-		// }
-
-		// node.loaded = true;
-		// node.loading = false;
 	}
 
 	async loadBatch(node){
