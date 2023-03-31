@@ -421,9 +421,11 @@ export class Renderer{
 		
 		if(!buffer){
 			let {device} = renderer;
+
+			let byteSize = typedArray.byteLength;
 			
 			let vbo = device.createBuffer({
-				size: typedArray.byteLength,
+				size: byteSize,
 				usage: GPUBufferUsage.VERTEX 
 					| GPUBufferUsage.INDEX  
 					| GPUBufferUsage.COPY_DST 
@@ -432,8 +434,15 @@ export class Renderer{
 				mappedAtCreation: true,
 			});
 
-			let type = typedArray.constructor;
-			new type(vbo.getMappedRange()).set(typedArray);
+			if(typedArray instanceof ArrayBuffer){
+				new Uint8Array(vbo.getMappedRange()).set(new Uint8Array(typedArray, 0, byteSize));
+			}else{
+				// let type = typedArray.constructor;
+				// new type(vbo.getMappedRange()).set(typedArray);
+
+				new Uint8Array(vbo.getMappedRange()).set(new Uint8Array(typedArray.buffer, 0, byteSize));
+			}
+
 			vbo.unmap();
 
 			buffer = vbo;

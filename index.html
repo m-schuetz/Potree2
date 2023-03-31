@@ -118,47 +118,42 @@ canvas{
 	Potree.settings.splatType = SplatType.POINTS;
 	Potree.settings.minNodeSize = 200;
 
-	// loadGLB("./resources/models/australia_gas.glb", {
-	// 	onStart: (node) => {
-	// 		node.rotation.makeIdentity();
-	// 		node.rotation.rotate(1.2, {x: 1, y: 0, z: 0});
-	// 		node.rotation.rotate(-0.1, {x: 0, y: 1, z: 0});
-	// 		node.scale.set(2, 2, 2);
-	// 		node.position.set(-25, -10, 10);
 
-	// 		node.name = "australia_gas";
+	// import {Potree2Loader} from "potree";
+	// {
 
-	// 		scene.root.children.push(node);
-	// 	}, onNode: (mesh) => {
-	// 		console.log(mesh);
-	// 	}
-	// });
+	// 	Potree2Loader.load("./resources/G/temp/test/").then(pointcloud => {
+	// 		scene.root.children.push(pointcloud);
+	// 		pointcloud.position.set(0, 0, 0);
 
-		import {Potree2Loader} from "potree";
+	// 		// debugger;
+
+	// 		let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
+	// 		let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
+
+	// 		let center = max.clone().sub(min).multiplyScalar(0.5);
+	// 		let diagonal = max.sub(min);
+	// 		let campos = center.clone().add(diagonal);
+
+	// 		controls.set({
+	// 			position: campos.toArray(), 
+	// 			pivot:    center.toArray()
+	// 		});
+			
+	// 		controls.set({
+	// 			position: [857.3, 139.6, 210.2], 
+	// 			pivot: [681.2, 442.5, -21.4]
+	// 		});
+	// 	});
+
+	// }
+	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
 	{
 
-		let pc1, pc2;
-		// Potree.load("./resources/G/temp/heidentor/").then(pointcloud => {
-		// 	scene.root.children.push(pointcloud);
-		// 	pointcloud.position.set(0, 0, 0);
-		// 	pointcloud.visible = false;
-
-		// 	pc1 = pointcloud;
-		// });
-
-		Potree2Loader.load("./resources/G/temp/retz_first/").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/test/").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
-			pointcloud.visible = false;
-
-			pc1 = pointcloud;
-		});
-
-		Potree2Loader.load("./resources/G/temp/test/").then(pointcloud => {
-			scene.root.children.push(pointcloud);
-			pointcloud.position.set(0, 0, 0);
-
-			// debugger;
 
 			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
 			let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
@@ -167,104 +162,18 @@ canvas{
 			let diagonal = max.sub(min);
 			let campos = center.clone().add(diagonal);
 
-			// let center = min.clone().add(max).multiplyScalar(0.5);
-			// let diagonal = max.sub(min);
-			// let campos = center.clone().add(diagonal);
-
-
 			controls.set({
 				position: campos.toArray(), 
 				pivot:    center.toArray()
 			});
 			
-			controls.set({
-				position: [857.3, 139.6, 210.2], 
-				pivot: [681.2, 442.5, -21.4]
-			});
-
-			// debugger;
-
-			
-			pc2 = pointcloud;
+			// controls.set({
+			// 	position: [857.3, 139.6, 210.2], 
+			// 	pivot: [681.2, 442.5, -21.4]
+			// });
 		});
 
-		// controls.set({
-		// 	position: [-13.2, 16.8, 13.2], 
-		// 	pivot:    [7.5, 7.5, 4.9]
-		// });
-
-
-		
-		// controls.set({
-		// 	position: [486.4, 386.0, 36.2],
-		// 	pivot:    [457.7, 351.1, 3.2],
-		// });
-
-		let canvas = potree.renderer.canvas;
-		let container = canvas.parentElement;
-
-		let button = document.createElement("input");
-		button.value = "toggle (currently showing Potree 2 dataset)";
-		button.type = "button";
-		button.style.bottom = "10px";
-		button.style.left = "10px";
-		button.style.position = "absolute";
-
-		button.onclick = () => {
-			pc1.visible = pc2.visible;
-			pc2.visible = !pc1.visible;
-
-			if(pc1.visible){
-				button.value = "toggle (currently showing weighted dataset)";
-			}else{
-				button.value = "toggle (currently showing random sampled dataset)";
-			}
-		};
-		
-		container.append(button);
-		
 	}
-
-	// {
-	// 	Potree.load("./resources/pointclouds/lifeboat/metadata.json").then(pointcloud => {
-	// 		scene.root.children.push(pointcloud);
-	// 		pointcloud.position.set(0, 10, 0);
-	// 	});
-
-	// 	import {Potree2Loader} from "potree";
-	// 	Potree2Loader.load("./resources/F/temp/test").then(pointcloud => {
-	// 		scene.root.children.push(pointcloud);
-	// 		pointcloud.position.set(3, -10, 0);
-	// 	});
-
-	// 	controls.set({
-	// 		position: [-11.0, 5.4, 13.2], 
-	// 		pivot: [9.3, 7.6, 6.2]
-	// 	});
-	// }
-
-	
-	
-
-	// let origin = new Vector3(0, 0, 0);
-	// let X = new Vector3(10, 0, 0);
-	// let Y = new Vector3(0, 10, 0);
-	// let Z = new Vector3(0, 0, 10);
-	// let red = new Vector3(255, 0, 0);
-	// let green = new Vector3(0, 255, 0);
-	// let blue = new Vector3(0, 0, 255);
-
-	// import {sphere} from "./src/modules/geometries/sphere.js";
-
-	// potree.onUpdate( () => {
-
-	// 	// potree.renderer.drawLine(origin, X, red);
-	// 	// potree.renderer.drawLine(origin, Y, green);
-	// 	// potree.renderer.drawLine(origin, Z, blue);
-
-	// 	// potree.renderer.drawSphere(origin, 2);
-	// });
-
 
 
 </script>

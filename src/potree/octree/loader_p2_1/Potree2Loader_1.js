@@ -1,9 +1,10 @@
 
-import {PointAttributeTypes, PointAttribute, PointAttributes} from "potree";
-import {Vector3, Box3, Matrix4} from "potree";
 import {PointCloudOctree, PointCloudOctreeNode} from "potree";
+import {PointAttribute, PointAttributes, PointAttributeTypes} from "potree";
 import {WorkerPool} from "potree";
 import {Geometry} from "potree";
+import {Vector3, Box3, Matrix4} from "potree";
+import JSON5 from "json5";
 
 let nodesLoading = 0;
 
@@ -52,6 +53,21 @@ function createChildAABB(aabb, index){
 
 	return new Box3(min, max);
 }
+
+function round4(number){
+	return number + (4 - (number % 4));
+}
+
+let SPECTRAL = [
+	[213,62,79],
+	[252,141,89],
+	[254,224,139],
+	[230,245,152],
+	[153,213,148],
+	[50,136,189],
+];
+
+let MAX_NODES_LOADING = 1;
 
 function parseAttributes(jsonAttributes){
 
@@ -112,10 +128,24 @@ function parseAttributes(jsonAttributes){
 	return attributes;
 }
 
-export class PotreeLoader{
+export class Potree2Loader{
+
+	static numBatchesLoading = 0;
+	static numLeavesLoading = 0;
 
 	constructor(){
 		this.metadata = null;
+		this.metanodeMap = new Map();
+		this.batchnodeMap = new Map();
+		this.nodeMap = new Map();
+		this.batches = new Map();
+		this.octree = null;
+
+		for(let i = 0; i < 10; i++){
+			let workerPath = "./src/potree/octree/loader/DecoderWorker_Potree2Batch.js";
+			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
+			WorkerPool.returnWorker(workerPath, worker);
+		}
 	}
 
 	parseHierarchy(node, buffer){
@@ -132,27 +162,30 @@ export class PotreeLoader{
 		for(let i = 0; i < numNodes; i++){
 			let current = nodes[i];
 
+
 			let type = view.getUint8(i * bytesPerNode + 0);
 			let childMask = view.getUint8(i * bytesPerNode + 1);
-			let numPoints = view.getUint32(i * bytesPerNode + 2, true);
+			let numElements = view.getUint32(i * bytesPerNode + 2, true);
 			let byteOffset = Number(view.getBigInt64(i * bytesPerNode + 6, true));
 			let byteSize = Number(view.getBigInt64(i * bytesPerNode + 14, true));
+
+			// console.log(`process ${current.name}, childmask: ${childMask}`);
 
 			if(current.nodeType === NodeType.PROXY){
 				// replace proxy with real node
 				current.byteOffset = byteOffset;
 				current.byteSize = byteSize;
-				current.numPoints = numPoints;
+				current.numElements = numElements;
 			}else if(type === NodeType.PROXY){
 				// load proxy
 				current.hierarchyByteOffset = byteOffset;
 				current.hierarchyByteSize = byteSize;
-				current.numPoints = numPoints;
+				current.numElements = numElements;
 			}else{
 				// load real node 
 				current.byteOffset = byteOffset;
 				current.byteSize = byteSize;
-				current.numPoints = numPoints;
+				current.numElements = numElements;
 			}
 			
 			current.nodeType = type;
@@ -180,6 +213,7 @@ export class PotreeLoader{
 				current.children[childIndex] = child;
 				child.parent = current;
 
+				// console.log(`parsed nodes[${nodePos}] = ${child.name}`);
 				nodes[nodePos] = child;
 				nodePos++;
 			}
@@ -210,11 +244,12 @@ export class PotreeLoader{
 	}
 
 	async loadNode(node){
-		
+
 		if(node.loaded) return; 
 		if(node.loading) return;
 		if(node.loadAttempts > 5) return;
-		if(nodesLoading >= 10) return;
+		if(nodesLoading >= MAX_NODES_LOADING) return;
+		if(node.parent != null && !node.parent.loaded) return;
 
 		nodesLoading++;
 		node.loading = true;
@@ -225,13 +260,12 @@ export class PotreeLoader{
 			}
 
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
-			let workerPath = null;
-			if(!this.metadata.encoding || this.metadata.encoding === "DEFAULT"){
-				workerPath = "./src/potree/octree/loader/DecoderWorker_default.js";
-			}else if(this.metadata.encoding === "BROTLI"){
-				workerPath = "./src/potree/octree/loader/DecoderWorker_brotli.js";
-			}
+			let workerPathPoints = "./src/potree/octree/loader_p2_1/DecoderWorker_points.js";
+			let workerPathVoxels = "./src/potree/octree/loader_p2_1/DecoderWorker_voxels.js";
 			
+			let workerPath = (node.nodeType === NodeType.LEAF) ? 
+				workerPathPoints : workerPathVoxels;
+
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
 			worker.onmessage = (e) => {
@@ -249,8 +283,15 @@ export class PotreeLoader{
 					return;
 				}
 
+				if(!(data.buffer instanceof ArrayBuffer)){
+					debugger;
+				}
+				if(data.buffer.byteLength === 0){
+					debugger;
+				}
+
 				let geometry = new Geometry();
-				geometry.numElements = node.numPoints;
+				geometry.numElements = node.numElements;
 				geometry.buffer = data.buffer;
 				geometry.statsList = data.statsList;
 
@@ -258,6 +299,7 @@ export class PotreeLoader{
 				node.loading = false;
 				nodesLoading--;
 				node.geometry = geometry;
+				node.voxelCoords = data.voxelCoords;
 
 				WorkerPool.returnWorker(workerPath, worker);
 
@@ -271,15 +313,21 @@ export class PotreeLoader{
 			let pointAttributes = this.attributes;
 
 			let {scale, offset} = this;
-			let {name, numPoints} = node;
+			let {name, numElements} = node;
 			let min = this.octree.loader.metadata.boundingBox.min;
 			let nodeMin = node.boundingBox.min.toArray(); 
 			let nodeMax = node.boundingBox.max.toArray();
+			let parentVoxelCoords = node.parent?.voxelCoords;
 
 			let message = {
-				name, url, byteOffset, byteSize, numPoints,
-				pointAttributes, scale, offset, min, nodeMin, nodeMax
+				name, url, byteOffset, byteSize, numElements,
+				pointAttributes, scale, offset, min, nodeMin, nodeMax,
+				parentVoxelCoords
 			};
+
+			if(byteOffset === 0 || byteSize === 0){
+				debugger;
+			}
 
 			worker.postMessage(message, []);
 			
@@ -300,11 +348,12 @@ export class PotreeLoader{
 	}
 
 	static async load(url){
-		let loader = new PotreeLoader();
+		let loader = new Potree2Loader();
 		loader.url = url;
 
 		let response = await fetch(url);
-		let metadata = await response.json();
+		let text = await response.text();
+		let metadata = JSON5.parse(text);
 
 		let attributes = parseAttributes(metadata.attributes);
 		loader.metadata = metadata;
@@ -339,7 +388,6 @@ export class PotreeLoader{
 		root.byteOffset = 0;
 		root.octree = octree;
 
-		//loader.loadHierarchy(root);
 		loader.loadNode(root);
 
 		octree.root = root;

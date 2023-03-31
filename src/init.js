@@ -552,7 +552,10 @@ function renderNotSoBasic(){
 
 			if(node?.constructor.name === "PointCloudOctreeNode"){
 
-				let pointBuffer = node.geometry.buffer.buffer;
+				let pointBuffer = node.geometry.buffer;
+				// if(!(pointBuffer instanceof ArrayBuffer)){
+				// 	debugger;
+				// }
 				let view = new DataView(pointBuffer);
 
 				let x = view.getFloat32(12 * elementIndex + 0, true);
