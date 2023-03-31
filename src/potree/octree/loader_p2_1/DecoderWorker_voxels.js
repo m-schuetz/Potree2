@@ -137,14 +137,21 @@ async function loadNode(event){
 			let py = parentVoxels[3 * parent_i + 1];
 			let pz = parentVoxels[3 * parent_i + 2];
 
-			for(let ci = 0; ci < 8; ci++){
+			// for(let ci = 0; ci < 8; ci++){
 
+			// 	if(((childmask >>> ci) & 1) !== 0){
+			// 		// found valid child voxel
+
+			for(let cz of [0, 1])
+			for(let cx of [0, 1])
+			for(let cy of [0, 1])
+			{
+				let ci = (cx << 2) | (cy << 1) | cz;
 				if(((childmask >>> ci) & 1) !== 0){
-					// found valid child voxel
 
-					let cx = (childmask >>> 2) & 1;
-					let cy = (childmask >>> 1) & 1;
-					let cz = (childmask >>> 0) & 1;
+					let cx = (ci >>> 2) & 1;
+					let cy = (ci >>> 1) & 1;
+					let cz = (ci >>> 0) & 1;
 
 					let ix = 2 * (px % (gridSize / 2)) + cx;
 					let iy = 2 * (py % (gridSize / 2)) + cy;
@@ -154,9 +161,9 @@ async function loadNode(event){
 					voxelCoords[3 * numGeneratedVoxels + 1] = iy;
 					voxelCoords[3 * numGeneratedVoxels + 2] = iz;
 
-					let x = nodeSize[0] * (ix / gridSize) + nodeMin[0];
-					let y = nodeSize[1] * (iy / gridSize) + nodeMin[1];
-					let z = nodeSize[2] * (iz / gridSize) + nodeMin[2];
+					let x = nodeSize[0] * ((ix + 0.5) / gridSize) + nodeMin[0];
+					let y = nodeSize[1] * ((iy + 0.5) / gridSize) + nodeMin[1];
+					let z = nodeSize[2] * ((iz + 0.5) / gridSize) + nodeMin[2];
 
 					target_coordinates.setFloat32(12 * numGeneratedVoxels + 0, x, true);
 					target_coordinates.setFloat32(12 * numGeneratedVoxels + 4, y, true);
