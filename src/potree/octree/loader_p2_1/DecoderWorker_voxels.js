@@ -137,18 +137,24 @@ async function loadNode(event){
 			let py = parentVoxels[3 * parent_i + 1];
 			let pz = parentVoxels[3 * parent_i + 2];
 
-			// for(let ci = 0; ci < 8; ci++){
-
-			// 	if(((childmask >>> ci) & 1) !== 0){
-			// 		// found valid child voxel
-
-			for(let cz of [0, 1])
-			for(let cx of [0, 1])
-			for(let cy of [0, 1])
-			{
-				let ci = (cx << 2) | (cy << 1) | cz;
+//######### METHOD 1
+			for(let ci = 0; ci < 8; ci++){
 				if(((childmask >>> ci) & 1) !== 0){
+					// found valid child voxel
 
+//######### METHOD 2
+			// for(let ci of [0, 2, 4, 6, 1, 3, 5, 7]){
+			// 	if(((childmask >>> ci) & 1) !== 0){
+					// found valid child voxel
+
+//######### METHOD 3
+			// for(let cz of [0, 1])
+			// for(let cx of [0, 1])
+			// for(let cy of [0, 1])
+			// {
+			// 	let ci = (cx << 2) | (cy << 1) | cz;
+			// 	if(((childmask >>> ci) & 1) !== 0){
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 					let cx = (ci >>> 2) & 1;
 					let cy = (ci >>> 1) & 1;
 					let cz = (ci >>> 0) & 1;

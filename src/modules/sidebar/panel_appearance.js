@@ -91,7 +91,7 @@ export function createPanel(){
 		addSlider({
 			label: "Min Node Size", 
 			elementName: "sldMinNodeSize",
-			range: [50, 1000], 
+			range: [50, 3000], 
 			value: Potree.settings.minNodeSize,
 			onChange: (elSlider, elValue) => {
 				Potree.settings.minNodeSize = Number(elSlider.value);
