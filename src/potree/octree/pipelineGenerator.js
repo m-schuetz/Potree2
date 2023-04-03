@@ -180,7 +180,7 @@ export async function makePipeline(renderer, args = {}){
 		},
 		depthStencil: {
 			depthWriteEnabled: depthWrite,
-			depthCompare: "greater",
+			depthCompare: "greater-equal",
 			format: "depth32float",
 		},
 	});

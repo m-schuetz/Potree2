@@ -226,6 +226,8 @@ let shaderCode = `
 
 		var color = textureLoad(myTexture, vec2<i32>(input.fragCoord.xy), 0);
 
+		if(color.w == 0.0) {discard;}
+
 		color.x = color.x / color.w;
 		color.y = color.y / color.w;
 		color.z = color.z / color.w;
