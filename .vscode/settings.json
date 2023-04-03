@@ -1,8 +1,11 @@
 {
 	"workbench.editor.enablePreview": false,
 	"files.associations": {
+		"*.cs": "cpp",
+		"*.wgsl": "cpp",
 		"*.vs": "cpp",
-		"*.fs": "cpp"
+		"*.fs": "cpp",
+		"random": "cpp"
 	},
 	"files.trimTrailingWhitespace": false,
 	"editor.fontSize": 28,

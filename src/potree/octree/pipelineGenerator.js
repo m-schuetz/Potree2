@@ -150,6 +150,8 @@ export async function makePipeline(renderer, args = {}){
 	let topology = "point-list";
 	if(octree.material.splatType === SplatType.QUADS){
 		topology = "triangle-list";
+	}else if(octree.material.splatType === SplatType.VOXELS){
+		topology = "triangle-list";
 	}
 
 	const pipeline = device.createRenderPipeline({
@@ -177,6 +179,7 @@ export async function makePipeline(renderer, args = {}){
 		primitive: {
 			topology: topology,
 			cullMode: 'none',
+			// cullMode: 'back',
 		},
 		depthStencil: {
 			depthWriteEnabled: depthWrite,

@@ -84,7 +84,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
-		let nodesBuffer = new ArrayBuffer(10_000 * 36);
+		let nodesBuffer = new ArrayBuffer(10_000 * 40);
 		let nodesGpuBuffer = device.createBuffer({
 			size: nodesBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -170,6 +170,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		uniformsView.setFloat32(272, performance.now() / 1000.0, true);
 		uniformsView.setFloat32(276, Potree.settings.pointSize, true);
 		uniformsView.setUint32(280, Potree.settings.splatType, true);
+		uniformsView.setFloat32(288, octree.spacing, true);
 
 		let isAdditive = !(octree.loader.constructor.name === "Potree2Loader");
 		uniformsView.setUint32(284, isAdditive ? 1 : 0, true);
@@ -475,22 +476,26 @@ async function renderOctree(octree, drawstate, flags){
 				}
 			}
 
-			view.setUint32(36 * i + 0, node.geometry.numElements, true);
-			view.setUint32(36 * i + 4, Potree.state.renderedElements + counter, true);
-			view.setFloat32(36 * i +  8, bbWorld.min.x + bb.min.x, true);
-			view.setFloat32(36 * i + 12, bbWorld.min.y + bb.min.y, true);
-			view.setFloat32(36 * i + 16, bbWorld.min.z + bb.min.z, true);
-			view.setFloat32(36 * i + 20, bbWorld.min.x + bb.max.x, true);
-			view.setFloat32(36 * i + 24, bbWorld.min.y + bb.max.y, true);
-			view.setFloat32(36 * i + 28, bbWorld.min.z + bb.max.z, true);
-			view.setUint32(36 * i + 32, childmask, true);
+			// debugger;
+			let nodeSpacing = octree.spacing / (2 ** node.level);
+
+			view.setUint32 (40 * i +  0, node.geometry.numElements, true);
+			view.setUint32 (40 * i +  4, Potree.state.renderedElements + counter, true);
+			view.setFloat32(40 * i +  8, bbWorld.min.x + bb.min.x, true);
+			view.setFloat32(40 * i + 12, bbWorld.min.y + bb.min.y, true);
+			view.setFloat32(40 * i + 16, bbWorld.min.z + bb.min.z, true);
+			view.setFloat32(40 * i + 20, bbWorld.min.x + bb.max.x, true);
+			view.setFloat32(40 * i + 24, bbWorld.min.y + bb.max.y, true);
+			view.setFloat32(40 * i + 28, bbWorld.min.z + bb.max.z, true);
+			view.setUint32 (40 * i + 32, childmask, true);
+			view.setFloat32(40 * i + 36, nodeSpacing, true);
 
 			counter += node.geometry.numElements;
 		}
 
 		renderer.device.queue.writeBuffer(
 			nodesGpuBuffer, 0, 
-			nodesBuffer, 0, 36 * nodes.length
+			nodesBuffer, 0, 40 * nodes.length
 		);
 
 		pass.passEncoder.setBindGroup(3, nodesBindGroup);
@@ -518,7 +523,11 @@ async function renderOctree(octree, drawstate, flags){
 			if(octree.material.splatType === SplatType.POINTS){
 				pass.passEncoder.draw(numElements, 1, 0, i);
 			}else if(octree.material.splatType === SplatType.QUADS){
+				// 2 tris, 6 vertices
 				pass.passEncoder.draw(6 * numElements, 1, 0, i);
+			}else if(octree.material.splatType === SplatType.VOXELS){
+				// 6 tris, 18 vertices
+				pass.passEncoder.draw(18 * numElements, 1, 0, i);
 			}
 		}
 

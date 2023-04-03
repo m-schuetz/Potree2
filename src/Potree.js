@@ -95,8 +95,9 @@ const events = {
 };
 
 export const SplatType = {
-	POINTS:  0,
-	QUADS:   1,
+	POINTS:   0,
+	QUADS:    1,
+	VOXELS:   2,
 };
 
 const settings = {

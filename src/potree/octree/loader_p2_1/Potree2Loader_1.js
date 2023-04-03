@@ -325,9 +325,9 @@ export class Potree2Loader{
 				parentVoxelCoords
 			};
 
-			if(byteOffset === 0 || byteSize === 0){
-				debugger;
-			}
+			// if(byteOffset === 0 || byteSize === 0){
+			// 	debugger;
+			// }
 
 			worker.postMessage(message, []);
 			

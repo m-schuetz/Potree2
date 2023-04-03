@@ -240,6 +240,35 @@ let shaderCode = `
 
 		return output;
 	}
+
+		@fragment
+	fn main_fs_voxels(input : FragmentInput) -> FragmentOutput {
+
+		_ = mySampler;
+		_ = myTexture;
+		_ = myDepth;
+		_ = tex_pointID;
+
+		var color = textureLoad(myTexture, vec2<i32>(input.fragCoord.xy), 0);
+
+		if(color.w == 0.0) {discard;}
+
+		color.x = color.x / color.w;
+		color.y = color.y / color.w;
+		color.z = color.z / color.w;
+
+		// color.x = color.w;
+		// color.y = color.w;
+		// color.z = color.w;
+
+		var output : FragmentOutput;
+
+		output.color = color;
+		output.depth = textureLoad(myDepth, vec2<i32>(input.fragCoord.xy), 0);
+		output.pointID = textureLoad(tex_pointID, vec2<i32>(input.fragCoord.xy), 0).r;
+
+		return output;
+	}
 `;
 
 // let pipeline = null;
@@ -248,6 +277,7 @@ let uniformBuffer = null;
 let initialized = false;
 let pipeline_points = null;
 let pipeline_quads = null;
+let pipeline_voxels = null;
 
 function init(renderer){
 
@@ -309,6 +339,31 @@ function init(renderer){
 		},
 	});
 
+	pipeline_voxels = device.createRenderPipeline({
+		layout: "auto",
+		vertex: {
+			module,
+			entryPoint: "main_vs",
+		},
+		fragment: {
+			module,
+			entryPoint: "main_fs_voxels",
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint", blend: undefined}
+			],
+		},
+		primitive: {
+			topology: 'triangle-list',
+			cullMode: 'none',
+		},
+		depthStencil: {
+				depthWriteEnabled: true,
+				depthCompare: "always",
+				format: "depth32float",
+		},
+	});
+
 	let uniformBufferSize = 256;
 	uniformBuffer = device.createBuffer({
 		size: uniformBufferSize,
@@ -340,6 +395,8 @@ export function hqs_normalize(source, drawstate){
 		pipeline = pipeline_points;
 	}else if(Potree.settings.splatType === SplatType.QUADS){
 		pipeline = pipeline_quads;
+	}else if(Potree.settings.splatType === SplatType.VOXELS){
+		pipeline = pipeline_voxels;
 	}
 
 	let uniformBindGroup = renderer.device.createBindGroup({
