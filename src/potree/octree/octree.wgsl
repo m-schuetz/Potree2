@@ -473,30 +473,62 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 				// QUAD
 				var localIndex = vertex.vertexID % 6u;
 
-				var pixelSize = uniforms.pointSize;
+				// var s = node.spacing * 0.25f;
+				// output.position = uniforms.proj * viewPos;
 
-				var transX = (pixelSize / uniforms.screen_width) * output.position.w;
-				var transY = (pixelSize / uniforms.screen_height) * output.position.w;
+
+				var transX = node.spacing * 0.5f;
+				var transY = node.spacing * 0.5f;
+				// transX = 0.1f;
+				// transY = 0.1f;
 
 				if(localIndex == 0u){
-					output.position.x = output.position.x - transX;
-					output.position.y = output.position.y - transY;
+					viewPos.x = viewPos.x - transX;
+					viewPos.y = viewPos.y - transY;
 				}else if(localIndex == 1u){
-					output.position.x = output.position.x + transX;
-					output.position.y = output.position.y - transY;
+					viewPos.x = viewPos.x + transX;
+					viewPos.y = viewPos.y - transY;
 				}else if(localIndex == 2u){
-					output.position.x = output.position.x + transX;
-					output.position.y = output.position.y + transY;
+					viewPos.x = viewPos.x + transX;
+					viewPos.y = viewPos.y + transY;
 				}else if(localIndex == 3u){
-					output.position.x = output.position.x - transX;
-					output.position.y = output.position.y - transY;
+					viewPos.x = viewPos.x - transX;
+					viewPos.y = viewPos.y - transY;
 				}else if(localIndex == 4u){
-					output.position.x = output.position.x + transX;
-					output.position.y = output.position.y + transY;
+					viewPos.x = viewPos.x + transX;
+					viewPos.y = viewPos.y + transY;
 				}else if(localIndex == 5u){
-					output.position.x = output.position.x - transX;
-					output.position.y = output.position.y + transY;
+					viewPos.x = viewPos.x - transX;
+					viewPos.y = viewPos.y + transY;
 				}
+
+				output.position = uniforms.proj * viewPos;
+
+
+				// var pixelSize = uniforms.pointSize;
+
+				// var transX = (pixelSize / uniforms.screen_width) * output.position.w;
+				// var transY = (pixelSize / uniforms.screen_height) * output.position.w;
+
+				// if(localIndex == 0u){
+				// 	output.position.x = output.position.x - transX;
+				// 	output.position.y = output.position.y - transY;
+				// }else if(localIndex == 1u){
+				// 	output.position.x = output.position.x + transX;
+				// 	output.position.y = output.position.y - transY;
+				// }else if(localIndex == 2u){
+				// 	output.position.x = output.position.x + transX;
+				// 	output.position.y = output.position.y + transY;
+				// }else if(localIndex == 3u){
+				// 	output.position.x = output.position.x - transX;
+				// 	output.position.y = output.position.y - transY;
+				// }else if(localIndex == 4u){
+				// 	output.position.x = output.position.x + transX;
+				// 	output.position.y = output.position.y + transY;
+				// }else if(localIndex == 5u){
+				// 	output.position.x = output.position.x - transX;
+				// 	output.position.y = output.position.y + transY;
+				// }
 			}else if(uniforms.splatType == 2u){
 				// VOXEL
 
@@ -680,15 +712,18 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 		var weight = pow(1.0 - d * d, 8.0);
 		weight = clamp(weight, 0.001, 10.0);
 
-		if(d > 1.0){
-			weight = 0.0;
-			discard;
-		}
+		// if(d > 1.0){
+		// 	weight = 0.0;
+		// 	discard;
+		// }
+		// TODO
+		weight = 0.1f;
 
 		var weighted = fragment.color.xyz * weight;
 
 		output.color = vec4<f32>(weighted, weight);
 	}else if(uniforms.splatType == 2u){
+		// TODO
 		var weight = 0.1f;
 		var weighted = fragment.color.xyz * weight;
 

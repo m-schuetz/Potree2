@@ -7,6 +7,7 @@ import {Vector3, Box3, Matrix4} from "potree";
 import JSON5 from "json5";
 
 let nodesLoading = 0;
+let MAX_NODES_LOADING = 5;
 
 const NodeType = {
 	NORMAL: 0,
@@ -66,8 +67,6 @@ let SPECTRAL = [
 	[153,213,148],
 	[50,136,189],
 ];
-
-let MAX_NODES_LOADING = 1;
 
 function parseAttributes(jsonAttributes){
 
@@ -222,6 +221,7 @@ export class Potree2Loader{
 	}
 
 	async loadHierarchy(node){
+		// console.log(`load hierarchy(${node.name})`);
 
 		let {hierarchyByteOffset, hierarchyByteSize} = node;
 		let hierarchyPath = `${this.url}/../hierarchy.bin`;
@@ -262,6 +262,10 @@ export class Potree2Loader{
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
 			let workerPathPoints = "./src/potree/octree/loader_p2_1/DecoderWorker_points.js";
 			let workerPathVoxels = "./src/potree/octree/loader_p2_1/DecoderWorker_voxels.js";
+
+			if(node.name === "r24047054"){
+				debugger;
+			}
 			
 			let workerPath = (node.nodeType === NodeType.LEAF) ? 
 				workerPathPoints : workerPathVoxels;
@@ -270,6 +274,10 @@ export class Potree2Loader{
 
 			worker.onmessage = (e) => {
 				let data = e.data;
+
+				// if(node.nodeType === NodeType.LEAF){
+				// 	debugger;
+				// }
 
 				if(data === "failed"){
 					console.log(`failed to load ${node.name}. trying again!`);

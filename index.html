@@ -114,9 +114,10 @@ canvas{
 	Potree.settings.hqsEnabled = true;
 	Potree.settings.pointBudget = 4_000_000;
 	Potree.settings.attribute = "rgba";
-	Potree.settings.pointSize = 4;
-	Potree.settings.splatType = SplatType.POINTS;
-	Potree.settings.minNodeSize = 400;
+	Potree.settings.pointSize = 1;
+	Potree.settings.splatType = SplatType.QUADS;
+	// Potree.settings.splatType = SplatType.POINTS;
+	Potree.settings.minNodeSize = 600;
 
 
 	// import {Potree2Loader} from "potree";
@@ -150,7 +151,9 @@ canvas{
 	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
 	{
 
-		Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/test/").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
@@ -168,11 +171,17 @@ canvas{
 			});
 
 			
-			
+			// retz
 			controls.set({
-				position: [-4.7, 15.4, 8.5], 
-				pivot:    [6.0, 7.3, 3.8]
+				position: [596.2, 873.3, 62.3], 
+				pivot:    [578.1, 864.7, 57.4]
 			});
+
+			// // heidentor
+			// controls.set({
+			// 	position: [-6.8, 13.9, 7.8], 
+			// 	pivot:    [1.5, 8.9, 5.6]
+			// });
 		});
 
 	}

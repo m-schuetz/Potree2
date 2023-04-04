@@ -232,6 +232,10 @@ let shaderCode = `
 		color.y = color.y / color.w;
 		color.z = color.z / color.w;
 
+		// color.x = color.w;
+		// color.y = color.w;
+		// color.z = color.w;
+
 		var output : FragmentOutput;
 
 		output.color = color;
@@ -418,6 +422,7 @@ export function hqs_normalize(source, drawstate){
 
 		let size = Potree.settings.pointSize;
 		let window = Math.round((size - 1) / 2);
+		// window = 0;
 
 		view.setUint32(0, 5, true);
 		view.setFloat32(4, 0, true);

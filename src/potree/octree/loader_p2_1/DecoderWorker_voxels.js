@@ -171,6 +171,9 @@ async function loadNode(event){
 					let y = nodeSize[1] * ((iy + 0.5) / gridSize) + nodeMin[1];
 					let z = nodeSize[2] * ((iz + 0.5) / gridSize) + nodeMin[2];
 
+					if(12 * numGeneratedVoxels + 8 > target_coordinates.byteLength){
+						debugger;
+					}
 					target_coordinates.setFloat32(12 * numGeneratedVoxels + 0, x, true);
 					target_coordinates.setFloat32(12 * numGeneratedVoxels + 4, y, true);
 					target_coordinates.setFloat32(12 * numGeneratedVoxels + 8, z, true);
