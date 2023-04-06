@@ -477,8 +477,8 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 				// output.position = uniforms.proj * viewPos;
 
 
-				var transX = node.spacing * 0.5f;
-				var transY = node.spacing * 0.5f;
+				var transX = node.spacing * 1.0f;
+				var transY = node.spacing * 1.0f;
 				// transX = 0.1f;
 				// transY = 0.1f;
 

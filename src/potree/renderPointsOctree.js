@@ -276,12 +276,19 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			}
 
 			if(attributeName === "rgba"){
+				// PROTO
 				set(i, {
-					offset       : offsets.get(attributeName),
+					offset       : 12,
 					type         : TYPES.RGBA,
 					range        : [0, 255],
 					attribute, settings,
 				});
+				// set(i, {
+				// 	offset       : offsets.get(attributeName),
+				// 	type         : TYPES.RGBA,
+				// 	range        : [0, 255],
+				// 	attribute, settings,
+				// });
 			}
 			else if(attributeName === "elevation"){
 				let materialValues = octree.material.attributes.get(attributeName);

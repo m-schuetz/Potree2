@@ -262,10 +262,6 @@ export class Potree2Loader{
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
 			let workerPathPoints = "./src/potree/octree/loader_p2_1/DecoderWorker_points.js";
 			let workerPathVoxels = "./src/potree/octree/loader_p2_1/DecoderWorker_voxels.js";
-
-			if(node.name === "r24047054"){
-				debugger;
-			}
 			
 			let workerPath = (node.nodeType === NodeType.LEAF) ? 
 				workerPathPoints : workerPathVoxels;

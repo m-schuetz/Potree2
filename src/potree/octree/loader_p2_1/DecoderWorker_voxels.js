@@ -1,7 +1,8 @@
 
 // import {Box3, Vector3} from "potree";
+// import {BrotliDecode} from "../../../../libs/brotli/decode.js";
 
-import {BrotliDecode} from "../../../../libs/brotli/decode.js";
+const gridSize = 128;
 
 class Stats{
 	constructor(){
@@ -29,7 +30,7 @@ function ceil_n(number, n){
 
 async function loadNode(event){
 
-	// let tStart = performance.now();
+	let tStart = performance.now();
 
 	let data = event.data;
 	let numVoxels = data.numElements;
@@ -37,6 +38,7 @@ async function loadNode(event){
 
 	let first = data.byteOffset;
 	let last = first + data.byteSize - 1;
+	// let last = first + Math.min(numVoxels * 6, data.byteSize);
 
 	let response = await fetch(data.url, {
 		headers: {
@@ -47,12 +49,13 @@ async function loadNode(event){
 	let buffer = await response.arrayBuffer();
 	let source = new DataView(buffer, 0);
 
+	let tStartParse = performance.now();
+
 	let targetBuffer = new ArrayBuffer(ceil_n(18 * numVoxels, 4));
 	let target_coordinates = new DataView(targetBuffer, 0, 12 * numVoxels);
 	let target_rgb = new DataView(targetBuffer, 12 * numVoxels, 6 * numVoxels);
 	let voxelCoords = new Uint8Array(3 * numVoxels);
 
-	let gridSize = 256;
 	let nodeMin = data.nodeMin;
 	let nodeMax = data.nodeMax;
 
@@ -94,9 +97,15 @@ async function loadNode(event){
 				my = my | (by << bitindex);
 			}
 
-			target_rgb.setUint16(6 * i + 0, source.getUint8(3 * numVoxels + 3 * i + 0), true);
-			target_rgb.setUint16(6 * i + 2, source.getUint8(3 * numVoxels + 3 * i + 1), true);
-			target_rgb.setUint16(6 * i + 4, source.getUint8(3 * numVoxels + 3 * i + 2), true);
+			// target_rgb.setUint16(6 * i + 0, source.getUint8(3 * numVoxels + 3 * i + 0), true);
+			// target_rgb.setUint16(6 * i + 2, source.getUint8(3 * numVoxels + 3 * i + 1), true);
+			// target_rgb.setUint16(6 * i + 4, source.getUint8(3 * numVoxels + 3 * i + 2), true);
+			let r = source.getUint8(3 * numVoxels + 3 * i + 0);
+			let g = source.getUint8(3 * numVoxels + 3 * i + 1);
+			let b = source.getUint8(3 * numVoxels + 3 * i + 2);
+			target_rgb.setUint16(6 * i + 0, r, true);
+			target_rgb.setUint16(6 * i + 2, g, true);
+			target_rgb.setUint16(6 * i + 4, b, true);
 		}
 
 	}else{
@@ -189,11 +198,24 @@ async function loadNode(event){
 		let numChildmasks = i;
 		let rgbOffset = numChildmasks;
 		for(let i = 0; i < numGeneratedVoxels; i++){
-			target_rgb.setUint16(6 * i + 0, source.getUint8(rgbOffset + 3 * i + 0), true);
-			target_rgb.setUint16(6 * i + 2, source.getUint8(rgbOffset + 3 * i + 1), true);
-			target_rgb.setUint16(6 * i + 4, source.getUint8(rgbOffset + 3 * i + 2), true);
+			let r = source.getUint8(rgbOffset + 3 * i + 0);
+			let g = source.getUint8(rgbOffset + 3 * i + 1);
+			let b = source.getUint8(rgbOffset + 3 * i + 2);
+			target_rgb.setUint16(6 * i + 0, r, true);
+			target_rgb.setUint16(6 * i + 2, g, true);
+			target_rgb.setUint16(6 * i + 4, b, true);
 		}
 	}
+
+	let dTotal = performance.now() - tStart;
+	let dParse = performance.now() - tStartParse;
+	let mps = (1000 * numVoxels / dParse) / 1_000_000;
+	let strDTotal = dTotal.toFixed(1).padStart(4);
+	let strDParse = dParse.toFixed(1).padStart(4);
+	let strMPS = mps.toFixed(1).padStart(5);
+	let strVoxels = (numVoxels + "").padStart(5);
+	let strKB = (Math.floor(buffer.byteLength / 1024) + "").padStart(4);
+	console.log(`[${name.padStart(10)}] #voxels: ${strVoxels}, ${strKB} kb, parse: ${strDParse} ms, total: ${strDTotal} ms. ${strMPS} MP/s`);
 
 	let message = {
 		type: "node parsed",
@@ -203,8 +225,6 @@ async function loadNode(event){
 	let transferables = [targetBuffer, voxelCoords.buffer];
 
 	postMessage(message, transferables);
-
-
 }
 
 onmessage = async function (event) {
