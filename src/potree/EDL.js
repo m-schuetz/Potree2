@@ -171,6 +171,14 @@ let fs = `
 		output.color = textureLoad(myTexture, coords, 0);
 		output.depth = textureLoad(myDepth, coords, 0);
 
+
+		var response = getEdlResponse(input);
+		var w = exp(-response * 300.0f * 0.4f);
+		output.color.r *= w;
+		output.color.g *= w;
+		output.color.b *= w;
+
+
 		return output;
 	}
 `;

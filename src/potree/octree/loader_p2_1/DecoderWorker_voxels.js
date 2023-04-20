@@ -1,6 +1,6 @@
 
 // import {Box3, Vector3} from "potree";
-// import {BrotliDecode} from "../../../../libs/brotli/decode.js";
+import {BrotliDecode} from "../../../../libs/brotli/decode.js";
 
 const gridSize = 128;
 
@@ -46,7 +46,13 @@ async function loadNode(event){
 			'Range': `bytes=${first}-${last}`,
 		},
 	});
+
 	let buffer = await response.arrayBuffer();
+
+	// let tStartBrotliDecode = performance.now();
+	// buffer = BrotliDecode(new Int8Array(buffer)).buffer;
+	// let tEndBrotliDecode = performance.now();
+
 	let source = new DataView(buffer, 0);
 
 	let tStartParse = performance.now();
@@ -209,13 +215,18 @@ async function loadNode(event){
 
 	let dTotal = performance.now() - tStart;
 	let dParse = performance.now() - tStartParse;
+	// let dBrotli = tEndBrotliDecode - tStartBrotliDecode;
 	let mps = (1000 * numVoxels / dParse) / 1_000_000;
+
 	let strDTotal = dTotal.toFixed(1).padStart(4);
 	let strDParse = dParse.toFixed(1).padStart(4);
+	// let strDBrotli = dBrotli.toFixed(1).padStart(4);
 	let strMPS = mps.toFixed(1).padStart(5);
 	let strVoxels = (numVoxels + "").padStart(5);
 	let strKB = (Math.floor(buffer.byteLength / 1024) + "").padStart(4);
+
 	console.log(`[${name.padStart(10)}] #voxels: ${strVoxels}, ${strKB} kb, parse: ${strDParse} ms, total: ${strDTotal} ms. ${strMPS} MP/s`);
+	// console.log(`[${name.padStart(10)}] #voxels: ${strVoxels}, ${strKB} kb, brotli: ${strDBrotli} ms, parse: ${strDParse} ms, total: ${strDTotal} ms. ${strMPS} MP/s`);
 
 	let message = {
 		type: "node parsed",

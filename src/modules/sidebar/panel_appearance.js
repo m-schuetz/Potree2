@@ -91,7 +91,7 @@ export function createPanel(){
 		addSlider({
 			label: "Min Node Size", 
 			elementName: "sldMinNodeSize",
-			range: [50, 3000], 
+			range: [50, 500], 
 			value: Potree.settings.minNodeSize,
 			onChange: (elSlider, elValue) => {
 				Potree.settings.minNodeSize = Number(elSlider.value);
@@ -122,9 +122,9 @@ export function createPanel(){
 		// 	(checkbox) => {Potree.settings.edlEnabled = checkbox.checked;}
 		// );
 
-		// addCheckbox("High-Quality", "chkHQS", Potree.settings.hqsEnabled, 
-		// 	(checkbox) => {Potree.settings.hqsEnabled = checkbox.checked;}
-		// );
+		addCheckbox("High-Quality", "chkHQS", Potree.settings.hqsEnabled, 
+			(checkbox) => {Potree.settings.hqsEnabled = checkbox.checked;}
+		);
 
 		addCheckbox("show bounding box", "chkShowBoundingBox", Potree.settings.showBoundingBox, 
 			(checkbox) => {Potree.settings.showBoundingBox = checkbox.checked;}

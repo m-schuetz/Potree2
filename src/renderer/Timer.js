@@ -8,7 +8,7 @@ let index = 0;
 let unresolvedIndex = 0;
 let frame = 0;
 
-let enabled = false;
+let enabled = true;
 
 let counters = {};
 
@@ -58,6 +58,15 @@ function frameEnd(renderer){
 
 	timestampSep(renderer, "frame-end");
 
+	let commandEncoder = renderer.device.createCommandEncoder();
+	// resolve(renderer, commandEncoder);
+	let first = 0;
+	let count = index;
+	commandEncoder.resolveQuerySet(querySet, first, count, queryBuffer, 0);
+	let commandBuffer = commandEncoder.finish();
+	renderer.device.queue.submit([commandBuffer]);
+
+
 	let localStamps = stamps
 
 	renderer.readBuffer(queryBuffer, 0, 256 * index).then( buffer => {
@@ -71,12 +80,13 @@ function frameEnd(renderer){
 		let tStart = u64[0];
 		let starts = new Map();
 		let durations = [];
+		let counters_frame = {};
 
-		// let msg = "timestamps: \n";
+		// - Compute durations between -start and -end timestamps
+		// - When there are multiple -start and -end with same name, compute sum
 		for(let i = 0; i < Math.min(u64.length, localStamps.length); i++){
 
 			let label = localStamps[i].label;
-			// let current = Number(u64[i] - tStart) / 1_000_000;
 			
 			if(label.endsWith("-start")){
 				starts.set(label, u64[i]);
@@ -88,10 +98,10 @@ function frameEnd(renderer){
 				let message = `${lblBase}: ${current.toFixed(3)}ms`;
 				durations.push(message);
 
-				if(!counters[lblBase]){
-					counters[lblBase] = [current];
+				if(!counters_frame[lblBase]){
+					counters_frame[lblBase] = current;
 				}else{
-					counters[lblBase].push(current);
+					counters_frame[lblBase] += current;
 				}
 
 				let doPrint = localStamps[i].args?.print ?? false;
@@ -101,9 +111,22 @@ function frameEnd(renderer){
 			}
 		}
 
+		// push sum of counters of current frame to history of counters over previous frames
+		for(let label of Object.keys(counters_frame)){
+			if(!counters[label]){
+				counters[label] = [counters_frame[label]];
+			}else{
+				counters[label].push(counters_frame[label]);
+			}
+
+		}
+
+		// update timing message every nth frame
 		if((frame % 30) === 0){
 
 			let msg = "durations: \n";
+			msg += `label                  avg   min   max   \n`;
+			msg += `=========================================\n`;
 
 			for(let label of Object.keys(counters)){
 				let values = counters[label];
@@ -120,7 +143,8 @@ function frameEnd(renderer){
 
 				let avg = sum / values.length;
 
-				msg += `[${label}]: avg: ${avg.toFixed(1)}, min: ${min.toFixed(1)}, max: ${max.toFixed(1)}\n`;
+				msg += `${label.padEnd(20)}   ${avg.toFixed(1)}   ${min.toFixed(1)}   ${max.toFixed(1)}\n`;
+				// msg += `[${label}]: avg: ${avg.toFixed(1)}, min: ${min.toFixed(1)}, max: ${max.toFixed(1)}\n`;
 
 			}
 
@@ -157,24 +181,24 @@ function timestampSep(renderer, label){
 	let commandEncoder = renderer.device.createCommandEncoder();
 
 	timestamp(commandEncoder, label);
-	resolve(renderer, commandEncoder);
+	// resolve(renderer, commandEncoder);
 
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.queue.submit([commandBuffer]);
 };
 
-function resolve(renderer, commandEncoder){
+// function resolve(renderer, commandEncoder){
 
-	if(!enabled){
-		return;
-	}
+// 	if(!enabled){
+// 		return;
+// 	}
 
-	let first = unresolvedIndex;
-	let count = index - unresolvedIndex;
-	commandEncoder.resolveQuerySet(querySet, first, count, queryBuffer, 256 * first);
+// 	let first = unresolvedIndex;
+// 	let count = index - unresolvedIndex;
+// 	commandEncoder.resolveQuerySet(querySet, first, count, queryBuffer, 256 * first);
 
-	unresolvedIndex = index;
-}
+// 	unresolvedIndex = index;
+// }
 
 
 
@@ -183,7 +207,7 @@ export {
 	frameEnd,
 	timestamp,
 	timestampSep,
-	resolve,
+	// resolve,
 };
 
 

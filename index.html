@@ -51,7 +51,7 @@ canvas{
 </div>
 
 <span id="big_message"></span>
-<span id="msg_dbg"></span>
+<pre id="msg_dbg"></pre>
 
 <script type="importmap">
 {
@@ -65,7 +65,7 @@ canvas{
 		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
 		"tween":         "./libs/tween/tween.esm.js",
 		"range-select":  "./libs/range-select/RangeSelect.js",
-		"json5":         "./libs/json5/json5.mjs"
+		"json5":         "./libs/json5/json5.js"
 	}
 }
 </script>
@@ -94,7 +94,7 @@ canvas{
 
 	installSidebar(elPotree, potree).then(sidebar => {
 		window.sidebar = sidebar;
-		sidebar.toggle();
+		// sidebar.toggle();
 	});
 	// window.sidebar.toggle();
 
@@ -111,13 +111,13 @@ canvas{
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
 	Potree.settings.edlEnabled = true;
 	Potree.settings.dilateEnabled = false;
-	Potree.settings.hqsEnabled = true;
+	Potree.settings.hqsEnabled = false;
 	Potree.settings.pointBudget = 4_000_000;
 	Potree.settings.attribute = "rgba";
 	Potree.settings.pointSize = 4;
 	// Potree.settings.splatType = SplatType.QUADS;
 	Potree.settings.splatType = SplatType.POINTS;
-	Potree.settings.minNodeSize = 200;
+	Potree.settings.minNodeSize = 150;
 
 
 	// import {Potree2Loader} from "potree";
@@ -151,7 +151,8 @@ canvas{
 	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
 	{
 
-		Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/retz_test/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/test/").then(pointcloud => {

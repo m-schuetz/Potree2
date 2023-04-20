@@ -72,7 +72,7 @@ export class Renderer{
 	async init(){
 		this.adapter = await navigator.gpu.requestAdapter();
 		this.device = await this.adapter.requestDevice({
-			// requiredFeatures: ["timestamp-query"],
+			requiredFeatures: ["timestamp-query", "timestamp-query-inside-passes"],
 		});
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("webgpu");

@@ -553,9 +553,6 @@ function renderNotSoBasic(){
 			if(node?.constructor.name === "PointCloudOctreeNode"){
 
 				let pointBuffer = node.geometry.buffer;
-				// if(!(pointBuffer instanceof ArrayBuffer)){
-				// 	debugger;
-				// }
 				let view = new DataView(pointBuffer);
 
 				let x = view.getFloat32(12 * elementIndex + 0, true);
@@ -567,12 +564,6 @@ function renderNotSoBasic(){
 				z = z + node.octree.position.z;
 
 				let position = new Vector3(x, y, z);
-
-				// let distance = camera.getWorldPosition().distanceTo(position);
-				// let radius = distance / 50;
-				// dbgSphere.position.set(x, y, z);
-				// dbgSphere.scale.set(radius, radius, radius);
-				// dbgSphere.updateWorld();
 
 				Potree.pickPosition.copy(position);
 
@@ -591,12 +582,6 @@ function renderNotSoBasic(){
 				let image = node.images[elementIndex];
 				
 				let position = image.position.clone().add(images.position);
-
-				// let distance = camera.getWorldPosition().distanceTo(position);
-				// let radius = distance / 200;
-				// dbgSphere.position.copy(position);
-				// dbgSphere.scale.set(radius, radius, radius);
-				// dbgSphere.updateWorld();
 
 				Potree.pickPosition.copy(position);
 
