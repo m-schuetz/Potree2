@@ -7,7 +7,7 @@ import {Vector3, Box3, Matrix4} from "potree";
 import JSON5 from "json5";
 
 let nodesLoading = 0;
-let MAX_NODES_LOADING = 5;
+let MAX_NODES_LOADING = 6;
 
 const NodeType = {
 	NORMAL: 0,
@@ -283,6 +283,8 @@ export class Potree2Loader{
 					nodesLoading--;
 
 					WorkerPool.returnWorker(workerPath, worker);
+
+					debugger;
 
 					return;
 				}
