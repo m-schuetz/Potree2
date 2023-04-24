@@ -2,8 +2,7 @@ function round4(number){
 	return number + (4 - (number % 4));
 }
 
-onmessage = async function (event) {
-
+async function loadNode(event){
 	let data = event.data;
 	let n    = event.data.numElements;
 	let {scale, offset} = data;
@@ -87,5 +86,17 @@ onmessage = async function (event) {
 	let transferables = [buffer];
 
 	postMessage(message, transferables);
+}
+
+onmessage = async function (event) {
+
+	let promise = loadNode(event);
+
+	// Chrome frequently fails with range requests.
+	// Notify main thread that loading failed, so that it can try again.
+	promise.catch(e => {
+		console.log(e);
+		postMessage("failed");
+	});
 
 };

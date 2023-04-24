@@ -48,6 +48,7 @@ async function loadNode(event){
 	});
 
 	let buffer = await response.arrayBuffer();
+	// let buffer = event.data.buffer;
 
 	// let tStartBrotliDecode = performance.now();
 	// buffer = BrotliDecode(new Int8Array(buffer)).buffer;
@@ -240,11 +241,13 @@ async function loadNode(event){
 
 onmessage = async function (event) {
 
-	try{
-		loadNode(event);
-	}catch(e){
+	let promise = loadNode(event);
+
+	// Chrome frequently fails with range requests.
+	// Notify main thread that loading failed, so that it can try again.
+	promise.catch(e => {
 		console.log(e);
 		postMessage("failed");
-	}
+	});
 	
 };

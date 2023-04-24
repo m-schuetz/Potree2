@@ -7,7 +7,7 @@ import {Vector3, Box3, Matrix4} from "potree";
 import JSON5 from "json5";
 
 let nodesLoading = 0;
-let MAX_NODES_LOADING = 6;
+let MAX_NODES_LOADING = 26;
 
 const NodeType = {
 	NORMAL: 0,

@@ -59,5 +59,18 @@ prototyping/encoding/encoded_u8.bin
 prototyping/encoding/encoded.bin
 prototyping/encoding/r075.7z
 prototyping/encoding/r075.batch
+prototyping/encoding_2/three.js
 # prototyping/encoding/r0.csv
 # prototyping/encoding/r.csv
+prototyping/encoding_2/buffer_diff_sao.7z
+prototyping/encoding_2/buffer_diff_sao.bin
+prototyping/encoding_2/buffer_diff_sao.brotli
+prototyping/encoding_2/buffer_diff.7z
+prototyping/encoding_2/buffer_diff.bin
+prototyping/encoding_2/buffer_interleaved_u8.7z
+prototyping/encoding_2/buffer_interleaved_u8.bin
+prototyping/encoding_2/buffer_r.7z
+prototyping/encoding_2/buffer_r.bin
+prototyping/encoding_2/buffer_soa_u8.7z
+prototyping/encoding_2/buffer_soa_u8.bin
+prototyping/encoding_2/G
