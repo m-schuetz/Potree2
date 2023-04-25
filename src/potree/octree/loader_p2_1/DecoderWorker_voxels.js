@@ -2,6 +2,9 @@
 // import {Box3, Vector3} from "potree";
 import {BrotliDecode} from "../../../../libs/brotli/decode.js";
 
+import {Line3} from "../../../math/Line3.js";
+import {Vector3} from "../../../math/Vector3.js";
+
 const gridSize = 128;
 
 class Stats{
@@ -26,6 +29,74 @@ function getBoxSize(min, max){
 // round up to nearest <n>
 function ceil_n(number, n){
 	return number + (n - (number % n));
+}
+
+function bcEncode(rgb16){
+
+	let starts = [];
+	let ends = [];
+	let blocksize = 8;
+	let numSamples = rgb16.byteLength / 6; // 2 byte per color, 6 byte per sample
+
+	// compute min/max color values for line
+	let min, max;
+	for(let i = 0; i < numSamples; i++){
+
+		if((i % blocksize) === 0){
+			// start a new block
+
+			min = new Vector3(Infinity, Infinity, Infinity);
+			max = new Vector3(-Infinity, -Infinity, -Infinity);
+
+			starts.push(min);
+			ends.push(max);
+		}
+
+		let r = rgb16.getUint16(6 * i + 0, true);
+		let g = rgb16.getUint16(6 * i + 2, true);
+		let b = rgb16.getUint16(6 * i + 4, true);
+
+		min.x = Math.min(min.x, r);
+		min.y = Math.min(min.y, g);
+		min.z = Math.min(min.z, b);
+		max.x = Math.max(max.x, r);
+		max.y = Math.max(max.y, g);
+		max.z = Math.max(max.z, b);
+	}
+
+	// iterate through points again and project&quantize them on line
+	let line = new Line3();
+	let point = new Vector3();
+	for(let i = 0; i < numSamples; i++){
+
+		let blockIndex = Math.floor(i / blocksize);
+
+		if((i % blocksize) === 0){
+			line.start.x = starts[blockIndex].x;
+			line.start.y = starts[blockIndex].y;
+			line.start.z = starts[blockIndex].z;
+			line.end.x = ends[blockIndex].x;
+			line.end.y = ends[blockIndex].y;
+			line.end.z = ends[blockIndex].z;
+		}
+
+		point.x = rgb16.getUint16(6 * i + 0, true);
+		point.y = rgb16.getUint16(6 * i + 2, true);
+		point.z = rgb16.getUint16(6 * i + 4, true);
+		let t = line.closestPointToPointParameter(point);
+
+		let numSamples = 4;
+		let smpl = numSamples - 1; // it's <NUM_SAMPLES> - 1 samples
+		t = Math.round(t * smpl) / smpl;
+
+		line.at(t, point);
+
+		rgb16.setUint16(6 * i + 0, point.x, true);
+		rgb16.setUint16(6 * i + 2, point.y, true);
+		rgb16.setUint16(6 * i + 4, point.z, true);
+
+	}
+
 }
 
 async function loadNode(event){
@@ -122,8 +193,6 @@ async function loadNode(event){
 		let numParentVoxels = parentVoxels.length / 3;
 		let thisChildIndex = parseInt(name.at(name.length - 1));
 
-		// debugger;
-
 		// find first parent voxel of current node's octant
 		let parent_i = 0;
 		for(; parent_i < numParentVoxels; parent_i++){
@@ -153,24 +222,10 @@ async function loadNode(event){
 			let py = parentVoxels[3 * parent_i + 1];
 			let pz = parentVoxels[3 * parent_i + 2];
 
-//######### METHOD 1
 			for(let ci = 0; ci < 8; ci++){
 				if(((childmask >>> ci) & 1) !== 0){
 					// found valid child voxel
 
-//######### METHOD 2
-			// for(let ci of [0, 2, 4, 6, 1, 3, 5, 7]){
-			// 	if(((childmask >>> ci) & 1) !== 0){
-					// found valid child voxel
-
-//######### METHOD 3
-			// for(let cz of [0, 1])
-			// for(let cx of [0, 1])
-			// for(let cy of [0, 1])
-			// {
-			// 	let ci = (cx << 2) | (cy << 1) | cz;
-			// 	if(((childmask >>> ci) & 1) !== 0){
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 					let cx = (ci >>> 2) & 1;
 					let cy = (ci >>> 1) & 1;
 					let cz = (ci >>> 0) & 1;
@@ -212,6 +267,12 @@ async function loadNode(event){
 			target_rgb.setUint16(6 * i + 2, g, true);
 			target_rgb.setUint16(6 * i + 4, b, true);
 		}
+	}
+
+	{ // PROTOTYPING: BC-encode voxels to check what happens to quality.
+	
+		bcEncode(target_rgb);
+
 	}
 
 	let dTotal = performance.now() - tStart;
