@@ -154,10 +154,9 @@ canvas{
 	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
 	{
 
-		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
-		Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/test/").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
@@ -177,17 +176,17 @@ canvas{
 			
 			// retz
 			controls.set({
-				// position: [596.2, 873.3, 62.3], 
-				// pivot:    [578.1, 864.7, 57.4]
-				position: [832.2, 879.7, 1234.2], 
-				pivot:    [744.8, 902.5, -5.2],
+				position: [596.2, 873.3, 62.3], 
+				pivot:    [578.1, 864.7, 57.4]
+				// position: [832.2, 879.7, 1234.2], 
+				// pivot:    [744.8, 902.5, -5.2],
 			});
 
 			// // heidentor
-			controls.set({
-				position: [-6.8, 13.9, 7.8], 
-				pivot:    [1.5, 8.9, 5.6]
-			});
+			// controls.set({
+			// 	position: [-6.8, 13.9, 7.8], 
+			// 	pivot:    [1.5, 8.9, 5.6]
+			// });
 		});
 
 	}

@@ -257,23 +257,63 @@ async function loadNode(event){
 			parent_i++;
 		}
 
+
+		// normal rgb decoding
+		// let numChildmasks = i;
+		// let rgbOffset = numChildmasks;
+		// for(let i = 0; i < numGeneratedVoxels; i++){
+		// 	let r = source.getUint8(rgbOffset + 3 * i + 0);
+		// 	let g = source.getUint8(rgbOffset + 3 * i + 1);
+		// 	let b = source.getUint8(rgbOffset + 3 * i + 2);
+		// 	target_rgb.setUint16(6 * i + 0, r, true);
+		// 	target_rgb.setUint16(6 * i + 2, g, true);
+		// 	target_rgb.setUint16(6 * i + 4, b, true);
+		// }
+
+		// BC-ish decoding
 		let numChildmasks = i;
 		let rgbOffset = numChildmasks;
-		for(let i = 0; i < numGeneratedVoxels; i++){
-			let r = source.getUint8(rgbOffset + 3 * i + 0);
-			let g = source.getUint8(rgbOffset + 3 * i + 1);
-			let b = source.getUint8(rgbOffset + 3 * i + 2);
-			target_rgb.setUint16(6 * i + 0, r, true);
-			target_rgb.setUint16(6 * i + 2, g, true);
-			target_rgb.setUint16(6 * i + 4, b, true);
+		let rgbByteSize = data.byteSize - rgbOffset;
+		let blocksize = 8;
+		let bytesPerBlock = 8;
+		let bitsPerSample = 2;
+		let numSamples = 4;
+		let numBlocks = rgbByteSize / blocksize;
+
+		let colorsProcessed = 0;
+		let color = new Vector3();
+		let line = new Line3();
+		for(let blockIndex = 0; blockIndex < numBlocks; blockIndex++){
+
+			line.start.x = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 0);
+			line.start.y = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 1);
+			line.start.z = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 2);
+			line.end.x   = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 3);
+			line.end.y   = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 4);
+			line.end.z   = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 5);
+
+			let bits = source.getUint16(rgbOffset + bytesPerBlock * blockIndex + 6, true);
+
+			for(let sampleIndex = 0; sampleIndex < blocksize; sampleIndex++){
+
+				let T = bits >>> (bitsPerSample * sampleIndex) & 0b11;
+				let t = T / (numSamples - 1);
+
+				line.at(t, color);
+
+				target_rgb.setUint16(6 * colorsProcessed + 0, color.x, true);
+				target_rgb.setUint16(6 * colorsProcessed + 2, color.y, true);
+				target_rgb.setUint16(6 * colorsProcessed + 4, color.z, true);
+
+				colorsProcessed++;
+				if(colorsProcessed === numVoxels) break;
+			}
 		}
 	}
 
-	{ // PROTOTYPING: BC-encode voxels to check what happens to quality.
-	
-		bcEncode(target_rgb);
-
-	}
+	// { // PROTOTYPING: BC-encode voxels to check what happens to quality.
+	// 	bcEncode(target_rgb);
+	// }
 
 	let dTotal = performance.now() - tStart;
 	let dParse = performance.now() - tStartParse;
