@@ -1,6 +1,6 @@
 
 // import {Box3, Vector3} from "potree";
-import {BrotliDecode} from "../../../../libs/brotli/decode.js";
+// import {BrotliDecode} from "../../../../libs/brotli/decode.js";
 
 import {Line3} from "../../../math/Line3.js";
 import {Vector3} from "../../../math/Vector3.js";
@@ -327,7 +327,7 @@ async function loadNode(event){
 	let strVoxels = (numVoxels + "").padStart(5);
 	let strKB = (Math.floor(buffer.byteLength / 1024) + "").padStart(4);
 
-	console.log(`[${name.padStart(10)}] #voxels: ${strVoxels}, ${strKB} kb, parse: ${strDParse} ms, total: ${strDTotal} ms. ${strMPS} MP/s`);
+	// console.log(`[${name.padStart(10)}] #voxels: ${strVoxels}, ${strKB} kb, parse: ${strDParse} ms, total: ${strDTotal} ms. ${strMPS} MP/s`);
 	// console.log(`[${name.padStart(10)}] #voxels: ${strVoxels}, ${strKB} kb, brotli: ${strDBrotli} ms, parse: ${strDParse} ms, total: ${strDTotal} ms. ${strMPS} MP/s`);
 
 	let message = {

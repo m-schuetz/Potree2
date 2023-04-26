@@ -236,9 +236,17 @@ export class Potree2Loader{
 			},
 		});
 
+
 		let buffer = await response.arrayBuffer();
 
+		let tStart = performance.now();
 		this.parseHierarchy(node, buffer);
+
+		let tEnd = performance.now();
+		let durationMS = tEnd - tStart;
+
+		let strKB = Math.ceil(hierarchyByteSize / 1024);
+		console.log(`parsed hierarchy (${strKB} kb) in ${durationMS.toFixed(1)} ms`);
 
 		// console.log(node);
 	}

@@ -29,7 +29,7 @@ async function loadNode(event){
 		let states = cellsize / precision;
 		let bits = (Math.log2(states)).toFixed(1);
 
-		console.log(`leaf, size: ${nsize}, cellsize: ${cellsize.toFixed(1)}, bits: ${bits}`);
+		// console.log(`leaf, size: ${nsize}, cellsize: ${cellsize.toFixed(3)}, bits: ${bits}`);
 
 	}
 
