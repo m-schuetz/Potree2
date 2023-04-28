@@ -91,7 +91,7 @@ export class PointCloudOctree extends SceneNode{
 			let box = node.boundingBox.clone();
 			box.applyMatrix4(this.world);
 			let insideFrustum = frustum.intersectsBox(box);
-			let fitsInPointBudget = numPoints + node.numPoints < this.pointBudget;
+			let fitsInPointBudget = numPoints + node.numElements < this.pointBudget;
 			let isLowLevel = node.level <= 2;
 
 			let visible = fitsInPointBudget && insideFrustum;
@@ -106,11 +106,11 @@ export class PointCloudOctree extends SceneNode{
 			if(Potree.debug.allowedNodes){
 				if(Potree.debug.allowedNodes.includes(node.name)){
 					visibleNodes.push(node);
-					numPoints += node.numPoints;
+					numPoints += node.numElements;
 				}
 			}else{
 				visibleNodes.push(node);
-				numPoints += node.numPoints;
+				numPoints += node.numElements;
 
 			}
 
@@ -157,19 +157,12 @@ export class PointCloudOctree extends SceneNode{
 
 		}
 
+		loadQueue.slice(0, 20);
+		loadQueue.sort( (a, b) => a.level - b.level);
+
 		for(let node of loadQueue){
-			this.load(node);
+			this.loader.loadNode(node);
 		}
-
-		if(this.loader.constructor.numBatchesLoading + this.loader.constructor.numLeavesLoading > 0){
-			
-			console.log(this.loader.constructor.numBatchesLoading, this.loader.constructor.numLeavesLoading);
-			
-		}
-
-		// if(loadQueue.length > 0)
-		// console.log(loadQueue);
-
 
 		this.visibleNodes = visibleNodes;
 
@@ -231,7 +224,7 @@ export class PointCloudOctree extends SceneNode{
 		for(let i = 0; i < attributes.attributes.length; i++){
 			let attribute = attributes.attributes[i];
 
-			let valueOffset = node.numPoints * attributeByteOffset + index * attribute.byteSize;
+			let valueOffset = node.numElements * attributeByteOffset + index * attribute.byteSize;
 
 			let value = null;
 			let strValue = "";

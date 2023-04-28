@@ -8,7 +8,7 @@ export class PointCloudOctreeNode{
 		this.parent = null;
 		this.children = new Array(8).fill(null);
 		this.level = 0;
-		this.numPoints = 0;
+		// this.numPoints = 0;
 
 		this.boundingBox = new Box3();
 	}

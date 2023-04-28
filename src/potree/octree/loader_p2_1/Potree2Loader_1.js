@@ -7,7 +7,7 @@ import {Vector3, Box3, Matrix4} from "potree";
 import JSON5 from "json5";
 
 let nodesLoading = 0;
-let MAX_NODES_LOADING = 26;
+let MAX_NODES_LOADING = 50;
 
 const NodeType = {
 	NORMAL: 0,
@@ -256,7 +256,7 @@ export class Potree2Loader{
 		if(node.loaded) return; 
 		if(node.loading) return;
 		if(node.loadAttempts > 5) return;
-		if(nodesLoading >= MAX_NODES_LOADING) return;
+		// if(nodesLoading >= MAX_NODES_LOADING) return;
 		if(node.parent != null && !node.parent.loaded) return;
 
 		nodesLoading++;
@@ -266,82 +266,140 @@ export class Potree2Loader{
 			if(node.nodeType === NodeType.PROXY){
 				await this.loadHierarchy(node);
 			}
+		}catch(e){
+			console.log(e);
+		}
+
+		// CHECK IF NODE+CHILDREN IN CONTIGUOUS MEMORY
+		let inContiguousMemory = false;
+		let allVoxels = true;
+		let totalBytes = 0;
+		if((node.level % 2) === 0){
+			
+			let firstByte = Infinity;
+			let lastByte = 0;
+
+			for(let famNode of [node, ...node.children]){
+
+				if(famNode == null) continue;
+				if(famNode.nodeType === NodeType.PROXY) continue;
+
+				firstByte = Math.min(firstByte, famNode.byteOffset);
+				lastByte = Math.max(lastByte, famNode.byteOffset + famNode.byteSize);
+				totalBytes += famNode.byteSize;
+
+				allVoxels = allVoxels && (famNode.nodeType === NodeType.NORMAL);
+			}
+
+			let diff = lastByte - firstByte;
+
+			inContiguousMemory = (diff === totalBytes);
+		}
+
+		let nodes = [node];
+
+		if(inContiguousMemory && totalBytes < 1_000_000)
+		{
+			for(let child of node.children){
+				if(child == null) continue;
+
+				child.loading = true;
+				nodes.push(child);
+			}
+		}
+
+		for(let node of nodes){
+			node.loading = true;
+			nodesLoading++;
+		}
+
+		try{
+			if(node.nodeType === NodeType.PROXY){
+				await this.loadHierarchy(node);
+			}
 
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
-			let workerPathPoints = "./src/potree/octree/loader_p2_1/DecoderWorker_points.js";
-			let workerPathVoxels = "./src/potree/octree/loader_p2_1/DecoderWorker_voxels.js";
+			// let workerPathPoints = "./src/potree/octree/loader_p2_1/DecoderWorker_points.js";
+			// let workerPathVoxels = "./src/potree/octree/loader_p2_1/DecoderWorker_voxels.js";
 			
-			let workerPath = (node.nodeType === NodeType.LEAF) ? 
-				workerPathPoints : workerPathVoxels;
+			// let workerPath = (node.nodeType === NodeType.LEAF) ? 
+			// 	workerPathPoints : workerPathVoxels;
 
+			let workerPath = "./src/potree/octree/loader_p2_1/DecoderWorker.js";
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
 			worker.onmessage = (e) => {
 				let data = e.data;
 
-				// if(node.nodeType === NodeType.LEAF){
-				// 	debugger;
-				// }
-
 				if(data === "failed"){
 					console.log(`failed to load ${node.name}. trying again!`);
 
-					node.loaded = false;
-					node.loading = false;
-					nodesLoading--;
+					for(let node of nodes){
+						node.loaded = false;
+						node.loading = false;
+						nodesLoading--;
+					}
 
 					WorkerPool.returnWorker(workerPath, worker);
 
-					debugger;
-
 					return;
+				}else if(data?.type === "node parsed"){
+
+					let loadedNode = nodes.find(node => node.name === e.data.name);
+
+					let geometry = new Geometry();
+					geometry.numElements = loadedNode.numElements;
+					geometry.buffer = data.buffer;
+					geometry.statsList = data.statsList;
+
+					console.log(`loaded ${loadedNode.name}`);
+
+					loadedNode.loaded = true;
+					loadedNode.loading = false;
+					nodesLoading--;
+					loadedNode.geometry = geometry;
+					loadedNode.voxelCoords = data.voxelCoords;
+
+					if(loadedNode.name === "r"){
+						this.octree.events.dispatcher.dispatch("root_node_loaded", {octree: this.octree, loadedNode});
+					}
+				}else if(e.data === "finished"){
+					WorkerPool.returnWorker(workerPath, worker);
 				}
 
-				if(!(data.buffer instanceof ArrayBuffer)){
-					debugger;
-				}
-				if(data.buffer.byteLength === 0){
-					debugger;
-				}
-
-				let geometry = new Geometry();
-				geometry.numElements = node.numElements;
-				geometry.buffer = data.buffer;
-				geometry.statsList = data.statsList;
-
-				node.loaded = true;
-				node.loading = false;
-				nodesLoading--;
-				node.geometry = geometry;
-				node.voxelCoords = data.voxelCoords;
-
-				WorkerPool.returnWorker(workerPath, worker);
-
-				if(node.name === "r"){
-					this.octree.events.dispatcher.dispatch("root_node_loaded", {octree: this.octree, node});
-				}
 			};
 
-			let {byteOffset, byteSize} = node;
 			let url = new URL(`${this.url}/../octree.bin`, document.baseURI).href;
-			let pointAttributes = this.attributes;
-
-			let {scale, offset} = this;
-			let {name, numElements} = node;
-			let min = this.octree.loader.metadata.boundingBox.min;
-			let nodeMin = node.boundingBox.min.toArray(); 
-			let nodeMax = node.boundingBox.max.toArray();
 			let parentVoxelCoords = node.parent?.voxelCoords;
 
-			let message = {
-				name, url, byteOffset, byteSize, numElements,
-				pointAttributes, scale, offset, min, nodeMin, nodeMax,
-				parentVoxelCoords
+			let msg_nodes = [];
+			for(let node of nodes){
+
+				let msg_node = {
+					name:       node.name,
+					numVoxels:  node.nodeType === NodeType.NORMAL ? node.numElements : 0,
+					numPoints:  node.nodeType === NodeType.LEAF ? node.numElements : 0,
+					min:        node.boundingBox.min.toArray(),
+					max:        node.boundingBox.max.toArray(),
+					byteOffset: node.byteOffset,
+					byteSize:   node.byteSize,
+				};
+
+				msg_nodes.push(msg_node);
+			}
+
+			let msg_octree = {
+				min:    this.octree.loader.metadata.boundingBox.min,
+				scale:  this.scale,
+				offset: this.offset,
+				pointAttributes: this.attributes,
 			};
 
-			// if(byteOffset === 0 || byteSize === 0){
-			// 	debugger;
-			// }
+			let message = {
+				octree: msg_octree,
+				nodes: msg_nodes, 
+				url, parentVoxelCoords
+			};
 
 			worker.postMessage(message, []);
 			
