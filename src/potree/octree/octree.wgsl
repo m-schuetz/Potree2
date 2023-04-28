@@ -477,8 +477,8 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 				// output.position = uniforms.proj * viewPos;
 
 
-				var transX = node.spacing * 1.0f;
-				var transY = node.spacing * 1.0f;
+				var transX = node.spacing * 0.7990f;
+				var transY = node.spacing * 0.7990f;
 				// transX = 0.1f;
 				// transY = 0.1f;
 
@@ -536,6 +536,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 				var s = node.spacing * 0.25f;
 				var o = 0.00f;
+				// s = 0.001f;
 
 				var voxelVertexPos : vec4<f32>;
 				// TOP
