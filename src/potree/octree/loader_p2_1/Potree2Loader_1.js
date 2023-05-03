@@ -314,6 +314,10 @@ export class Potree2Loader{
 			chunkSize += node.byteSize_unfiltered;
 		}
 
+		if(chunkSize === 0 || chunkSize > 2_000_000){
+			debugger;
+		}
+
 		let url = new URL(`${this.url}/../octree.bin`, document.baseURI).href;
 		let response = await fetch(url, {
 			headers: {
@@ -327,7 +331,7 @@ export class Potree2Loader{
 		// HACK: should properly compute between pos/filtered/unfiltered
 		let target_offset_unfiltered = 18 * node.numElements;
 
-		let dbg = new Uint16Array(buffer);
+		// let dbg = new Uint16Array(buffer);
 
 
 		for(let node of nodes){
@@ -338,6 +342,7 @@ export class Potree2Loader{
 
 			node.unfilteredLoading = false;
 			node.unfilteredLoaded = true;
+			node.dirty = true;
 		}
 
 	}
@@ -455,13 +460,15 @@ export class Potree2Loader{
 			for(let node of nodes){
 
 				let msg_node = {
-					name:       node.name,
-					numVoxels:  node.nodeType === NodeType.NORMAL ? node.numElements : 0,
-					numPoints:  node.nodeType === NodeType.LEAF ? node.numElements : 0,
-					min:        node.boundingBox.min.toArray(),
-					max:        node.boundingBox.max.toArray(),
-					byteOffset: node.byteOffset,
-					byteSize:   node.byteSize,
+					name:                  node.name,
+					numVoxels:             node.nodeType === NodeType.NORMAL ? node.numElements : 0,
+					numPoints:             node.nodeType === NodeType.LEAF ? node.numElements : 0,
+					min:                   node.boundingBox.min.toArray(),
+					max:                   node.boundingBox.max.toArray(),
+					byteOffset:            node.byteOffset,
+					byteSize:              node.byteSize,
+					byteOffset_unfiltered: node.byteOffset_unfiltered,
+					byteSize_unfiltered:   node.byteSize_unfiltered,
 				};
 
 				msg_nodes.push(msg_node);

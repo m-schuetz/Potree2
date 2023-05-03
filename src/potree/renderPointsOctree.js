@@ -516,6 +516,15 @@ async function renderOctree(octree, drawstate, flags){
 
 			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
 			pass.passEncoder.setBindGroup(2, bufferBindGroup);
+
+			if(node.dirty){
+
+				let gpuBuffer = renderer.getGpuBuffer(node.geometry.buffer);
+				renderer.device.queue.writeBuffer(
+					gpuBuffer, 0, node.geometry.buffer, 0, node.geometry.buffer.byteLength);
+
+				node.dirty = false;
+			}
 			
 			if(octree.showBoundingBox === true){
 				let box = node.boundingBox.clone().applyMatrix4(octree.world);

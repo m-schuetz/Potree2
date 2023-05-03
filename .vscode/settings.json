@@ -5,7 +5,15 @@
 		"*.wgsl": "cpp",
 		"*.vs": "cpp",
 		"*.fs": "cpp",
-		"random": "cpp"
+		"random": "cpp",
+		"chrono": "cpp",
+		"functional": "cpp",
+		"optional": "cpp",
+		"system_error": "cpp",
+		"type_traits": "cpp",
+		"xlocmon": "cpp",
+		"xlocnum": "cpp",
+		"xtr1common": "cpp"
 	},
 	"files.trimTrailingWhitespace": false,
 	"editor.fontSize": 28,

@@ -437,14 +437,10 @@ export class Renderer{
 			if(typedArray instanceof ArrayBuffer){
 				new Uint8Array(vbo.getMappedRange()).set(new Uint8Array(typedArray, 0, byteSize));
 			}else{
-				// let type = typedArray.constructor;
-				// new type(vbo.getMappedRange()).set(typedArray);
-
 				new Uint8Array(vbo.getMappedRange()).set(new Uint8Array(typedArray.buffer, 0, byteSize));
 			}
 
 			vbo.unmap();
-
 			buffer = vbo;
 
 			this.typedBuffers.set(typedArray, buffer);

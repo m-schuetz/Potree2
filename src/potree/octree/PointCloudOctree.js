@@ -96,7 +96,7 @@ export class PointCloudOctree extends SceneNode{
 					unfilteredLoadQueue.push(node);
 				}
 
-				// continue;
+				continue;
 			}
 
 			let box = node.boundingBox.clone();

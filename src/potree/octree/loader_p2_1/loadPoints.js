@@ -9,6 +9,7 @@ export function loadPoints(octree, node, dataview){
 	let n = node.numPoints;
 	let {scale, offset} = octree;
 
+	let attributes = octree.pointAttributes;
 	let bytesPerPoint = octree.pointAttributes.byteSize;
 
 	let bufferSize = ceil_n(bytesPerPoint * n, 4);
@@ -50,8 +51,40 @@ export function loadPoints(octree, node, dataview){
 		targetView.setUint16(t_offset_rgb + 6 * i + 0, r, true);
 		targetView.setUint16(t_offset_rgb + 6 * i + 2, g, true);
 		targetView.setUint16(t_offset_rgb + 6 * i + 4, b, true);
+
+		// debugger;
+		// {// intensity
+		// 	let s_offset_intensity = 18;
+		// 	let t_offset_unfiltered = 18 * n;
+		// 	let intensity = dataview.getUint16(s_stride * i + s_offset_intensity, true);
+		// 	targetView.setUint16(t_offset_unfiltered + 2 * i, intensity, true);
+		// }
+
+		// {// classification
+		// 	let s_offset = 20;
+		// 	let t_offset_unfiltered = 20 * n;
+		// 	let classification = dataview.getUint8(s_stride * i + s_offset);
+		// 	targetView.setUint8(t_offset_unfiltered + 1 * i, classification);
+		// }
 	}
 
+	// copy unfiltered attributes
+	let source_u8 = new Uint8Array(dataview.buffer);
+	let target_u8 = new Uint8Array(buffer);
+	for(let attribute of attributes.attributes){
+
+		if(attribute.name === "position") continue;
+		if(attribute.name === "rgba") continue;
+
+		for(let pointIndex = 0; pointIndex < n; pointIndex++){
+			for(let j = 0; j < attribute.byteSize; j++){
+				let value = source_u8[s_stride * pointIndex + attribute.byteOffset + j];
+				target_u8[n * attribute.byteOffset + pointIndex * attribute.byteSize + j] = value;
+			}
+
+		}
+
+	}
 
 	return {buffer};
 
