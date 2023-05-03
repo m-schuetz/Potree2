@@ -190,7 +190,7 @@ class Panel{
 		let attributeName = Potree.settings.attribute; 
 		let settings = this.pointcloud.material.attributes.get(attributeName);
 
-		if(settings){
+		if(settings && settings.range){
 			elRange.setRange(...settings.range);
 			elRange.setValue(settings.stats.min, settings.stats.max);
 

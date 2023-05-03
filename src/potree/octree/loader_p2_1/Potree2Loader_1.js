@@ -6,9 +6,6 @@ import {Geometry} from "potree";
 import {Vector3, Box3, Matrix4} from "potree";
 import JSON5 from "json5";
 
-let nodesLoading = 0;
-let MAX_NODES_LOADING = 50;
-
 const NodeType = {
 	NORMAL: 0,
 	LEAF: 1,
@@ -151,7 +148,7 @@ export class Potree2Loader{
 		
 		let view = new DataView(buffer);
 
-		let bytesPerNode = 22;
+		let bytesPerNode = 38;
 		let numNodes = buffer.byteLength / bytesPerNode;
 
 		let nodes = new Array(numNodes);
@@ -161,20 +158,25 @@ export class Potree2Loader{
 		for(let i = 0; i < numNodes; i++){
 			let current = nodes[i];
 
+			let type                  = view.getUint8(i * bytesPerNode + 0);
+			let childMask             = view.getUint8(i * bytesPerNode + 1);
+			let numElements           = view.getUint32(i * bytesPerNode + 2, true);
+			let byteOffset            = Number(view.getBigInt64(i * bytesPerNode + 6, true));
+			let byteOffset_unfiltered = Number(view.getBigInt64(i * bytesPerNode + 14, true));
+			let byteSize              = Number(view.getUint32(i * bytesPerNode + 22, true));
+			let byteSize_position     = Number(view.getUint32(i * bytesPerNode + 26, true));
+			let byteSize_filtered     = Number(view.getUint32(i * bytesPerNode + 30, true));
+			let byteSize_unfiltered   = Number(view.getUint32(i * bytesPerNode + 34, true));
 
-			let type = view.getUint8(i * bytesPerNode + 0);
-			let childMask = view.getUint8(i * bytesPerNode + 1);
-			let numElements = view.getUint32(i * bytesPerNode + 2, true);
-			let byteOffset = Number(view.getBigInt64(i * bytesPerNode + 6, true));
-			let byteSize = Number(view.getBigInt64(i * bytesPerNode + 14, true));
-
-			// console.log(`process ${current.name}, childmask: ${childMask}`);
+			// debugger;
 
 			if(current.nodeType === NodeType.PROXY){
 				// replace proxy with real node
 				current.byteOffset = byteOffset;
 				current.byteSize = byteSize;
 				current.numElements = numElements;
+				current.byteOffset_unfiltered = byteOffset_unfiltered;
+				current.byteSize_unfiltered = byteSize_unfiltered;
 			}else if(type === NodeType.PROXY){
 				// load proxy
 				current.hierarchyByteOffset = byteOffset;
@@ -185,9 +187,15 @@ export class Potree2Loader{
 				current.byteOffset = byteOffset;
 				current.byteSize = byteSize;
 				current.numElements = numElements;
+				current.byteOffset_unfiltered = byteOffset_unfiltered;
+				current.byteSize_unfiltered = byteSize_unfiltered;
 			}
 			
 			current.nodeType = type;
+
+			if(current.nodeType === NodeType.LEAF){
+				current.unfilteredLoaded = true;
+			}
 
 			if(current.nodeType === NodeType.PROXY){
 				continue;
@@ -251,6 +259,90 @@ export class Potree2Loader{
 		// console.log(node);
 	}
 
+	// loads unfiltered voxel data for inner nodes
+	async loadNodeUnfiltered(node){
+
+		if(!node.loaded) return; // regular filtered data needs to be loaded first
+		if(node.unfilteredLoaded) return; 
+		if(node.unfilteredLoading) return;
+		if(node.loadAttempts > 5) return;
+		if(node.nodeType === NodeType.PROXY) return;
+
+		// CHECK IF NODE+CHILDREN IN CONTIGUOUS MEMORY
+		// let inContiguousMemory = false;
+		// let totalBytes = 0;
+		// if((node.level % 2) === 0){
+			
+		// 	let firstByte = Infinity;
+		// 	let lastByte = 0;
+
+		// 	for(let famNode of [node, ...node.children]){
+
+		// 		if(famNode == null) continue;
+		// 		if(famNode.nodeType === NodeType.PROXY) continue;
+		// 		if(famNode.nodeType === NodeType.LEAF) continue;
+		// 		if(famNode.loaded === false) continue;
+
+		// 		firstByte = Math.min(firstByte, famNode.byteOffset_unfiltered);
+		// 		lastByte = Math.max(lastByte, famNode.byteOffset_unfiltered + famNode.byteSize_unfiltered);
+		// 		totalBytes += famNode.byteSize_unfiltered;
+		// 	}
+
+		// 	let diff = lastByte - firstByte;
+
+		// 	inContiguousMemory = (diff === totalBytes);
+		// }
+
+		let nodes = [node];
+
+		// if all nodes in chunk of contiguous memory have less than <x> bytes, load them at once
+		// if(inContiguousMemory && totalBytes < 1_000_000){
+		// 	for(let child of node.children){
+		// 		if(child == null) continue;
+
+		// 		child.loading = true;
+		// 		nodes.push(child);
+		// 	}
+		// }
+
+		let chunkOffset = Infinity;
+		let chunkSize = 0;
+
+		for(let node of nodes){
+			node.loading = true;
+			chunkOffset = Math.min(chunkOffset, node.byteOffset_unfiltered);
+			chunkSize += node.byteSize_unfiltered;
+		}
+
+		let url = new URL(`${this.url}/../octree.bin`, document.baseURI).href;
+		let response = await fetch(url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${chunkOffset}-${chunkOffset + chunkSize - 1}`,
+			},
+		});
+
+		let buffer = await response.arrayBuffer();
+
+		// HACK: should properly compute between pos/filtered/unfiltered
+		let target_offset_unfiltered = 18 * node.numElements;
+
+		let dbg = new Uint16Array(buffer);
+
+
+		for(let node of nodes){
+			console.log(`loaded unfiltered ${node.name}. byteOffset: ${node.byteOffset_unfiltered}. byteSize: ${node.byteSize_unfiltered}.`);
+
+			let nodeBuffer = new Uint8Array(buffer, node.byteOffset_unfiltered - chunkOffset, node.byteSize_unfiltered);
+			new Uint8Array(node.geometry.buffer, target_offset_unfiltered, node.byteSize_unfiltered).set(nodeBuffer);
+
+			node.unfilteredLoading = false;
+			node.unfilteredLoaded = true;
+		}
+
+	}
+
+	// loads filtered voxel data for inner nodes or full point data for leaf nodes
 	async loadNode(node){
 
 		if(node.loaded) return; 
@@ -259,7 +351,6 @@ export class Potree2Loader{
 		// if(nodesLoading >= MAX_NODES_LOADING) return;
 		if(node.parent != null && !node.parent.loaded) return;
 
-		nodesLoading++;
 		node.loading = true;
 
 		try{
@@ -272,7 +363,6 @@ export class Potree2Loader{
 
 		// CHECK IF NODE+CHILDREN IN CONTIGUOUS MEMORY
 		let inContiguousMemory = false;
-		let allVoxels = true;
 		let totalBytes = 0;
 		if((node.level % 2) === 0){
 			
@@ -287,8 +377,6 @@ export class Potree2Loader{
 				firstByte = Math.min(firstByte, famNode.byteOffset);
 				lastByte = Math.max(lastByte, famNode.byteOffset + famNode.byteSize);
 				totalBytes += famNode.byteSize;
-
-				allVoxels = allVoxels && (famNode.nodeType === NodeType.NORMAL);
 			}
 
 			let diff = lastByte - firstByte;
@@ -298,8 +386,8 @@ export class Potree2Loader{
 
 		let nodes = [node];
 
-		if(inContiguousMemory && totalBytes < 1_000_000)
-		{
+		// if all nodes in chunk of contiguous memory have less than <x> bytes, load them at once
+		if(inContiguousMemory && totalBytes < 1_000_000){
 			for(let child of node.children){
 				if(child == null) continue;
 
@@ -310,7 +398,6 @@ export class Potree2Loader{
 
 		for(let node of nodes){
 			node.loading = true;
-			nodesLoading++;
 		}
 
 		try{
@@ -319,12 +406,6 @@ export class Potree2Loader{
 			}
 
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
-			// let workerPathPoints = "./src/potree/octree/loader_p2_1/DecoderWorker_points.js";
-			// let workerPathVoxels = "./src/potree/octree/loader_p2_1/DecoderWorker_voxels.js";
-			
-			// let workerPath = (node.nodeType === NodeType.LEAF) ? 
-			// 	workerPathPoints : workerPathVoxels;
-
 			let workerPath = "./src/potree/octree/loader_p2_1/DecoderWorker.js";
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
@@ -337,7 +418,6 @@ export class Potree2Loader{
 					for(let node of nodes){
 						node.loaded = false;
 						node.loading = false;
-						nodesLoading--;
 					}
 
 					WorkerPool.returnWorker(workerPath, worker);
@@ -356,7 +436,6 @@ export class Potree2Loader{
 
 					loadedNode.loaded = true;
 					loadedNode.loading = false;
-					nodesLoading--;
 					loadedNode.geometry = geometry;
 					loadedNode.voxelCoords = data.voxelCoords;
 
@@ -407,7 +486,6 @@ export class Potree2Loader{
 			debugger;
 			node.loaded = false;
 			node.loading = false;
-			nodesLoading--;
 
 			console.log(`failed to load ${node.name}`);
 			console.log(e);
@@ -416,7 +494,6 @@ export class Potree2Loader{
 			// loading with range requests frequently fails in chrome 
 			// loading again usually resolves this.
 		}
-
 	}
 
 	static async load(url){

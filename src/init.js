@@ -649,8 +649,13 @@ function renderNotSoBasic(){
 		}
 		Potree.pickQueue.length = 0;
 
-		inputHandler.hoveredElements = [Potree.hoveredItem];
+		if(Potree.hoveredItem){
+			inputHandler.hoveredElements = [Potree.hoveredItem];
+		}else{
+			inputHandler.hoveredElements = [];
+		}
 
+		
 	}
 
 

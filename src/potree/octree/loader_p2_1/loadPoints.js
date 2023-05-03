@@ -9,7 +9,9 @@ export function loadPoints(octree, node, dataview){
 	let n = node.numPoints;
 	let {scale, offset} = octree;
 
-	let bufferSize = ceil_n(18 * n, 4);
+	let bytesPerPoint = octree.pointAttributes.byteSize;
+
+	let bufferSize = ceil_n(bytesPerPoint * n, 4);
 	let buffer = new ArrayBuffer(bufferSize);
 
 	let s_stride = node.byteSize / n;

@@ -17,7 +17,11 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 
 	let {numVoxels} = node;
 
-	let targetBuffer       = new ArrayBuffer(ceil_n(18 * numVoxels, 4));
+	// includes position+filtered+unfiltered attributes
+	// unfiltered are loaded at a later time
+	let bytesPerPoint = octree.pointAttributes.byteSize;
+
+	let targetBuffer       = new ArrayBuffer(ceil_n(bytesPerPoint * numVoxels, 4));
 	let target_coordinates = new DataView(targetBuffer, 0, 12 * numVoxels);
 	let target_rgb         = new DataView(targetBuffer, 12 * numVoxels, 6 * numVoxels);
 	let voxelCoords        = new Uint8Array(3 * numVoxels);
@@ -27,13 +31,6 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 		node.max[1] - node.min[1],
 		node.max[2] - node.min[2],
 	];
-
-	if(node.name === "r327") {
-		debugger;
-	}
-	if(node.name === "r034") {
-		debugger;
-	}
 
 	if(node.name === "r"){
 		// root node encodes voxel coordinates directly
@@ -67,9 +64,6 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 				my = my | (by << bitindex);
 			}
 
-			// target_rgb.setUint16(6 * i + 0, source.getUint8(3 * numVoxels + 3 * i + 0), true);
-			// target_rgb.setUint16(6 * i + 2, source.getUint8(3 * numVoxels + 3 * i + 1), true);
-			// target_rgb.setUint16(6 * i + 4, source.getUint8(3 * numVoxels + 3 * i + 2), true);
 			let r = source.getUint8(3 * numVoxels + 3 * i + 0);
 			let g = source.getUint8(3 * numVoxels + 3 * i + 1);
 			let b = source.getUint8(3 * numVoxels + 3 * i + 2);
@@ -104,7 +98,6 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 
 		// now parent_i points to first parent voxel inside current node
 		// next, use child masks to break parent voxels into current node's voxels
-
 		let numGeneratedVoxels = 0;
 		let i = 0;
 		while(numGeneratedVoxels < numVoxels){
@@ -200,6 +193,7 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 				colorsProcessed++;
 				if(colorsProcessed === numVoxels) break;
 			}
+			if(colorsProcessed === numVoxels) break;
 		}
 	}
 
@@ -219,14 +213,4 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 	// console.log(`[${name.padStart(10)}] #voxels: ${strVoxels}, ${strKB} kb, brotli: ${strDBrotli} ms, parse: ${strDParse} ms, total: ${strDTotal} ms. ${strMPS} MP/s`);
 
 	return {buffer: targetBuffer, voxelCoords};
-
-	// let message = {
-	// 	type: "node parsed",
-	// 	name: node.name,
-	// 	buffer: targetBuffer,
-	// 	voxelCoords
-	// };
-	// let transferables = [targetBuffer, voxelCoords.buffer];
-
-	// postMessage(message, transferables);
 }

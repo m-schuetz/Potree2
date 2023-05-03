@@ -57,6 +57,7 @@ export class PointCloudOctree extends SceneNode{
 
 		let visibleNodes = [];
 		let loadQueue = [];
+		let unfilteredLoadQueue = [];
 		let priorityQueue = new BinaryHeap(function (x) { return 1 / x.weight; });
 
 		let camPos = camera.getWorldPosition();
@@ -86,6 +87,16 @@ export class PointCloudOctree extends SceneNode{
 				}
 
 				continue;
+			}
+
+			let needsUnfiltered = true;
+
+			if(needsUnfiltered && !node.unfilteredLoaded){
+				if(unfilteredLoadQueue.length < 10){
+					unfilteredLoadQueue.push(node);
+				}
+
+				// continue;
 			}
 
 			let box = node.boundingBox.clone();
@@ -160,8 +171,15 @@ export class PointCloudOctree extends SceneNode{
 		loadQueue.slice(0, 20);
 		loadQueue.sort( (a, b) => a.level - b.level);
 
+		unfilteredLoadQueue.slice(0, 20);
+		unfilteredLoadQueue.sort( (a, b) => a.level - b.level);
+
 		for(let node of loadQueue){
 			this.loader.loadNode(node);
+		}
+
+		for(let node of unfilteredLoadQueue){
+			this.loader.loadNodeUnfiltered(node);
 		}
 
 		this.visibleNodes = visibleNodes;
