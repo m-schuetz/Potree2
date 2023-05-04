@@ -120,39 +120,9 @@ canvas{
 	Potree.settings.pointSize = 4;
 	Potree.settings.minNodeSize = 150;
 
-	// Potree.settings.pointSize = 7;
-	// Potree.settings.minNodeSize = 1000;
-
-
-	// import {Potree2Loader} from "potree";
-	// {
-
-	// 	Potree2Loader.load("./resources/G/temp/test/").then(pointcloud => {
-	// 		scene.root.children.push(pointcloud);
-	// 		pointcloud.position.set(0, 0, 0);
-
-	// 		// debugger;
-
-	// 		let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
-	// 		let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
-
-	// 		let center = max.clone().sub(min).multiplyScalar(0.5);
-	// 		let diagonal = max.sub(min);
-	// 		let campos = center.clone().add(diagonal);
-
-	// 		controls.set({
-	// 			position: campos.toArray(), 
-	// 			pivot:    center.toArray()
-	// 		});
-			
-	// 		controls.set({
-	// 			position: [857.3, 139.6, 210.2], 
-	// 			pivot: [681.2, 442.5, -21.4]
-	// 		});
-	// 	});
-
-	// }
 	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
+	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
+
 	{
 
 		// Potree2Loader.load("https://users.cg.tuwien.ac.at/~mschuetz/potree2_test/retz/metadata.json").then(pointcloud => {
@@ -185,45 +155,25 @@ canvas{
 			// register an attribute->color mapping that automatically applies 
 			// to attributes that fullfill a given condition
 			let material = pointcloud.material;
-			material.registerMapping({
-				name: "intensity 1",
-				condition: (attribute) => (attribute.name === "intensity"),
-				// condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
-				wgsl: `
-					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-						var pointID = vertex.vertexID / 6u;
-						var offset = node.numPoints * attrib.offset + 2u * pointID;
-						var value = readU16(offset);
+			// add standard attribute mappings
+			for(let mapping of Object.values(MAPPINGS)){
+				material.registerMapping(mapping);
+			}
 
-						var w = f32(value) / 256.0;
-
-						var color = vec4<f32>(
-							w, w, w,
-							1.0,
-						);
-
-						return color;
-					}
-				`,
-			});
-
+			// add some additional custom mappings
 			material.registerMapping({
 				name: "intensity 2",
 				condition: (attribute) => (attribute.name === "intensity"),
 				wgsl: `
-					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+					fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-						var pointID = vertex.vertexID / 6u;
 						var offset = node.numPoints * attrib.offset + 2u * pointID;
 						var value = readU16(offset);
 
-						var w = f32(value) / 256.0;
+						var w = 0.5 * f32(value) / 256.0;
 
-						var color = vec4<f32>(
-							w, 0.0, 0.0,
-							1.0,
-						);
+						var color = vec4<f32>(w, w, w, 1.0);
 
 						return color;
 					}
@@ -234,9 +184,8 @@ canvas{
 				name: "classification 2",
 				condition: (attribute) => (attribute.name === "classification"),
 				wgsl: `
-					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+					fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-						var pointID = vertex.vertexID / 6u;
 						var offset = node.numPoints * attrib.offset + pointID;
 						var value = readU8(offset);
 
@@ -251,54 +200,6 @@ canvas{
 					}
 				`,
 			});
-
-			material.registerMapping({
-				name: "test",
-				condition: (attribute) => (attribute.byteSize === 12),
-				wgsl: `
-					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-
-						var color = vec4<f32>(0.0, 1.0, 0.0, 1.0);
-
-						return color;
-					}
-				`,
-			});
-
-			material.registerMapping({
-				name: "rgba",
-				condition: (attribute) => (attribute.name === "rgba"),
-				wgsl: `
-					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-
-						var pointID = vertex.vertexID / 6u;
-						var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
-
-						var r = 0.0;
-						var g = 0.0;
-						var b = 0.0;
-
-						if(attrib.datatype == TYPES_UINT8){
-							r = f32(readU8(offset + 0u));
-							g = f32(readU8(offset + 1u));
-							b = f32(readU8(offset + 2u));
-						}else if(attrib.datatype == TYPES_UINT16){
-							r = f32(readU16(offset + 0u));
-							g = f32(readU16(offset + 2u));
-							b = f32(readU16(offset + 4u));
-						}
-
-						if(r > 255.0) { r = r / 256.0; }
-						if(g > 255.0) { g = g / 256.0; }
-						if(b > 255.0) { b = b / 256.0; }
-
-						var color = vec4<f32>(r, g, b, 255.0) / 255.0;
-
-						return color;
-					}
-				`,
-			});
-
 			
 			// retz
 			// controls.set({

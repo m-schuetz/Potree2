@@ -473,14 +473,8 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 				// QUAD
 				var localIndex = vertex.vertexID % 6u;
 
-				// var s = node.spacing * 0.25f;
-				// output.position = uniforms.proj * viewPos;
-
-
 				var transX = node.spacing * 0.7990f;
 				var transY = node.spacing * 0.7990f;
-				// transX = 0.1f;
-				// transY = 0.1f;
 
 				if(localIndex == 0u){
 					viewPos.x = viewPos.x - transX;
@@ -611,7 +605,6 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	{ // COLORIZE BY ATTRIBUTE DESCRIPTORS
 		var attrib = attributes.values[uniforms.selectedAttribute];
 		var value : f32 = 0.0;
-
 		var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
 		if(attrib.mapping == MAPPING_LISTING){
