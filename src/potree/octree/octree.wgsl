@@ -1,9 +1,9 @@
 
 struct Uniforms {
-	world             : mat4x4<f32>,   //   0
-	view              : mat4x4<f32>,   //  64
-	proj              : mat4x4<f32>,   // 128
-	worldView         : mat4x4<f32>,   // 192
+	world             : mat4x4f,       //   0
+	view              : mat4x4f,       //  64
+	proj              : mat4x4f,       // 128
+	worldView         : mat4x4f,       // 192
 	screen_width      : f32,           // 256
 	screen_height     : f32,           // 260
 	hqs_flag          : u32,           // 264
@@ -13,6 +13,8 @@ struct Uniforms {
 	splatType         : u32,           // 280
 	isAdditive        : u32,           // 284
 	spacing           : f32,           // 288
+	octreeMin         : vec3f,         // 304
+	octreeMax         : vec3f,         // 320
 };
 
 struct Node {
@@ -39,10 +41,6 @@ struct AttributeDescriptor{
 	datatype    : u32,
 	mapping     : u32,
 };
-
-struct Nodes{ values : array<Node> };
-struct AttributeDescriptors{ values : array<AttributeDescriptor> };
-struct U32s { values : array<u32> };
 
 const MAPPING_UNDEFINED     =  0u;
 const MAPPING_RGBA          =  1u;
@@ -75,27 +73,36 @@ const BLUE     = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 const OUTSIDE  = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 
 @binding(0) @group(0) var<uniform> uniforms           : Uniforms;
-@binding(1) @group(0) var<storage, read> attributes   : AttributeDescriptors;
-@binding(2) @group(0) var<storage, read> colormap     : U32s;
+@binding(1) @group(0) var<storage, read> attributes   : array<AttributeDescriptor>;
+@binding(2) @group(0) var<storage, read> colormap     : array<u32>;
 
 @binding(0) @group(1) var sampler_repeat              : sampler;
 @binding(1) @group(1) var sampler_clamp               : sampler;
 @binding(2) @group(1) var gradientTexture             : texture_2d<f32>;
 
-@binding(0) @group(2) var<storage, read> buffer       : U32s;
-@binding(0) @group(3) var<storage, read> nodes        : Nodes;
+@binding(0) @group(2) var<storage, read> buffer       : array<u32>;
+@binding(0) @group(3) var<storage, read> nodes        : array<Node>;
 
 
 fn readU8(offset : u32) -> u32{
-	var ipos : u32 = offset / 4u;
-	var val_u32 : u32 = buffer.values[ipos];
+	var ipos    = offset / 4u;
+	var val_u32 = buffer[ipos];
+	var shift   = 8u * (offset % 4u);
 
-	// var shift : u32 = 8u * (3u - (offset % 4u));
-	var shift : u32 = 8u * (offset % 4u);
-	var val_u8 : u32 = (val_u32 >> shift) & 0xFFu;
+	var val_u8  = (val_u32 >> shift) & 0xFFu;
 
 	return val_u8;
 }
+
+// fn readU8ptr(offset : u32, buffer : ptr<storage, array<u32>>) -> u32{
+// 	var ipos    = offset / 4u;
+// 	var val_u32 = *buffer[ipos];
+// 	var shift   = 8u * (offset % 4u);
+	
+// 	var val_u8  = (val_u32 >> shift) & 0xFFu;
+
+// 	return val_u8;
+// }
 
 fn readU16(offset : u32) -> u32{
 	
@@ -123,9 +130,7 @@ fn readI16(offset : u32) -> i32{
 		value = -1;
 	}
 
-	// var mask = 0xFFFFu << 16u;
 	var mask = 0xffff0000u;
-	// value = value & mask;
 	value = value | i32(first << 0u);
 	value = value | i32(second << 8u);
 
@@ -225,7 +230,7 @@ fn map_listing(vertex : VertexInput, pointID : u32, attrib : AttributeDescriptor
 
 	var value = readU8(offset);
 
-	var color_u32 = colormap.values[value];
+	var color_u32 = colormap[value];
 
 	var r = (color_u32 >>  0u) & 0xFFu;
 	var g = (color_u32 >>  8u) & 0xFFu;
@@ -241,145 +246,82 @@ fn map_listing(vertex : VertexInput, pointID : u32, attrib : AttributeDescriptor
 	return color;
 }
 
-// fn map_normal_terrascan_2_15_15(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-// 	var PI = 3.1415;
-// 	var HML = (2.0 * PI) / 32767.0;
-// 	var VML = PI / 32767.0;
+// fn map_scalar(vertex : VertexInput, pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+// 	var value : f32 = 0.0;
+
+// 	if(attrib.valuetype == TYPES_UINT8){
+// 		var offset = node.numPoints * attrib.offset + 1u * pointID;
+// 		value = f32(readU8(offset));
+// 	}else if(attrib.valuetype == TYPES_DOUBLE){
+// 		var offset = node.numPoints * attrib.offset + 8u * pointID;
+
+// 		value = readF64(offset);
+// 	}else if(attrib.valuetype == TYPES_ELEVATION){
+// 		value = (uniforms.world * position).z;
+// 	}else if(attrib.valuetype == TYPES_UINT16){
+// 		var offset = node.numPoints * attrib.offset + 2u * pointID;
+// 		value = f32(readU16(offset));
+// 	}else if(attrib.valuetype == TYPES_INT16){
+// 		var offset = node.numPoints * attrib.offset + 2u * pointID;
+// 		value = f32(readI16(offset));
+// 	}else if(attrib.valuetype == TYPES_UINT32){
+// 		var offset = node.numPoints * attrib.offset + 4u * pointID;
+// 		value = f32(readU32(offset));
+// 	}
+
+// 	var w = (value - attrib.range_min) / (attrib.range_max - attrib.range_min);
+
+// 	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+// 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
+
+// 	if(attrib.clamp == CLAMP_ENABLED){
+// 		color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
+// 	}else{
+// 		color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
+// 	}
 	
-// 	var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
-// 	var value = readU32(offset);
-
-// 	var mask_15b = (1u << 15u) - 1u;
-
-// 	var dim = value & 3u;
-// 	var horzAngle = f32((value >>  2u) & mask_15b);
-// 	var vertAngle = f32((value >> 17u) & mask_15b);
-
-// 	var ang = (VML * vertAngle) - 0.5 * PI;
-// 	var zvl = sin(ang);
-// 	var xml = sqrt( 1.0 - (zvl * zvl));
-
-// 	var normal : vec3<f32>;
-// 	normal.x = xml * cos(HML * horzAngle);
-// 	normal.y = xml * sin(HML * horzAngle);
-// 	normal.z = zvl;
-
-// 	var color = vec4<f32>(normal, 1.0);
-
-// 	color = vec4<f32>(
-// 		1.0 * normal.x, 
-// 		1.0 * normal.y, 
-// 		1.0 * normal.z,
-// 		1.0,
-// 	);
-
 // 	return color;
 // }
 
-// fn map_terrascan_group(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-// 	var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
-// 	var value = readU32(offset);
+// fn map_vector(vertex : VertexInput, pointID : u32, attrib : AttributeDescriptor, node : Node) -> vec4<f32> {
 
-// 	var w = f32(value) / 1234.0;
-// 	w = f32(value % 10u) / 10.0;
-// 	var uv = vec2<f32>(w, 0.0);
+// 	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
-// 	var color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
+// 	if(attrib.valuetype == TYPES_RGBA){
+// 		var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
+
+// 		var r = 0.0;
+// 		var g = 0.0;
+// 		var b = 0.0;
+
+// 		if(attrib.datatype == TYPES_UINT8){
+// 			r = f32(readU8(offset + 0u));
+// 			g = f32(readU8(offset + 1u));
+// 			b = f32(readU8(offset + 2u));
+// 		}else if(attrib.datatype == TYPES_UINT16){
+// 			r = f32(readU16(offset + 0u));
+// 			g = f32(readU16(offset + 2u));
+// 			b = f32(readU16(offset + 4u));
+// 		}
+
+// 		if(r > 255.0) { r = r / 256.0; }
+// 		if(g > 255.0) { g = g / 256.0; }
+// 		if(b > 255.0) { b = b / 256.0; }
+
+// 		color = vec4<f32>(r, g, b, 255.0) / 255.0;
+// 	}if(attrib.valuetype == TYPES_DOUBLE){
+// 		var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
+
+// 		var x = readF64(offset +  0u);
+// 		var y = readF64(offset +  8u);
+// 		var z = readF64(offset + 16u);
+
+// 		color = vec4<f32>(x, y, z, 1.0);
+// 	}
 
 // 	return color;
 // }
-
-// fn map_terrascan_distance(vertex : VertexInput, attribute : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-// 	var offset = node.numPoints * attribute.offset + 4u * vertex.vertexID;
-// 	var value = readI32(offset);
-
-// 	// assuming distance in meters
-// 	var distance = f32(value) / 1000.0;
-// 	var w = distance / 5.0;
-// 	var uv = vec2<f32>(w, 0.0);
-
-// 	var color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
-
-// 	return color;
-// }
-
-
-fn map_scalar(vertex : VertexInput, pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-
-	var value : f32 = 0.0;
-
-	if(attrib.valuetype == TYPES_UINT8){
-		var offset = node.numPoints * attrib.offset + 1u * pointID;
-		value = f32(readU8(offset));
-	}else if(attrib.valuetype == TYPES_DOUBLE){
-		var offset = node.numPoints * attrib.offset + 8u * pointID;
-
-		value = readF64(offset);
-	}else if(attrib.valuetype == TYPES_ELEVATION){
-		value = (uniforms.world * position).z;
-	}else if(attrib.valuetype == TYPES_UINT16){
-		var offset = node.numPoints * attrib.offset + 2u * pointID;
-		value = f32(readU16(offset));
-	}else if(attrib.valuetype == TYPES_INT16){
-		var offset = node.numPoints * attrib.offset + 2u * pointID;
-		value = f32(readI16(offset));
-	}else if(attrib.valuetype == TYPES_UINT32){
-		var offset = node.numPoints * attrib.offset + 4u * pointID;
-		value = f32(readU32(offset));
-	}
-
-	var w = (value - attrib.range_min) / (attrib.range_max - attrib.range_min);
-
-	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
-	var uv : vec2<f32> = vec2<f32>(w, 0.0);
-
-	if(attrib.clamp == CLAMP_ENABLED){
-		color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
-	}else{
-		color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
-	}
-	
-	return color;
-}
-
-fn map_vector(vertex : VertexInput, pointID : u32, attrib : AttributeDescriptor, node : Node) -> vec4<f32> {
-
-	var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
-
-	if(attrib.valuetype == TYPES_RGBA){
-		var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
-
-		var r = 0.0;
-		var g = 0.0;
-		var b = 0.0;
-
-		if(attrib.datatype == TYPES_UINT8){
-			r = f32(readU8(offset + 0u));
-			g = f32(readU8(offset + 1u));
-			b = f32(readU8(offset + 2u));
-		}else if(attrib.datatype == TYPES_UINT16){
-			r = f32(readU16(offset + 0u));
-			g = f32(readU16(offset + 2u));
-			b = f32(readU16(offset + 4u));
-		}
-
-		if(r > 255.0) { r = r / 256.0; }
-		if(g > 255.0) { g = g / 256.0; }
-		if(b > 255.0) { b = b / 256.0; }
-
-		color = vec4<f32>(r, g, b, 255.0) / 255.0;
-	}if(attrib.valuetype == TYPES_DOUBLE){
-		var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
-
-		var x = readF64(offset +  0u);
-		var y = readF64(offset +  8u);
-		var z = readF64(offset + 16u);
-
-		color = vec4<f32>(x, y, z, 1.0);
-	}
-
-	return color;
-}
 
 fn map_elevation(vertex : VertexInput, pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
@@ -415,7 +357,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 	doIgnores();
 
-	var node = nodes.values[vertex.instanceID];
+	var node = nodes[vertex.instanceID];
 
 	var output : VertexOutput;
 
@@ -603,20 +545,20 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	}
 
 	{ // COLORIZE BY ATTRIBUTE DESCRIPTORS
-		var attrib = attributes.values[uniforms.selectedAttribute];
+		var attrib = attributes[uniforms.selectedAttribute];
 		var value : f32 = 0.0;
 		var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 
 		if(attrib.mapping == MAPPING_LISTING){
 			color = map_listing(vertex, pointID, attrib, node);
 		}else if(attrib.mapping == MAPPING_SCALAR){
-			color = map_scalar(vertex, pointID, attrib, node, position);
+			// color = map_scalar(vertex, pointID, attrib, node, position);
 		}else if(attrib.mapping == MAPPING_ELEVATION){
 			color = map_elevation(vertex, pointID, attrib, node, position);
 		}else if(attrib.mapping == MAPPING_RGBA){
-			color = map_vector(vertex, pointID, attrib, node);
+			// color = map_vector(vertex, pointID, attrib, node);
 		}else if(attrib.mapping == MAPPING_VECTOR){
-			color = map_vector(vertex, pointID, attrib, node);
+			// color = map_vector(vertex, pointID, attrib, node);
 		}
 		<<TEMPLATE_MAPPING_SELECTION>>
 		

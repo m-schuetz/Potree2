@@ -76,6 +76,8 @@ export class PointCloudOctree extends SceneNode{
 		let i = 0;
 		let numPoints = 0;
 
+		let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
+
 		while (priorityQueue.size() > 0) {
 			let element = priorityQueue.pop();
 			let {node, weight} = element;
@@ -88,8 +90,6 @@ export class PointCloudOctree extends SceneNode{
 
 				continue;
 			}
-
-			let needsUnfiltered = true;
 
 			if(needsUnfiltered && !node.unfilteredLoaded){
 				if(unfilteredLoadQueue.length < 10){

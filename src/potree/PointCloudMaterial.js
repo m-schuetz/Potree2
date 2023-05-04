@@ -1,38 +1,12 @@
 import {EventDispatcher, SplatType} from "potree";
+import {PointAttribute, PointAttributeTypes} from "potree";
 
-export class Attribute_Custom{
+export class AttributeSettings{
 	constructor(name){
 		this.name = name;
 		this.stats = null;
 		this.runtime = true;
 		this.mapping = null;
-	}
-};
-
-export class Attribute_Misc{
-	constructor(stats){
-		this.stats = stats;
-		this.runtime = false;
-		this.mapping = null;
-	}
-};
-
-export class Attribute_RGB{
-
-	constructor(stats){
-		this.stats = stats;
-		this.runtime = false;
-		this.mapping = null;
-	}
-
-};
-
-export class Attribute_Scalar{
-
-	constructor(stats){
-		this.stats = stats;
-		// this.range = [stats.min, stats.max];
-		// this.range = [0, 1];
 		this.range = null;
 		this.filterRange = [-Infinity, Infinity];
 		this.clamp = false;
@@ -72,19 +46,6 @@ const ListingSchemes = {
 	}
 };
 
-export class Attribute_Listing{
-
-	constructor(stats){
-		this.stats = stats;
-		this.listing = ListingSchemes.NONE;
-		this.mapping = null;
-	}
-
-	set(scheme){
-		this.listing = scheme;
-	}
-};
-
 export class PointCloudMaterial{
 
 	constructor(){
@@ -92,6 +53,7 @@ export class PointCloudMaterial{
 		this.initialized = false;
 		this.statsUpdated = false;
 		this.attributes = new Map();
+		this.attributeSettings = new Map();
 		this.mappings = [];
 		this.selectedMappings = new Map();
 
@@ -109,15 +71,16 @@ export class PointCloudMaterial{
 		this.needsCompilation = true;
 	}
 
-	registerAttribute(name){
+	registerAttribute(attribute){
 
-		if(this.attributes.has(name)){
-			throw `an attribute with the id '${name}' is already registered`;
+		if(this.attributes.has(attribute.name)){
+			throw `an attribute with the id '${attribute.name}' is already registered`;
 		}
 
-		let attribute = new Attribute_Custom(name);
+		let settings = new AttributeSettings(attribute.name);
 
-		this.attributes.set(name, attribute);
+		this.attributes.set(attribute.name, attribute);
+		this.attributeSettings.set(attribute.name, settings);
 
 		this.recompile();
 		this.events.dispatcher.dispatch("change", {material: this});
@@ -134,7 +97,7 @@ export class PointCloudMaterial{
 		this.events.dispatcher.dispatch("change", {material: this});
 
 		for(let [name, attribute] of this.attributes){
-			if(attribute.attribute && condition(attribute.attribute)){
+			if(attribute && condition(attribute)){
 				if(!this.selectedMappings.has(name)){
 					this.selectedMappings.set(name, mapping);
 				}
@@ -157,9 +120,9 @@ export class PointCloudMaterial{
 
 					attribute.stats = stats;
 
-					if(attribute instanceof Attribute_Scalar){
-						attribute.range = [stats.min, stats.max];
-					}
+					// if(attribute instanceof Attribute_Scalar){
+					// 	attribute.range = [stats.min, stats.max];
+					// }
 				}
 			}
 
@@ -203,41 +166,48 @@ export class PointCloudMaterial{
 
 			let stats = null;
 
-			let mapping = null;
-			if(attribute.name === "rgba"){
-				mapping = new Attribute_RGB(stats);
-			}else if(attribute.name === "intensity"){
-				mapping = new Attribute_Scalar(stats);
-				mapping.range = attribute.range;
-			}else if(attribute.name === "point source id"){
-				mapping = new Attribute_Scalar(stats);
-			}else if(attribute.name === "gps-time"){
-				mapping = new Attribute_Scalar(stats);
-			}else if(attribute.name === "classification"){
-				mapping = new Attribute_Listing(stats);
-				mapping.set(ListingSchemes.LAS_CLASSIFICATION);
-			}else if(attribute.name === "return number"){
-				mapping = new Attribute_Listing(stats);
-				mapping.set(ListingSchemes.LAS_RETURN_NUMBER);
-			}else if(attribute.name === "scan angle"){
-				mapping = new Attribute_Scalar(stats);
-			}else if(attribute.name === "Normal"){
-				mapping = new Attribute_RGB(stats);
-			}else{
-				mapping = new Attribute_Scalar(stats);
-			}
+			// let mapping = null;
+			// if(attribute.name === "rgba"){
+			// 	mapping = new Attribute_RGB(stats);
+			// }else if(attribute.name === "intensity"){
+			// 	mapping = new Attribute_Scalar(stats);
+			// 	mapping.range = attribute.range;
+			// }else if(attribute.name === "point source id"){
+			// 	mapping = new Attribute_Scalar(stats);
+			// }else if(attribute.name === "gps-time"){
+			// 	mapping = new Attribute_Scalar(stats);
+			// }else if(attribute.name === "classification"){
+			// 	mapping = new Attribute_Listing(stats);
+			// 	mapping.set(ListingSchemes.LAS_CLASSIFICATION);
+			// }else if(attribute.name === "return number"){
+			// 	mapping = new Attribute_Listing(stats);
+			// 	mapping.set(ListingSchemes.LAS_RETURN_NUMBER);
+			// }else if(attribute.name === "scan angle"){
+			// 	mapping = new Attribute_Scalar(stats);
+			// }else if(attribute.name === "Normal"){
+			// 	mapping = new Attribute_RGB(stats);
+			// }else{
+			// 	mapping = new Attribute_Scalar(stats);
+			// }
 
-			mapping.attribute = attribute;
+			// mapping.attribute = attribute;
 
-			this.attributes.set(attribute.name, mapping);
+			// this.attributes.set(attribute.name, mapping);
+
+			this.registerAttribute(attribute);
 		}
 
 		{ // elevation
-			let stats = null;
-			let attribute = new Attribute_Scalar(stats);
-			attribute.clamp = true;
-			attribute.runtime = true;
-			this.attributes.set("elevation", attribute);
+			// let stats = null;
+			// let attribute = new Attribute_Scalar(stats);
+			// attribute.clamp = true;
+			// attribute.runtime = true;
+			// this.attributes.set("elevation", attribute);
+
+			let attribute = new PointAttribute("elevation", PointAttributeTypes.UINT8, 1);
+			attribute.byteOffset = 0;
+
+			this.registerAttribute(attribute);
 		}
 
 		// console.log(statsList);

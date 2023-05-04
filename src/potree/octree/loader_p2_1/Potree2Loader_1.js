@@ -6,6 +6,8 @@ import {Geometry} from "potree";
 import {Vector3, Box3, Matrix4} from "potree";
 import JSON5 from "json5";
 
+let numActiveRequests = 0;
+
 const NodeType = {
 	NORMAL: 0,
 	LEAF: 1,
@@ -254,7 +256,7 @@ export class Potree2Loader{
 		let durationMS = tEnd - tStart;
 
 		let strKB = Math.ceil(hierarchyByteSize / 1024);
-		console.log(`parsed hierarchy (${strKB} kb) in ${durationMS.toFixed(1)} ms`);
+		// console.log(`parsed hierarchy (${strKB} kb) in ${durationMS.toFixed(1)} ms`);
 
 		// console.log(node);
 	}
@@ -262,6 +264,7 @@ export class Potree2Loader{
 	// loads unfiltered voxel data for inner nodes
 	async loadNodeUnfiltered(node){
 
+		if(numActiveRequests > 10) return;
 		if(!node.loaded) return; // regular filtered data needs to be loaded first
 		if(node.unfilteredLoaded) return; 
 		if(node.unfilteredLoading) return;
@@ -319,12 +322,24 @@ export class Potree2Loader{
 		}
 
 		let url = new URL(`${this.url}/../octree.bin`, document.baseURI).href;
-		let response = await fetch(url, {
+		numActiveRequests++;
+		let promise = fetch(url, {
 			headers: {
 				'content-type': 'multipart/byteranges',
 				'Range': `bytes=${chunkOffset}-${chunkOffset + chunkSize - 1}`,
 			},
 		});
+
+		let failed = false;
+		promise.catch(e => {
+			console.log("failed...", e);
+			failed = true;
+		});
+
+		numActiveRequests--;
+		if(failed) return;
+
+		let response = await promise;
 
 		let buffer = await response.arrayBuffer();
 
@@ -435,7 +450,7 @@ export class Potree2Loader{
 					geometry.buffer = data.buffer;
 					geometry.statsList = data.statsList;
 
-					console.log(`loaded ${loadedNode.name}`);
+					// console.log(`loaded ${loadedNode.name}`);
 
 					loadedNode.loaded = true;
 					loadedNode.loading = false;

@@ -3,7 +3,6 @@ import {Vector3, Matrix4} from "potree";
 import {Timer} from "potree";
 import {makePipeline} from "./octree/pipelineGenerator.js";
 import {Gradients, SplatType} from "potree";
-import {Attribute_Custom} from "./PointCloudMaterial.js";
 
 let octreeStates = new Map();
 let gradientSampler_repeat = null;
@@ -175,6 +174,14 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		let isAdditive = !(octree.loader.constructor.name === "Potree2Loader");
 		uniformsView.setUint32(284, isAdditive ? 1 : 0, true);
 
+		let bb = potree.scene.root.children[3].getBoundingBoxWorld();
+		uniformsView.setFloat32(304, bb.min.x, true);
+		uniformsView.setFloat32(308, bb.min.y, true);
+		uniformsView.setFloat32(312, bb.min.z, true);
+		uniformsView.setFloat32(320, bb.max.z, true);
+		uniformsView.setFloat32(324, bb.max.z, true);
+		uniformsView.setFloat32(328, bb.max.z, true);
+
 		let attributeName = Potree.settings.attribute;
 		let settings = octree?.material?.attributes?.get(attributeName);
 	}
@@ -207,21 +214,21 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 
 			let attributeName = Potree.settings.attribute;
 			let mapping = 0;
-			if(!args?.settings){
-				mapping = 0;
-			}else if(args?.settings?.constructor.name === "Attribute_RGB"){
-				mapping = 1;
-			}else if(args?.settings?.constructor.name === "Attribute_Scalar"){
-				mapping = 2;
-			}else if(attributeName === "elevation"){
-				mapping = 3;
-			}else if(args?.settings?.constructor.name === "Attribute_Listing"){
-				mapping = 4;
-			}else if(args?.settings?.constructor.name === "Attribute_Vector"){
-				mapping = 5;
-			}else if(args?.settings?.constructor.name === "Attribute_Custom"){
-				mapping = 6;
-			}
+			// if(!args?.settings){
+			// 	mapping = 0;
+			// }else if(args?.settings?.constructor.name === "Attribute_RGB"){
+			// 	mapping = 1;
+			// }else if(args?.settings?.constructor.name === "Attribute_Scalar"){
+			// 	mapping = 2;
+			// }else if(attributeName === "elevation"){
+			// 	mapping = 3;
+			// }else if(args?.settings?.constructor.name === "Attribute_Listing"){
+			// 	mapping = 4;
+			// }else if(args?.settings?.constructor.name === "Attribute_Vector"){
+			// 	mapping = 5;
+			// }else if(args?.settings?.constructor.name === "Attribute_Custom"){
+			// 	mapping = 6;
+			// }
 
 			if(args.settings?.shaderBinding != null){
 				mapping = args.settings?.shaderBinding;
@@ -261,110 +268,33 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			offset += attribute.byteSize;
 		}
 
-		let customAttributes = [];
-		for(let [name, attribute] of octree.material.attributes){
-			if(attribute instanceof Attribute_Custom){
-				customAttributes.push([name, attribute]);
-			}
-		}
-		for(let i = 0; i < customAttributes.length; i++){
-			let customAttribute = customAttributes[i][1];
-			customAttribute.shaderBinding = 128 + i;
-		}
+		// let customAttributes = [];
+		// for(let [name, attribute] of octree.material.attributes){
+		// 	if(attribute instanceof Attribute_Custom){
+		// 		customAttributes.push([name, attribute]);
+		// 	}
+		// }
+		// for(let i = 0; i < customAttributes.length; i++){
+		// 	let customAttribute = customAttributes[i][1];
+		// 	customAttribute.shaderBinding = 128 + i;
+		// }
 
 		let i = 0;
 		for(let [attributeName, settings] of octree.material.attributes){
-			// let attribute = octree.material.attributes[i];
-			// let settings = octree.material?.attributes?.get(attribute.name);
+
 			let attribute = attributes.attributes.find(a => a.name === attributeName);
 
 			if(selectedAttribute === attributeName){
 				uniformsView.setUint32(268, i, true);
 			}
 
-			if(attributeName === "rgba"){
-				// PROTO
-				set(i, {
-					offset       : 12,
-					type         : TYPES.RGBA,
-					range        : [0, 255],
-					attribute, settings,
-				});
-				// set(i, {
-				// 	offset       : offsets.get(attributeName),
-				// 	type         : TYPES.RGBA,
-				// 	range        : [0, 255],
-				// 	attribute, settings,
-				// });
-			}
-			else if(attributeName === "elevation"){
-				let materialValues = octree.material.attributes.get(attributeName);
-				set(i, {
-					offset       : 0,
-					type         : TYPES.ELEVATION,
-					range        : materialValues.range,
-					attribute, settings,
-				});
-			}
-			else if(attributeName === "intensity"){
-				
-				set(i, {
-					offset       : offsets.get(attributeName),
-					type         : TYPES.UINT16,
-					range        : [0, 255],
-					attribute, settings,
-				});
-			}
-			else if(attributeName === "number of returns"){
-				set(i, {
-					offset       : offsets.get(attributeName),
-					type         : TYPES.UINT8,
-					range        : [0, 4],
-					attribute, settings,
-				});
-			}
-			else if(octree.material?.attributes.has(attributeName)){
-				let materialValues = octree.material.attributes.get(attributeName);
-
-				if(materialValues.constructor.name === "Attribute_RGB"){
-					set(i, {
-						offset       : offsets.get(attributeName),
-						type         : attribute.type.ordinal,
-						range        : materialValues.range,
-						attribute, settings,
-					});
-				}else if(materialValues.constructor.name === "Attribute_Scalar"){
-					set(i, {
-						offset       : offsets.get(attributeName),
-						type         : attribute.type.ordinal,
-						range        : materialValues.range,
-						attribute, settings,
-					});
-				}else if(materialValues.constructor.name === "Attribute_Listing"){
-					set(i, {
-						offset       : offsets.get(attributeName),
-						type         : attribute.type.ordinal,
-						attribute, settings,
-					});
-				}else if(materialValues.constructor.name === "Attribute_Custom"){
-					set(i, {
-						offset       : offsets.get(attributeName),
-						settings,
-					});
-				}else{
-					debugger;
-				}
-
-			}
-			else{
-				set(i, {
-					offset       : offsets.get(attributeName),
-					type         : TYPES.U8,
-					range        : [0, 10_000],
-					attribute, settings,
-				});
-			}
-
+			set(i, {
+				offset       : offsets.get(attributeName),
+				type         : TYPES.U8,
+				range        : [0, 10_000],
+				attribute, settings,
+			});
+			
 			i++;
 		}
 

@@ -1,5 +1,6 @@
 
-import {Gradients, Utils, Potree, Attribute_Custom} from "potree";
+import {Gradients, Utils, Potree} from "potree";
+import {PointAttribute, PointAttributeTypes} from "potree";
 
 function toHexString(color){
 
@@ -403,6 +404,16 @@ class Panel{
 		let attributes = this.pointcloud.attributes.attributes;
 		let attribute = attributes.find(attribute => attribute.name === selectedAttributeName);
 
+		if(!attribute){
+			// create pseudo-attribute if no file attribute available
+			attribute = new PointAttribute(
+				selectedAttributeName, 
+				PointAttributeTypes.UINT8,
+				1
+			);
+			attribute.byteOffset = 0;
+		}
+
 		for(let mapping of mappings){
 
 			let valid = mapping.condition(attribute);
@@ -424,7 +435,7 @@ class Panel{
 			}
 		};
 
-		this.elMappingsList.size = Math.min(mappings.length, 5);
+		this.elMappingsList.size = Math.min(mappings.length, 3);
 
 		let selected = this.pointcloud.material.selectedMappings.get(selectedAttributeName);
 		if(selected){
@@ -468,10 +479,10 @@ class Panel{
 
 		this.elAttributeList.innerHTML = "";
 
-		let elOptgroupFile = document.createElement("optgroup");
-		elOptgroupFile.label = "file attributes";
-		let elOptgroupRuntime = document.createElement("optgroup");
-		elOptgroupRuntime.label = "runtime attributes";
+		// let elOptgroupFile = document.createElement("optgroup");
+		// elOptgroupFile.label = "file attributes";
+		// let elOptgroupRuntime = document.createElement("optgroup");
+		// elOptgroupRuntime.label = "runtime attributes";
 
 		for(let item of weighted){
 
@@ -480,17 +491,19 @@ class Panel{
 			elOption.innerText = name;
 			elOption.value = name;
 
-			if(item.attribute.runtime){
-				elOptgroupRuntime.appendChild(elOption);
-			}else{
-				elOptgroupFile.appendChild(elOption);
-			}
+			// if(item.attribute.runtime){
+			// 	elOptgroupRuntime.appendChild(elOption);
+			// }else{
+			// 	elOptgroupFile.appendChild(elOption);
+			// }
+
+			this.elAttributeList.appendChild(elOption);
 		}
 
-		this.elAttributeList.appendChild(elOptgroupFile);
-		this.elAttributeList.appendChild(elOptgroupRuntime);
+		// this.elAttributeList.appendChild(elOptgroupFile);
+		// this.elAttributeList.appendChild(elOptgroupRuntime);
 
-		this.elAttributeList.size = Math.min(weighted.length + 2, 10);
+		this.elAttributeList.size = Math.min(weighted.length + 0, 10);
 		this.elAttributeList.value = Potree.settings.attribute;
 	}
 

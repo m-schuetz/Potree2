@@ -10,7 +10,7 @@ let parentVoxelCoords = null;
 
 function loadNode(octree, node, dataview){
 
-	console.log(`loading ${node.name}`);
+	// console.log(`loading ${node.name}`);
 
 	if(node.numVoxels > 0){
 		return loadVoxels(octree, node, dataview, parentVoxelCoords);

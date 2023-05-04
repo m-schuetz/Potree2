@@ -1,6 +1,5 @@
 
 import {Potree, SplatType} from "potree";
-import {Attribute_Custom} from "../PointCloudMaterial.js";
 
 export async function makePipeline(renderer, args = {}){
 
@@ -56,13 +55,6 @@ export async function makePipeline(renderer, args = {}){
 	}
 
 	let modifiedShaderSource = shaderSource;
-	// let customAttributes = [];
-	// for(let [name, attribute] of octree.material.attributes){
-	// 	if(attribute instanceof Attribute_Custom){
-	// 		// modifiedShaderSource += attribute.wgsl;
-	// 		customAttributes.push([name, attribute]);
-	// 	}
-	// }
 
 	let template_mapping_enum = "";
 	let template_mapping_selection = "";
