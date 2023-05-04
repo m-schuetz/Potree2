@@ -1,28 +1,43 @@
 
-// export const SCALAR = {
-// 	name: "scalar",
-// 	condition: (attribute) => (attribute.name === "intensity"),
-// 	wgsl: `
-// 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+export const SCALAR = {
+	name: "scalar",
+	condition: (attribute) => (attribute.numElements === 1),
+	wgsl: `
+		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-// 			var offset = node.numPoints * attrib.offset + 2u * pointID;
-// 			var value = f32(readU16(offset));
+			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
+			
+			var value = 0.0;
 
-// 			var w = (value - attrib.range_min) / (attrib.range_max - attrib.range_min);
+			if(attrib.datatype == TYPES_UINT8){
+				value = f32(readU8(offset));
+			}else if(attrib.datatype == TYPES_UINT16){
+				value = f32(readU16(offset));
+			}else if(attrib.datatype == TYPES_UINT32){
+				value = f32(readU32(offset));
+			}else if(attrib.datatype == TYPES_FLOAT){
+				value = f32(readF32(offset));
+			}else if(attrib.datatype == TYPES_DOUBLE){
+				value = f32(readF64(offset));
+			}else{
+				return vec4f(1.0, 0.0, 0.0, 1.0);
+			}
 
-// 			var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
-// 			var uv : vec2<f32> = vec2<f32>(w, 0.0);
+			var w = (value - attrib.range_min) / (attrib.range_max - attrib.range_min);
 
-// 			if(attrib.clamp == CLAMP_ENABLED){
-// 				color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
-// 			}else{
-// 				color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
-// 			}
+			var color = vec4f(0.0, 0.0, 0.0, 1.0);
+			var uv : vec2f = vec2f(w, 0.0);
 
-// 			return color;
-// 		}
-// 	`,
-// };
+			if(attrib.clamp == CLAMP_ENABLED){
+				color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
+			}else{
+				color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
+			}
+
+			return color;
+		}
+	`,
+};
 
 export const POSITION = {
 	name: "position",
@@ -47,8 +62,14 @@ export const ELEVATION = {
 	condition: (attribute) => (attribute.name === "elevation"),
 	wgsl: `fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-		var value = (uniforms.world * position).z;
-		var w = (value - attrib.range_min) / (attrib.range_max - attrib.range_min);
+		var worldPos = (uniforms.world * position);
+		var octreeSize = uniforms.octreeMax - uniforms.octreeMin;
+
+		var value = (worldPos.z - uniforms.octreeMin.z) / octreeSize.z;
+		var w = value;
+
+		// var value = (uniforms.world * position).z;
+		// var w = (value - attrib.range_min) / (attrib.range_max - attrib.range_min);
 
 		var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 		var uv : vec2<f32> = vec2<f32>(w, 0.0);
@@ -273,8 +294,6 @@ export const TRIMBLE_DISTANCE = {
 
 
 export const MAPPINGS = {
-	POSITION, 
-	ELEVATION,
 	LAS_INTENSITY_GRADIENT, 
 	LAS_INTENSITY_DIRECT, 
 	LAS_CLASSIFICATION, 
@@ -283,4 +302,7 @@ export const MAPPINGS = {
 	TRIMBLE_NORMAL,
 	TRIMBLE_GROUP,
 	TRIMBLE_DISTANCE,
+	POSITION, 
+	ELEVATION,
+	SCALAR,
 };

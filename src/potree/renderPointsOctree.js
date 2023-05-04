@@ -356,9 +356,10 @@ async function renderOctree(octree, drawstate, flags){
 	{ // UPDATE COLORMAP BUFFER
 		let attributeName = Potree.settings.attribute;
 
-		let settings = octree?.material?.attributes?.get(attributeName);
+		let settings = octree?.material?.attributeSettings?.get(attributeName);
 
-		if(settings?.constructor?.name === "Attribute_Listing"){
+		// if(settings?.constructor?.name === "Attribute_Listing")
+		{
 			let {colormapBuffer, colormapGpuBuffer} = octreeState;
 
 			let u8 = new Uint8Array(colormapBuffer);

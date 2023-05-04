@@ -1,20 +1,6 @@
 import {EventDispatcher, SplatType} from "potree";
 import {PointAttribute, PointAttributeTypes} from "potree";
 
-export class AttributeSettings{
-	constructor(name){
-		this.name = name;
-		this.stats = null;
-		this.runtime = true;
-		this.mapping = null;
-		this.range = null;
-		this.filterRange = [-Infinity, Infinity];
-		this.clamp = false;
-		this.runtime = false;
-		this.mapping = null;
-	}
-};
-
 const ListingSchemes = {
 	LAS_CLASSIFICATION: {
 		0:       { visible: true, name: 'never classified'  , color: [0.5,  0.5,  0.5,  1.0] },
@@ -43,6 +29,21 @@ const ListingSchemes = {
 	},
 	NONE: {
 		DEFAULT: { visible: true, name: 'default'           , color: [0.3,  0.6,  0.6,  0.5] },
+	}
+};
+
+export class AttributeSettings{
+	constructor(name){
+		this.name = name;
+		this.stats = null;
+		this.runtime = true;
+		this.mapping = null;
+		this.range = null;
+		this.filterRange = [-Infinity, Infinity];
+		this.clamp = false;
+		this.runtime = false;
+		this.mapping = null;
+		this.listing = ListingSchemes.LAS_CLASSIFICATION;
 	}
 };
 

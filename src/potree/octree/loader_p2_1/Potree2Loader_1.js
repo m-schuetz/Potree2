@@ -264,7 +264,7 @@ export class Potree2Loader{
 	// loads unfiltered voxel data for inner nodes
 	async loadNodeUnfiltered(node){
 
-		if(numActiveRequests > 10) return;
+		if(numActiveRequests > 5) return;
 		if(!node.loaded) return; // regular filtered data needs to be loaded first
 		if(node.unfilteredLoaded) return; 
 		if(node.unfilteredLoading) return;
@@ -312,7 +312,7 @@ export class Potree2Loader{
 		let chunkSize = 0;
 
 		for(let node of nodes){
-			node.loading = true;
+			node.unfilteredLoading = true;
 			chunkOffset = Math.min(chunkOffset, node.byteOffset_unfiltered);
 			chunkSize += node.byteSize_unfiltered;
 		}
