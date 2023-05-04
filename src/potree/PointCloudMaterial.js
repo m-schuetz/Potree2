@@ -92,7 +92,9 @@ export class PointCloudMaterial{
 		this.initialized = false;
 		this.statsUpdated = false;
 		this.attributes = new Map();
-		this.mappings = new Map();
+		this.mappings = [];
+		this.selectedMappings = new Map();
+
 		this.needsCompilation = false;
 		this.splatType = SplatType.POINTS;
 		
@@ -123,21 +125,19 @@ export class PointCloudMaterial{
 
 	registerMapping({name, condition, wgsl}){
 
-		if(this.mappings.has(name)){
-			throw `a mapping with the id '${name}' is already registered`;
-		}
+		let index = 128 + this.mappings.length;
+		let mapping = {name, condition, wgsl, index};
 
-		let mapping = {name, condition, wgsl};
-		let index = 128 + this.mappings.size;
-
-		this.mappings.set(name, mapping);
+		this.mappings.push(mapping);
 
 		this.recompile();
 		this.events.dispatcher.dispatch("change", {material: this});
 
 		for(let [name, attribute] of this.attributes){
 			if(attribute.attribute && condition(attribute.attribute)){
-				attribute.mapping = index;
+				if(!this.selectedMappings.has(name)){
+					this.selectedMappings.set(name, mapping);
+				}
 			}
 		}
 

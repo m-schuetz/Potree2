@@ -186,11 +186,11 @@ canvas{
 			// to attributes that fullfill a given condition
 			let material = pointcloud.material;
 			material.registerMapping({
-				name: "intensity",
+				name: "intensity 1",
 				condition: (attribute) => (attribute.name === "intensity"),
 				// condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
 				wgsl: `
-					fn map_intensity(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
 						var pointID = vertex.vertexID / 6u;
 						var offset = node.numPoints * attrib.offset + 2u * pointID;
@@ -202,6 +202,97 @@ canvas{
 							w, w, w,
 							1.0,
 						);
+
+						return color;
+					}
+				`,
+			});
+
+			material.registerMapping({
+				name: "intensity 2",
+				condition: (attribute) => (attribute.name === "intensity"),
+				wgsl: `
+					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+						var pointID = vertex.vertexID / 6u;
+						var offset = node.numPoints * attrib.offset + 2u * pointID;
+						var value = readU16(offset);
+
+						var w = f32(value) / 256.0;
+
+						var color = vec4<f32>(
+							w, 0.0, 0.0,
+							1.0,
+						);
+
+						return color;
+					}
+				`,
+			});
+
+			material.registerMapping({
+				name: "classification 2",
+				condition: (attribute) => (attribute.name === "classification"),
+				wgsl: `
+					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+						var pointID = vertex.vertexID / 6u;
+						var offset = node.numPoints * attrib.offset + pointID;
+						var value = readU8(offset);
+
+						var w = f32(value) / 32.0;
+
+						var color = vec4<f32>(
+							w, w, w,
+							1.0,
+						);
+
+						return color;
+					}
+				`,
+			});
+
+			material.registerMapping({
+				name: "test",
+				condition: (attribute) => (attribute.byteSize === 12),
+				wgsl: `
+					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+						var color = vec4<f32>(0.0, 1.0, 0.0, 1.0);
+
+						return color;
+					}
+				`,
+			});
+
+			material.registerMapping({
+				name: "rgba",
+				condition: (attribute) => (attribute.name === "rgba"),
+				wgsl: `
+					fn mapping(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+						var pointID = vertex.vertexID / 6u;
+						var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
+
+						var r = 0.0;
+						var g = 0.0;
+						var b = 0.0;
+
+						if(attrib.datatype == TYPES_UINT8){
+							r = f32(readU8(offset + 0u));
+							g = f32(readU8(offset + 1u));
+							b = f32(readU8(offset + 2u));
+						}else if(attrib.datatype == TYPES_UINT16){
+							r = f32(readU16(offset + 0u));
+							g = f32(readU16(offset + 2u));
+							b = f32(readU16(offset + 4u));
+						}
+
+						if(r > 255.0) { r = r / 256.0; }
+						if(g > 255.0) { g = g / 256.0; }
+						if(b > 255.0) { b = b / 256.0; }
+
+						var color = vec4<f32>(r, g, b, 255.0) / 255.0;
 
 						return color;
 					}

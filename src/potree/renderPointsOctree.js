@@ -231,6 +231,9 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				mapping = args.settings.mapping;
 			}
 
+			let material = octree.material;
+			let specialMapping = material.selectedMappings.get(attributeName);
+
 			attributeView.setUint32(  index * stride +  0,         args.offset, true);
 			attributeView.setUint32(  index * stride +  4,         numElements, true);
 			attributeView.setUint32(  index * stride +  8,           args.type, true);
@@ -239,7 +242,11 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			attributeView.setUint32(  index * stride + 20,               clamp, true);
 			attributeView.setUint32(  index * stride + 24,            byteSize, true);
 			attributeView.setUint32(  index * stride + 28,            dataType, true);
-			attributeView.setUint32(  index * stride + 32,             mapping, true);
+			attributeView.setUint32(  index * stride + 32,       mapping.index, true);
+
+			if(specialMapping){
+				attributeView.setUint32(  index * stride + 32,       specialMapping.index, true);
+			}
 		};
 
 		let attributes = octree.loader.attributes;

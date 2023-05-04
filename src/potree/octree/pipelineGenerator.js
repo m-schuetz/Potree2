@@ -68,7 +68,8 @@ export async function makePipeline(renderer, args = {}){
 	let template_mapping_selection = "";
 	let template_mapping_functions = "";
 
-	let mappings = [...octree.material.mappings].map(value => value[1]);
+	// let mappings = [...octree.material.mappings].map(value => value[1]);
+	let mappings = octree.material.mappings;
 	mappings.forEach( (mapping, i) => {
 		template_mapping_enum += `const MAPPING_${128 + i} = ${128 + i}u;\n`;
 		template_mapping_selection += `

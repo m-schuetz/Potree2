@@ -27,10 +27,14 @@ class Panel{
 				}
 			</style>
 		
-			<div class="subsection">Attributes</div>
 
+			<div class="subsection">Attributes</div>
 			<select id="attributes_list"></select>
 
+			<div class="subsection">Mapping</div>
+			<select id="mappings_list"></select>
+
+			<div class="subsection">Settings</div>
 			<div class="subsubsection" id="gradient_schemes" style="display: flex"></div>
 
 			<div class="subsubsection" id="attributes_gamma_brightness_contrast" style="display: flex"></div>
@@ -43,6 +47,7 @@ class Panel{
 		`;
 
 		this.elAttributeList = this.element.querySelector("#attributes_list");
+		this.elMappingsList = this.element.querySelector("#mappings_list");
 		this.elGradientSchemes = this.element.querySelector("#gradient_schemes");
 		this.elGammaBrightnessContrast = this.element.querySelector("#attributes_gamma_brightness_contrast");
 		this.elScalar = this.element.querySelector("#attributes_scalar");
@@ -60,6 +65,7 @@ class Panel{
 		Potree.settings.attribute = this.elAttributeList.value;
 
 		this.updateSettings();
+		this.updateMappingList();
 	}
 
 	updateSettings(){
@@ -387,6 +393,45 @@ class Panel{
 		this.elGradientSchemes.append(elGrid);
 	}
 
+	updateMappingList(){
+
+		let mappings = this.pointcloud.material.mappings;
+		
+		this.elMappingsList.innerHTML = "";
+
+		let selectedAttributeName = this.elAttributeList.value;
+		let attributes = this.pointcloud.attributes.attributes;
+		let attribute = attributes.find(attribute => attribute.name === selectedAttributeName);
+
+		for(let mapping of mappings){
+
+			let valid = mapping.condition(attribute);
+			if(!valid) continue;
+
+			let elOption = document.createElement("option");
+			elOption.innerText = mapping.name;
+			elOption.value = mapping.name;
+
+			this.elMappingsList.appendChild(elOption);
+		}
+
+		this.elMappingsList.onchange = () => {
+			if(this.pointcloud){
+				let attributeName = this.elAttributeList.value;
+				let mappingName = this.elMappingsList.value;
+				let mapping = this.pointcloud.material.mappings.find(m => m.name === mappingName);
+				this.pointcloud.material.selectedMappings.set(attributeName, mapping);
+			}
+		};
+
+		this.elMappingsList.size = Math.min(mappings.length, 5);
+
+		let selected = this.pointcloud.material.selectedMappings.get(selectedAttributeName);
+		if(selected){
+			this.elMappingsList.value = selected.name;
+		}
+	}
+
 	updateAttributesList(){
 
 		let preferredOrder = [
@@ -440,14 +485,12 @@ class Panel{
 			}else{
 				elOptgroupFile.appendChild(elOption);
 			}
-
-			// this.elAttributeList.appendChild(elOption);
 		}
 
 		this.elAttributeList.appendChild(elOptgroupFile);
 		this.elAttributeList.appendChild(elOptgroupRuntime);
 
-		this.elAttributeList.size = weighted.length + 3;
+		this.elAttributeList.size = Math.min(weighted.length + 2, 10);
 		this.elAttributeList.value = Potree.settings.attribute;
 	}
 
@@ -457,6 +500,7 @@ class Panel{
 
 		let onChange = () => {
 			this.updateAttributesList();
+			this.updateMappingList();
 			this.updateSettings();
 		};
 		this.pointcloud.events.onMaterialChanged(onChange);
