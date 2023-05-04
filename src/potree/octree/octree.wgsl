@@ -338,11 +338,7 @@ fn map_scalar(vertex : VertexInput, pointID : u32, attrib : AttributeDescriptor,
 	}else{
 		color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 	}
-
-	if(value < 255.0){
-		color = vec4<f32>(value / 255.0f, 0.0, 0.0, 1.0);
-	}
-
+	
 	return color;
 }
 

@@ -182,6 +182,32 @@ canvas{
 				pivot:    [301.6, 353.4, 81.9]
 			});
 
+			// register an attribute->color mapping that automatically applies 
+			// to attributes that fullfill a given condition
+			let material = pointcloud.material;
+			material.registerMapping({
+				name: "intensity",
+				condition: (attribute) => (attribute.name === "intensity"),
+				// condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
+				wgsl: `
+					fn map_intensity(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+						var pointID = vertex.vertexID / 6u;
+						var offset = node.numPoints * attrib.offset + 2u * pointID;
+						var value = readU16(offset);
+
+						var w = f32(value) / 256.0;
+
+						var color = vec4<f32>(
+							w, w, w,
+							1.0,
+						);
+
+						return color;
+					}
+				`,
+			});
+
 			
 			// retz
 			// controls.set({

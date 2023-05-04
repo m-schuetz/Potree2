@@ -192,7 +192,12 @@ class Panel{
 
 		if(settings && settings.range){
 			elRange.setRange(...settings.range);
-			elRange.setValue(settings.stats.min, settings.stats.max);
+
+			if(settings.stats){
+				elRange.setValue(settings.stats.min, settings.stats.max);
+			}else{
+				elRange.setValue(settings.range[0], settings.range[1]);
+			}
 
 			elRange.addEventListener("input", () => {
 				settings.range = elRange.value;

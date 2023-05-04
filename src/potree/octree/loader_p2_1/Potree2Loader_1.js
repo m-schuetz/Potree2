@@ -335,8 +335,6 @@ export class Potree2Loader{
 
 
 		for(let node of nodes){
-			console.log(`loaded unfiltered ${node.name}. byteOffset: ${node.byteOffset_unfiltered}. byteSize: ${node.byteSize_unfiltered}.`);
-
 			let nodeBuffer = new Uint8Array(buffer, node.byteOffset_unfiltered - chunkOffset, node.byteSize_unfiltered);
 			new Uint8Array(node.geometry.buffer, target_offset_unfiltered, node.byteSize_unfiltered).set(nodeBuffer);
 

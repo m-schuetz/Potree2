@@ -193,6 +193,8 @@ export class PointCloudMaterial{
 
 	init(pointcloud){
 
+		// debugger;
+
 		if(this.initialized){
 			return;
 		}
@@ -206,6 +208,7 @@ export class PointCloudMaterial{
 				mapping = new Attribute_RGB(stats);
 			}else if(attribute.name === "intensity"){
 				mapping = new Attribute_Scalar(stats);
+				mapping.range = attribute.range;
 			}else if(attribute.name === "point source id"){
 				mapping = new Attribute_Scalar(stats);
 			}else if(attribute.name === "gps-time"){
