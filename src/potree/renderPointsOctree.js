@@ -424,6 +424,12 @@ async function renderOctree(octree, drawstate, flags){
 			// debugger;
 			let nodeSpacing = octree.spacing / (2 ** node.level);
 
+			let isLeaf = node.nodeType === 1;
+
+			if(isLeaf){
+				nodeSpacing = 0.03;
+			}
+
 			view.setUint32 (40 * i +  0, node.geometry.numElements, true);
 			view.setUint32 (40 * i +  4, Potree.state.renderedElements + counter, true);
 			view.setFloat32(40 * i +  8, bbWorld.min.x + bb.min.x, true);
