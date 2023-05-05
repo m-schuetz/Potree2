@@ -154,33 +154,62 @@ canvas{
 
 			let material = pointcloud.material;
 
-			// add standard attribute mappings
-			for(let mapping of Object.values(MAPPINGS)){
-				material.registerMapping(mapping);
-			}
 
-			// add additional custom mappings
+			// add lastools visualization of return number and number of returns, if both are present
+			let idx_returnNumber = pointcloud.attributes.indexOf("return number");
+			let idx_numberReturns = pointcloud.attributes.indexOf("number of returns");
+
+			if(idx_returnNumber !== 0 && idx_numberReturns !== 0)
 			material.registerMapping({
-				name: "classification 2",
-				condition: (attribute) => (attribute.name === "classification"),
+				name: "return nr. & num returns (lastools)",
+				condition: (attribute) => (attribute.name === "return number"),
 				wgsl: `
 					fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-						var offset = node.numPoints * attrib.offset + pointID;
-						var value = readU8(offset);
+						var att_return_number = attributes[${idx_returnNumber}];
+						var att_num_returns = attributes[${idx_numberReturns}];
 
-						var color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+						var rn = readU8(node.numPoints * att_return_number.offset + pointID);
+						var nr = readU8(node.numPoints * att_num_returns.offset + pointID);
 
-						if(value == 5u){
-							color = vec4<f32>(0.0, 1.0, 0.0, 1.0);
+						if(nr == 1u){
+							return vec4f(1.0, 1.0, 0.0, 1.0);
 						}else{
-							color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+							if(rn == 1u){
+								return vec4f(1.0, 0.0, 0.0, 1.0);
+							}else if(rn == nr){
+								return vec4f(0.0, 0.0, 1.0, 1.0);
+							}else{
+								return vec4f(0.0, 1.0, 0.0, 1.0);
+							}
 						}
+					}
+				`,
+			});
+
+			material.registerMapping({
+				name: "Normal 3xDouble",
+				condition: (attribute) => (attribute.name === "NormalX" && attribute.byteSize === 8),
+				wgsl: `
+					fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+						var nx = readF64(node.numPoints * (attrib.offset +  0) + 8 * pointID);
+						var ny = readF64(node.numPoints * (attrib.offset +  8) + 8 * pointID);
+						var nz = readF64(node.numPoints * (attrib.offset + 16) + 8 * pointID);
+
+						var color = vec4f(nx, ny, nz, 1.0);
 
 						return color;
 					}
 				`,
 			});
+
+
+			// add standard attribute mappings
+			for(let mapping of Object.values(MAPPINGS)){
+				material.registerMapping(mapping);
+			}
+			
 			
 			// retz
 			// controls.set({

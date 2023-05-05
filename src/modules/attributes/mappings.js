@@ -39,6 +39,43 @@ export const SCALAR = {
 	`,
 };
 
+export const VECTOR3 = {
+	name: "vec3",
+	condition: (attribute) => (attribute.numElements === 3),
+	wgsl: `
+		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
+
+			var r = 0.0;
+			var g = 0.0;
+			var b = 0.0;
+
+			if(attrib.datatype == TYPES_UINT8){
+				r = f32(readU8(offset + 0u));
+				g = f32(readU8(offset + 1u));
+				b = f32(readU8(offset + 2u));
+			}else if(attrib.datatype == TYPES_UINT16){
+				r = f32(readU16(offset + 0u));
+				g = f32(readU16(offset + 2u));
+				b = f32(readU16(offset + 4u));
+			}else if(attrib.datatype == TYPES_UINT32){
+				r = f32(readU32(offset + 0u));
+				g = f32(readU32(offset + 4u));
+				b = f32(readU32(offset + 8u));
+			}
+
+			if(r > 255.0) { r = r / 256.0; }
+			if(g > 255.0) { g = g / 256.0; }
+			if(b > 255.0) { b = b / 256.0; }
+
+			var color = vec4<f32>(r, g, b, 255.0) / 255.0;
+
+			return color;
+		}
+	`,
+};
+
 export const POSITION = {
 	name: "position",
 	condition: (attribute) => (attribute.name === "position"),
@@ -154,38 +191,38 @@ export const LAS_CLASSIFICATION = {
 	`,
 };
 
-export const LAS_RGB = {
-	name: "rgba",
-	condition: (attribute) => (attribute.name === "rgba"),
-	wgsl: `
-		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+// export const LAS_RGB = {
+// 	name: "rgba",
+// 	condition: (attribute) => (attribute.name === "rgba"),
+// 	wgsl: `
+// 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
+// 			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
 
-			var r = 0.0;
-			var g = 0.0;
-			var b = 0.0;
+// 			var r = 0.0;
+// 			var g = 0.0;
+// 			var b = 0.0;
 
-			if(attrib.datatype == TYPES_UINT8){
-				r = f32(readU8(offset + 0u));
-				g = f32(readU8(offset + 1u));
-				b = f32(readU8(offset + 2u));
-			}else if(attrib.datatype == TYPES_UINT16){
-				r = f32(readU16(offset + 0u));
-				g = f32(readU16(offset + 2u));
-				b = f32(readU16(offset + 4u));
-			}
+// 			if(attrib.datatype == TYPES_UINT8){
+// 				r = f32(readU8(offset + 0u));
+// 				g = f32(readU8(offset + 1u));
+// 				b = f32(readU8(offset + 2u));
+// 			}else if(attrib.datatype == TYPES_UINT16){
+// 				r = f32(readU16(offset + 0u));
+// 				g = f32(readU16(offset + 2u));
+// 				b = f32(readU16(offset + 4u));
+// 			}
 
-			if(r > 255.0) { r = r / 256.0; }
-			if(g > 255.0) { g = g / 256.0; }
-			if(b > 255.0) { b = b / 256.0; }
+// 			if(r > 255.0) { r = r / 256.0; }
+// 			if(g > 255.0) { g = g / 256.0; }
+// 			if(b > 255.0) { b = b / 256.0; }
 
-			var color = vec4<f32>(r, g, b, 255.0) / 255.0;
+// 			var color = vec4<f32>(r, g, b, 255.0) / 255.0;
 
-			return color;
-		}
-	`,
-};
+// 			return color;
+// 		}
+// 	`,
+// };
 
 export const LAS_GPS_TIME = {
 	name: "gps-time",
@@ -297,7 +334,7 @@ export const MAPPINGS = {
 	LAS_INTENSITY_GRADIENT, 
 	LAS_INTENSITY_DIRECT, 
 	LAS_CLASSIFICATION, 
-	LAS_RGB,
+	// LAS_RGB,
 	LAS_GPS_TIME,
 	TRIMBLE_NORMAL,
 	TRIMBLE_GROUP,
@@ -305,4 +342,5 @@ export const MAPPINGS = {
 	POSITION, 
 	ELEVATION,
 	SCALAR,
+	VECTOR3,
 };

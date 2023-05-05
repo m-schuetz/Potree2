@@ -21,9 +21,17 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 	// unfiltered are loaded at a later time
 	let bytesPerPoint = octree.pointAttributes.byteSize;
 
+	let offset_rgb = 0;
+	for(let attribute of octree.pointAttributes.attributes){
+		if(["rgb", "rgba"].includes(attribute.name)){
+			offset_rgb = attribute.byteOffset;
+			break;
+		}
+	}
+
 	let targetBuffer       = new ArrayBuffer(ceil_n(bytesPerPoint * numVoxels, 4));
 	let target_coordinates = new DataView(targetBuffer, 0, 12 * numVoxels);
-	let target_rgb         = new DataView(targetBuffer, 12 * numVoxels, 6 * numVoxels);
+	let target_rgb         = new DataView(targetBuffer, offset_rgb * numVoxels, 6 * numVoxels);
 	let voxelCoords        = new Uint8Array(3 * numVoxels);
 
 	let nodeSize = [

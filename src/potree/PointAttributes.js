@@ -49,12 +49,21 @@ export class PointAttributes{
 		}
 	}
 
-
 	add(pointAttribute){
 		this.attributes.push(pointAttribute);
 		pointAttribute.byteOffset = this.byteSize;
 		this.byteSize += pointAttribute.byteSize;
 		this.size++;
-	};
+	}
+
+	indexOf(name){
+		for(let i = 0; i < this.attributes.length; i++){
+			if(this.attributes[i].name === name){
+				return i;
+			}
+		}
+
+		return -1;
+	}
 
 }

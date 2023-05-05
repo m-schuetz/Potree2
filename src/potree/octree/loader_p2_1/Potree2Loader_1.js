@@ -98,28 +98,6 @@ function parseAttributes(jsonAttributes){
 
 		attributeList.push(attribute);
 	}
-
-	let hasNX = attributeList.find(a => a.name === "NormalX") != null;
-	let hasNY = attributeList.find(a => a.name === "NormalY") != null;
-	let hasNZ = attributeList.find(a => a.name === "NormalZ") != null;
-	if(hasNX && hasNY && hasNZ){
-
-		let aNormalX = attributeList.find(a => a.name === "NormalX");
-		let aNormalY = attributeList.find(a => a.name === "NormalY");
-		let aNormalZ = attributeList.find(a => a.name === "NormalZ");
-		let aNormal = new PointAttribute("Normal", aNormalX.type, 3);
-		aNormal.range = [
-			[aNormalX.range[0], aNormalY.range[0], aNormalZ.range[0]],
-			[aNormalX.range[1], aNormalY.range[1], aNormalZ.range[1]],
-		];
-
-		let indexX = attributeList.indexOf(aNormalX);
-		attributeList[indexX] = aNormalX;
-		attributeList = attributeList.filter(a => !["NormalX", "NormalY", "NormalZ"].includes(a.name));
-
-		attributeList.push(aNormal);
-
-	}
 	
 	let attributes = new PointAttributes(attributeList);
 
@@ -169,8 +147,6 @@ export class Potree2Loader{
 			let byteSize_position     = Number(view.getUint32(i * bytesPerNode + 26, true));
 			let byteSize_filtered     = Number(view.getUint32(i * bytesPerNode + 30, true));
 			let byteSize_unfiltered   = Number(view.getUint32(i * bytesPerNode + 34, true));
-
-			// debugger;
 
 			if(current.nodeType === NodeType.PROXY){
 				// replace proxy with real node
@@ -317,7 +293,7 @@ export class Potree2Loader{
 			chunkSize += node.byteSize_unfiltered;
 		}
 
-		if(chunkSize === 0 || chunkSize > 2_000_000){
+		if(chunkSize === 0 || chunkSize > 20_000_000){
 			debugger;
 		}
 
@@ -343,15 +319,33 @@ export class Potree2Loader{
 
 		let buffer = await response.arrayBuffer();
 
-		// HACK: should properly compute between pos/filtered/unfiltered
-		let target_offset_unfiltered = 18 * node.numElements;
-
-		// let dbg = new Uint16Array(buffer);
-
-
 		for(let node of nodes){
-			let nodeBuffer = new Uint8Array(buffer, node.byteOffset_unfiltered - chunkOffset, node.byteSize_unfiltered);
-			new Uint8Array(node.geometry.buffer, target_offset_unfiltered, node.byteSize_unfiltered).set(nodeBuffer);
+			let source_u8 = new Uint8Array(buffer, node.byteOffset_unfiltered - chunkOffset, node.byteSize_unfiltered);
+			let target_u8 = new Uint8Array(node.geometry.buffer);
+
+			let n = node.numElements;
+
+			let sourceAttOffset = 0;
+			let targetAttOffset = 0;
+			for(let attribute of this.attributes.attributes){
+
+				let isFiltered = ["position", "rgba"].includes(attribute.name);
+
+				if(isFiltered){
+					targetAttOffset += attribute.byteSize;
+				}else{
+					for(let pointIndex = 0; pointIndex < n; pointIndex++)
+					for(let j = 0; j < attribute.byteSize; j++)
+					{
+						let value = source_u8[n * sourceAttOffset + pointIndex * attribute.byteSize + j];
+						target_u8[n * targetAttOffset + pointIndex * attribute.byteSize + j] = value;
+					}
+
+					targetAttOffset += attribute.byteSize;
+					sourceAttOffset += attribute.byteSize;
+				}
+
+			}
 
 			node.unfilteredLoading = false;
 			node.unfilteredLoaded = true;

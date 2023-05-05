@@ -65,7 +65,7 @@ export async function makePipeline(renderer, args = {}){
 	mappings.forEach( (mapping, i) => {
 		template_mapping_enum += `const MAPPING_${128 + i} = ${128 + i}u;\n`;
 		template_mapping_selection += `
-			else if(attrib.mapping == MAPPING_${128 + i}){
+			if(attrib.mapping == MAPPING_${128 + i}){
 				color = map_${128 + i}(pointID, attrib, node, position);
 			}`;
 
