@@ -34,12 +34,13 @@ struct AttributeDescriptor{
 	offset      : u32,
 	numElements : u32,
 	valuetype   : u32,
-	range_min   : f32,
-	range_max   : f32,
 	clamp       : u32,
 	byteSize    : u32,
 	datatype    : u32,
 	mapping     : u32,
+	_padding    : u32,
+	range_min   : vec4f,
+	range_max   : vec4f,
 };
 
 <<TEMPLATE_MAPPING_ENUM>>

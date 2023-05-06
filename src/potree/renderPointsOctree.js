@@ -89,7 +89,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
-		let attributesDescBuffer = new ArrayBuffer(1024);
+		let attributesDescBuffer = new ArrayBuffer(2048);
 		let attributesDescGpuBuffer = device.createBuffer({
 			size: attributesDescBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -143,7 +143,7 @@ const TYPES = {
 function updateUniforms(octree, octreeState, drawstate, flags){
 
 	let {uniformBuffer} = octreeState;
-	let data = new ArrayBuffer(512);
+	let data = new ArrayBuffer(1024);
 	let uniformsView = new DataView(data);
 
 	{ // UPDATE UNIFORM BUFFER
@@ -202,39 +202,43 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			let dataType = args.attribute?.type?.ordinal ?? 0;
 			let numElements = args.attribute?.numElements ?? 1;
 
-			let range_min = 0;
-			let range_max = 1;
+			let range_min = [0, 0, 0, 0];
+			let range_max = [1, 1, 1, 1];
 
 			if(args?.settings?.range){
-				range_min = args.settings.range[0];
-				range_max = args.settings.range[1];
+				if(args?.settings?.range[0] instanceof Array){
+					for(let i = 0; i < args.settings.range.length; i++){
+						range_min[i] = args.settings.range[0][i];
+						range_max[i] = args.settings.range[1][i];
+					}
+				}else{
+					range_min[0] = args.settings.range[0];
+					range_max[0] = args.settings.range[1];
+				}
+				
 			}
-
-			let stride = 9 * 4;
 
 			let attributeName = Potree.settings.attribute;
-			let mapping = 0;
-
-			if(args.settings?.mapping){
-				mapping = args.settings.mapping;
-			}
-
 			let material = octree.material;
-			let specialMapping = material.selectedMappings.get(attributeName);
+			let mapping = material.selectedMappings.get(attributeName);
 
+			let stride = 64;
 			attributeView.setUint32(  index * stride +  0,         args.offset, true);
 			attributeView.setUint32(  index * stride +  4,         numElements, true);
 			attributeView.setUint32(  index * stride +  8,           args.type, true);
-			attributeView.setFloat32( index * stride + 12,           range_min, true);
-			attributeView.setFloat32( index * stride + 16,           range_max, true);
-			attributeView.setUint32(  index * stride + 20,               clamp, true);
-			attributeView.setUint32(  index * stride + 24,            byteSize, true);
-			attributeView.setUint32(  index * stride + 28,            dataType, true);
-			attributeView.setUint32(  index * stride + 32,       mapping.index, true);
+			attributeView.setUint32(  index * stride + 12,               clamp, true);
+			attributeView.setUint32(  index * stride + 16,            byteSize, true);
+			attributeView.setUint32(  index * stride + 20,            dataType, true);
+			attributeView.setUint32(  index * stride + 24,       mapping.index, true);
+			attributeView.setFloat32( index * stride + 32,           range_min[0], true);
+			attributeView.setFloat32( index * stride + 36,           range_min[1], true);
+			attributeView.setFloat32( index * stride + 40,           range_min[2], true);
+			attributeView.setFloat32( index * stride + 44,           range_min[3], true);
+			attributeView.setFloat32( index * stride + 48,           range_max[0], true);
+			attributeView.setFloat32( index * stride + 52,           range_max[1], true);
+			attributeView.setFloat32( index * stride + 56,           range_max[2], true);
+			attributeView.setFloat32( index * stride + 60,           range_max[3], true);
 
-			if(specialMapping){
-				attributeView.setUint32(  index * stride + 32,       specialMapping.index, true);
-			}
 		};
 
 		let attributes = octree.loader.attributes;
@@ -271,7 +275,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		
 		renderer.device.queue.writeBuffer(
 			attributesDescGpuBuffer, 0, 
-			attributesDescBuffer, 0, 1024);
+			attributesDescBuffer, 0, 2048);
 	}
 }
 
