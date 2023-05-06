@@ -1,4 +1,7 @@
 
+// wgsl snippets are inserted into the point cloud shader code such as "octree.wgsl"
+
+
 export const SCALAR = {
 	name: "scalar",
 	condition: (attribute) => (attribute.numElements === 1),
@@ -127,7 +130,7 @@ export const LAS_INTENSITY_GRADIENT = {
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-			var offset = node.numPoints * attrib.offset + 2u * pointID;
+			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
 			var value = f32(readU16(offset));
 
 			var w = (value - attrib.range_min) / (attrib.range_max - attrib.range_min);
@@ -152,7 +155,7 @@ export const LAS_INTENSITY_DIRECT = {
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-			var offset = node.numPoints * attrib.offset + 2u * pointID;
+			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
 			var value = f32(readU16(offset));
 
 			var w = f32(value) / 256.0;
@@ -169,7 +172,7 @@ export const LAS_CLASSIFICATION = {
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-			var offset = node.numPoints * attrib.offset + pointID;
+			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
 
 			var value = readU8(offset);
 
@@ -230,7 +233,7 @@ export const LAS_GPS_TIME = {
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-			var offset = node.numPoints * attrib.offset + 8u * pointID;
+			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
 			var value = readF64(offset);
 
 			var w = (value - attrib.range_min) / (attrib.range_max - attrib.range_min);
@@ -258,7 +261,7 @@ export const TRIMBLE_NORMAL = {
 			var HML = (2.0 * PI) / 32767.0;
 			var VML = PI / 32767.0;
 			
-			var offset = node.numPoints * attrib.offset + 4u * pointID;
+			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
 			var value = readU32(offset);
 
 			var mask_15b = (1u << 15u) - 1u;
@@ -295,7 +298,7 @@ export const TRIMBLE_GROUP = {
 	condition: (attribute) => (attribute.name === "Group"),
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-			var offset = node.numPoints * attrib.offset + 4u * pointID;
+			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
 			var value = readU32(offset);
 
 			var w = f32(value) / 1234.0;
@@ -314,7 +317,7 @@ export const TRIMBLE_DISTANCE = {
 	condition: (attribute) => (attribute.name === "Distance"),
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-			var offset = node.numPoints * attrib.offset + 4u * pointID;
+			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
 			var value = readI32(offset);
 
 			// assuming distance in meters

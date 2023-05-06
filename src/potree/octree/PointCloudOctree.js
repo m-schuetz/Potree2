@@ -29,7 +29,7 @@ export class PointCloudOctree extends SceneNode{
 		});
 
 		this.dispatcher.addEventListener("click", (e) => {
-			console.log("clicked: ", e.hovered.node.name + " - point #" + e.hovered.pointIndex);
+			// console.log("clicked: ", e.hovered.node.name + " - point #" + e.hovered.pointIndex);
 		});
 
 		this.material.events.onChange((event) => this.events.dispatcher.dispatch("material_changed", {material: event.material}));

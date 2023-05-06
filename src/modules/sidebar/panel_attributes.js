@@ -35,20 +35,22 @@ class Panel{
 			<div class="subsection">Mapping</div>
 			<select id="mappings_list"></select>
 
+			<div class="subsection">Info</div>
+			<div class="subsubsection" id="attribute_infos" style="display: flex"></div>
+
 			<div class="subsection">Settings</div>
 			<div class="subsubsection" id="gradient_schemes" style="display: flex"></div>
 
 			<div class="subsubsection" id="attributes_gamma_brightness_contrast" style="display: flex"></div>
-
 			<div class="subsubsection" id="attributes_scalar" style="display: flex"></div>
-
 			<div class="subsubsection" id="attributes_listing" style="display: grid; grid-template-columns: 3em 1fr 3em"></div>
-
 			<div class="subsubsection" id="attributes_data" style="display: grid; grid-template-columns: 8em 1fr"></div>
 		`;
 
 		this.elAttributeList = this.element.querySelector("#attributes_list");
 		this.elMappingsList = this.element.querySelector("#mappings_list");
+		this.elInfos = this.element.querySelector("#attribute_infos");
+
 		this.elGradientSchemes = this.element.querySelector("#gradient_schemes");
 		this.elGammaBrightnessContrast = this.element.querySelector("#attributes_gamma_brightness_contrast");
 		this.elScalar = this.element.querySelector("#attributes_scalar");
@@ -67,6 +69,68 @@ class Panel{
 
 		this.updateSettings();
 		this.updateMappingList();
+		this.updateInfos();
+	}
+
+	updateInfos(){
+
+		this.elInfos.innerHTML = `
+			<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px 5px; width: 100%; overflow: hidden;">
+
+				<!-- DESCRIPTION -->
+				<span style="white-space: nowrap;">Description</span>
+				<span name="val_description" style="text-align: right; overflow: hidden;">-</span>
+
+				<!-- BYTE OFFSET -->
+				<span style="white-space: nowrap;">Byte Offset</span>
+				<span name="val_byteOffset" style="text-align: right; overflow: hidden;">-</span>
+
+				<!-- BYTE SIZE -->
+				<span style="white-space: nowrap;">Byte Size</span>
+				<span name="val_byteSize" style="text-align: right; overflow: hidden;">-</span>
+
+				<!-- NUM ELEMENTS -->
+				<span style="white-space: nowrap;">Num Elements</span>
+				<span name="val_numElements" style="text-align: right; overflow: hidden;">-</span>
+
+				<!-- DATA TYPE -->
+				<span style="white-space: nowrap;">Data Type</span>
+				<span name="val_dataType" style="text-align: right; overflow: hidden;">-</span>
+
+				<!-- MIN -->
+				<span style="white-space: nowrap;">Min</span>
+				<span name="val_min" style="text-align: right; overflow: hidden;">-</span>
+
+				<!-- MAX -->
+				<span style="white-space: nowrap;">Max</span>
+				<span name="val_max" style="text-align: right; overflow: hidden;">-</span>
+
+
+			</div>
+
+		`;
+
+		let elDescription = this.elInfos.querySelector(`span[name="val_description"]`);
+		let elByteOffset = this.elInfos.querySelector(`span[name="val_byteOffset"]`);
+		let elByteSize = this.elInfos.querySelector(`span[name="val_byteSize"]`);
+		let elNumElements = this.elInfos.querySelector(`span[name="val_numElements"]`);
+		let elDataType = this.elInfos.querySelector(`span[name="val_dataType"]`);
+		let elMin = this.elInfos.querySelector(`span[name="val_min"]`);
+		let elMax = this.elInfos.querySelector(`span[name="val_max"]`);
+
+		let attributes = this.pointcloud.attributes;
+		let selectedAttributeName = this.elAttributeList.value;
+		let attribute = attributes.get(selectedAttributeName);
+
+		if(attribute){
+			elDescription.innerText = attribute.description;
+			elByteOffset.innerText = attribute.byteOffset;
+			elByteSize.innerText = attribute.byteSize;
+			elNumElements.innerText = attribute.numElements;
+			elDataType.innerText = attribute.type.name;
+			elMin.innerText = attribute.range[0];
+			elMax.innerText = attribute.range[1];
+		}
 	}
 
 	updateSettings(){
@@ -126,6 +190,7 @@ class Panel{
 		}
 
 	}
+
 
 	updateGammaBrightnessContrast(){
 		let element = this.elGammaBrightnessContrast;
@@ -515,6 +580,7 @@ class Panel{
 			this.updateAttributesList();
 			this.updateMappingList();
 			this.updateSettings();
+			this.updateInfos();
 		};
 		this.pointcloud.events.onMaterialChanged(onChange);
 

@@ -66,4 +66,8 @@ export class PointAttributes{
 		return -1;
 	}
 
+	get(name){
+		return this.attributes.find(a => a.name === name);
+	}
+
 }

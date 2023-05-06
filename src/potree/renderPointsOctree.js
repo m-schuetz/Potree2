@@ -146,7 +146,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 	let data = new ArrayBuffer(512);
 	let uniformsView = new DataView(data);
 
-	{
+	{ // UPDATE UNIFORM BUFFER
 		let {renderer} = drawstate;
 		let isHqsDepth = flags.includes("hqs-depth");
 		
@@ -187,7 +187,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 	}
 
 
-	{
+	{ // UPDATE ATTRIBUTES BUFFER
 		let {attributesDescBuffer, attributesDescGpuBuffer} = octreeState;
 		let {renderer} = drawstate;
 
@@ -214,25 +214,6 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 
 			let attributeName = Potree.settings.attribute;
 			let mapping = 0;
-			// if(!args?.settings){
-			// 	mapping = 0;
-			// }else if(args?.settings?.constructor.name === "Attribute_RGB"){
-			// 	mapping = 1;
-			// }else if(args?.settings?.constructor.name === "Attribute_Scalar"){
-			// 	mapping = 2;
-			// }else if(attributeName === "elevation"){
-			// 	mapping = 3;
-			// }else if(args?.settings?.constructor.name === "Attribute_Listing"){
-			// 	mapping = 4;
-			// }else if(args?.settings?.constructor.name === "Attribute_Vector"){
-			// 	mapping = 5;
-			// }else if(args?.settings?.constructor.name === "Attribute_Custom"){
-			// 	mapping = 6;
-			// }
-
-			if(args.settings?.shaderBinding != null){
-				mapping = args.settings?.shaderBinding;
-			}
 
 			if(args.settings?.mapping){
 				mapping = args.settings.mapping;
@@ -261,23 +242,11 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 
 		let offset = 0;
 		let offsets = new Map();
-		for(let attribute of attributes.attributes){
-			
+		for(let attribute of attributes.attributes)
+		{	
 			offsets.set(attribute.name, offset);
-
 			offset += attribute.byteSize;
 		}
-
-		// let customAttributes = [];
-		// for(let [name, attribute] of octree.material.attributes){
-		// 	if(attribute instanceof Attribute_Custom){
-		// 		customAttributes.push([name, attribute]);
-		// 	}
-		// }
-		// for(let i = 0; i < customAttributes.length; i++){
-		// 	let customAttribute = customAttributes[i][1];
-		// 	customAttribute.shaderBinding = 128 + i;
-		// }
 
 		let i = 0;
 		for(let [attributeName, settings] of octree.material.attributes){
@@ -426,9 +395,9 @@ async function renderOctree(octree, drawstate, flags){
 
 			let isLeaf = node.nodeType === 1;
 
-			if(isLeaf){
-				nodeSpacing = 0.03;
-			}
+			// if(isLeaf){
+			// 	nodeSpacing = 0.03;
+			// }
 
 			view.setUint32 (40 * i +  0, node.geometry.numElements, true);
 			view.setUint32 (40 * i +  4, Potree.state.renderedElements + counter, true);
