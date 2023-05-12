@@ -5,7 +5,7 @@
 export const SCALAR = {
 	name: "scalar",
 	condition: (attribute) => (attribute.numElements === 1),
-	input: "scalar",
+	inputs: ["scalar", "gradient"],
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 
@@ -53,6 +53,7 @@ export const SCALAR = {
 export const VECTOR3 = {
 	name: "vec3",
 	condition: (attribute) => (attribute.numElements === 3),
+	inputs: ["gammaBrightnessContrast"],
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 
@@ -135,6 +136,7 @@ export const ELEVATION = {
 export const LAS_INTENSITY_GRADIENT = {
 	name: "intensity - gradient",
 	condition: (attribute) => (attribute.name === "intensity"),
+	inputs: ["scalar", "gradient"],
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 
@@ -160,6 +162,7 @@ export const LAS_INTENSITY_GRADIENT = {
 export const LAS_INTENSITY_DIRECT = {
 	name: "intensity - direct",
 	condition: (attribute) => (attribute.name === "intensity"),
+	inputs: ["scalar"],
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 
@@ -177,6 +180,7 @@ export const LAS_INTENSITY_DIRECT = {
 export const LAS_CLASSIFICATION = {
 	name: "classification",
 	condition: (attribute) => (attribute.name === "classification"),
+	inputs: ["listing"],
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 
@@ -238,6 +242,7 @@ export const LAS_CLASSIFICATION = {
 export const LAS_GPS_TIME = {
 	name: "gps-time",
 	condition: (attribute) => (attribute.name === "gps-time"),
+	inputs: ["scalar"],
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 

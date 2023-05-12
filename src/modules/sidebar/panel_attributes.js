@@ -176,50 +176,48 @@ class Panel{
 
 		let attributeName = Potree.settings.attribute;
 		let settings = this.pointcloud.material.attributes.get(attributeName);
+		let mapping = this.pointcloud.material.selectedMappings.get(attributeName);
+		let inputs = mapping?.inputs ?? [];
 
-		if(!settings){
-			return;
-		}else if(settings.constructor.name === "Attribute_RGB"){
-			show(elData);
-		}else if(settings.constructor.name === "Attribute_Scalar"){
-			show(elScalar, elGradient, elData);
-		}else if(settings.constructor.name === "Attribute_Listing"){
-			show(elListing, elData);
-		}else{
-			show();
-		}
+		let inputFields = inputs.map(i => {
+			if(i === "scalar") return elScalar;
+			if(i === "gradient") return elGradient;
+			if(i === "listing") return elListing;
+			if(i === "gammaBrightnessContrast") return elGammaBrightnessContrast;
+		});
 
+		show(...inputFields);
 	}
 
 
 	updateGammaBrightnessContrast(){
 		let element = this.elGammaBrightnessContrast;
 
-		elScalar.style.display = "block";
+		element.style.display = "block";
 
-		// elScalar.innerHTML = `
+		element.innerHTML = `
 		
-		// 	<div style="display: grid; grid-template-columns: 4em 1fr; gap: 5px 10px;">
+			<div style="display: grid; grid-template-columns: 4em 1fr; gap: 5px 10px;">
 
-		// 		<span>Gamma</span>
-		// 		<range-select id="sldGamma"></range-select>
+				<span>Gamma</span>
+				<range-select id="sldGamma"></range-select>
 
-		// 		<span>Brightness</span>
-		// 		<range-select id="sldBrightness"></range-select>
+				<span>Brightness</span>
+				<range-select id="sldBrightness"></range-select>
 
-		// 		<span>Contrast</span>
-		// 		<range-select id="sldContrast"></range-select>
+				<span>Contrast</span>
+				<range-select id="sldContrast"></range-select>
 
-		// 	</div>
+			</div>
 
-		// `;
+		`;
 
-		// let elGamma = elScalar.querySelector("#sldGamma");
-		// let elBrightness = elScalar.querySelector("#sldBrightness");
-		// let elContrast = elScalar.querySelector("#sldContrast");
+		let elGamma      = element.querySelector("#sldGamma");
+		let elBrightness = element.querySelector("#sldBrightness");
+		let elContrast   = element.querySelector("#sldContrast");
 
-		// let attributeName = Potree.settings.attribute;
-		// let settings = this.pointcloud.material.attributes.get(attributeName);
+		let attributeName = Potree.settings.attribute;
+		let settings = this.pointcloud.material.attributes.get(attributeName);
 
 		// if(settings){
 
@@ -497,6 +495,8 @@ class Panel{
 				let mappingName = this.elMappingsList.value;
 				let mapping = this.pointcloud.material.mappings.find(m => m.name === mappingName);
 				this.pointcloud.material.selectedMappings.set(attributeName, mapping);
+
+				this.updateSettings();
 			}
 		};
 

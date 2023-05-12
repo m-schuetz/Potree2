@@ -87,15 +87,14 @@ export class PointCloudMaterial{
 		this.events.dispatcher.dispatch("change", {material: this});
 	}
 
-	registerMapping({name, condition, wgsl}){
+	registerMapping({name, condition, inputs, wgsl}){
 
 		let index = 128 + this.mappings.length;
-		let mapping = {name, condition, wgsl, index};
+		let mapping = {name, condition, inputs, wgsl, index};
 
 		this.mappings.push(mapping);
 
 		this.recompile();
-		this.events.dispatcher.dispatch("change", {material: this});
 
 		for(let [name, attribute] of this.attributes){
 			if(attribute && condition(attribute)){
@@ -104,6 +103,8 @@ export class PointCloudMaterial{
 				}
 			}
 		}
+		
+		this.events.dispatcher.dispatch("change", {material: this});
 
 		return index;
 	}
