@@ -113,8 +113,8 @@ canvas{
 	Potree.settings.dilateEnabled = false;
 	Potree.settings.hqsEnabled = true;
 	Potree.settings.pointBudget = 5_000_000;
-	Potree.settings.attribute = "rgba";
-	// Potree.settings.attribute = "intensity";
+	// Potree.settings.attribute = "rgba";
+	Potree.settings.attribute = "intensity";
 	Potree.settings.splatType = SplatType.POINTS;
 	Potree.settings.splatType = SplatType.QUADS;
 	Potree.settings.pointSize = 4;
@@ -126,10 +126,12 @@ canvas{
 	{
 
 		// Potree2Loader.load("https://users.cg.tuwien.ac.at/~mschuetz/potree2_test/retz/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/wienCity_v6_125M/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
-		Potree2Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 			pointcloud.name = "Heidentor";
@@ -159,7 +161,7 @@ canvas{
 			let idx_returnNumber = pointcloud.attributes.indexOf("return number");
 			let idx_numberReturns = pointcloud.attributes.indexOf("number of returns");
 
-			if(idx_returnNumber !== 0 && idx_numberReturns !== 0)
+			if(idx_returnNumber !== -1 && idx_numberReturns !== -1)
 			material.registerMapping({
 				name: "return nr. & num returns (lastools)",
 				condition: (attribute) => (attribute.name === "return number"),

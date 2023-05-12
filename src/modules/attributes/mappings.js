@@ -5,6 +5,7 @@
 export const SCALAR = {
 	name: "scalar",
 	condition: (attribute) => (attribute.numElements === 1),
+	input: "scalar",
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 
@@ -16,6 +17,8 @@ export const SCALAR = {
 				value = f32(readU8(offset));
 			}else if(attrib.datatype == TYPES_UINT16){
 				value = f32(readU16(offset));
+			}else if(attrib.datatype == TYPES_INT16){
+				value = f32(readI16(offset));
 			}else if(attrib.datatype == TYPES_UINT32){
 				value = f32(readU32(offset));
 			}else if(attrib.datatype == TYPES_FLOAT){
@@ -26,7 +29,12 @@ export const SCALAR = {
 				return vec4f(1.0, 0.0, 0.0, 1.0);
 			}
 
-			var w = (value - attrib.range_min.x) / (attrib.range_max.x - attrib.range_min.x);
+			// var w = (value - attrib.range_min.x) / (attrib.range_max.x - attrib.range_min.x);
+
+			var rangeWidth = attrib.range_max.x - attrib.range_min.x;
+			// * <whatever> because otherwise if there are only two values, 
+			// one would be near 0, the other near 1, and both map to the same color
+			var w = (value - attrib.range_min.x) / rangeWidth * 0.77;
 
 			var color = vec4f(0.0, 0.0, 0.0, 1.0);
 			var uv : vec2f = vec2f(w, 0.0);
@@ -236,7 +244,12 @@ export const LAS_GPS_TIME = {
 			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
 			var value = readF64(offset);
 
-			var w = (value - attrib.range_min.x) / (attrib.range_max.x - attrib.range_min.x);
+			var rangeWidth = attrib.range_max.x - attrib.range_min.x;
+			// var w = (value - attrib.range_min.x) / rangeWidth * 0.9;
+
+			// * <whatever> because otherwise if there are only two values, 
+			// one would be near 0, the other near 1, and both map to the same color
+			var w = (value - attrib.range_min.x) / rangeWidth * 0.77;
 
 			var color = vec4f(0.0, 0.0, 0.0, 1.0);
 			var uv : vec2f = vec2f(w, 0.0);
@@ -280,13 +293,6 @@ export const TRIMBLE_NORMAL = {
 			normal.z = zvl;
 
 			var color = vec4f(normal, 1.0);
-
-			color = vec4f(
-				1.0 * normal.x, 
-				1.0 * normal.y, 
-				1.0 * normal.z,
-				1.0,
-			);
 
 			return color;
 		}

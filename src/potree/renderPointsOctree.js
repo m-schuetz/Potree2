@@ -89,7 +89,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
-		let attributesDescBuffer = new ArrayBuffer(2048);
+		let attributesDescBuffer = new ArrayBuffer(16_384);
 		let attributesDescGpuBuffer = device.createBuffer({
 			size: attributesDescBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -218,7 +218,8 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 				
 			}
 
-			let attributeName = Potree.settings.attribute;
+			// let attributeName = Potree.settings.attribute;
+			let attributeName = args.settings.name;
 			let material = octree.material;
 			let mapping = material.selectedMappings.get(attributeName);
 
