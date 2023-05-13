@@ -35,6 +35,10 @@ async function loadNodes(event){
 		chunkSize += node.byteSize;
 	}
 
+	let numElements = nodes.reduce( (sum, node) => sum + node.numPoints + node.numVoxels, 0);
+	let bitsPerElement = Math.ceil(8 * chunkSize / numElements);
+	console.log(`#nodes: ${nodes.length}, chunkSize: ${chunkSize}, numElements: ${numElements}, bpe: ${bitsPerElement}`);
+
 	let response = await fetch(url, {
 		headers: {
 			'content-type': 'multipart/byteranges',

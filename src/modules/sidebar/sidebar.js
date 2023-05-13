@@ -106,6 +106,7 @@ function createMainSection(){
 	let section = new Section();
 	section.icon = `url(${dir}/icons/home.svg)`;
 	section.panel = elPanel;
+	section.handler = panel_appearance;
 
 	return section;
 }
@@ -126,6 +127,7 @@ function createAttributesSection(){
 	let section = new Section();
 	section.icon = `url(${dir}/icons/material.svg)`;
 	section.panel = elPanel;
+	section.handler = panel_attributes;
 
 	return section;
 }
@@ -146,6 +148,7 @@ function createMeasureSection(){
 	let section = new Section();
 	section.icon = `url(${dir}/icons/measure.svg)`;
 	section.panel = elPanel;
+	section.handler = panel_measurements;
 
 	return section;
 }
@@ -187,9 +190,9 @@ export async function installSidebar(elPotree, potree){
 
 	sidebar = {
 		elContainer: elPotree,
-		potree,
+		potree, sections,
 		elSidebar, elSectionSelection, elSectionContent,
-		toggle
+		toggle,
 	};
 
 

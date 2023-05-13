@@ -6,7 +6,7 @@ class Panel{
 
 	constructor(){
 		this.element = document.createElement("div");
-
+		this.name = "Measurements";
 	}
 
 	set(pointcloud){

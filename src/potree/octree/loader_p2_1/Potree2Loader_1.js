@@ -168,6 +168,8 @@ export class Potree2Loader{
 				current.byteOffset_unfiltered = byteOffset_unfiltered;
 				current.byteSize_unfiltered = byteSize_unfiltered;
 			}
+
+			// debugger;
 			
 			current.nodeType = type;
 

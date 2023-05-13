@@ -94,7 +94,13 @@ canvas{
 
 	installSidebar(elPotree, potree).then(sidebar => {
 		window.sidebar = sidebar;
-		// sidebar.toggle();
+		let panelAttributes = sidebar.sections.find(section => section.handler.name === "Attributes").handler;
+		let pointcloud = scene.root.children.find(c => c.constructor.name === "PointCloudOctree");
+		
+		if(panelAttributes && pointcloud){
+			panelAttributes.set(pointcloud);
+		}
+
 	});
 	// window.sidebar.toggle();
 
@@ -127,7 +133,8 @@ canvas{
 
 		// Potree2Loader.load("https://users.cg.tuwien.ac.at/~mschuetz/potree2_test/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/wienCity_v6_125M/metadata.json").then(pointcloud => {
-		Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/ca13_110M/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
@@ -149,9 +156,16 @@ canvas{
 
 			});
 
+			// GARE
 			controls.set({
 				position: [622.6, 26.9, 242.8], 
 				pivot:    [301.6, 353.4, 81.9]
+			});
+
+			// MORRO BAY ROCK
+			controls.set({
+				position: [-87.7, 520.1, 1235.2], 
+				pivot:    [689.9, 855.3, 303.8]
 			});
 
 			let material = pointcloud.material;

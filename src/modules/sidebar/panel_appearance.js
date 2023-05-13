@@ -6,6 +6,7 @@ class Panel{
 
 	constructor(){
 		this.element = document.createElement("div");
+		this.name = "Appearance";
 
 	}
 
@@ -136,9 +137,6 @@ export function createPanel(){
 
 
 	}
-
-	
-
 
 	let panel = new Panel();
 	panel.element = elPanel;

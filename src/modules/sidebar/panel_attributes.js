@@ -18,6 +18,7 @@ class Panel{
 	constructor(){
 		this.element = document.createElement("div");
 		this.pointcloud = null;
+		this.name = "Attributes";
 
 		this.element.id = "attributes_panel";
 		this.element.innerHTML = `
