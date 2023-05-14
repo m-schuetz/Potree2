@@ -121,8 +121,8 @@ canvas{
 	Potree.settings.pointBudget = 5_000_000;
 	Potree.settings.attribute = "rgba";
 	// Potree.settings.attribute = "intensity";
-	Potree.settings.splatType = SplatType.POINTS;
 	Potree.settings.splatType = SplatType.QUADS;
+	Potree.settings.splatType = SplatType.POINTS;
 	Potree.settings.pointSize = 4;
 	Potree.settings.minNodeSize = 150;
 
@@ -134,7 +134,8 @@ canvas{
 		// Potree2Loader.load("https://users.cg.tuwien.ac.at/~mschuetz/potree2_test/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/wienCity_v6_125M/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
-		Potree2Loader.load("./resources/G/temp/ca13_110M/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/ca13_110M/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
@@ -156,20 +157,25 @@ canvas{
 
 			});
 
-			// GARE
-			controls.set({
-				position: [622.6, 26.9, 242.8], 
-				pivot:    [301.6, 353.4, 81.9]
-			});
+			// // GARE
+			// controls.set({
+			// 	position: [622.6, 26.9, 242.8], 
+			// 	pivot:    [301.6, 353.4, 81.9]
+			// });
 
-			// MORRO BAY ROCK
+			// // MORRO BAY ROCK
+			// controls.set({
+			// 	position: [-87.7, 520.1, 1235.2], 
+			// 	pivot:    [689.9, 855.3, 303.8]
+			// });
+
+			// HELIMAP - MLS
 			controls.set({
-				position: [-87.7, 520.1, 1235.2], 
-				pivot:    [689.9, 855.3, 303.8]
+				position: [300.8, 1590.2, 102.9], 
+				pivot:    [429.1, 1583.7, 5.8]
 			});
 
 			let material = pointcloud.material;
-
 
 			// add lastools visualization of return number and number of returns, if both are present
 			let idx_returnNumber = pointcloud.attributes.indexOf("return number");

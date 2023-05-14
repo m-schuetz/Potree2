@@ -443,6 +443,11 @@ async function renderOctree(octree, drawstate, flags){
 
 				node.dirty = false;
 			}
+
+			// if(node.level != 3){
+			// 	i++;
+			// 	continue;
+			// }
 			
 			if(octree.showBoundingBox === true){
 				let box = node.boundingBox.clone().applyMatrix4(octree.world);
@@ -452,7 +457,6 @@ async function renderOctree(octree, drawstate, flags){
 				let color = new Vector3(255, 255, 0);
 				renderer.drawBoundingBox(position, size, color);
 			}
-
 
 			if(octree.material.splatType === SplatType.POINTS){
 				pass.passEncoder.draw(numElements, 1, 0, i);
