@@ -138,6 +138,15 @@ export class Potree2Loader{
 		for(let i = 0; i < numNodes; i++){
 			let current = nodes[i];
 
+			if(!current){
+				console.log(nodes);
+				debugger;
+			}
+
+			if(current.name === "r002666"){
+				debugger;
+			}
+
 			let type                  = view.getUint8(i * bytesPerNode + 0);
 			let childMask             = view.getUint8(i * bytesPerNode + 1);
 			let numElements           = view.getUint32(i * bytesPerNode + 2, true);
@@ -465,6 +474,10 @@ export class Potree2Loader{
 
 			let msg_nodes = [];
 			for(let node of nodes){
+
+				if(node.numElements === 0){
+					debugger;
+				}
 
 				let msg_node = {
 					name:                  node.name,
