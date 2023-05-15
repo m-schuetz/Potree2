@@ -14,8 +14,6 @@ export async function makePipeline(renderer, args = {}){
 	let response = await fetch(shaderPath);
 	let shaderSource = await response.text();
 
-	let splatType = octree.material.splatType;
-
 	console.log("source loaded");
 
 	let depthWrite = true;
@@ -140,10 +138,19 @@ export async function makePipeline(renderer, args = {}){
 		],
 	});
 
+	let splatType = SplatType.POINTS;
+
+	if(args.flags.find(flag => flag === "SPLAT_TYPE_0")) {splatType = SplatType.POINTS;}
+	if(args.flags.find(flag => flag === "SPLAT_TYPE_1")) {splatType = SplatType.QUADS;}
+	if(args.flags.find(flag => flag === "SPLAT_TYPE_2")) {splatType = SplatType.VOXELS;}
+
 	let topology = "point-list";
-	if(octree.material.splatType === SplatType.QUADS){
+
+	if(splatType == SplatType.POINTS){
+		topology = "point-list";
+	}else if(splatType === SplatType.QUADS){
 		topology = "triangle-list";
-	}else if(octree.material.splatType === SplatType.VOXELS){
+	}else if(splatType === SplatType.VOXELS){
 		topology = "triangle-list";
 	}
 

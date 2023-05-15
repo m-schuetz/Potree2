@@ -143,10 +143,6 @@ export class Potree2Loader{
 				debugger;
 			}
 
-			if(current.name === "r002666"){
-				debugger;
-			}
-
 			let type                  = view.getUint8(i * bytesPerNode + 0);
 			let childMask             = view.getUint8(i * bytesPerNode + 1);
 			let numElements           = view.getUint32(i * bytesPerNode + 2, true);

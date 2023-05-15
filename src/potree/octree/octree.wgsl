@@ -28,6 +28,7 @@ struct Node {
 	max_z       : f32,
 	childmask   : u32,
 	spacing     : f32,
+	splatType   : u32,
 };
 
 struct AttributeDescriptor{
@@ -259,11 +260,11 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	// map vertex index to point index.
 	// (e.g. quads utilize 6 vertices)
 	var pointID = 0u;
-	if(uniforms.splatType == 0u){
+	if(node.splatType == 0u){
 		pointID = vertex.vertexID;
-	}else if(uniforms.splatType == 1u){
+	}else if(node.splatType == 1u){
 		pointID = vertex.vertexID / 6u;
-	}else if(uniforms.splatType == 2u){
+	}else if(node.splatType == 2u){
 		pointID = vertex.vertexID / 18u;
 	}
 
@@ -293,12 +294,12 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 			}
 
-			if(uniforms.splatType == 1u){
+			if(node.splatType == 1u){
 				// QUAD
 				var localIndex = vertex.vertexID % 6u;
 
-				var transX = node.spacing * 0.7990f;
-				var transY = node.spacing * 0.7990f;
+				var transX = node.spacing * 0.690f;
+				var transY = node.spacing * 0.690f;
 
 				if(localIndex == 0u){
 					viewPos.x = viewPos.x - transX;
@@ -347,7 +348,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 				// 	output.position.x = output.position.x - transX;
 				// 	output.position.y = output.position.y + transY;
 				// }
-			}else if(uniforms.splatType == 2u){
+			}else if(node.splatType == 2u){
 				// VOXEL
 
 				var localIndex = vertex.vertexID % 18u;
@@ -435,6 +436,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		output.color = color;
 	}
+
 
 	if(output.color.a == 0.0){
 		output.position.w = 0.0;

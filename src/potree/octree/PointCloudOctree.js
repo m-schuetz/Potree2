@@ -78,6 +78,8 @@ export class PointCloudOctree extends SceneNode{
 
 		let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
 
+		this.root.__pixelSize = 10000;
+
 		while (priorityQueue.size() > 0) {
 			let element = priorityQueue.pop();
 			let {node, weight} = element;
@@ -151,6 +153,9 @@ export class PointCloudOctree extends SceneNode{
 
 				let weight = radius * projFactor;
 				let pixelSize = weight * renderer.getSize().height;
+
+				child.__pixelSize = pixelSize;
+				// debugger;
 
 				if(pixelSize < Potree.settings.minNodeSize){
 					continue;

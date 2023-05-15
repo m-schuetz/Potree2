@@ -10,6 +10,8 @@ let gradientSampler_clamp = null;
 let initialized = false;
 let gradientTextureMap = new Map();
 
+const WGSL_NODE_BYTESIZE = 44;
+
 function init(renderer){
 
 	if(initialized){
@@ -70,8 +72,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 		ids++;
 	}
 
-	let k_splat = `SPLAT_TYPE_${octree.material.splatType}`;
-	let key = `${octree.state_id}_${flags.join("_")}_${k_splat}`;
+	let key = `${octree.state_id}_${flags.join(";")}`;
 
 	let state = octreeStates.get(key);
 
@@ -83,7 +84,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
-		let nodesBuffer = new ArrayBuffer(10_000 * 40);
+		let nodesBuffer = new ArrayBuffer(10_000 * WGSL_NODE_BYTESIZE);
 		let nodesGpuBuffer = device.createBuffer({
 			size: nodesBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -168,6 +169,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		uniformsView.setUint32(264, isHqsDepth ? 1 : 0, true);
 		uniformsView.setFloat32(272, performance.now() / 1000.0, true);
 		uniformsView.setFloat32(276, Potree.settings.pointSize, true);
+		// uniformsView.setUint32(280, 1, true);
 		uniformsView.setUint32(280, Potree.settings.splatType, true);
 		uniformsView.setFloat32(288, octree.spacing, true);
 
@@ -239,7 +241,6 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			attributeView.setFloat32( index * stride + 52,           range_max[1], true);
 			attributeView.setFloat32( index * stride + 56,           range_max[2], true);
 			attributeView.setFloat32( index * stride + 60,           range_max[3], true);
-
 		};
 
 		let attributes = octree.loader.attributes;
@@ -276,8 +277,61 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		
 		renderer.device.queue.writeBuffer(
 			attributesDescGpuBuffer, 0, 
-			attributesDescBuffer, 0, 2048);
+			attributesDescBuffer, 0, 16_384);
 	}
+}
+
+function updateNodesBuffer(octree, nodes, prefixSum, octreeState, drawstate, flags, pass){
+	let {nodesBuffer, nodesGpuBuffer} = octreeState;
+	let view = new DataView(nodesBuffer);
+
+	let counter = 0;
+	for(let [i, node] of nodes){
+		// let node = nodes[i];
+
+		let bb = node.boundingBox;
+		let bbWorld = octree.boundingBox;
+
+		let childmask = 0;
+		for(let j = 0; j < 8; j++){
+			let visible = node.children[j]?.visible ?? false;
+
+			if(visible){
+				childmask = childmask | (1 << j);
+			}
+		}
+
+		// debugger;
+		let nodeSpacing = octree.spacing / (2 ** node.level);
+
+		let isLeaf = node.nodeType === 1;
+
+		let splatType = 0;
+		if(node.isSmallNode){
+			splatType = 0;
+		}else{
+			splatType = 1;
+		}
+
+		view.setUint32 (WGSL_NODE_BYTESIZE * i +  0, node.geometry.numElements, true);
+		view.setUint32 (WGSL_NODE_BYTESIZE * i +  4, prefixSum[i], true);
+		view.setFloat32(WGSL_NODE_BYTESIZE * i +  8, bbWorld.min.x + bb.min.x, true);
+		view.setFloat32(WGSL_NODE_BYTESIZE * i + 12, bbWorld.min.y + bb.min.y, true);
+		view.setFloat32(WGSL_NODE_BYTESIZE * i + 16, bbWorld.min.z + bb.min.z, true);
+		view.setFloat32(WGSL_NODE_BYTESIZE * i + 20, bbWorld.min.x + bb.max.x, true);
+		view.setFloat32(WGSL_NODE_BYTESIZE * i + 24, bbWorld.min.y + bb.max.y, true);
+		view.setFloat32(WGSL_NODE_BYTESIZE * i + 28, bbWorld.min.z + bb.max.z, true);
+		view.setUint32 (WGSL_NODE_BYTESIZE * i + 32, childmask, true);
+		view.setFloat32(WGSL_NODE_BYTESIZE * i + 36, nodeSpacing, true);
+		view.setUint32 (WGSL_NODE_BYTESIZE * i + 40, splatType, true);
+
+		counter += node.geometry.numElements;
+	}
+
+	renderer.device.queue.writeBuffer(
+		nodesGpuBuffer, 0, 
+		nodesBuffer, 0, WGSL_NODE_BYTESIZE * octree.visibleNodes.length
+	);
 }
 
 let bufferBindGroupCache = new Map();
@@ -312,20 +366,27 @@ async function renderOctree(octree, drawstate, flags){
 	
 	let attributeName = Potree.settings.attribute;
 
-	if(octree.material.splatType !== Potree.settings.splatType){
-		octree.material.splatType = Potree.settings.splatType;
-	}
+	// if(octree.material.splatType !== Potree.settings.splatType){
+	// 	octree.material.splatType = Potree.settings.splatType;
+	// }
 
-	let octreeState = getOctreeState(renderer, octree, attributeName, flags);
+	// debugger;
+
+	let octreeState_quads = getOctreeState(renderer, octree, attributeName, [...flags, "SPLAT_TYPE_1"]);
+	let octreeState_points = getOctreeState(renderer, octree, attributeName, [...flags, "SPLAT_TYPE_0"]);
 	// let octreeState = getOctreeState(renderer, octree, attributeName, {...flags, splatType: Potree.settings.splatType});
 
-	if(!octreeState){
-		return;
-	}
+
+	// if(!octreeState_quads) return;
+	if(!octreeState_points) return;
 
 	let nodes = octree.visibleNodes;
 
-	updateUniforms(octree, octreeState, drawstate, flags);
+	// updateUniforms(octree, octreeState, drawstate, flags);
+
+	updateUniforms(octree, octreeState_quads, drawstate, flags);
+	updateUniforms(octree, octreeState_points, drawstate, flags);
+
 
 	{ // UPDATE COLORMAP BUFFER
 		let attributeName = Potree.settings.attribute;
@@ -334,7 +395,7 @@ async function renderOctree(octree, drawstate, flags){
 
 		// if(settings?.constructor?.name === "Attribute_Listing")
 		{
-			let {colormapBuffer, colormapGpuBuffer} = octreeState;
+			let {colormapBuffer, colormapGpuBuffer} = octreeState_quads;
 
 			let u8 = new Uint8Array(colormapBuffer);
 			let defaultValue = settings.listing?.DEFAULT ?? 0;
@@ -362,75 +423,51 @@ async function renderOctree(octree, drawstate, flags){
 				colormapGpuBuffer, 0, 
 				colormapBuffer, 0, colormapBuffer.byteLength
 			);
-		}		
+		}
 	}
 
-	let {pipeline, uniformBindGroup} = octreeState;
+	let largeNodes = [];
+	let smallNodes = [];
+	let prefixSum = [];
+	let count = 0;
 
-	pass.passEncoder.setPipeline(pipeline);
-	pass.passEncoder.setBindGroup(0, uniformBindGroup);
+	for(let i = 0; i < nodes.length; i++){
+		let node = nodes[i];
 
-	{
-		let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
-		pass.passEncoder.setBindGroup(1, bindGroup);
-	}
-
-	{ // UPDATE NODES BUFFER
-		let {nodesBuffer, nodesGpuBuffer, nodesBindGroup} = octreeState;
-		let view = new DataView(nodesBuffer);
-
-		let counter = 0;
-		for(let i = 0; i < nodes.length; i++){
-			let node = nodes[i];
-
-			let bb = node.boundingBox;
-			let bbWorld = octree.boundingBox;
-
-			let childmask = 0;
-			for(let j = 0; j < 8; j++){
-				let visible = node.children[j]?.visible ?? false;
-
-				if(visible){
-					childmask = childmask | (1 << j);
-				}
-			}
-
-			// debugger;
-			let nodeSpacing = octree.spacing / (2 ** node.level);
-
-			let isLeaf = node.nodeType === 1;
-
-			// if(isLeaf){
-			// 	nodeSpacing = 0.03;
-			// }
-
-			view.setUint32 (40 * i +  0, node.geometry.numElements, true);
-			view.setUint32 (40 * i +  4, Potree.state.renderedElements + counter, true);
-			view.setFloat32(40 * i +  8, bbWorld.min.x + bb.min.x, true);
-			view.setFloat32(40 * i + 12, bbWorld.min.y + bb.min.y, true);
-			view.setFloat32(40 * i + 16, bbWorld.min.z + bb.min.z, true);
-			view.setFloat32(40 * i + 20, bbWorld.min.x + bb.max.x, true);
-			view.setFloat32(40 * i + 24, bbWorld.min.y + bb.max.y, true);
-			view.setFloat32(40 * i + 28, bbWorld.min.z + bb.max.z, true);
-			view.setUint32 (40 * i + 32, childmask, true);
-			view.setFloat32(40 * i + 36, nodeSpacing, true);
-
-			counter += node.geometry.numElements;
+		if(node.__pixelSize <= 500){
+			smallNodes.push([i, node]);
+			node.isSmallNode = true;
+		}else{
+			largeNodes.push([i, node]);
+			node.isSmallNode = false;
 		}
 
-		renderer.device.queue.writeBuffer(
-			nodesGpuBuffer, 0, 
-			nodesBuffer, 0, 40 * nodes.length
-		);
+		let numElements = node.geometry.numElements;
+		Potree.state.renderedElements += numElements;
+		Potree.state.renderedObjects.push({node, numElements});
 
-		pass.passEncoder.setBindGroup(3, nodesBindGroup);
+		prefixSum.push(count);
+		count += numElements;
 	}
 
-	let i = 0;
-	for(let node of nodes){
+	updateNodesBuffer(octree, largeNodes, prefixSum, octreeState_quads, drawstate, flags, pass);
+	updateNodesBuffer(octree, smallNodes, prefixSum, octreeState_points, drawstate, flags, pass);
 
-		let numElements = node.geometry.numElements;
-		if(numElements > 0){
+	// let i = 0;
+
+	// if(false)
+	{
+		let {pipeline, uniformBindGroup, nodesBindGroup} = octreeState_quads;
+		let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
+
+		pass.passEncoder.setPipeline(pipeline);
+		pass.passEncoder.setBindGroup(0, uniformBindGroup);
+		pass.passEncoder.setBindGroup(1, bindGroup);
+		pass.passEncoder.setBindGroup(3, nodesBindGroup);
+
+		for(let [index, node] of largeNodes){
+
+			let numElements = node.geometry.numElements;
 
 			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
 			pass.passEncoder.setBindGroup(2, bufferBindGroup);
@@ -444,11 +481,6 @@ async function renderOctree(octree, drawstate, flags){
 				node.dirty = false;
 			}
 
-			// if(node.level != 3){
-			// 	i++;
-			// 	continue;
-			// }
-			
 			if(octree.showBoundingBox === true){
 				let box = node.boundingBox.clone().applyMatrix4(octree.world);
 				let position = box.min.clone();
@@ -458,23 +490,54 @@ async function renderOctree(octree, drawstate, flags){
 				renderer.drawBoundingBox(position, size, color);
 			}
 
-			if(octree.material.splatType === SplatType.POINTS){
-				pass.passEncoder.draw(numElements, 1, 0, i);
-			}else if(octree.material.splatType === SplatType.QUADS){
-				// 2 tris, 6 vertices
-				pass.passEncoder.draw(6 * numElements, 1, 0, i);
-			}else if(octree.material.splatType === SplatType.VOXELS){
-				// 6 tris, 18 vertices
-				pass.passEncoder.draw(18 * numElements, 1, 0, i);
-			}
+			pass.passEncoder.draw(6 * numElements, 1, 0, index);
+
+			// Potree.state.renderedElements += numElements;
+			// Potree.state.renderedObjects.push({node, numElements});
+
+			// i++;
 		}
-
-		// Potree.state.numPoints += numElements;
-		Potree.state.renderedElements += numElements;
-		Potree.state.renderedObjects.push({node, numElements});
-
-		i++;
 	}
+
+	// if(false)
+	{
+
+		let {pipeline, uniformBindGroup, nodesBindGroup} = octreeState_points;
+		let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
+
+		pass.passEncoder.setPipeline(pipeline);
+		pass.passEncoder.setBindGroup(0, uniformBindGroup);
+		pass.passEncoder.setBindGroup(1, bindGroup);
+		pass.passEncoder.setBindGroup(3, nodesBindGroup);
+
+		for(let [index, node] of smallNodes){
+
+			let numElements = node.geometry.numElements;
+
+			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
+			pass.passEncoder.setBindGroup(2, bufferBindGroup);
+
+			if(node.dirty){
+				let gpuBuffer = renderer.getGpuBuffer(node.geometry.buffer);
+				renderer.device.queue.writeBuffer(
+					gpuBuffer, 0, node.geometry.buffer, 0, node.geometry.buffer.byteLength);
+
+				node.dirty = false;
+			}
+
+			if(octree.showBoundingBox === true){
+				let box = node.boundingBox.clone().applyMatrix4(octree.world);
+				let position = box.min.clone();
+				position.add(box.max).multiplyScalar(0.5);
+				let size = box.size();
+				let color = new Vector3(255, 255, 0);
+				renderer.drawBoundingBox(position, size, color);
+			}
+
+			pass.passEncoder.draw(1 * numElements, 1, 0, index);
+		}
+	}
+
 }
 
 export function render(octrees, drawstate, flags = []){
