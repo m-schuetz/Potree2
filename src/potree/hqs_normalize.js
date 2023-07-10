@@ -119,8 +119,8 @@ let shaderCode = `
 		_ = myDepth;
 		_ = tex_pointID;
 
-
 		var window = uniforms.window;
+		window = 2;
 		var DEFAULT_CLOSEST = 10000000.0;
 		var closest = DEFAULT_CLOSEST;
 		var closestCoords = vec2<f32>(0.0, 0.0);
@@ -130,7 +130,6 @@ let shaderCode = `
 			var coords : vec2<i32>;
 			coords.x = i32(input.fragCoord.x) + i;
 			coords.y = i32(input.fragCoord.y) + j;
-
 
 			var fx = f32(i);
 			var fy = f32(j);
@@ -149,21 +148,7 @@ let shaderCode = `
 			}
 		}}
 
-
 		var c = vec4<f32>(0.0, 0.0, 0.0, 0.0);
-
-		// // const weights = array(1.0, 0.5, 0.25, 0.12, 0.06, 0.03);
-		// const weights = array(
-		// 	1.000, 
-		// 	0.250, 
-		// 	0.060, 
-		// 	0.015, 
-		// 	0.004, 
-		// 	0.001
-		// );
-
-		// var weighted = 
-
 
 		for(var i : i32 = -window; i <= window; i = i + 1){
 		for(var j : i32 = -window; j <= window; j = j + 1){
@@ -184,13 +169,6 @@ let shaderCode = `
 
 				var w = exp(-nl * nl * 5.5f);
 				w = clamp(w, 0.01f, 1.0f);
-
-				// var w = exp(-nl * nl * 5.5f);
-				// w = clamp(w, 0.01f, 1.0f);
-
-				// var w = weights[i32(nl * 6.0)];
-
-
 
 				if(w > 0.0){
 					var color = textureLoad(myTexture, coords, 0);
@@ -384,7 +362,7 @@ export function hqs_normalize(source, drawstate){
 
 	init(renderer);
 
-	Timer.timestamp(passEncoder,"dilate-start");
+	Timer.timestamp(passEncoder,"hqs-normalize-start");
 
 	let sampler = renderer.device.createSampler({
 		magFilter: "linear",
@@ -422,9 +400,8 @@ export function hqs_normalize(source, drawstate){
 
 		let size = Potree.settings.pointSize;
 		let window = Math.round((size - 1) / 2);
-		// window = 0;
 
-		view.setUint32(0, 5, true);
+			
 		view.setFloat32(4, 0, true);
 		view.setFloat32(8, 0, true);
 		view.setFloat32(12, 1, true);
@@ -442,6 +419,6 @@ export function hqs_normalize(source, drawstate){
 
 	passEncoder.draw(6, 1, 0, 0);
 
-	Timer.timestamp(passEncoder,"dilate-end");
+	Timer.timestamp(passEncoder,"hqs-normalize-end");
 
 }

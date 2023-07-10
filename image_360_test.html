@@ -64,7 +64,8 @@ canvas{
 		"stats":         "./libs/stats.js/stats.module.js",
 		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
 		"tween":         "./libs/tween/tween.esm.js",
-		"range-select":  "./libs/range-select/RangeSelect.js"
+		"range-select":  "./libs/range-select/RangeSelect.js",
+		"json5":         "./libs/json5/json5.js"
 	}
 }
 </script>
@@ -97,13 +98,24 @@ canvas{
 
 	installSidebar(elPotree, potree);
 
+	import {CopcLoader, Image360, Images360, SplatType} from "potree";
+	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
+	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
+
 	window.Potree = Potree;
 	window.potree = potree;
 	window.Vector3 = Vector3;
 
 	Potree.settings.edlEnabled = true;
-	Potree.settings.dilateEnabled = true;
-	Potree.settings.hqsEnabled = false;
+	Potree.settings.dilateEnabled = false;
+	Potree.settings.hqsEnabled = true;
+	Potree.settings.pointBudget = 5_000_000;
+	Potree.settings.attribute = "rgba";
+	// Potree.settings.attribute = "intensity";
+	Potree.settings.splatType = SplatType.QUADS;
+	Potree.settings.splatType = SplatType.POINTS;
+	Potree.settings.pointSize = 4;
+	Potree.settings.minNodeSize = 150;
 
 
 	// default, if not overriden later on
@@ -112,7 +124,8 @@ canvas{
 		pivot: [-0.0, 2.2, 3.9],
 	});
 
-	import {CopcLoader, Image360, Images360} from "potree";
+	
+
 	Potree.settings.pointBudget = 4_000_000;
 	// Potree.settings.attribute = "classification";
 	Potree.settings.attribute = "rgba";
@@ -142,7 +155,8 @@ canvas{
 	// 	// scene.add(scene.root, images);
 	// });
 
-	Potree.load("./nocommit/F_pointclouds/helimap/MLS/MLS_converted/metadata.json").then(pointcloud => {
+	// Potree.load("./nocommit/F_pointclouds/helimap/MLS/MLS_converted/metadata.json").then(pointcloud => {
+	Potree2Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
 
 		let box = pointcloud.getBoundingBoxWorld();
 		let min = box.min.clone();
@@ -150,6 +164,13 @@ canvas{
 
 		let center = min.add(max).multiplyScalar(0.5);
 		let size = min.distanceTo(max);
+
+
+		// add standard attribute mappings
+		let {material} = pointcloud;
+		for(let mapping of Object.values(MAPPINGS)){
+			material.registerMapping(mapping);
+		}
 
 		// controls.set({
 		// 	yaw: -0.2,
@@ -174,7 +195,7 @@ canvas{
 		console.log(result);
 
 		let imageList = [];
-		fetch("./nocommit/F_pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt").then(async (response) => {
+		fetch("./resources/Drive3/coordinates.txt").then(async (response) => {
 
 			let text = await response.text();
 			let lines = text.split("\n");

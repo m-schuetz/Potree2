@@ -366,27 +366,15 @@ async function renderOctree(octree, drawstate, flags){
 	
 	let attributeName = Potree.settings.attribute;
 
-	// if(octree.material.splatType !== Potree.settings.splatType){
-	// 	octree.material.splatType = Potree.settings.splatType;
-	// }
-
-	// debugger;
-
 	let octreeState_quads = getOctreeState(renderer, octree, attributeName, [...flags, "SPLAT_TYPE_1"]);
 	let octreeState_points = getOctreeState(renderer, octree, attributeName, [...flags, "SPLAT_TYPE_0"]);
-	// let octreeState = getOctreeState(renderer, octree, attributeName, {...flags, splatType: Potree.settings.splatType});
 
-
-	// if(!octreeState_quads) return;
 	if(!octreeState_points) return;
 
 	let nodes = octree.visibleNodes;
 
-	// updateUniforms(octree, octreeState, drawstate, flags);
-
 	updateUniforms(octree, octreeState_quads, drawstate, flags);
 	updateUniforms(octree, octreeState_points, drawstate, flags);
-
 
 	{ // UPDATE COLORMAP BUFFER
 		let attributeName = Potree.settings.attribute;
@@ -434,7 +422,7 @@ async function renderOctree(octree, drawstate, flags){
 	for(let i = 0; i < nodes.length; i++){
 		let node = nodes[i];
 
-		if(node.__pixelSize <= 500){
+		if(node.__pixelSize <= 500 || true){
 			smallNodes.push([i, node]);
 			node.isSmallNode = true;
 		}else{

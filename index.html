@@ -115,6 +115,9 @@ canvas{
 	// });
 
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
+	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
+	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
+
 	Potree.settings.edlEnabled = true;
 	Potree.settings.dilateEnabled = false;
 	Potree.settings.hqsEnabled = true;
@@ -123,22 +126,24 @@ canvas{
 	// Potree.settings.attribute = "intensity";
 	Potree.settings.splatType = SplatType.QUADS;
 	Potree.settings.splatType = SplatType.POINTS;
-	Potree.settings.pointSize = 4;
-	Potree.settings.minNodeSize = 150;
+	Potree.settings.pointSize = 2;
+	Potree.settings.minNodeSize = 100;
 
-	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
-	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
+	
 
 	{
 
 		// Potree2Loader.load("https://users.cg.tuwien.ac.at/~mschuetz/potree2_test/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/wienCity_v6_125M/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/pointclouds/SITN/lidar_mobile_t1.laz_converted/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/G/pointclouds/SITN/2561500_1204500_mobile.copc.laz_converted/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/ca13_morro_bay/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/ca13_110M/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
-		Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
@@ -154,7 +159,6 @@ canvas{
 			controls.set({
 				position: campos.toArray(), 
 				pivot:    center.toArray()
-
 			});
 
 			// // GARE
@@ -174,6 +178,16 @@ canvas{
 			// 	position: [409.8, 1584.5, 12.0], 
 			// 	pivot:    [438.3, 1573.0, 3.7]
 			// });
+
+			// controls.set({
+			// 	position: [37.9, -21.0, 91.9], 
+			// 	pivot:    [83.9, 57.6, 4.7]
+			// });
+
+			controls.set({
+				position: [304.1, 239.3, 13.4], 
+				pivot:    [325.0, 240.2, 2.7]
+			});
 
 			let material = pointcloud.material;
 

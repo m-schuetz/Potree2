@@ -37,7 +37,12 @@ async function loadNodes(event){
 
 	let numElements = nodes.reduce( (sum, node) => sum + node.numPoints + node.numVoxels, 0);
 	let bitsPerElement = Math.ceil(8 * chunkSize / numElements);
-	console.log(`#nodes: ${nodes.length}, chunkSize: ${chunkSize}, numElements: ${numElements}, bpe: ${bitsPerElement}`);
+
+	let strChunkSize = chunkSize.toLocaleString().padStart(10);
+	let strNumElements = numElements.toLocaleString().padStart(8);
+	let strBpe = bitsPerElement.toLocaleString().padStart(4);
+	let strBytes = (bitsPerElement / 8).toFixed(1).padStart(4);
+	console.log(`#nodes: ${nodes.length}, chunkSize: ${strChunkSize}, numElements: ${strNumElements}, bpe: ${strBpe} (${strBytes} bytes)`);
 
 	let response = await fetch(url, {
 		headers: {

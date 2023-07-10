@@ -5,19 +5,19 @@ import {SceneNode, Vector3, Matrix4, EventDispatcher, geometries} from "potree";
 let shaderCode = `
 
 struct Uniforms {
-	worldView        : mat4x4<f32>;
-	proj             : mat4x4<f32>;
-	screen_width     : f32;
-	screen_height    : f32;
-	fovy             : f32;
-	fill             : f32;
-	camdir           : vec3<f32>;
+	worldView        : mat4x4<f32>,
+	proj             : mat4x4<f32>,
+	screen_width     : f32,
+	screen_height    : f32,
+	fovy             : f32,
+	fill             : f32,
+	camdir           : vec3<f32>,
 
 };
 
 @binding(0) @group(0) var<uniform> uniforms : Uniforms;
-[[binding(5), group(0)]] var sphereSampler     : sampler;
-[[binding(6), group(0)]] var sphereTexture     : texture_2d<f32>;
+@binding(5) @group(0) var sphereSampler     : sampler;
+@binding(6) @group(0) var sphereTexture     : texture_2d<f32>;
 
 struct VertexIn{
 	@builtin(vertex_index) vertexID : u32,
@@ -30,7 +30,6 @@ struct VertexOut{
 	@builtin(position) position : vec4<f32>,
 	@location(0) uv : vec2<f32>,
 	@location(1) rayd : vec2<f32>,
-	// [[location(0), interpolate(flat)]] pointID : u32,
 };
 
 struct FragmentIn{
@@ -47,7 +46,7 @@ fn rotate(x : f32, y : f32, angle : f32){
 
 }
 
-let PI = 3.141592653589793;
+
 
 @vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
@@ -152,6 +151,7 @@ function init(renderer){
 	let module = device.createShaderModule({code: shaderCode});
 
 	pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
 			module,
 			entryPoint: "main_vertex",

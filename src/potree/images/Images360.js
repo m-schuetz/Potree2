@@ -4,30 +4,30 @@ import {SceneNode, Vector3, Matrix4, EventDispatcher, StationaryControls} from "
 let shaderCode = `
 
 struct Uniforms {
-	worldView        : mat4x4<f32>;
-	proj             : mat4x4<f32>;
-	screen_width     : f32;
-	screen_height    : f32;
-	size             : f32;
-	elementCounter   : u32;
-	hoveredIndex     : i32;
+	worldView        : mat4x4f,
+	proj             : mat4x4f,
+	screen_width     : f32,
+	screen_height    : f32,
+	size             : f32,
+	elementCounter   : u32,
+	hoveredIndex     : i32,
 };
 
 @binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 struct VertexIn{
-	@location(0) position : vec3<f32>;
+	@location(0) position : vec3<f32>,
 	@builtin(vertex_index) vertexID : u32,
 	@builtin(instance_index) instanceID : u32,
 };
 
 struct VertexOut{
 	@builtin(position) position : vec4<f32>,
-	[[location(0), interpolate(flat)]] pointID : u32;
+	@location(0) @interpolate(flat) pointID : u32,
 };
 
 struct FragmentIn{
-	[[location(0), interpolate(flat)]] pointID : u32;
+	@location(0) @interpolate(flat) pointID : u32,
 };
 
 struct FragmentOut{
@@ -121,6 +121,7 @@ function init(renderer){
 	let module = device.createShaderModule({code: shaderCode});
 
 	pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
 			module,
 			entryPoint: "main_vertex",
@@ -207,7 +208,10 @@ export class Images360 extends SceneNode{
 			Potree.instance.setControls(this.stationaryControls);
 
 			{
-				let response = await fetch(image.path);
+				// TODO: prototype hack
+				let imageName = image.name.split("\\").at(-1).replaceAll("\"", "");
+				let path = `./resources/Drive3/${imageName}`;
+				let response = await fetch(path);
 				let buffer = await response.arrayBuffer();
 				let mimeType = "image/jpg";
 

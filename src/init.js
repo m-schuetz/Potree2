@@ -431,9 +431,9 @@ function renderNotSoBasic(){
 			let pass = startPass(renderer, fboTarget);
 			let drawstate = {renderer, camera, renderables, pass};
 
-			Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
+			// Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
 			hqs_normalize(fbo_hqs_sum, drawstate);
-			Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
+			// Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
 
 			endPass(pass);
 		}
