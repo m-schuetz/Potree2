@@ -174,7 +174,7 @@ let fs = `
 
 		var response = getEdlResponse(input);
 		// var edlStrength = 0.4f;
-		var edlStrength = 0.0f;
+		var edlStrength = 0.2f;
 		var w = exp(-response * 300.0f * edlStrength);
 		output.color.r *= w;
 		output.color.g *= w;

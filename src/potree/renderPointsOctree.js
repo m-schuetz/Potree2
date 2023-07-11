@@ -3,6 +3,7 @@ import {Vector3, Matrix4} from "potree";
 import {Timer} from "potree";
 import {makePipeline} from "./octree/pipelineGenerator.js";
 import {Gradients, SplatType} from "potree";
+import {PMath} from "potree";
 
 let octreeStates = new Map();
 let gradientSampler_repeat = null;
@@ -10,7 +11,8 @@ let gradientSampler_clamp = null;
 let initialized = false;
 let gradientTextureMap = new Map();
 
-const WGSL_NODE_BYTESIZE = 44;
+const WGSL_NODE_BYTESIZE = 48;
+const tmp = new ArrayBuffer(10_000_000);
 
 function init(renderer){
 
@@ -249,7 +251,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		let offset = 0;
 		let offsets = new Map();
 		for(let attribute of attributes.attributes)
-		{	
+		{
 			offsets.set(attribute.name, offset);
 			offset += attribute.byteSize;
 		}
@@ -324,6 +326,7 @@ function updateNodesBuffer(octree, nodes, prefixSum, octreeState, drawstate, fla
 		view.setUint32 (WGSL_NODE_BYTESIZE * i + 32, childmask, true);
 		view.setFloat32(WGSL_NODE_BYTESIZE * i + 36, nodeSpacing, true);
 		view.setUint32 (WGSL_NODE_BYTESIZE * i + 40, splatType, true);
+		// view.setUint32 (WGSL_NODE_BYTESIZE * i + 44, node.gpuChunks[0].offset, true);
 
 		counter += node.geometry.numElements;
 	}
@@ -371,7 +374,68 @@ async function renderOctree(octree, drawstate, flags){
 
 	if(!octreeState_points) return;
 
+	// if(!octree.gpuBuffer){
+	// 	octree.gpuBuffer = renderer.createChunkedBuffer(1_073_741_824, 10_000 * octree.attributes.byteSize);
+	// }
+
 	let nodes = octree.visibleNodes;
+
+	// // UPDATE CHUNKS
+	// for(let node of nodes){
+
+	// 	if(node.gpuChunks) continue;
+
+	// 	let numElements = node.geometry.numElements;
+	// 	let numBytes = node.numElements * octree.attributes.byteSize;
+	// 	let chunks = octree.gpuBuffer.acquire(numBytes);
+
+	// 	node.gpuChunks = chunks;
+
+	// 	let submit = (chunk, data, size) => {
+
+	// 		size = PMath.ceilN(size, 4);
+
+	// 		renderer.device.queue.writeBuffer(
+	// 			octree.gpuBuffer.gpuBuffer, chunk.offset, data, 0, size);
+	// 	};
+
+	// 	let chunk = chunks[0];
+
+
+	// 	let source = new Uint8Array(node.geometry.buffer);
+	// 	let target = new Uint8Array(tmp);
+
+	// 	for(let i = 0; i < numElements; i++){
+
+	// 		// start a new chunk
+	// 		if((i % 10_000) === 0 && i > 0){
+	// 			submit(chunk, tmp, (i % 10_000) * octree.attributes.byteSize);
+
+	// 			let chunkIndex = i / 10_000;
+	// 			chunk = chunks[chunkIndex];
+	// 		}
+
+	// 		let i_local = i % 10_000;
+	// 		let attOffset = 0;
+	// 		for(let attribute of octree.attributes.attributes){
+	// 			for(let j = 0; j < attribute.byteSize; j++){
+					
+	// 				let targetByteIndex =      10_000 * attOffset + i_local * attribute.byteSize + j;
+	// 				let sourceByteIndex = numElements * attOffset + i * attribute.byteSize + j;
+
+	// 				target[targetByteIndex] = source[sourceByteIndex];
+	// 			}
+
+	// 			attOffset += attribute.byteSize;
+	// 		}
+
+			
+	// 		// submit last chunk
+	// 		if(i === numElements - 1){
+	// 			submit(chunk, tmp, (i % 10_000) * octree.attributes.byteSize);
+	// 		}
+	// 	}
+	// }
 
 	updateUniforms(octree, octreeState_quads, drawstate, flags);
 	updateUniforms(octree, octreeState_points, drawstate, flags);
@@ -380,37 +444,43 @@ async function renderOctree(octree, drawstate, flags){
 		let attributeName = Potree.settings.attribute;
 
 		let settings = octree?.material?.attributeSettings?.get(attributeName);
+		let mapping = octree.material.selectedMappings.get(attributeName);
+		let listing = mapping.listing;
 
 		// if(settings?.constructor?.name === "Attribute_Listing")
-		{
-			let {colormapBuffer, colormapGpuBuffer} = octreeState_quads;
 
-			let u8 = new Uint8Array(colormapBuffer);
-			let defaultValue = settings.listing?.DEFAULT ?? 0;
-			for(let i = 0; i < 256; i++){
-				u8[4 * i + 0] = 255 * defaultValue.color[0];
-				u8[4 * i + 1] = 255 * defaultValue.color[1];
-				u8[4 * i + 2] = 255 * defaultValue.color[2];
-				u8[4 * i + 3] = 255 * defaultValue.color[3];
-			}
+		for(let state of [octreeState_quads, octreeState_points]){
+			if(listing)
+			{
+				let {colormapBuffer, colormapGpuBuffer} = state;
 
-			for(let index of Object.keys(settings.listing)){
-				if(index === "DEFAULT"){
-					continue;
+				let u8 = new Uint8Array(colormapBuffer);
+				let defaultValue = listing?.DEFAULT ?? 0;
+				for(let i = 0; i < 256; i++){
+					u8[4 * i + 0] = 255 * defaultValue.color[0];
+					u8[4 * i + 1] = 255 * defaultValue.color[1];
+					u8[4 * i + 2] = 255 * defaultValue.color[2];
+					u8[4 * i + 3] = 255 * defaultValue.color[3];
 				}
 
-				let value = settings.listing[index];
+				for(let index of Object.keys(listing)){
+					if(index === "DEFAULT"){
+						continue;
+					}
 
-				u8[4 * index + 0] = 255 * value.color[0];
-				u8[4 * index + 1] = 255 * value.color[1];
-				u8[4 * index + 2] = 255 * value.color[2];
-				u8[4 * index + 3] = 255 * value.color[3];
+					let value = listing[index];
+
+					u8[4 * index + 0] = 255 * value.color[0];
+					u8[4 * index + 1] = 255 * value.color[1];
+					u8[4 * index + 2] = 255 * value.color[2];
+					u8[4 * index + 3] = 255 * value.color[3];
+				}
+
+				renderer.device.queue.writeBuffer(
+					colormapGpuBuffer, 0, 
+					colormapBuffer, 0, colormapBuffer.byteLength
+				);
 			}
-
-			renderer.device.queue.writeBuffer(
-				colormapGpuBuffer, 0, 
-				colormapBuffer, 0, colormapBuffer.byteLength
-			);
 		}
 	}
 
@@ -441,12 +511,37 @@ async function renderOctree(octree, drawstate, flags){
 	updateNodesBuffer(octree, largeNodes, prefixSum, octreeState_quads, drawstate, flags, pass);
 	updateNodesBuffer(octree, smallNodes, prefixSum, octreeState_points, drawstate, flags, pass);
 
-	// let i = 0;
+	
+
+
+	// const layout_3 = renderer.device.createBindGroupLayout({
+	// 	entries: [
+	// 		{
+	// 			binding: 0,
+	// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+	// 			buffer: {type: 'read-only-storage'},
+	// 		},{
+	// 			binding: 1,
+	// 			visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+	// 			buffer: {type: 'read-only-storage'},
+	// 		}
+	// 	],
+	// });
+
+
 
 	// if(false)
 	{
 		let {pipeline, uniformBindGroup, nodesBindGroup} = octreeState_quads;
 		let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
+
+		// let nodesBindGroup = renderer.device.createBindGroup({
+		// 	layout: layout_3,
+		// 	entries: [
+		// 		{binding: 0, resource: {buffer: octreeState_quads.nodesGpuBuffer}},
+		// 		// {binding: 1, resource: {buffer: octree.gpuBuffer.gpuBuffer}},
+		// 	],
+		// });
 
 		pass.passEncoder.setPipeline(pipeline);
 		pass.passEncoder.setBindGroup(0, uniformBindGroup);
@@ -492,6 +587,14 @@ async function renderOctree(octree, drawstate, flags){
 
 		let {pipeline, uniformBindGroup, nodesBindGroup} = octreeState_points;
 		let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
+
+		// let nodesBindGroup = renderer.device.createBindGroup({
+		// 	layout: layout_3,
+		// 	entries: [
+		// 		{binding: 0, resource: {buffer: octreeState_points.nodesGpuBuffer}},
+		// 		{binding: 1, resource: {buffer: octree.gpuBuffer.gpuBuffer}},
+		// 	],
+		// });
 
 		pass.passEncoder.setPipeline(pipeline);
 		pass.passEncoder.setBindGroup(0, uniformBindGroup);

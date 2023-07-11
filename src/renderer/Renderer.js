@@ -15,6 +15,7 @@ import {writeBuffer} from "./writeBuffer.js";
 import {fillBuffer} from "./fillBuffer.js";
 import {readPixels, readDepth} from "../renderer/readPixels.js";
 import {RenderTarget} from "potree";
+import {ChunkedBuffer} from "potree";
 
 let dbgSet = new Set();
 
@@ -73,6 +74,11 @@ export class Renderer{
 		this.adapter = await navigator.gpu.requestAdapter();
 		this.device = await this.adapter.requestDevice({
 			requiredFeatures: ["timestamp-query", "timestamp-query-inside-passes"],
+			requiredLimits: {
+				maxStorageBufferBindingSize: 1073741824,
+				maxBufferSize: 1073741824,
+				// maxBindGroups: 16,
+			}
 		});
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("webgpu");
@@ -370,6 +376,13 @@ export class Renderer{
 				| GPUBufferUsage.COPY_DST
 				| GPUBufferUsage.UNIFORM,
 		});
+
+		return buffer;
+	}
+
+	createChunkedBuffer(size, chunkSize){
+
+		let buffer = new ChunkedBuffer(size, chunkSize, this);
 
 		return buffer;
 	}

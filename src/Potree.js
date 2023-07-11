@@ -1,5 +1,6 @@
 export * from "./potree/PointAttributes.js";
 export * from "./math/math.js";
+export * as PMath from "./math/PMath.js";
 export * from "./core/Geometry.js";
 export * from "./core/RenderTarget.js";
 export * from "./scene/Scene.js";
@@ -33,6 +34,7 @@ export * from "./InputHandler.js";
 export * from "./potree/images/Images360.js";
 export * from "./potree/images/SphereMap.js";
 export * from "./potree/octree/loader/Potree2Loader.js";
+export * from "./potree/ChunkedBuffer.js";
 
 export {render as renderPoints} from "./prototyping/renderPoints.js";
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";

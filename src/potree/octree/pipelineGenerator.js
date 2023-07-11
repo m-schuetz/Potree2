@@ -134,7 +134,12 @@ export async function makePipeline(renderer, args = {}){
 				binding: 0,
 				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
 				buffer: {type: 'read-only-storage'},
-			}
+			},
+			// {
+			// 	binding: 1,
+			// 	visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+			// 	buffer: {type: 'read-only-storage'},
+			// }
 		],
 	});
 
@@ -192,6 +197,7 @@ export async function makePipeline(renderer, args = {}){
 		layout: layout_3,
 		entries: [
 			{binding: 0, resource: {buffer: state.nodesGpuBuffer}},
+			// {binding: 1, resource: {buffer: state.nodesGpuBuffer}},
 		],
 	});
 

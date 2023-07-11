@@ -181,9 +181,9 @@ class Panel{
 		let inputs = mapping?.inputs ?? [];
 
 		let inputFields = inputs.map(i => {
-			if(i === "scalar") return elScalar;
-			if(i === "gradient") return elGradient;
-			if(i === "listing") return elListing;
+			if(i === "scalar")                  return elScalar;
+			if(i === "gradient")                return elGradient;
+			if(i === "listing")                 return elListing;
 			if(i === "gammaBrightnessContrast") return elGammaBrightnessContrast;
 		});
 
@@ -288,14 +288,14 @@ class Panel{
 
 		let attributeName = Potree.settings.attribute;
 		let setting = this.pointcloud.material.attributes.get(attributeName);
+		let mapping = this.pointcloud.material.selectedMappings.get(attributeName);
 
-		if(!setting){
-			return;
-		}
+		if(!setting)         return;
+		if(!mapping.listing) return;
 
-		for(let key of Object.keys(setting.listing)){
+		for(let key of Object.keys(mapping.listing)){
 
-			let value = setting.listing[key];
+			let value = mapping.listing[key];
 
 			let elIndex = document.createElement("span");
 			let elLabel = document.createElement("span");
@@ -569,7 +569,7 @@ class Panel{
 		// this.elAttributeList.appendChild(elOptgroupFile);
 		// this.elAttributeList.appendChild(elOptgroupRuntime);
 
-		this.elAttributeList.size = Math.min(weighted.length + 0, 10);
+		this.elAttributeList.size = Math.min(weighted.length + 0, 15);
 		this.elAttributeList.value = Potree.settings.attribute;
 	}
 

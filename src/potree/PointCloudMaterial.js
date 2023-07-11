@@ -87,10 +87,12 @@ export class PointCloudMaterial{
 		this.events.dispatcher.dispatch("change", {material: this});
 	}
 
-	registerMapping({name, condition, inputs, wgsl}){
+	registerMapping(mapping){
 
 		let index = 128 + this.mappings.length;
-		let mapping = {name, condition, inputs, wgsl, index};
+		// let mapping = {name, condition, inputs, wgsl, index};
+		let {name, condition, inputs, wgsl} = mapping;
+		mapping.index = index;
 
 		this.mappings.push(mapping);
 

@@ -60,7 +60,6 @@ async function loadNodes(event){
 		
 		let buffers = loadNode(octree, node, dataview);
 
-		// first = chunk root
 		// clone voxel coords, the child nodes need them to decode their coords
 		if(node === nodes[0] && node.numVoxels > 0){
 			let voxelCoords = buffers.voxelCoords;

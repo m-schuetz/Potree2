@@ -69,7 +69,7 @@ export class RangeSelect extends HTMLElement{
 				.marker{
 					position: absolute;
 					left: 100px;
-					top: 100px;
+					top: 10px;
 					border: 1px solid black;
 					background: white;
 					padding: 0px 3px;
@@ -155,7 +155,7 @@ export class RangeSelect extends HTMLElement{
 			// this.elMax.style.left = `calc(${selectionBox.right - 0.5 * elMaxBox.width}px)`;
 			// this.elMax.style.top = `calc(${selectionBox.top}px - 2em)`;
 			this.elMax.style.left = `calc(${elSlidersBox.width * u_max - elMaxBox.width / 2}px)`;
-			this.elMax.style.top = `0px`;
+			this.elMax.style.top = `-5px`;
 		}
 
 		this.value = [min, max];

@@ -13,3 +13,7 @@ export function toRadians(degrees){
 export function toDegrees(radians){
 	return 180 * radians / π;
 }
+
+export function ceilN(value, N){
+	return value + (N - value % N);
+};

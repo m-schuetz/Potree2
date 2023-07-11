@@ -77,6 +77,13 @@ export const VECTOR3 = {
 				b = f32(readU32(offset + 8u));
 			}
 
+			// if(pointID < 10000u){
+			// 	var offset = node.chunkOffset + 10000u * attrib.offset + attrib.byteSize * pointID;
+			// 	r = f32(readU16_octreebuffer(offset + 0u));
+			// 	g = f32(readU16_octreebuffer(offset + 2u));
+			// 	b = f32(readU16_octreebuffer(offset + 4u));
+			// }
+
 			if(r > 255.0) { r = r / 256.0; }
 			if(g > 255.0) { g = g / 256.0; }
 			if(b > 255.0) { b = b / 256.0; }
@@ -204,6 +211,20 @@ export const LAS_CLASSIFICATION = {
 			return color;
 		}
 	`,
+	listing: {
+		0:       { visible: true, name: 'never classified'  , color: [0.5,  0.5,  0.5,  1.0] },
+		1:       { visible: true, name: 'unclassified'      , color: [0.5,  0.5,  0.5,  1.0] },
+		2:       { visible: true, name: 'ground'            , color: [0.63, 0.32, 0.18, 1.0] },
+		3:       { visible: true, name: 'low vegetation'    , color: [0.0,  1.0,  0.0,  1.0] },
+		4:       { visible: true, name: 'medium vegetation' , color: [0.0,  0.8,  0.0,  1.0] },
+		5:       { visible: true, name: 'high vegetation'   , color: [0.0,  0.6,  0.0,  1.0] },
+		6:       { visible: true, name: 'building'          , color: [1.0,  0.66, 0.0,  1.0] },
+		7:       { visible: true, name: 'low point(noise)'  , color: [1.0,  0.0,  1.0,  1.0] },
+		8:       { visible: true, name: 'key-point'         , color: [1.0,  0.0,  0.0,  1.0] },
+		9:       { visible: true, name: 'water'             , color: [0.0,  0.0,  1.0,  1.0] },
+		12:      { visible: true, name: 'overlap'           , color: [1.0,  1.0,  0.0,  1.0] },
+		DEFAULT: { visible: true, name: 'default'           , color: [0.3,  0.6,  0.6,  0.5] },
+	}
 };
 
 // export const LAS_RGB = {

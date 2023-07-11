@@ -9,13 +9,15 @@ export class PointCloudOctree extends SceneNode{
 	constructor(name){
 		super(name);
 
-		this.loader = null;
-		this.root = null;
-		this.spacing = 1;
-		this.loaded = false;
-		this.loading = false;
-		this.visibleNodes = [];
-		this.material = new PointCloudMaterial();
+		this.loader         = null;
+		this.root           = null;
+		this.spacing        = 1;
+		this.loaded         = false;
+		this.loading        = false;
+		this.visibleNodes   = [];
+		this.material       = new PointCloudMaterial();
+
+		this.gpuBuffer      = null;
 
 		this.dispatcher = new EventDispatcher();
 		this.events = {

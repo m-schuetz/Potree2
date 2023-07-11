@@ -14,7 +14,9 @@
 		"xlocmon": "cpp",
 		"xlocnum": "cpp",
 		"xtr1common": "cpp",
-		"array": "cpp"
+		"array": "cpp",
+		"istream": "cpp",
+		"utility": "cpp"
 	},
 	"files.trimTrailingWhitespace": false,
 	"editor.fontSize": 28,

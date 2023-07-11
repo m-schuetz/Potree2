@@ -29,6 +29,7 @@ struct Node {
 	childmask   : u32,
 	spacing     : f32,
 	splatType   : u32,
+	chunkOffset : u32,
 };
 
 struct AttributeDescriptor{
@@ -76,7 +77,30 @@ const OUTSIDE  = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 @binding(2) @group(1) var gradientTexture             : texture_2d<f32>;
 
 @binding(0) @group(2) var<storage, read> buffer       : array<u32>;
+
 @binding(0) @group(3) var<storage, read> nodes        : array<Node>;
+// @binding(1) @group(3) var<storage, read> octreeBuffer : array<u32>;
+
+
+// fn readU8_octreebuffer(offset : u32) -> u32{
+// 	var ipos    = offset / 4u;
+// 	var val_u32 = octreeBuffer[ipos];
+// 	var shift   = 8u * (offset % 4u);
+
+// 	var val_u8  = (val_u32 >> shift) & 0xFFu;
+
+// 	return val_u8;
+// }
+
+// fn readU16_octreebuffer(offset : u32) -> u32{
+	
+// 	var first = readU8_octreebuffer(offset + 0u);
+// 	var second = readU8_octreebuffer(offset + 1u);
+
+// 	var value = first | (second << 8u);
+
+// 	return value;
+// }
 
 
 fn readU8(offset : u32) -> u32{
@@ -209,27 +233,6 @@ struct VertexOutput {
 	@location(2) @interpolate(flat) point_position : vec4<f32>,
 };
 
-fn map_listing(vertex : VertexInput, pointID : u32, attrib : AttributeDescriptor, node : Node) -> vec4<f32> {
-	var offset = node.numPoints * attrib.offset + 1u * pointID;
-
-	var value = readU8(offset);
-
-	var color_u32 = colormap[value];
-
-	var r = (color_u32 >>  0u) & 0xFFu;
-	var g = (color_u32 >>  8u) & 0xFFu;
-	var b = (color_u32 >> 16u) & 0xFFu;
-
-	var color = vec4<f32>(
-		f32(r) / 255.0,
-		f32(g) / 255.0,
-		f32(b) / 255.0,
-		1.0
-	);
-
-	return color;
-}
-
 fn doIgnores(){
 
 	// Unused bindings get optimized away by compilers, 
@@ -242,7 +245,8 @@ fn doIgnores(){
 	_ = gradientTexture;
 	_ = &buffer;
 	_ = &nodes;
-
+	_ = &colormap;
+	// _ = &octreeBuffer;
 }
 
 @vertex

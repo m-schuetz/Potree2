@@ -121,7 +121,7 @@ canvas{
 	Potree.settings.edlEnabled = true;
 	Potree.settings.dilateEnabled = false;
 	Potree.settings.hqsEnabled = true;
-	Potree.settings.pointBudget = 5_000_000;
+	Potree.settings.pointBudget = 8_000_000;
 	Potree.settings.attribute = "rgba";
 	// Potree.settings.attribute = "intensity";
 	Potree.settings.splatType = SplatType.QUADS;
@@ -136,8 +136,8 @@ canvas{
 		// Potree2Loader.load("https://users.cg.tuwien.ac.at/~mschuetz/potree2_test/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/wienCity_v6_125M/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/pointclouds/SITN/lidar_mobile_t1.laz_converted/metadata.json").then(pointcloud => {
-		Potree2Loader.load("./resources/G/pointclouds/SITN/2561500_1204500_mobile.copc.laz_converted/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/pointclouds/SITN/2561500_1204500_mobile.copc.laz_converted/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/ca13_morro_bay/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/ca13_110M/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
@@ -184,10 +184,10 @@ canvas{
 			// 	pivot:    [83.9, 57.6, 4.7]
 			// });
 
-			controls.set({
-				position: [304.1, 239.3, 13.4], 
-				pivot:    [325.0, 240.2, 2.7]
-			});
+			// controls.set({
+			// 	position: [304.1, 239.3, 13.4], 
+			// 	pivot:    [325.0, 240.2, 2.7]
+			// });
 
 			let material = pointcloud.material;
 
