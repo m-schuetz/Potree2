@@ -73,7 +73,10 @@ export class Renderer{
 	async init(){
 		this.adapter = await navigator.gpu.requestAdapter();
 		this.device = await this.adapter.requestDevice({
-			requiredFeatures: ["timestamp-query", "timestamp-query-inside-passes"],
+			requiredFeatures: [
+				"timestamp-query", 
+				"timestamp-query-inside-passes"
+			],
 			requiredLimits: {
 				maxStorageBufferBindingSize: 1073741824,
 				maxBufferSize: 1073741824,

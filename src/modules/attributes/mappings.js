@@ -291,8 +291,8 @@ export const LAS_GPS_TIME = {
 	`,
 };
 
-export const TRIMBLE_NORMAL = {
-	name: "normal (trimble 2-15-15)",
+export const TERRASCAN_NORMAL = {
+	name: "normal (terrascan 2-15-15)",
 	condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
@@ -325,8 +325,8 @@ export const TRIMBLE_NORMAL = {
 	`,
 };
 
-export const TRIMBLE_GROUP = {
-	name: "group (trimble)",
+export const TERRASCAN_GROUP = {
+	name: "group (terrascan)",
 	condition: (attribute) => (attribute.name === "Group"),
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
@@ -344,8 +344,8 @@ export const TRIMBLE_GROUP = {
 	`,
 };
 
-export const TRIMBLE_DISTANCE = {
-	name: "distance (trimble)",
+export const TERRASCAN_DISTANCE = {
+	name: "distance (terrascan)",
 	condition: (attribute) => (attribute.name === "Distance"),
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
@@ -371,9 +371,9 @@ export const MAPPINGS = {
 	LAS_CLASSIFICATION, 
 	// LAS_RGB,
 	LAS_GPS_TIME,
-	TRIMBLE_NORMAL,
-	TRIMBLE_GROUP,
-	TRIMBLE_DISTANCE,
+	TERRASCAN_NORMAL,
+	TERRASCAN_GROUP,
+	TERRASCAN_DISTANCE,
 	POSITION, 
 	ELEVATION,
 	SCALAR,

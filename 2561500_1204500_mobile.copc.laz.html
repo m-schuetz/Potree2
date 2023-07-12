@@ -73,8 +73,8 @@
 	Potree.settings.minNodeSize = 100;
 
 	{
-		Potree2Loader.load("https://potree.org/temporary/sitn/pointclouds/las14_extra_attributes/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/pointclouds/SITN/2561500_1204500_mobile.copc.laz_converted/metadata.json").then(pointcloud => {
+		Potree2Loader.load("https://potree.org/temporary/sitn/pointclouds/2561500_1204500_mobile.copc.laz_converted/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 			pointcloud.name = "Heidentor";
@@ -91,10 +91,9 @@
 				pivot:    center.toArray()
 			});
 
-			// GARE
 			controls.set({
-				position: [73.7, -85.6, 343.2], 
-				pivot:    [214.5, 242.3, 40.6]
+				position: [292.0, 246.8, 25.2], 
+				pivot:    [326.5, 235.7, 0.2]
 			});
 
 			let material = pointcloud.material;
