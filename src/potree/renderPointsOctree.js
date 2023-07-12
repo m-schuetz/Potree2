@@ -178,7 +178,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		let isAdditive = !(octree.loader.constructor.name === "Potree2Loader");
 		uniformsView.setUint32(284, isAdditive ? 1 : 0, true);
 
-		let bb = potree.scene.root.children[3].getBoundingBoxWorld();
+		let bb = octree.getBoundingBoxWorld();
 		uniformsView.setFloat32(304, bb.min.x, true);
 		uniformsView.setFloat32(308, bb.min.y, true);
 		uniformsView.setFloat32(312, bb.min.z, true);

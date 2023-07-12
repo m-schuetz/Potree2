@@ -131,12 +131,32 @@ canvas{
 
 	
 
+	import {TDTiles} from "./src/modules/3DTiles/3DTiles.js";
+	import {TDTilesLoader} from "./src/modules/3DTiles/3DTilesLoader.js";
 	{
+		TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
+			scene.root.children.push(tiles);
+
+			controls.set({
+				position: [
+					4323655 + 2000, 
+					 511232 + 2000, 
+					4646856 + 2000
+				], 
+				pivot:    [4323655, 511232, 4646856]
+			});
+			// controls.set({
+			// 	position: [-79.6, -104.3, 108.1], 
+			// 	pivot:    [0.0, 0.0, 0.0]
+			// });
+		});
+
 
 		// Potree2Loader.load("https://users.cg.tuwien.ac.at/~mschuetz/potree2_test/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/wienCity_v6_125M/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/pointclouds/SITN/lidar_mobile_t1.laz_converted/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/pointclouds/SITN/2561500_1204500_mobile.copc.laz_converted/metadata.json").then(pointcloud => {
+		if(false)
 		Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/ca13_morro_bay/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/ca13_110M/metadata.json").then(pointcloud => {

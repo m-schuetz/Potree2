@@ -488,6 +488,17 @@ function renderNotSoBasic(){
 	// 	fbo_source = fboTarget;
 	// }
 
+	// renderer.drawBoundingBox(
+	// 	new Vector3(0.0, 0.0, 0.0),
+	// 	new Vector3(50, 50, 50),
+	// 	new Vector3(0, 255, 0),
+	// );
+	// renderer.drawBoundingBox(
+	// 	new Vector3(4323655, 511232, 4646856),
+	// 	new Vector3(50, 50, 50),
+	// 	new Vector3(0, 255, 0),
+	// );
+
 	{ // render everything but point clouds
 		let pass = revisitPass(renderer, fbo_source);
 		let drawstate = {renderer, camera, renderables, pass};
@@ -497,7 +508,6 @@ function renderNotSoBasic(){
 				let hasRender = typeof node.render !== "undefined";
 				let isOctree = node.constructor.name === "PointCloudOctree";
 				let isImages360 = node.constructor.name === "Images360";
-
 
 				if(hasRender && !isOctree){
 					node.render(drawstate);
