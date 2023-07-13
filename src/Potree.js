@@ -44,6 +44,7 @@ export {EDL}  from "./potree/EDL.js";
 export {hqs_normalize}  from "./potree/hqs_normalize.js";
 
 import {Vector3} from "./math/math.js";
+import {Vector4} from "./math/math.js";
 import {PotreeLoader} from "./potree/octree/loader/PotreeLoader.js";
 import {render} from "./potree/renderQuads.js";
 import {EventDispatcher} from "./misc/EventDispatcher.js";

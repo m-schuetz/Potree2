@@ -23,6 +23,67 @@ export class TDTilesLoader{
 		this.tiles = null;
 	}
 
+	parseB3dm(buffer){
+		let view = new DataView(buffer);
+
+		let version                      = view.getUint32(4, true);
+		let byteLength                   = view.getUint32(8, true);
+		let featureTableJsonByteLenght   = view.getUint32(12, true);
+		let featureTableBinaryByteLength = view.getUint32(16, true);
+		let batchTableJSONByteLength     = view.getUint32(20, true);
+		let batchTableBinaryByteLength   = view.getUint32(24, true);
+
+		let featureStart = 28;
+		let batchStart = featureStart + featureTableJsonByteLenght + featureTableBinaryByteLength;
+		let gltfStart = batchStart + batchTableJSONByteLength + batchTableBinaryByteLength;
+
+		// let dec = new TextDecoder("utf-8");
+		// let u8Gltf = new Uint8Array(buffer, gltfStart, 4);
+		// let strGltf = dec.decode(u8Gltf);
+
+		let gltf = {};
+		{
+
+			let magic            = view.getUint32(gltfStart + 0, true);
+			let version          = view.getUint32(gltfStart + 4, true);
+			let length           = view.getUint32(gltfStart + 8, true);
+
+			let jsStart = gltfStart + 12;
+			let chunk_js_length  = view.getUint32(jsStart + 0, true);
+			let chunk_js_type    = view.getUint32(jsStart + 4, true);
+			let chunk_js_data    = new Uint8Array(buffer, jsStart + 8, chunk_js_length);
+
+			let dec = new TextDecoder("utf-8");
+			let strJson = dec.decode(chunk_js_data);
+			let json = JSON.parse(strJson);
+
+			let binStart = gltfStart + 20 + chunk_js_length;
+			let chunk_bin_length = view.getUint32(binStart + 0, true);
+			let chunk_bin_type   = view.getUint32(binStart + 4, true);
+			let chunk_bin_data    = new Uint8Array(buffer, binStart + 8, chunk_bin_length);
+			
+			gltf.json = json;
+			gltf.buffer = new Uint8Array(buffer, gltfStart, length);
+		}
+		
+		let b3dm = {
+			buffer,
+			version, byteLength,
+			gltf,
+		};
+
+		// console.log({
+		// 	version,
+		// 	byteLength,
+		// 	featureTableJsonByteLenght,
+		// 	featureTableBinaryByteLength,
+		// 	batchTableJSONByteLength,
+		// 	batchTableBinaryByteLength,
+		// });
+
+		return b3dm;
+	}
+
 	async loadNode(node){
 
 		if(node.contentLoaded) return;
@@ -31,6 +92,7 @@ export class TDTilesLoader{
 		node.isLoading = true;
 
 		let isTileset = node.content.uri.endsWith("json");
+		let isBatched = node.content.uri.endsWith("b3dm");
 		
 		if(isTileset){
 			let url = node.tilesetUrl + "/../" + node.content.uri;
@@ -38,8 +100,17 @@ export class TDTilesLoader{
 			let json = await response.json();
 
 			dbgCount++;
-			this.parseTiles(node, json.root, url);
 
+			node.contentLoaded = true;
+			this.parseTiles(node, json.root, url);
+			node.isLoading = false;
+			
+		}else if(isBatched){
+			let url = node.tilesetUrl + "/../" + node.content.uri;
+			let response = await fetch(url);
+			let buffer = await response.arrayBuffer();
+
+			node.content.b3dm = this.parseB3dm(buffer);
 			node.isLoading = false;
 			node.contentLoaded = true;
 		}
@@ -61,6 +132,7 @@ export class TDTilesLoader{
 		}
 
 		node.content = jsNode.content ?? null;
+		node.contentLoaded = false;
 		node.tilesetUrl = tilesetUrl;
 
 		let color = SPECTRAL[(13 * dbgCount) % SPECTRAL.length];

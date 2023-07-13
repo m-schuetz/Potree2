@@ -145,6 +145,15 @@ export class Matrix4{
 		return this;
 	}
 
+	makeTranslate(x, y, z){
+		this.set(
+			1, 0, 0, x,
+			0, 1, 0, y, 
+			0, 0, 1, z, 
+			0, 0, 0, 1,
+		);
+	}
+
 	rotate(angle, axis){
 		// Based on http://www.gamedev.net/reference/articles/article1199.asp
 
