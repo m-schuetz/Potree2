@@ -151,6 +151,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	var node = nodes[vertex.instance_index];
 
 	var vertexIndex = readU16(node.ptr_indexBuffer + 2u * vertex.vertex_index);
+	var triangleIndex = vertex.vertex_index / 3u;
 
 	var pos = vec4f(
 		readF32(node.ptr_posBuffer + 12u * vertexIndex + 0u),
@@ -169,6 +170,10 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	vout.pointID = vertex.instance_index;
 	vout.uv = uv;
 	vout.instanceID = vertex.instance_index;
+
+	// if(triangleIndex > 1000u){
+	// 	vout.instanceID = vout.instanceID + 1u;
+	// }
 
 	return vout;
 }
@@ -210,11 +215,11 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 `;
 
-const WGSL_NODE_BYTESIZE = 64;
+const WGSL_NODE_BYTESIZE = 80;
 let initialized = false;
 let pipeline = null;
 let uniformsBuffer = new ArrayBuffer(256);
-let nodesBuffer = new ArrayBuffer(10_000 * WGSL_NODE_BYTESIZE);
+let nodesBuffer = new ArrayBuffer(100_000 * WGSL_NODE_BYTESIZE);
 let nodesGpuBuffer = null;
 let uniformsGpuBuffer = null;
 let layout_0 = null;
@@ -524,24 +529,27 @@ export class TDTiles extends SceneNode{
 
 			let visible = true;
 
-			visible = visible && pixelSize > 100;
+			visible = visible && pixelSize > 50;
 			// visible = visible && pixelSize * node.geometricError > 400;
 			// visible = node.tilesetUrl.includes("Tile_p023_p017");
 
 			visible = false;
-
 			// if(node.content && node.content.uri.endsWith("b3dm"))
-			if(node.content && node.content.uri.includes("Tile_p021_p014"))
+			if(node.content && (
+				node.content.uri.includes("Tile_p017_p013") 
+				// || node.content.uri.includes("Tile_p016_p013") 
+				// || node.content.uri.includes("Tile_p018_p013")
+			))
 			{
 				// visible = node.content.uri.includes("Tile_p021_p014");
-				visible = node.tilesetUrl.length <= 120;
-				visible = visible && pixelSize > 800;
+				visible = node.tilesetUrl.length <= 150;
+				visible = visible && pixelSize > 400;
 			}
 
 			if(!visible) return;
 
 
-			// if(this.visibleNodes.length < 3)
+			// if(this.visibleNodes.length < 1)
 			this.visibleNodes.push(node);
 
 			if(node.content){
@@ -646,16 +654,16 @@ export class TDTiles extends SceneNode{
 
 				passEncoder.setBindGroup(1, state.bindGroup);
 
-				passEncoder.draw(numTriangles, 1, 0, i);
+				passEncoder.draw(numIndices, 1, 0, i);
 
 
-				let color = new Vector3(0, 255, 0);
-				let size = node.boundingVolume.radius;
-				renderer.drawBoundingBox(
-					node.boundingVolume.position,
-					new Vector3(1, 1, 1).multiplyScalar(size),
-					color,
-				);
+				// let color = new Vector3(0, 255, 0);
+				// let size = node.boundingVolume.radius;
+				// renderer.drawBoundingBox(
+				// 	node.boundingVolume.position,
+				// 	new Vector3(1, 1, 1).multiplyScalar(size),
+				// 	color,
+				// );
 			}else{
 
 			}
