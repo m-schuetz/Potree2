@@ -28,14 +28,21 @@ export class TDTilesLoader{
 
 		let version                      = view.getUint32(4, true);
 		let byteLength                   = view.getUint32(8, true);
-		let featureTableJsonByteLenght   = view.getUint32(12, true);
+		let featureTableJsonByteLength   = view.getUint32(12, true);
 		let featureTableBinaryByteLength = view.getUint32(16, true);
 		let batchTableJSONByteLength     = view.getUint32(20, true);
 		let batchTableBinaryByteLength   = view.getUint32(24, true);
 
 		let featureStart = 28;
-		let batchStart = featureStart + featureTableJsonByteLenght + featureTableBinaryByteLength;
+		let batchStart = featureStart + featureTableJsonByteLength + featureTableBinaryByteLength;
 		let gltfStart = batchStart + batchTableJSONByteLength + batchTableBinaryByteLength;
+
+		let batchu8 = new Uint8Array(buffer, featureStart, featureTableJsonByteLength);
+
+		let dec = new TextDecoder("utf-8");
+
+		let featureJsonStr = dec.decode(batchu8);
+		let featureJson = JSON.parse(featureJsonStr);
 
 		// let dec = new TextDecoder("utf-8");
 		// let u8Gltf = new Uint8Array(buffer, gltfStart, 4);
@@ -53,7 +60,7 @@ export class TDTilesLoader{
 			let chunk_js_type    = view.getUint32(jsStart + 4, true);
 			let chunk_js_data    = new Uint8Array(buffer, jsStart + 8, chunk_js_length);
 
-			let dec = new TextDecoder("utf-8");
+			
 			let strJson = dec.decode(chunk_js_data);
 			let json = JSON.parse(strJson);
 
@@ -64,10 +71,16 @@ export class TDTilesLoader{
 			
 			gltf.json = json;
 			gltf.buffer = new Uint8Array(buffer, gltfStart, length);
+			gltf.chunks = [
+				{type: "JSON", start: jsStart, length: chunk_js_length},
+				{type: "BIN", start: binStart, length: chunk_bin_length},
+			];
+
 		}
 		
 		let b3dm = {
 			buffer,
+			json: featureJson,
 			version, byteLength,
 			gltf,
 		};
@@ -132,6 +145,7 @@ export class TDTilesLoader{
 		}
 
 		node.content = jsNode.content ?? null;
+		node.geometricError = jsNode.geometricError;
 		node.contentLoaded = false;
 		node.tilesetUrl = tilesetUrl;
 

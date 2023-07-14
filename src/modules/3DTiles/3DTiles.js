@@ -14,11 +14,11 @@ struct Uniforms {
 };
 
 struct Node{
-	worldView : mat4x4f,
+	worldView       : mat4x4f,
 	ptr_indexBuffer : u32,
 	ptr_posBuffer   : u32,
 	ptr_uvBuffer    : u32,
-	padding         : u32,
+	index           : u32,
 };
 
 @binding(0) @group(0) var<uniform> uniforms : Uniforms;
@@ -128,10 +128,16 @@ struct VertexIn{
 struct VertexOut{
 	@builtin(position) position : vec4<f32>,
 	@location(0) @interpolate(flat) pointID : u32,
+	@location(1) @interpolate(linear) color : vec4<f32>,
+	@location(2) @interpolate(linear) uv : vec2f,
+	@location(3) @interpolate(flat)  instanceID : u32,
 };
 
 struct FragmentIn{
 	@location(0) @interpolate(flat) pointID : u32,
+	@location(1) @interpolate(linear) color : vec4<f32>,
+	@location(2) @interpolate(linear) uv : vec2f,
+	@location(3) @interpolate(flat)  instanceID : u32,
 };
 
 struct FragmentOut{
@@ -144,40 +150,25 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var node = nodes[vertex.instance_index];
 
-	var vout = VertexOut();
-
-	if(vertex.vertex_index == 0u){
-		vout.position = vec4<f32>(-1.0, -1.0, 0.1, 1.0);
-	}else if(vertex.vertex_index == 1u){
-		vout.position = vec4<f32>( 1.0, -1.0, 0.1, 1.0);
-	}else if(vertex.vertex_index == 2u){
-		vout.position = vec4<f32>( 1.0,  1.0, 0.1, 1.0);
-	}else if(vertex.vertex_index == 3u){
-		vout.position = vec4<f32>(-1.0, -1.0, 0.1, 1.0);
-	}else if(vertex.vertex_index == 4u){
-		vout.position = vec4<f32>( 1.0,  1.0, 0.1, 1.0);
-	}else if(vertex.vertex_index == 5u){
-		vout.position = vec4<f32>(-1.0,  1.0, 0.1, 1.0);
-	}
-
-
 	var vertexIndex = readU16(node.ptr_indexBuffer + 2u * vertex.vertex_index);
-	var x = readF32(node.ptr_posBuffer + 12u * vertexIndex + 0u);
-	var y = readF32(node.ptr_posBuffer + 12u * vertexIndex + 4u);
-	var z = readF32(node.ptr_posBuffer + 12u * vertexIndex + 8u);
 
+	var pos = vec4f(
+		readF32(node.ptr_posBuffer + 12u * vertexIndex + 0u),
+		-readF32(node.ptr_posBuffer + 12u * vertexIndex + 8u),
+		readF32(node.ptr_posBuffer + 12u * vertexIndex + 4u),
+		1.0,
+	);
 
-	// vout.position.x = x;
-	// vout.position.y = y;
-	// vout.position.z = z;
+	var uv = vec2f(
+		readF32(node.ptr_uvBuffer + 8u * vertexIndex + 0u),
+		readF32(node.ptr_uvBuffer + 8u * vertexIndex + 4u),
+	);
 
-	vout.position.x = vout.position.x * 100.0;
-	vout.position.y = vout.position.y * 100.0;
-	vout.position.z = vout.position.z * 100.0;
-
-	vout.position = uniforms.proj * node.worldView * vout.position;
-
+	var vout = VertexOut();
+	vout.position = uniforms.proj * node.worldView * pos;
 	vout.pointID = vertex.instance_index;
+	vout.uv = uv;
+	vout.instanceID = vertex.instance_index;
 
 	return vout;
 }
@@ -186,8 +177,33 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout = FragmentOut();
-	fout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
 	fout.point_id = uniforms.elementCounter + fragment.pointID;
+	// fout.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	// fout.color = vec4f(fragment.uv.x, fragment.uv.y, 0.0, 1.0);
+	// fout.color = vec4f(1.0, 1.0, 1.0, 1.0);
+
+	const SPECTRAL = array(
+		vec3f(158.0,   1.0,  66.0),
+		vec3f(213.0,  62.0,  79.0),
+		vec3f(244.0, 109.0,  67.0),
+		vec3f(253.0, 174.0,  97.0),
+		vec3f(254.0, 224.0, 139.0),
+		vec3f(255.0, 255.0, 191.0),
+		vec3f(230.0, 245.0, 152.0),
+		vec3f(171.0, 221.0, 164.0),
+		vec3f(102.0, 194.0, 165.0),
+		vec3f( 50.0, 136.0, 189.0),
+		vec3f( 94.0,  79.0, 162.0),
+	);
+
+	var node = nodes[fragment.instanceID];
+
+	// fout.color.r = f32(node.index % 10u) / 10.0;
+
+	var color = SPECTRAL[node.index % 10u];
+	fout.color.r = color.r / 256.0;
+	fout.color.g = color.g / 256.0;
+	fout.color.b = color.b / 256.0;
 
 	return fout;
 }
@@ -324,6 +340,8 @@ export class BVSphere{
 	}
 }
 
+let globalNodeCounter = 0;
+
 export class TDTilesNode{
 
 	constructor(){
@@ -333,6 +351,9 @@ export class TDTilesNode{
 		this.contentLoaded = false;
 		this.isLoading = false;
 		this.tilesetUri = "";
+		this.index = globalNodeCounter;
+
+		globalNodeCounter++;
 	}
 
 	traverse(callback){
@@ -430,11 +451,22 @@ export class TDTiles extends SceneNode{
 			world.elements[14] = node.boundingVolume.position.z;
 
 			worldView.multiplyMatrices(view, world);
-
 			f32.set(worldView.elements, i * 20);
 
 			if(node?.content?.b3dm){
-				let json = node.content.b3dm.gltf.json;
+
+				let b3dm = node.content.b3dm;
+
+				world.elements[12] = b3dm.json.RTC_CENTER[0];
+				world.elements[13] = b3dm.json.RTC_CENTER[1];
+				world.elements[14] = b3dm.json.RTC_CENTER[2];
+
+				worldView.multiplyMatrices(view, world);
+				f32.set(worldView.elements, i * 20);
+
+				let binStart = b3dm.gltf.chunks[1].start;
+
+				let json = b3dm.gltf.json;
 				let indexBufferRef  = json.meshes[0].primitives[0].indices;
 				let POSITION_bufferRef = json.meshes[0].primitives[0].attributes.POSITION;
 				let TEXCOORD_bufferRef = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
@@ -447,15 +479,18 @@ export class TDTiles extends SceneNode{
 				let POSITION_bufferView = json.bufferViews[POSITION_accessor.bufferView];
 				let TEXCOORD_bufferView = json.bufferViews[TEXCOORD_accessor.bufferView];
 
-				bufferView.setUint32(80 * i + 64 + 0, index_bufferView.byteOffset);
-				bufferView.setUint32(80 * i + 64 + 4, POSITION_bufferView.byteOffset);
-				bufferView.setUint32(80 * i + 64 + 8, TEXCOORD_bufferView.byteOffset);
+				// debugger;
+
+				bufferView.setUint32(80 * i + 64 +  0, binStart + 8 + index_bufferView.byteOffset, true);
+				bufferView.setUint32(80 * i + 64 +  4, binStart + 8 + POSITION_bufferView.byteOffset, true);
+				bufferView.setUint32(80 * i + 64 +  8, binStart + 8 + TEXCOORD_bufferView.byteOffset, true);
+				bufferView.setUint32(80 * i + 64 + 12, node.index, true);
 			}
 
 
 		}
 
-		renderer.device.queue.writeBuffer(nodesGpuBuffer, 0, nodesBuffer, 0, 64 * numNodes);
+		renderer.device.queue.writeBuffer(nodesGpuBuffer, 0, nodesBuffer, 0, 80 * numNodes);
 	}
 
 	updateVisibility(renderer, camera){
@@ -471,7 +506,7 @@ export class TDTiles extends SceneNode{
 
 		this.root.traverse(node => {
 
-			let pixelSize = 500;
+			let pixelSize = 200;
 			let bv = node.boundingVolume;
 			if(bv instanceof BVSphere){
 
@@ -490,9 +525,23 @@ export class TDTiles extends SceneNode{
 			let visible = true;
 
 			visible = visible && pixelSize > 100;
+			// visible = visible && pixelSize * node.geometricError > 400;
+			// visible = node.tilesetUrl.includes("Tile_p023_p017");
+
+			visible = false;
+
+			// if(node.content && node.content.uri.endsWith("b3dm"))
+			if(node.content && node.content.uri.includes("Tile_p021_p014"))
+			{
+				// visible = node.content.uri.includes("Tile_p021_p014");
+				visible = node.tilesetUrl.length <= 120;
+				visible = visible && pixelSize > 800;
+			}
 
 			if(!visible) return;
 
+
+			// if(this.visibleNodes.length < 3)
 			this.visibleNodes.push(node);
 
 			if(node.content){
@@ -558,18 +607,18 @@ export class TDTiles extends SceneNode{
 
 			let node = this.visibleNodes[i];
 
-			let color = node.dbgColor;
-			let size = node.boundingVolume.radius;
-			if(node.content && node.content.uri.endsWith("b3dm")){
-				color = new Vector3(0, 255, 0);
-				size = size * 0.9;
-			}
+			// let color = node.dbgColor;
+			// let size = node.boundingVolume.radius;
+			// if(node.content && node.content.uri.endsWith("b3dm")){
+			// 	color = new Vector3(0, 255, 0);
+			// 	size = size * 0.9;
+			// }
 
-			renderer.drawBoundingBox(
-				node.boundingVolume.position,
-				new Vector3(1, 1, 1).multiplyScalar(size),
-				color,
-			);
+			// renderer.drawBoundingBox(
+			// 	node.boundingVolume.position,
+			// 	new Vector3(1, 1, 1).multiplyScalar(size),
+			// 	color,
+			// );
 
 
 			// let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
@@ -598,6 +647,17 @@ export class TDTiles extends SceneNode{
 				passEncoder.setBindGroup(1, state.bindGroup);
 
 				passEncoder.draw(numTriangles, 1, 0, i);
+
+
+				let color = new Vector3(0, 255, 0);
+				let size = node.boundingVolume.radius;
+				renderer.drawBoundingBox(
+					node.boundingVolume.position,
+					new Vector3(1, 1, 1).multiplyScalar(size),
+					color,
+				);
+			}else{
+
 			}
 
 			// let num
