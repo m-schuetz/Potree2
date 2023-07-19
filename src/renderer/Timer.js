@@ -8,7 +8,7 @@ let index = 0;
 let unresolvedIndex = 0;
 let frame = 0;
 
-let enabled = true;
+let enabled = false;
 
 let counters = {};
 

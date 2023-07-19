@@ -1,5 +1,5 @@
 
-import {SceneNode, Vector3, Vector4, Matrix4, EventDispatcher, StationaryControls} from "potree";
+import {SceneNode, Vector3, Vector4, Matrix4, Box3, Frustum, EventDispatcher, StationaryControls} from "potree";
 
 let shaderCode = `
 
@@ -21,9 +21,13 @@ struct Node{
 	index           : u32,
 };
 
-@binding(0) @group(0) var<uniform> uniforms : Uniforms;
-@binding(1) @group(0) var<storage> nodes : array<Node>;
-@binding(0) @group(1) var<storage> buffer : array<u32>;
+@group(0) @binding(0) var<uniform> uniforms : Uniforms;
+@group(0) @binding(1) var<storage> nodes : array<Node>;
+
+@group(1) @binding(0) var<storage> buffer : array<u32>;
+@group(1) @binding(1) var _texture        : texture_2d<f32>;
+@group(1) @binding(2) var _sampler        : sampler;
+
 
 
 
@@ -210,6 +214,19 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 	fout.color.g = color.g / 256.0;
 	fout.color.b = color.b / 256.0;
 
+	fout.color = vec4f(1.0, 1.0, 1.0, 1.0);
+
+	fout.color = vec4f(
+		fragment.uv.x, 
+		fragment.uv.y,
+		0.0, 1.0
+	);
+
+	var c = textureSample(_texture, _sampler, fragment.uv);
+	//_ = _texture;
+
+	fout.color = c;
+
 	return fout;
 }
 
@@ -226,6 +243,18 @@ let layout_0 = null;
 let layout_1 = null;
 let bindGroup_0 = null;
 let stateCache = new Map();
+
+let defaultTexture = null;
+let defaultSampler = null;
+
+// some reusable variables to reduce GC strain
+let _fm        = new Matrix4();
+let _frustum   = new Frustum();
+let _world     = new Matrix4();
+let _worldView = new Matrix4();
+let _pos       = new Vector4();
+let _pos2      = new Vector4();
+let _box       = new Box3();
 
 function init(renderer){
 
@@ -267,6 +296,14 @@ function init(renderer){
 				binding: 0,
 				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
 				buffer: {type: 'read-only-storage'},
+			},{
+				binding: 1,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				texture: {sampleType: "float", viewDimension: "2d", multisampled: false},
+			},{
+				binding: 2,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				sampler: {type: 'filtering'},
 			}
 		],
 	});
@@ -323,14 +360,15 @@ function getState(node, renderer){
 		let nodeBuffer = node.content.b3dm.gltf.buffer;
 		let gpuBuffer = renderer.getGpuBuffer(nodeBuffer);
 		
-		let bindGroup = device.createBindGroup({
-			layout: layout_1,
-			entries: [
-				{binding: 0, resource: {buffer: gpuBuffer}},
-			],
-		});
+		// let bindGroup = device.createBindGroup({
+		// 	layout: layout_1,
+		// 	entries: [
+		// 		{binding: 0, resource: {buffer: gpuBuffer}},
+		// 	],
+		// });
 
-		let state = {bindGroup};
+		// let state = {gpuBuffer, bindGroup};
+		let state = {gpuBuffer};
 
 		stateCache.set(node, state);
 	}
@@ -357,13 +395,18 @@ export class TDTilesNode{
 		this.isLoading = false;
 		this.tilesetUri = "";
 		this.index = globalNodeCounter;
+		this.level = 0;
+		this.localIndex = 0;
+		this.id = "r";
 
 		globalNodeCounter++;
 	}
 
 	traverse(callback){
 
-		callback(this);
+		let keepGoing = callback(this);
+
+		if(!keepGoing) return;
 
 		for(let child of this.children){
 			child.traverse(callback);
@@ -411,13 +454,12 @@ export class TDTiles extends SceneNode{
 		let view = new DataView(uniformsBuffer);
 
 		{ // transform
-			// let world = new Matrix4();
 			this.updateWorld();
 			let world = this.world;
 			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
+			_worldView.multiplyMatrices(view, world);
 
-			f32.set(worldView.elements, 0);
+			f32.set(_worldView.elements, 0);
 			f32.set(camera.proj.elements, 16);
 		}
 
@@ -442,32 +484,32 @@ export class TDTiles extends SceneNode{
 		let bufferView = new DataView(nodesBuffer);
 		let f32 = new Float32Array(nodesBuffer);
 
-		let world = new Matrix4();
+		_world.makeIdentity();
 		let view = camera.view;
-		let worldView = new Matrix4();
+		_worldView.makeIdentity();
 
 		let numNodes = this.visibleNodes.length;
 
 		for(let i = 0; i < numNodes; i++){
 			let node = this.visibleNodes[i];
 
-			world.elements[12] = node.boundingVolume.position.x;
-			world.elements[13] = node.boundingVolume.position.y;
-			world.elements[14] = node.boundingVolume.position.z;
+			_world.elements[12] = node.boundingVolume.position.x;
+			_world.elements[13] = node.boundingVolume.position.y;
+			_world.elements[14] = node.boundingVolume.position.z;
 
-			worldView.multiplyMatrices(view, world);
-			f32.set(worldView.elements, i * 20);
+			_worldView.multiplyMatrices(view, _world);
+			f32.set(_worldView.elements, i * 20);
 
 			if(node?.content?.b3dm){
 
 				let b3dm = node.content.b3dm;
 
-				world.elements[12] = b3dm.json.RTC_CENTER[0];
-				world.elements[13] = b3dm.json.RTC_CENTER[1];
-				world.elements[14] = b3dm.json.RTC_CENTER[2];
+				_world.elements[12] = b3dm.json.RTC_CENTER[0];
+				_world.elements[13] = b3dm.json.RTC_CENTER[1];
+				_world.elements[14] = b3dm.json.RTC_CENTER[2];
 
-				worldView.multiplyMatrices(view, world);
-				f32.set(worldView.elements, i * 20);
+				_worldView.multiplyMatrices(view, _world);
+				f32.set(_worldView.elements, i * 20);
 
 				let binStart = b3dm.gltf.chunks[1].start;
 
@@ -502,73 +544,122 @@ export class TDTiles extends SceneNode{
 
 		let loadQueue = [];
 
-		let pos = new Vector4();
 		let view = camera.view;
 		let proj = camera.proj;
-		let viewProj = new Matrix4().multiply(proj).multiply(view);
+		_fm.multiplyMatrices(proj, view);
+		_frustum.setFromMatrix(_fm);
+		
 		let screenSize = renderer.getSize();
+		
 		this.visibleNodes = [];
 
+		// console.log("==== update visibility ==== ");
 		this.root.traverse(node => {
 
-			let pixelSize = 200;
-			let bv = node.boundingVolume;
+			let pixelSize = 0;
+			let sse       = 0;
+			let bv        = node.boundingVolume;
+
 			if(bv instanceof BVSphere){
 
-				pos.set(
-					bv.position.x,
-					bv.position.y,
-					bv.position.z,
-					1
-				);
-				pos.applyMatrix4(viewProj);
-				let distance = pos.w;
+				_box.min.x = bv.position.x - 0.5 * bv.radius;
+				_box.min.y = bv.position.y - 0.5 * bv.radius;
+				_box.min.z = bv.position.z - 0.5 * bv.radius;
+				_box.max.x = bv.position.x + 0.5 * bv.radius;
+				_box.max.y = bv.position.y + 0.5 * bv.radius;
+				_box.max.z = bv.position.z + 0.5 * bv.radius;
+
+				let inFrustum = _frustum.intersectsBox(_box);
+
+				if(!inFrustum) return false;
+
+				_pos.set(bv.position.x, bv.position.y, bv.position.z, 1);
+				_pos.applyMatrix4(view);
+				_pos2.copy(_pos);
+				_pos2.x += node.geometricError;
+				_pos.applyMatrix4(proj);
+				_pos2.applyMatrix4(proj);
+
+				let dx = (_pos.x / _pos.w) - (_pos2.x / _pos2.w);
+				sse = Math.abs(dx * screenSize.width);
+
+				let distance = _pos.w;
 
 				pixelSize = screenSize.width * bv.radius / distance;
 			}
 
-			let visible = true;
+			let needsRefinement = sse > 5;
 
-			visible = visible && pixelSize > 50;
-			// visible = visible && pixelSize * node.geometricError > 400;
-			// visible = node.tilesetUrl.includes("Tile_p023_p017");
-
-			visible = false;
-			// if(node.content && node.content.uri.endsWith("b3dm"))
-			if(node.content && (
-				node.content.uri.includes("Tile_p017_p013") 
-				// || node.content.uri.includes("Tile_p016_p013") 
-				// || node.content.uri.includes("Tile_p018_p013")
-			))
-			{
-				// visible = node.content.uri.includes("Tile_p021_p014");
-				visible = node.tilesetUrl.length <= 150;
-				visible = visible && pixelSize > 400;
-			}
-
-			if(!visible) return;
+			// DEBUG
+			// let strLabel = ("    ".repeat(node.level) + node.id).padStart(10);
+			// let strSSE = sse.toFixed(1).padStart(7);
+			// let strRefine = needsRefinement ? "yes" : " no";
+			// let strContent = node.content == null ? "none" : node.content.uri;
+			// console.log(`${strLabel}, sse: ${strSSE}, refine: ${strRefine}, content: ${strContent}`);
 
 
-			// if(this.visibleNodes.length < 1)
-			this.visibleNodes.push(node);
+			if(needsRefinement){
 
-			if(node.content){
-				let notLoaded = !node.contentLoaded;
-				// let isTileset = node.content.uri.endsWith("json");
-				if(notLoaded){
+				let hasChildren = node.children.length > 0;
+				let allChildrenLoaded = true;
+				for(let child of node.children){
+					let childLoaded = child.content == null ? true : child.contentLoaded;
+
+					allChildrenLoaded = allChildrenLoaded && childLoaded;
+				}
+
+				if(hasChildren && allChildrenLoaded){
+					// keep traversing to show descendants
+					return true;
+				}else{
+					// descendants are not yet ready, so try showing current node
+					// and loading descendants
+					
+					let hasContent = node.content != null;
+					let nodeIsLoaded = hasContent && node.contentLoaded;
+
+					if(hasContent && nodeIsLoaded){
+						this.visibleNodes.push(node);
+
+						// keep traversing
+						return true;
+					}else if(hasContent && !nodeIsLoaded){
+						loadQueue.push(node);
+					}else if(!hasContent){
+						// keep traversing
+						return true;
+					}else{
+						// shouldnt happen?
+						debugger;
+					}
+				}
+			}else{
+
+				let hasContent = node.content != null;
+				let nodeIsLoaded = hasContent && node.contentLoaded;
+
+				if(hasContent && nodeIsLoaded){
+					this.visibleNodes.push(node);
+
+					// stop traversing
+					return false;
+				}else if(hasContent && !nodeIsLoaded){
 					loadQueue.push(node);
 				}
+
+				// stop traversing
+				return false;
 			}
 
+			return true;
 		});
-
 
 		for(let i = 0; i < loadQueue.length; i++){
 
 			let node = loadQueue[i];
 			this.loader.loadNode(node);
 
-			if(i > 5) break;
+			if(i > 10) break;
 		}
 
 
@@ -577,6 +668,7 @@ export class TDTiles extends SceneNode{
 	render(drawstate){
 
 		let {renderer, camera} = drawstate;
+		let {device} = renderer;
 
 		this.updateVisibility(renderer, camera);
 
@@ -584,6 +676,22 @@ export class TDTiles extends SceneNode{
 
 		this.updateUniforms(drawstate);
 		this.updateNodesBuffer(drawstate);
+
+
+
+		if(!defaultTexture){
+			let array = new Uint8Array([255, 0, 0, 255]);
+			defaultTexture = renderer.createTextureFromArray(array, 1, 1);
+		}
+
+		if(!defaultSampler){
+			defaultSampler = device.createSampler({
+				magFilter    : "linear",
+				minFilter    : "linear",
+				mipmapFilter : 'linear',
+			});
+		}
+
 
 		let {passEncoder} = drawstate.pass;
 
@@ -615,30 +723,34 @@ export class TDTiles extends SceneNode{
 
 			let node = this.visibleNodes[i];
 
-			// let color = node.dbgColor;
-			// let size = node.boundingVolume.radius;
-			// if(node.content && node.content.uri.endsWith("b3dm")){
-			// 	color = new Vector3(0, 255, 0);
-			// 	size = size * 0.9;
-			// }
-
-			// renderer.drawBoundingBox(
-			// 	node.boundingVolume.position,
-			// 	new Vector3(1, 1, 1).multiplyScalar(size),
-			// 	color,
-			// );
-
-
-			// let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
-			// pass.passEncoder.setBindGroup(2, bufferBindGroup);
-
 			if(node.content && node.content.b3dm){
 				let state = getState(node, renderer);
 
+				let gltf = node.content.b3dm.gltf;
 				let json = node.content.b3dm.gltf.json;
 				let indexBufferRef  = json.meshes[0].primitives[0].indices;
-				let POSITION_bufferRef = json.meshes[0].primitives[0].attributes.POSITION;
-				let TEXCOORD_bufferRef = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
+				// let POSITION_bufferRef = json.meshes[0].primitives[0].attributes.POSITION;
+				// let TEXCOORD_bufferRef = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
+
+
+				if(gltf.image && !node.texture){
+
+					let image = gltf.image;
+					let args = {format: "rgba8unorm"};
+					let texture = renderer.createTexture(image.width, image.height, args);
+					node.texture = texture;
+
+					device.queue.copyExternalImageToTexture(
+						{source: gltf.image},
+						{texture: texture},
+						[image.width, image.height]
+					);
+
+					
+				}
+
+
+
 
 				let index_accessor      = json.accessors[indexBufferRef];
 				// let POSITION_accessor   = json.accessors[TEXCOORD_bufferRef];
@@ -649,14 +761,23 @@ export class TDTiles extends SceneNode{
 				// let TEXCOORD_bufferView = json.bufferViews[TEXCOORD_accessor.bufferView];
 
 				let numIndices = index_accessor.count;
-				let numTriangles = numIndices / 3;
 
+				let texture = node.texture ?? defaultTexture;
 
-				passEncoder.setBindGroup(1, state.bindGroup);
+				let bindGroup1 = device.createBindGroup({
+					layout: layout_1,
+					entries: [
+						{binding: 0, resource: {buffer: state.gpuBuffer}},
+						{binding: 1, resource: texture.createView()},
+						{binding: 2, resource: defaultSampler},
+					],
+				});
+
+				passEncoder.setBindGroup(1, bindGroup1);
 
 				passEncoder.draw(numIndices, 1, 0, i);
 
-
+				// draw bounding box
 				// let color = new Vector3(0, 255, 0);
 				// let size = node.boundingVolume.radius;
 				// renderer.drawBoundingBox(

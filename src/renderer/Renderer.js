@@ -74,8 +74,8 @@ export class Renderer{
 		this.adapter = await navigator.gpu.requestAdapter();
 		this.device = await this.adapter.requestDevice({
 			requiredFeatures: [
-				"timestamp-query", 
-				"timestamp-query-inside-passes"
+				// "timestamp-query", 
+				// "timestamp-query-inside-passes"
 			],
 			requiredLimits: {
 				maxStorageBufferBindingSize: 1073741824,
@@ -358,6 +358,10 @@ export class Renderer{
 		let texture = this.device.createTexture({
 			size: [width, height, 1],
 			format: format,
+			arrayLayerCount: 1,
+			mipLevelCount: 1,
+			sampleCount: 1,
+			dimension: "2d",
 			usage: 
 				GPUTextureUsage.STORAGE_BINDING
 				| GPUTextureUsage.TEXTURE_BINDING 
