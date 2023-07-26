@@ -137,10 +137,10 @@ canvas{
 		TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
 			scene.root.children.push(tiles);
 
-			controls.set({
-				position: [4323639.2, 511096.3, 4646951.1], 
-				pivot:    [4323563.5, 511088.3, 4646944.4]
-			});
+			// controls.set({
+			// 	position: [4323639.2, 511096.3, 4646951.1], 
+			// 	pivot:    [4323563.5, 511088.3, 4646944.4]
+			// });
 			// controls.set({
 			// 	position: [-79.6, -104.3, 108.1], 
 			// 	pivot:    [0.0, 0.0, 0.0]
@@ -152,7 +152,7 @@ canvas{
 		// Potree2Loader.load("./resources/G/temp/wienCity_v6_125M/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/pointclouds/SITN/lidar_mobile_t1.laz_converted/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/pointclouds/SITN/2561500_1204500_mobile.copc.laz_converted/metadata.json").then(pointcloud => {
-		if(false)
+		// if(false)
 		Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/ca13_morro_bay/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/ca13_110M/metadata.json").then(pointcloud => {
@@ -162,13 +162,33 @@ canvas{
 		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
-			pointcloud.position.set(0, 0, 0);
-			pointcloud.name = "Heidentor";
+			// pointcloud.position.set(0, 0, 0);
+			// pointcloud.name = "Heidentor";
+
+			// let proj_source = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs ";
+			// let proj_source = "epsg:4326";
+
+			// swiss coordinate reference system
+			let proj_target = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs ";
+			
+			// standard CRS of 3D Tiles, see: https://docs.ogc.org/cs/22-025r4/22-025r4.html
+			proj4.defs("EPSG:4978","+proj=geocent +datum=WGS84 +units=m +no_defs +type=crs");
+
+			// let result = proj4(proj_source, proj_target, [4323655.351, 511232.652, 4646856.284]);
+			let result = proj4("EPSG:4978", proj_target).forward([4323655.351, 511232.652, 4646856.284]);
+			
+			debugger;
+
+			// var firstProjection = 'PROJCS["NAD83 / Massachusetts Mainland",GEOGCS["NAD83",DATUM["North_American_Datum_1983",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6269"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4269"]],UNIT["metre",1,AUTHORITY["EPSG","9001"]],PROJECTION["Lambert_Conformal_Conic_2SP"],PARAMETER["standard_parallel_1",42.68333333333333],PARAMETER["standard_parallel_2",41.71666666666667],PARAMETER["latitude_of_origin",41],PARAMETER["central_meridian",-71.5],PARAMETER["false_easting",200000],PARAMETER["false_northing",750000],AUTHORITY["EPSG","26986"],AXIS["X",EAST],AXIS["Y",NORTH]]';
+			//I'm not going to redefine those two in latter examples.
+			// proj4(firstProjection,secondProjection,[2,5]);
+
+
 
 			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
 			let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
 
-			let center = max.clone().sub(min).multiplyScalar(0.5);
+			let center = max.clone().add(min).multiplyScalar(0.5);
 			let diagonal = max.sub(min);
 			let campos = center.clone().add(diagonal);
 

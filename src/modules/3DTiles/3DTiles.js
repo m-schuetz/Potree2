@@ -589,14 +589,7 @@ export class TDTiles extends SceneNode{
 			}
 
 			let needsRefinement = sse > 5;
-
-			// DEBUG
-			// let strLabel = ("    ".repeat(node.level) + node.id).padStart(10);
-			// let strSSE = sse.toFixed(1).padStart(7);
-			// let strRefine = needsRefinement ? "yes" : " no";
-			// let strContent = node.content == null ? "none" : node.content.uri;
-			// console.log(`${strLabel}, sse: ${strSSE}, refine: ${strRefine}, content: ${strContent}`);
-
+			node.sse = sse;
 
 			if(needsRefinement){
 
@@ -652,6 +645,10 @@ export class TDTiles extends SceneNode{
 			}
 
 			return true;
+		});
+
+		loadQueue.sort((a, b) => {
+			return b.sse - a.sse;
 		});
 
 		for(let i = 0; i < loadQueue.length; i++){
