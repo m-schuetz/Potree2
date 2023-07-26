@@ -252,9 +252,14 @@ let _fm        = new Matrix4();
 let _frustum   = new Frustum();
 let _world     = new Matrix4();
 let _worldView = new Matrix4();
+let _rot       = new Matrix4();
+let _trans     = new Matrix4();
 let _pos       = new Vector4();
 let _pos2      = new Vector4();
 let _box       = new Box3();
+let _dirx      = new Vector3();
+let _diry      = new Vector3();
+let _dirz      = new Vector3();
 
 function init(renderer){
 
@@ -493,10 +498,106 @@ export class TDTiles extends SceneNode{
 		for(let i = 0; i < numNodes; i++){
 			let node = this.visibleNodes[i];
 
-			_world.elements[12] = node.boundingVolume.position.x;
-			_world.elements[13] = node.boundingVolume.position.y;
-			_world.elements[14] = node.boundingVolume.position.z;
 
+			_dirx.set(...this.project([
+				node.boundingVolume.position.x + 1.0,
+				node.boundingVolume.position.y + 0.0,
+				node.boundingVolume.position.z + 0.0,
+			]), 1);
+			_diry.set(...this.project([
+				node.boundingVolume.position.x + 0.0,
+				node.boundingVolume.position.y + 1.0,
+				node.boundingVolume.position.z + 0.0,
+			]), 1);
+			_dirz.set(...this.project([
+				node.boundingVolume.position.x + 0.0,
+				node.boundingVolume.position.y + 0.0,
+				node.boundingVolume.position.z + 1.0,
+			]), 1);
+			_pos.set(...this.project([
+				node.boundingVolume.position.x,
+				node.boundingVolume.position.y,
+				node.boundingVolume.position.z,
+			]), 1);
+
+
+			_dirx.set(
+				_dirx.x - _pos.x,
+				_dirx.y - _pos.y,
+				_dirx.z - _pos.z,
+			);
+			_diry.set(
+				_diry.x - _pos.x,
+				_diry.y - _pos.y,
+				_diry.z - _pos.z,
+			);
+			_dirz.set(
+				_dirz.x - _pos.x,
+				_dirz.y - _pos.y,
+				_dirz.z - _pos.z,
+			);
+			_dirx.normalize();
+			_diry.normalize();
+			_dirz.normalize();
+
+			_rot.makeIdentity();
+			// _rot.elements[ 0] = _dirx.x;
+			// _rot.elements[ 4] = _dirx.y;
+			// _rot.elements[ 8] = _dirx.z;
+			// _rot.elements[ 1] = _diry.x;
+			// _rot.elements[ 5] = _diry.y;
+			// _rot.elements[ 9] = _diry.z;
+			// _rot.elements[ 2] = _dirz.x;
+			// _rot.elements[ 6] = _dirz.y;
+			// _rot.elements[10] = _dirz.z;
+
+			// _rot.elements[ 0] = _dirx.x;
+			// _rot.elements[ 1] = _dirx.y;
+			// _rot.elements[ 2] = _dirx.z;
+			// _rot.elements[ 4] = _diry.x;
+			// _rot.elements[ 5] = _diry.y;
+			// _rot.elements[ 6] = _diry.z;
+			// _rot.elements[ 8] = _dirz.x;
+			// _rot.elements[ 9] = _dirz.y;
+			// _rot.elements[10] = _dirz.z;
+			// _rot.rotate(1.5, {x: 1.0, y: 0.0, z: 0.0});
+			// _rot.rotate(1.5, {x: 0.0, y: 1.0, z: 0.0});
+			// _rot.rotate(1.5, {x: 0.0, y: 0.0, z: 1.0});
+
+			// _rot.set(
+			// 	_dirx.x, _dirx.y, _dirx.z, 0.0,
+			// 	_diry.x, _diry.y, _diry.z, 0.0,
+			// 	_dirz.x, _dirz.y, _dirz.z, 0.0,
+			// 	      0,       0,       0, 1.0,
+			// );
+			_rot.set(
+				_dirx.x, _diry.x, _dirz.x, 0.0,
+				_dirx.y, _diry.y, _dirz.y, 0.0,
+				_dirx.z, _diry.z, _dirz.z, 0.0,
+				      0,       0,       0, 1.0,
+			);
+
+			_trans.makeIdentity();
+			_trans.elements[12] = _pos.x;
+			_trans.elements[13] = _pos.y;
+			_trans.elements[14] = _pos.z;
+
+			// _world.elements[ 0] = _dirx.x;
+			// _world.elements[ 4] = _dirx.y;
+			// _world.elements[ 8] = _dirx.z;
+			// _world.elements[ 1] = _diry.x;
+			// _world.elements[ 5] = _diry.y;
+			// _world.elements[ 9] = _diry.z;
+			// _world.elements[ 2] = _dirz.x;
+			// _world.elements[ 6] = _dirz.y;
+			// _world.elements[10] = _dirz.z;
+
+			// _world.elements[12] = _pos.x;
+			// _world.elements[13] = _pos.y;
+			// _world.elements[14] = _pos.z;
+
+			_world.multiplyMatrices(_trans, _rot);
+			_worldView.multiplyMatrices(view, _world);
 			_worldView.multiplyMatrices(view, _world);
 			f32.set(_worldView.elements, i * 20);
 
@@ -504,9 +605,16 @@ export class TDTiles extends SceneNode{
 
 				let b3dm = node.content.b3dm;
 
-				_world.elements[12] = b3dm.json.RTC_CENTER[0];
-				_world.elements[13] = b3dm.json.RTC_CENTER[1];
-				_world.elements[14] = b3dm.json.RTC_CENTER[2];
+				_pos.set(...this.project([
+					b3dm.json.RTC_CENTER[0],
+					b3dm.json.RTC_CENTER[1],
+					b3dm.json.RTC_CENTER[2],
+				]), 1);
+
+				_world.elements[12] = _pos.x;
+				_world.elements[13] = _pos.y;
+				_world.elements[14] = _pos.z;
+
 
 				_worldView.multiplyMatrices(view, _world);
 				f32.set(_worldView.elements, i * 20);
@@ -526,8 +634,6 @@ export class TDTiles extends SceneNode{
 				let POSITION_bufferView = json.bufferViews[POSITION_accessor.bufferView];
 				let TEXCOORD_bufferView = json.bufferViews[TEXCOORD_accessor.bufferView];
 
-				// debugger;
-
 				bufferView.setUint32(80 * i + 64 +  0, binStart + 8 + index_bufferView.byteOffset, true);
 				bufferView.setUint32(80 * i + 64 +  4, binStart + 8 + POSITION_bufferView.byteOffset, true);
 				bufferView.setUint32(80 * i + 64 +  8, binStart + 8 + TEXCOORD_bufferView.byteOffset, true);
@@ -538,6 +644,16 @@ export class TDTiles extends SceneNode{
 		}
 
 		renderer.device.queue.writeBuffer(nodesGpuBuffer, 0, nodesBuffer, 0, 80 * numNodes);
+	}
+
+	project(coord){
+
+		if(this.projector){
+			return this.projector.forward(coord);
+		}else{
+			return coord;
+		}
+
 	}
 
 	updateVisibility(renderer, camera){
@@ -562,18 +678,28 @@ export class TDTiles extends SceneNode{
 
 			if(bv instanceof BVSphere){
 
-				_box.min.x = bv.position.x - 0.5 * bv.radius;
-				_box.min.y = bv.position.y - 0.5 * bv.radius;
-				_box.min.z = bv.position.z - 0.5 * bv.radius;
-				_box.max.x = bv.position.x + 0.5 * bv.radius;
-				_box.max.y = bv.position.y + 0.5 * bv.radius;
-				_box.max.z = bv.position.z + 0.5 * bv.radius;
+				_pos.set(...this.project([
+					bv.position.x,
+					bv.position.y,
+					bv.position.z,
+				]), 1);
+
+				_box.min.set(
+					_pos.x - 0.5 * bv.radius,
+					_pos.y - 0.5 * bv.radius,
+					_pos.z - 0.5 * bv.radius,
+				);
+				_box.max.set(
+					_pos.x + 0.5 * bv.radius,
+					_pos.y + 0.5 * bv.radius,
+					_pos.z + 0.5 * bv.radius,
+				);
 
 				let inFrustum = _frustum.intersectsBox(_box);
 
 				if(!inFrustum) return false;
 
-				_pos.set(bv.position.x, bv.position.y, bv.position.z, 1);
+				// _pos.set(bv.position.x, bv.position.y, bv.position.z, 1);
 				_pos.applyMatrix4(view);
 				_pos2.copy(_pos);
 				_pos2.x += node.geometricError;
@@ -620,6 +746,8 @@ export class TDTiles extends SceneNode{
 						loadQueue.push(node);
 					}else if(!hasContent){
 						// keep traversing
+						// this.visibleNodes.push(node);
+
 						return true;
 					}else{
 						// shouldnt happen?
@@ -646,6 +774,8 @@ export class TDTiles extends SceneNode{
 
 			return true;
 		});
+
+		this.visibleNodes.push(this.root);
 
 		loadQueue.sort((a, b) => {
 			return b.sse - a.sse;
@@ -775,15 +905,34 @@ export class TDTiles extends SceneNode{
 				passEncoder.draw(numIndices, 1, 0, i);
 
 				// draw bounding box
+				// let pos = new Vector3();
+				// pos.set(...this.project([
+				// 	node.boundingVolume.position.x,
+				// 	node.boundingVolume.position.y,
+				// 	node.boundingVolume.position.z,
+				// ]), 1);
 				// let color = new Vector3(0, 255, 0);
 				// let size = node.boundingVolume.radius;
 				// renderer.drawBoundingBox(
-				// 	node.boundingVolume.position,
+				// 	pos,
 				// 	new Vector3(1, 1, 1).multiplyScalar(size),
 				// 	color,
 				// );
 			}else{
-
+				// draw bounding box
+				// let pos = new Vector3();
+				// pos.set(...this.project([
+				// 	node.boundingVolume.position.x,
+				// 	node.boundingVolume.position.y,
+				// 	node.boundingVolume.position.z,
+				// ]), 1);
+				// let color = new Vector3(255, 0, 0);
+				// let size = node.boundingVolume.radius;
+				// renderer.drawBoundingBox(
+				// 	pos,
+				// 	new Vector3(1, 1, 1).multiplyScalar(size),
+				// 	color,
+				// );
 			}
 
 			// let num
