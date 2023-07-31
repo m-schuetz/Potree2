@@ -323,6 +323,43 @@ function init(renderer){
 
 	let module = device.createShaderModule({code: shaderCode});
 
+	let tStart = Date.now();
+
+	let testPipeline = device.createRenderPipelineAsync({
+		layout: device.createPipelineLayout({
+			bindGroupLayouts: [
+				layout_0, layout_1
+			],
+		}),
+		vertex: {
+			module,
+			entryPoint: "main_vertex",
+			buffers: []
+		},
+		fragment: {
+			module,
+			entryPoint: "main_fragment",
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint"},
+			],
+		},
+		primitive: {
+			topology: 'triangle-list',
+			cullMode: 'none',
+		},
+		depthStencil: {
+			depthWriteEnabled: true,
+			depthCompare: 'greater',
+			format: "depth32float",
+		},
+	});
+	testPipeline.then(pipeline => {
+		let duration = Date.now() - tStart;
+		console.log(`3D Tiles duration: ${duration / 1000} s`);
+	});
+
+
 	pipeline = device.createRenderPipeline({
 		layout: device.createPipelineLayout({
 			bindGroupLayouts: [
@@ -352,6 +389,7 @@ function init(renderer){
 			format: "depth32float",
 		},
 	});
+	let duration = Date.now() - tStart;
 
 	initialized = true;
 }

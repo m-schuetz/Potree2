@@ -1,9 +1,11 @@
 
 import {Potree, SplatType} from "potree";
 
+// let shaderModuleCache = new Map();
+
 export async function makePipeline(renderer, args = {}){
 
-	console.log("generating octree pipeline");
+	// console.log("generating octree pipeline");
 
 	let {device} = renderer;
 	let {octree, state, flags} = args;
@@ -13,8 +15,6 @@ export async function makePipeline(renderer, args = {}){
 	let shaderPath = `${import.meta.url}/../octree.wgsl`;
 	let response = await fetch(shaderPath);
 	let shaderSource = await response.text();
-
-	console.log("source loaded");
 
 	let depthWrite = true;
 	let blend = {
@@ -78,6 +78,16 @@ export async function makePipeline(renderer, args = {}){
 	console.log("==== SHADER ====");
 	console.log(modifiedShaderSource);
 	console.groupEnd();
+
+	// use cache
+	// let module;
+	// if(shaderModuleCache.has(modifiedShaderSource)){
+	// 	module = shaderModuleCache.get(modifiedShaderSource);
+	// }else{
+	// 	module = device.createShaderModule({code: modifiedShaderSource, label: "point cloud shader"});
+	// 	shaderModuleCache.set(modifiedShaderSource, module);
+	// 	console.log("create new module");
+	// }
 
 	let module = device.createShaderModule({code: modifiedShaderSource, label: "point cloud shader"});
 
@@ -159,7 +169,8 @@ export async function makePipeline(renderer, args = {}){
 		topology = "triangle-list";
 	}
 
-	const pipeline = device.createRenderPipeline({
+	const pipelinePromise = device.createRenderPipelineAsync({
+		label: `pipeline ${args.key}`,
 		layout: device.createPipelineLayout({
 			bindGroupLayouts: [
 				layout_0,
@@ -193,6 +204,15 @@ export async function makePipeline(renderer, args = {}){
 		},
 	});
 
+	// let tStart = Date.now();
+	// console.log(`start: ${performance.now() / 1000}`);
+	// pipelinePromise.then(pipeline => {
+	// 	let duration = Date.now() - tStart;
+
+	// 	console.log(`end: ${performance.now() / 1000}`);
+	// 	console.log(`duration: ${duration}`);
+	// });
+
 	let nodesBindGroup = device.createBindGroup({
 		layout: layout_3,
 		entries: [
@@ -210,9 +230,9 @@ export async function makePipeline(renderer, args = {}){
 		],
 	});
 
-	pipeline.dbg_topology = topology;
+	// pipeline.dbg_topology = topology;
 
-	state.pipeline = pipeline;
+	state.pipelinePromise = pipelinePromise;
 	state.uniformBindGroup = uniformBindGroup;
 	state.nodesBindGroup = nodesBindGroup;
 	state.shaderSource = shaderSource;

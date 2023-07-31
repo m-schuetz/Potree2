@@ -375,6 +375,8 @@ export class Renderer{
 
 	createBuffer(size){
 
+		console.log(`createBuffer(${size.toLocaleString()})`);
+
 		let buffer = this.device.createBuffer({
 			size: size,
 			usage: GPUBufferUsage.VERTEX 
@@ -388,7 +390,7 @@ export class Renderer{
 	}
 
 	createChunkedBuffer(size, chunkSize){
-
+		debugger;
 		let buffer = new ChunkedBuffer(size, chunkSize, this);
 
 		return buffer;

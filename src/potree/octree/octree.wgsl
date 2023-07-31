@@ -484,6 +484,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		}
 	}
 
+	// output.point_position = vec4f(f32(vertex.vertexID), 0.0, 0.0, 1.0);
  
 	return output;
 }

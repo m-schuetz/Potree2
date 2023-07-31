@@ -129,64 +129,35 @@ canvas{
 	Potree.settings.pointSize = 2;
 	Potree.settings.minNodeSize = 100;
 
+	// swiss coordinate reference system
+	let target_crs = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs ";
 	
+	// standard CRS of 3D Tiles, see: https://docs.ogc.org/cs/22-025r4/22-025r4.html
+	proj4.defs("EPSG:4978","+proj=geocent +datum=WGS84 +units=m +no_defs +type=crs");
 
-	import {TDTiles} from "./src/modules/3DTiles/3DTiles.js";
+	// import {TDTiles} from "./src/modules/3DTiles/3DTiles.js";
 	import {TDTilesLoader} from "./src/modules/3DTiles/3DTilesLoader.js";
+
+	TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
+		scene.root.children.push(tiles);
+
+		tiles.projector = proj4("EPSG:4978", target_crs);
+
+		// controls.set({
+		// 	position: [2547023.7, 1212088.9, 1051.4], 
+		// 	pivot:    [2547028.8, 1212159.6, 999.3]
+		// });
+	});
+
+
 	{
-
-		// swiss coordinate reference system
-		let proj_target = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs ";
-		
-		// standard CRS of 3D Tiles, see: https://docs.ogc.org/cs/22-025r4/22-025r4.html
-		proj4.defs("EPSG:4978","+proj=geocent +datum=WGS84 +units=m +no_defs +type=crs");
-
-		// let result = proj4(proj_source, proj_target, [4323655.351, 511232.652, 4646856.284]);
-		// let result = proj4("EPSG:4978", proj_target).forward([4323655.351, 511232.652, 4646856.284]);
-
-		TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
-			scene.root.children.push(tiles);
-
-			tiles.projector = proj4("EPSG:4978", proj_target);
-
-			// controls.set({
-			// 	position: [4323639.2, 511096.3, 4646951.1], 
-			// 	pivot:    [4323563.5, 511088.3, 4646944.4]
-			// });
-			// controls.set({
-			// 	position: [-79.6, -104.3, 108.1], 
-			// 	pivot:    [0.0, 0.0, 0.0]
-			// });
-			controls.set({
-				position: [2546865.0, 1211176.2, 1321.8], 
-				pivot:    [2547057.7, 1212138.3, 716.8]
-			});
-			controls.set({
-				position: [2547023.7, 1212088.9, 1051.4], 
-				pivot:    [2547028.8, 1212159.6, 999.3]
-			});
-		});
-
-
-		// Potree2Loader.load("https://users.cg.tuwien.ac.at/~mschuetz/potree2_test/retz/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/wienCity_v6_125M/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/pointclouds/SITN/lidar_mobile_t1.laz_converted/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/pointclouds/SITN/2561500_1204500_mobile.copc.laz_converted/metadata.json").then(pointcloud => {
-		// if(false)
-		Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/ca13_morro_bay/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/ca13_110M/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/F/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
-			// pointcloud.position.set(0, 0, 0);
-			// pointcloud.name = "Heidentor";
-
-			// let proj_source = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs ";
-			// let proj_source = "epsg:4326";
 		
 			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
 			let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
@@ -200,11 +171,11 @@ canvas{
 			// 	pivot:    center.toArray()
 			// });
 
-			// // GARE
-			// controls.set({
-			// 	position: [622.6, 26.9, 242.8], 
-			// 	pivot:    [301.6, 353.4, 81.9]
-			// });
+			// GARE
+			controls.set({
+				position: [2561590.3, 1204981.6, 671.1], 
+				pivot:    [2561724.6, 1205243.1, 448.5]
+			});
 
 			// // MORRO BAY ROCK
 			// controls.set({
@@ -234,54 +205,56 @@ canvas{
 			let idx_returnNumber = pointcloud.attributes.indexOf("return number");
 			let idx_numberReturns = pointcloud.attributes.indexOf("number of returns");
 
-			if(idx_returnNumber !== -1 && idx_numberReturns !== -1)
-			material.registerMapping({
-				name: "return nr. & num returns (lastools)",
-				condition: (attribute) => (attribute.name === "return number"),
-				wgsl: `
-					fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+			// if(idx_returnNumber !== -1 && idx_numberReturns !== -1)
+			// material.registerMapping({
+			// 	name: "return nr. & num returns (lastools)",
+			// 	condition: (attribute) => (attribute.name === "return number"),
+			// 	wgsl: `
+			// 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-						var att_return_number = attributes[${idx_returnNumber}];
-						var att_num_returns = attributes[${idx_numberReturns}];
+			// 			var att_return_number = attributes[${idx_returnNumber}];
+			// 			var att_num_returns = attributes[${idx_numberReturns}];
 
-						var rn = readU8(node.numPoints * att_return_number.offset + pointID);
-						var nr = readU8(node.numPoints * att_num_returns.offset + pointID);
+			// 			var rn = readU8(node.numPoints * att_return_number.offset + pointID);
+			// 			var nr = readU8(node.numPoints * att_num_returns.offset + pointID);
 
-						if(nr == 1u){
-							return vec4f(1.0, 1.0, 0.0, 1.0);
-						}else{
-							if(rn == 1u){
-								return vec4f(1.0, 0.0, 0.0, 1.0);
-							}else if(rn == nr){
-								return vec4f(0.0, 0.0, 1.0, 1.0);
-							}else{
-								return vec4f(0.0, 1.0, 0.0, 1.0);
-							}
-						}
-					}
-				`,
-			});
+			// 			if(nr == 1u){
+			// 				return vec4f(1.0, 1.0, 0.0, 1.0);
+			// 			}else{
+			// 				if(rn == 1u){
+			// 					return vec4f(1.0, 0.0, 0.0, 1.0);
+			// 				}else if(rn == nr){
+			// 					return vec4f(0.0, 0.0, 1.0, 1.0);
+			// 				}else{
+			// 					return vec4f(0.0, 1.0, 0.0, 1.0);
+			// 				}
+			// 			}
+			// 		}
+			// 	`,
+			// });
 
-			material.registerMapping({
-				name: "Normal 3xDouble",
-				condition: (attribute) => (attribute.name === "NormalX" && attribute.byteSize === 8),
-				wgsl: `
-					fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+			// material.registerMapping({
+			// 	name: "Normal 3xDouble",
+			// 	condition: (attribute) => (attribute.name === "NormalX" && attribute.byteSize === 8),
+			// 	wgsl: `
+			// 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-						var nx = readF64(node.numPoints * (attrib.offset +  0) + 8 * pointID);
-						var ny = readF64(node.numPoints * (attrib.offset +  8) + 8 * pointID);
-						var nz = readF64(node.numPoints * (attrib.offset + 16) + 8 * pointID);
+			// 			var nx = readF64(node.numPoints * (attrib.offset +  0) + 8 * pointID);
+			// 			var ny = readF64(node.numPoints * (attrib.offset +  8) + 8 * pointID);
+			// 			var nz = readF64(node.numPoints * (attrib.offset + 16) + 8 * pointID);
 
-						var color = vec4f(nx, ny, nz, 1.0);
+			// 			var color = vec4f(nx, ny, nz, 1.0);
 
-						return color;
-					}
-				`,
-			});
+			// 			return color;
+			// 		}
+			// 	`,
+			// });
 
 
 			// add standard attribute mappings
 			for(let mapping of Object.values(MAPPINGS)){
+
+				if(["vec3", "scalar"].includes(mapping.name))
 				material.registerMapping(mapping);
 			}
 			
