@@ -410,6 +410,7 @@ export class Potree2Loader{
 
 			inContiguousMemory = (diff === totalBytes);
 		}
+		inContiguousMemory = false;
 
 		let nodes = [node];
 

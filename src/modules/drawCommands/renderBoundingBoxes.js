@@ -130,7 +130,7 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	{ // apply pixel offsets to the 6 vertices of the quad
 
-		var lineWidth = 3.0;
+		var lineWidth = 2.0;
 		var pxOffset = vec2<f32>(1.0, 0.0);
 
 		// move vertices of quad sidewards
