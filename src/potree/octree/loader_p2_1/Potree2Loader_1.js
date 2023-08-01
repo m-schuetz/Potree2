@@ -362,9 +362,19 @@ export class Potree2Loader{
 	// loads filtered voxel data for inner nodes or full point data for leaf nodes
 	async loadNode(node){
 
+		const workerPath = "./src/potree/octree/loader_p2_1/DecoderWorker.js";
+
+		if(WorkerPool.getWorkerCount(workerPath) > 6)
+		if(WorkerPool.getAvailableWorkerCount(workerPath) === 0)
+		{
+			return;
+		}
+	
+
 		if(node.loaded) return; 
 		if(node.loading) return;
 		if(node.loadAttempts > 5) return;
+		// if(nodesLoading >= 6) return;
 		// if(nodesLoading >= MAX_NODES_LOADING) return;
 		if(node.parent != null && !node.parent.loaded) return;
 
@@ -423,7 +433,7 @@ export class Potree2Loader{
 			}
 
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
-			let workerPath = "./src/potree/octree/loader_p2_1/DecoderWorker.js";
+			
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
 			worker.onmessage = (e) => {
@@ -503,7 +513,9 @@ export class Potree2Loader{
 				url, parentVoxelCoords
 			};
 
-			worker.postMessage(message, []);
+			let transferables = parentVoxelCoords ? [parentVoxelCoords] : [];
+
+			worker.postMessage(message, transferables.buffer);
 			
 		}catch(e){
 			debugger;

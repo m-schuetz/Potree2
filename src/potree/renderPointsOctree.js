@@ -345,6 +345,7 @@ function updateNodesBuffer(octree, nodes, prefixSum, octreeState, drawstate, fla
 }
 
 let bufferBindGroupCache = new Map();
+// let dbgBuffer = null;
 function getCachedBufferBindGroup(renderer, pipeline, node){
 
 	let bindGroup = bufferBindGroupCache.get(node);
@@ -355,8 +356,21 @@ function getCachedBufferBindGroup(renderer, pipeline, node){
 
 		// let tStart = performance.now();
 
+		// if(dbgBuffer === null){
+		// 	dbgBuffer = renderer.device.createBuffer({
+		// 		size: 10_000_000,
+		// 		usage: GPUBufferUsage.VERTEX 
+		// 			| GPUBufferUsage.INDEX  
+		// 			| GPUBufferUsage.COPY_DST 
+		// 			| GPUBufferUsage.COPY_SRC 
+		// 			| GPUBufferUsage.STORAGE,
+		// 		mappedAtCreation: false,
+		// 	});
+		// }
+
 
 		let buffer = node.geometry.buffer;
+		// let gpuBuffer = dbgBuffer;
 		let gpuBuffer = renderer.getGpuBuffer(buffer);
 		dbgUploadedInFrame += buffer.byteLength;
 
@@ -594,9 +608,9 @@ async function renderOctree(octree, drawstate, flags){
 	// 	console.log(`render octree duration: ${duration.toFixed(1)} ms`);
 	// }
 
-	if(dbgUploadedInFrame > 0){
-		console.log(`dbgUploadedInFrame: ${dbgUploadedInFrame.toLocaleString()}`);
-	}
+	// if(dbgUploadedInFrame > 0){
+	// 	console.log(`dbgUploadedInFrame: ${dbgUploadedInFrame.toLocaleString()}`);
+	// }
 }
 
 export function render(octrees, drawstate, flags = []){

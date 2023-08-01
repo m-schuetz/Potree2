@@ -4,6 +4,9 @@ import {SceneNode, PointCloudOctreeNode, PointCloudMaterial} from "potree";
 import {renderPointsOctree} from "potree";
 import {BinaryHeap} from "BinaryHeap";
 
+const _box = new Box3();
+const _fm = new Matrix4();
+
 export class PointCloudOctree extends SceneNode{
 
 	constructor(name){
@@ -66,9 +69,9 @@ export class PointCloudOctree extends SceneNode{
 		let world = this.world;
 		let view = camera.view;
 		let proj = camera.proj;
-		let fm = new Matrix4().multiply(proj).multiply(view); 
+		_fm.multiplyMatrices(proj, view);
 		let frustum = new Frustum();
-		frustum.setFromMatrix(fm);
+		frustum.setFromMatrix(_fm);
 
 		priorityQueue.push({ 
 			node: this.root, 
@@ -103,9 +106,10 @@ export class PointCloudOctree extends SceneNode{
 				continue;
 			}
 
-			let box = node.boundingBox.clone();
-			box.applyMatrix4(this.world);
-			let insideFrustum = frustum.intersectsBox(box);
+			// let box = node.boundingBox.clone();
+			_box.copy(node.boundingBox);
+			_box.applyMatrix4(this.world);
+			let insideFrustum = frustum.intersectsBox(_box);
 			let fitsInPointBudget = numPoints + node.numElements < this.pointBudget;
 			let isLowLevel = node.level <= 2;
 
@@ -135,12 +139,12 @@ export class PointCloudOctree extends SceneNode{
 					continue;
 				}
 
-				let box = child.boundingBox.clone();
-				box.applyMatrix4(this.world);
+				// let box = child.boundingBox.clone();
+				_box.copy(child.boundingBox);
+				_box.applyMatrix4(this.world);
 
-				let center = box.center();
-				
-				let radius = box.min.distanceTo(box.max) / 2;
+				let center = _box.center();
+				let radius = _box.min.distanceTo(_box.max) / 2;
 
 				let dx = camPos.x - center.x;
 				let dy = camPos.y - center.y;
@@ -175,6 +179,7 @@ export class PointCloudOctree extends SceneNode{
 
 		}
 
+		tStart = performance.now();
 		loadQueue.slice(0, 20);
 		loadQueue.sort( (a, b) => a.level - b.level);
 
@@ -192,6 +197,9 @@ export class PointCloudOctree extends SceneNode{
 		this.visibleNodes = visibleNodes;
 
 		let duration = 1000 * (performance.now() - tStart);
+		// if(duration > 3){
+		// 	console.log(`updateVisibility took long: ${duration} ms`);
+		// }
 
 		return duration;
 	}

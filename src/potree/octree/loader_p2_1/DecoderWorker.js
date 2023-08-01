@@ -74,7 +74,7 @@ async function loadNodes(event){
 			buffer: buffers.buffer,
 			voxelCoords: buffers.voxelCoords
 		};
-		let transferables = [buffers.buffer];
+		let transferables = [message.buffer];
 
 		if(buffers.voxelCoords){
 			transferables.push(buffers.voxelCoords.buffer);
