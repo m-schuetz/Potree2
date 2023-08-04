@@ -1,10 +1,11 @@
 
-import {Vector3, Matrix4, Box3, Frustum, math, EventDispatcher} from "potree";
+import {Vector3, Matrix4, Box3, Sphere, Frustum, math, EventDispatcher} from "potree";
 import {SceneNode, PointCloudOctreeNode, PointCloudMaterial} from "potree";
 import {renderPointsOctree} from "potree";
 import {BinaryHeap} from "BinaryHeap";
 
 const _box = new Box3();
+const _sphere = new Sphere();
 const _fm = new Matrix4();
 
 export class PointCloudOctree extends SceneNode{
@@ -73,6 +74,10 @@ export class PointCloudOctree extends SceneNode{
 		let frustum = new Frustum();
 		frustum.setFromMatrix(_fm);
 
+		let octreeSize = this.boundingBox.max.x - this.boundingBox.min.x;
+		let octreeRadius = Math.sqrt(octreeSize * octreeSize + octreeSize * octreeSize + octreeSize * octreeSize) / 2;
+		let framebufferSize = renderer.getSize();
+
 		priorityQueue.push({ 
 			node: this.root, 
 			weight: Number.MAX_VALUE,
@@ -106,10 +111,17 @@ export class PointCloudOctree extends SceneNode{
 				continue;
 			}
 
-			// let box = node.boundingBox.clone();
-			_box.copy(node.boundingBox);
-			_box.applyMatrix4(this.world);
-			let insideFrustum = frustum.intersectsBox(_box);
+			// _sphere.fromBox(node.boundingBox);
+			_sphere.center.x = 0.5 * (node.boundingBox.min.x + node.boundingBox.max.x);
+			_sphere.center.y = 0.5 * (node.boundingBox.min.y + node.boundingBox.max.y);
+			_sphere.center.z = 0.5 * (node.boundingBox.min.z + node.boundingBox.max.z);
+			_sphere.radius = octreeRadius / (2 ** node.level);
+			_sphere.applyMatrix4(this.world);
+
+			// _box.copy(node.boundingBox);
+			// _box.applyMatrix4(this.world);
+			// let insideFrustum = frustum.intersectsBox(_box);
+			let insideFrustum = frustum.intersectsSphere(_sphere);
 			let fitsInPointBudget = numPoints + node.numElements < this.pointBudget;
 			let isLowLevel = node.level <= 2;
 
@@ -139,12 +151,21 @@ export class PointCloudOctree extends SceneNode{
 					continue;
 				}
 
-				// let box = child.boundingBox.clone();
-				_box.copy(child.boundingBox);
-				_box.applyMatrix4(this.world);
+				// _box.copy(child.boundingBox);
+				// _box.applyMatrix4(this.world);
 
-				let center = _box.center();
-				let radius = _box.min.distanceTo(_box.max) / 2;
+				// let center = _box.center();
+				// let radius = _box.min.distanceTo(_box.max) / 2;
+
+				// _sphere.fromBox(node.boundingBox);
+				_sphere.center.x = 0.5 * (node.boundingBox.min.x + node.boundingBox.max.x);
+				_sphere.center.y = 0.5 * (node.boundingBox.min.y + node.boundingBox.max.y);
+				_sphere.center.z = 0.5 * (node.boundingBox.min.z + node.boundingBox.max.z);
+				_sphere.radius = octreeRadius / (2 ** node.level);
+				_sphere.applyMatrix4(this.world);
+
+				let center = _sphere.center;
+				let radius = _sphere.radius;
 
 				let dx = camPos.x - center.x;
 				let dy = camPos.y - center.y;
@@ -158,7 +179,7 @@ export class PointCloudOctree extends SceneNode{
 				let projFactor = 1 / (slope * distance);
 
 				let weight = radius * projFactor;
-				let pixelSize = weight * renderer.getSize().height;
+				let pixelSize = weight * framebufferSize.height;
 
 				child.__pixelSize = pixelSize;
 				// debugger;

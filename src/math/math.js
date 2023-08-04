@@ -5,6 +5,7 @@ export * from "./Frustum.js";
 export * from "./Line3.js";
 export * from "./Matrix4.js";
 export * from "./Plane.js";
+export * from "./Sphere.js";
 export * from "./Ray.js";
 export * from "./Vector3.js";
 export * from "./Vector4.js";

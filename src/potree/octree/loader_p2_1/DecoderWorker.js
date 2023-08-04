@@ -96,7 +96,6 @@ onmessage = async function (event) {
 	// Chrome frequently fails with range requests.
 	// Notify main thread that loading failed, so that it can try again.
 	promise.catch(e => {
-		debugger;
 		console.log(e);
 		postMessage("failed");
 	});

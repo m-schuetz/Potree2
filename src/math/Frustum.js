@@ -49,6 +49,28 @@ export class Frustum{
 
 	}
 
+	intersectsSphere(sphere) {
+
+		const planes = this.planes;
+		const center = sphere.center;
+		const negRadius = - sphere.radius;
+
+		for ( let i = 0; i < 6; i ++ ) {
+
+			const distance = planes[ i ].distanceToPoint( center );
+
+			if ( distance < negRadius ) {
+
+				return false;
+
+			}
+
+		}
+
+		return true;
+
+	}
+
 	intersectsBox( box ) {
 
 		const planes = this.planes;
