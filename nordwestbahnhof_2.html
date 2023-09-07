@@ -47,8 +47,11 @@ canvas{
 <div id="potree" style="width: 100%; height: 100%; position: fixed;">
 	<span style="position: relative">
 		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
+		<div style="position:absolute; transform: translateX(-50%); text-align: center; left: 50%; color: white; font-weight: bold; font-family: calibri; top: 10px; text-shadow: 1px 1px 1px black, 1px -1px 1px black, -1px 1px 1px black, -1px -1px 1px black">Preliminary results - Viewer & Point Cloud in development.</div>
 	</span>
 </div>
+
+
 
 <span id="big_message"></span>
 <pre id="msg_dbg"></pre>
@@ -91,6 +94,7 @@ canvas{
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
 	// installToolbar(potree.renderer.canvas, potree);
+	
 
 	installSidebar(elPotree, potree).then(sidebar => {
 		window.sidebar = sidebar;
@@ -104,6 +108,7 @@ canvas{
 	});
 	// window.sidebar.toggle();
 
+	// window.controls = controls;
 	window.Potree = Potree;
 	window.potree = potree;
 	window.Vector3 = Vector3;
@@ -121,7 +126,7 @@ canvas{
 	Potree.settings.edlEnabled = true;
 	Potree.settings.dilateEnabled = false;
 	Potree.settings.hqsEnabled = true;
-	Potree.settings.pointBudget = 8_000_000;
+	Potree.settings.pointBudget = 10_000_000;
 	Potree.settings.attribute = "rgba";
 	// Potree.settings.attribute = "intensity";
 	Potree.settings.splatType = SplatType.QUADS;
@@ -129,34 +134,16 @@ canvas{
 	Potree.settings.pointSize = 2;
 	Potree.settings.minNodeSize = 100;
 
-	// swiss coordinate reference system
-	let target_crs = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs ";
-	
-	// standard CRS of 3D Tiles, see: https://docs.ogc.org/cs/22-025r4/22-025r4.html
-	proj4.defs("EPSG:4978","+proj=geocent +datum=WGS84 +units=m +no_defs +type=crs");
-
-	// import {TDTiles} from "./src/modules/3DTiles/3DTiles.js";
-	import {TDTilesLoader} from "./src/modules/3DTiles/3DTilesLoader.js";
-
-	TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
-		scene.root.children.push(tiles);
-
-		tiles.projector = proj4("EPSG:4978", target_crs);
-
-		// controls.set({
-		// 	position: [2547023.7, 1212088.9, 1051.4], 
-		// 	pivot:    [2547028.8, 1212159.6, 999.3]
-		// });
-	});
-
-
 	{
 		// Potree2Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
-		Potree2Loader.load("./resources/pointclouds/retz_potree3/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
 		// Potree2Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/F/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/nordwestbahnhof_converted/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/E/resources/pointclouds/nordwestbahnhof/p2_converted/metadata.json").then(pointcloud => {
+		Potree2Loader.load("./resources/p2_converted/metadata.json").then(pointcloud => {
+		// Potree2Loader.load("./resources/pointclouds/retz_potree3/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 		
 			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
@@ -166,38 +153,63 @@ canvas{
 			let diagonal = max.sub(min);
 			let campos = center.clone().add(diagonal);
 
-			// controls.set({
-			// 	position: campos.toArray(), 
-			// 	pivot:    center.toArray()
-			// });
-
-			// GARE
-			// controls.set({
-			// 	position: [2561590.3, 1204981.6, 671.1], 
-			// 	pivot:    [2561724.6, 1205243.1, 448.5]
-			// });
-
-			// // MORRO BAY ROCK
-			// controls.set({
-			// 	position: [-87.7, 520.1, 1235.2], 
-			// 	pivot:    [689.9, 855.3, 303.8]
-			// });
-
-			// // HELIMAP - MLS
-			// controls.set({
-			// 	position: [409.8, 1584.5, 12.0], 
-			// 	pivot:    [438.3, 1573.0, 3.7]
-			// });
-
-			// controls.set({
-			// 	position: [37.9, -21.0, 91.9], 
-			// 	pivot:    [83.9, 57.6, 4.7]
-			// });
+			// default
+			controls.set({
+				position: campos.toArray(), 
+				pivot:    center.toArray()
+			});
 
 			controls.set({
-				position: [33.1, -39.3, 45.7], 
-				pivot:    [-20.3, 11.7, 13.6]
+				position: [392.7, -467.9, 1.8], 
+				pivot:    [378.7, -467.7, 1.4]
 			});
+
+
+			let viewpoints = [
+				{
+					name: "Viewpoint 1",
+					position: [392.7, -467.9, 1.8], 
+					pivot:    [378.7, -467.7, 1.4]
+				},{
+					name: "Viewpoint 2",
+					position: [351.9, -401.7, 1.7], 
+					pivot:    [347.2, -401.6, -0.2]
+				},{
+					name: "Viewpoint 3",
+					position: [339.0, -434.1, 1.5], 
+					pivot:    [344.1, -433.8, 1.0]
+				},{
+					name: "Viewpoint 4",
+					position: [375.6, -520.4, 1.5], 
+					pivot:    [376.2, -513.5, 0.8]
+				}
+			];
+
+			let i = 0;
+			for(let viewpoint of viewpoints)
+			{
+				let button = document.createElement("input");
+				button.type = "button";
+				button.value = viewpoint.name;
+				button.style.position = "absolute";
+				button.style.left = "10px";
+				button.style.top = `${10 + 30 * i}px`;
+				button.onclick = () => {
+					controls.set({
+						position: viewpoint.position,
+						pivot:    viewpoint.pivot,
+					});
+				};
+
+				canvas.parentNode.appendChild(button);
+
+				i++;
+			}
+
+
+			// <input type="button" value="Viewpoint 1" style="position: absolute; left: 10px; bottom: 10px" 
+			// 	onclick="potree.controls.set([88.2, -206.3, 3.9], [100.4, -210.1, -0.1])">
+			// </input>
 
 			let material = pointcloud.material;
 

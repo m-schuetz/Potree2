@@ -31,3 +31,24 @@ export function computeNormal(a, b, c){
 	return target.set( 0, 0, 0 );
 
 }
+
+const π = Math.PI;
+
+export function toRadians(degrees){
+	return π * degrees / 180;
+}
+
+export function toDegrees(radians){
+	return 180 * radians / π;
+}
+
+export function ceilN(value, N){
+	return value + (N - value % N);
+};
+
+export function clamp(value, min, max){
+	if(value < min) return min;
+	if(value > max) return max;
+	
+	return value;
+};

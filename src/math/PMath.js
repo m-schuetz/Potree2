@@ -17,3 +17,10 @@ export function toDegrees(radians){
 export function ceilN(value, N){
 	return value + (N - value % N);
 };
+
+export function clamp(value, min, max){
+	if(value < min) return min;
+	if(value > max) return max;
+	
+	return value;
+};

@@ -453,36 +453,36 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	// var neginf = bitcast<f32>(0xff800000u);
 
 	// replacing LOD => discard regions where child is visible
-	if(uniforms.isAdditive == 0)
-	{ // DEBUG
-		var offset = 12u * pointID;
+	// if(uniforms.isAdditive == 0)
+	// { // DEBUG
+	// 	var offset = 12u * pointID;
 			
-		var position = vec4<f32>(
-			readF32(offset + 0u),
-			readF32(offset + 4u),
-			readF32(offset + 8u),
-			1.0,
-		);
+	// 	var position = vec4<f32>(
+	// 		readF32(offset + 0u),
+	// 		readF32(offset + 4u),
+	// 		readF32(offset + 8u),
+	// 		1.0,
+	// 	);
 
-		var size = node.max_x - node.min_x;
+	// 	var size = node.max_x - node.min_x;
 
-		var ix = i32(2.0 * (position.x - node.min_x) / size);
-		var iy = i32(2.0 * (position.y - node.min_y) / size);
-		var iz = i32(2.0 * (position.z - node.min_z) / size);
+	// 	var ix = i32(2.0 * (position.x - node.min_x) / size);
+	// 	var iy = i32(2.0 * (position.y - node.min_y) / size);
+	// 	var iz = i32(2.0 * (position.z - node.min_z) / size);
 
-		ix = min(ix, 1);
-		iy = min(iy, 1);
-		iz = min(iz, 1);
+	// 	ix = min(ix, 1);
+	// 	iy = min(iy, 1);
+	// 	iz = min(iz, 1);
 
-		var childIndex = u32((ix << 2) | (iy << 1) | iz);
+	// 	var childIndex = u32((ix << 2) | (iy << 1) | iz);
 
-		var isChildVisible = (node.childmask & (1u << childIndex)) != 0;
+	// 	var isChildVisible = (node.childmask & (1u << childIndex)) != 0;
 
-		if(isChildVisible){
-			// output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-			output.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
-		}
-	}
+	// 	if(isChildVisible){
+	// 		// output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
+	// 		output.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
+	// 	}
+	// }
 
 	// output.point_position = vec4f(f32(vertex.vertexID), 0.0, 0.0, 1.0);
  
