@@ -182,7 +182,7 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		uniformsView.setUint32(280, Potree.settings.splatType, true);
 		uniformsView.setFloat32(288, octree.spacing, true);
 
-		let isAdditive = !(octree.loader.constructor.name === "Potree2Loader");
+		let isAdditive = !(octree.loader.constructor.name === "Potree3Loader");
 		uniformsView.setUint32(284, isAdditive ? 1 : 0, true);
 
 		let bb = octree.getBoundingBoxWorld();

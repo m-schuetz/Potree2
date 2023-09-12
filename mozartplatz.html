@@ -115,7 +115,7 @@ canvas{
 	// });
 
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
-	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
+	import {Potree3Loader} from "./src/potree/octree/loader_v3/Potree3Loader.js";
 	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
 
 	Potree.settings.edlEnabled = true;
@@ -130,13 +130,13 @@ canvas{
 	Potree.settings.minNodeSize = 100;
 
 	{
-		// Potree2Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
-		Potree2Loader.load("./resources/pointclouds/mozartplatz/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/pointclouds/retz_potree3/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/G/temp/retz/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
+		Potree3Loader.load("./resources/pointclouds/mozartplatz/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/pointclouds/retz_potree3/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 		
 			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);

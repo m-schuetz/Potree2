@@ -4,6 +4,7 @@ import {Vector3, Box3, Matrix4} from "potree";
 import {PointCloudOctree, PointCloudOctreeNode} from "potree";
 import {WorkerPool} from "potree";
 import {Geometry} from "potree";
+import {MAPPINGS} from "potree";
 
 let nodesLoading = 0;
 
@@ -209,6 +210,10 @@ export class PotreeLoader{
 		// console.log(node);
 	}
 
+	async loadNodeUnfiltered(node){
+		// this point cloud format does not have dedicated unfiltered buffers
+	}
+
 	async loadNode(node){
 		
 		if(node.loaded) return; 
@@ -328,6 +333,13 @@ export class PotreeLoader{
 		octree.loader = loader;
 		loader.octree = octree;
 		octree.material.init(octree);
+
+		// add standard attribute mappings
+		for(let mapping of Object.values(MAPPINGS)){
+			if(["vec3", "scalar"].includes(mapping.name)){
+				octree.material.registerMapping(mapping);
+			}
+		}
 
 		let root = new PointCloudOctreeNode("r");
 		root.boundingBox = octree.boundingBox.clone();

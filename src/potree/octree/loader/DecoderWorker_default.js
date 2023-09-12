@@ -52,7 +52,7 @@ async function load(event){
 
 	// pad to multiple of 4 bytes due to GPU requirements.
 	let alignedSize = buffer.byteLength + (4 - (buffer.byteLength % 4));
-	let targetBuffer = new Uint8Array(alignedSize);
+	let targetBuffer = new ArrayBuffer(alignedSize);
 	let targetView = new DataView(targetBuffer.buffer);
 
 	let byteOffset = 0;
@@ -205,7 +205,7 @@ onmessage = async function (event) {
 		
 		let transferables = [];
 
-		transferables.push(loaded.buffer.buffer);
+		transferables.push(loaded.buffer);
 
 		postMessage(message, transferables);
 	}catch(e){

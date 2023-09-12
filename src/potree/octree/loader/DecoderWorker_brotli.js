@@ -283,7 +283,7 @@ async function load(event){
 
 
 	return {
-		buffer: new Uint8Array(outBuffer), statsList
+		buffer: outBuffer, statsList
 	};
 }
 
@@ -296,7 +296,7 @@ onmessage = async function (event) {
 		
 		let transferables = [];
 
-		transferables.push(loaded.buffer.buffer);
+		transferables.push(loaded.buffer);
 
 		postMessage(message, transferables);
 	}catch(e){

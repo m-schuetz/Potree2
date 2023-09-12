@@ -148,18 +148,27 @@ export class PointCloudOctree extends SceneNode{
 
 			let visible = insideFrustum;
 			let isLeaf = node.children.every(n => n === null);
-			let shouldBreak = !isLeaf && insideFrustum && pixelSize > 320;
+			let allChildrenLoaded = node.children.every(n => n === null || n.loaded);
+			let shouldBreak = !isLeaf && insideFrustum && pixelSize > Potree.settings.minNodeSize * 2;
 
-			if(visible && !shouldBreak){
+
+			if(shouldBreak && !allChildrenLoaded){
+				for(let child of node.children){
+					if(!child) continue;
+
+					loadQueue.push(child);
+				}
+
+				visibleNodes.push(node);
+				numPoints += node.numElements;
+			}else if(visible && !shouldBreak){
 				// highest LOD node we want to draw
 				visibleNodes.push(node);
 				numPoints += node.numElements;
 			}else if(visible && shouldBreak){
 				// we want to draw higher LOD nodes
 				for(let child of node.children){
-					if(!child){
-						continue;
-					}
+					if(!child) continue;
 
 					_sphere.center.x = 0.5 * (node.boundingBox.min.x + node.boundingBox.max.x);
 					_sphere.center.y = 0.5 * (node.boundingBox.min.y + node.boundingBox.max.y);

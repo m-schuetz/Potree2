@@ -1,10 +1,12 @@
 
 import {PointCloudOctree, PointCloudOctreeNode} from "potree";
+import {PointCloudMaterial} from "potree";
 import {PointAttribute, PointAttributes, PointAttributeTypes} from "potree";
 import {WorkerPool} from "potree";
 import {Geometry} from "potree";
 import {Vector3, Box3, Matrix4} from "potree";
 import JSON5 from "json5";
+import {MAPPINGS} from "potree";
 
 let numActiveRequests = 0;
 
@@ -104,7 +106,7 @@ function parseAttributes(jsonAttributes){
 	return attributes;
 }
 
-export class Potree2Loader{
+export class Potree3Loader{
 
 	static numBatchesLoading = 0;
 	static numLeavesLoading = 0;
@@ -410,7 +412,7 @@ export class Potree2Loader{
 
 			inContiguousMemory = (diff === totalBytes);
 		}
-		inContiguousMemory = false;
+		// inContiguousMemory = false;
 
 		let nodes = [node];
 
@@ -533,7 +535,7 @@ export class Potree2Loader{
 	}
 
 	static async load(url){
-		let loader = new Potree2Loader();
+		let loader = new Potree3Loader();
 		loader.url = url;
 
 		let response = await fetch(url);
@@ -562,6 +564,13 @@ export class Potree2Loader{
 		octree.loader = loader;
 		loader.octree = octree;
 		octree.material.init(octree);
+
+		// add standard attribute mappings
+		for(let mapping of Object.values(MAPPINGS)){
+			if(["vec3", "scalar"].includes(mapping.name)){
+				octree.material.registerMapping(mapping);
+			}
+		}
 
 		let root = new PointCloudOctreeNode("r");
 		root.boundingBox = octree.boundingBox.clone();

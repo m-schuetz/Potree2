@@ -167,47 +167,10 @@ export class PointCloudMaterial{
 		}
 
 		for(let attribute of pointcloud.attributes.attributes){
-
-			let stats = null;
-
-			// let mapping = null;
-			// if(attribute.name === "rgba"){
-			// 	mapping = new Attribute_RGB(stats);
-			// }else if(attribute.name === "intensity"){
-			// 	mapping = new Attribute_Scalar(stats);
-			// 	mapping.range = attribute.range;
-			// }else if(attribute.name === "point source id"){
-			// 	mapping = new Attribute_Scalar(stats);
-			// }else if(attribute.name === "gps-time"){
-			// 	mapping = new Attribute_Scalar(stats);
-			// }else if(attribute.name === "classification"){
-			// 	mapping = new Attribute_Listing(stats);
-			// 	mapping.set(ListingSchemes.LAS_CLASSIFICATION);
-			// }else if(attribute.name === "return number"){
-			// 	mapping = new Attribute_Listing(stats);
-			// 	mapping.set(ListingSchemes.LAS_RETURN_NUMBER);
-			// }else if(attribute.name === "scan angle"){
-			// 	mapping = new Attribute_Scalar(stats);
-			// }else if(attribute.name === "Normal"){
-			// 	mapping = new Attribute_RGB(stats);
-			// }else{
-			// 	mapping = new Attribute_Scalar(stats);
-			// }
-
-			// mapping.attribute = attribute;
-
-			// this.attributes.set(attribute.name, mapping);
-
 			this.registerAttribute(attribute);
 		}
 
 		{ // elevation
-			// let stats = null;
-			// let attribute = new Attribute_Scalar(stats);
-			// attribute.clamp = true;
-			// attribute.runtime = true;
-			// this.attributes.set("elevation", attribute);
-
 			let attribute = new PointAttribute("elevation", PointAttributeTypes.UINT8, 1);
 			attribute.byteOffset = 0;
 

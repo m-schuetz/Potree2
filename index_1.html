@@ -134,7 +134,7 @@ canvas{
 	// 	}
 	// });
 
-		import {Potree2Loader} from "potree";
+		import {Potree3Loader} from "potree";
 	{
 
 		let pc1, pc2;
@@ -146,7 +146,7 @@ canvas{
 			pc1 = pointcloud;
 		});
 
-		Potree2Loader.load("./resources/F/dev/deploy/sitn_test_2022.12.16/potree2").then(pointcloud => {
+		Potree3Loader.load("./resources/F/dev/deploy/sitn_test_2022.12.16/potree2").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 
@@ -197,8 +197,8 @@ canvas{
 	// 		pointcloud.position.set(0, 10, 0);
 	// 	});
 
-	// 	import {Potree2Loader} from "potree";
-	// 	Potree2Loader.load("./resources/F/temp/test").then(pointcloud => {
+	// 	import {Potree3Loader} from "potree";
+	// 	Potree3Loader.load("./resources/F/temp/test").then(pointcloud => {
 	// 		scene.root.children.push(pointcloud);
 	// 		pointcloud.position.set(3, -10, 0);
 	// 	});

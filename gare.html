@@ -36,7 +36,7 @@
 
 	import {Potree} from "potree";
 	import {Vector3, Mesh, Geometry, geometries, Points, PointLight, SplatType} from "potree";
-	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
+	import {Potree3Loader} from "./src/potree/octree/loader_v3/Potree3Loader.js";
 	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	import "range-select";
@@ -73,8 +73,8 @@
 	Potree.settings.minNodeSize = 100;
 
 	{
-		Potree2Loader.load("https://potree.org/temporary/sitn/pointclouds/las14_extra_attributes/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
+		Potree3Loader.load("https://potree.org/temporary/sitn/pointclouds/las14_extra_attributes/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/G/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 			pointcloud.position.set(0, 0, 0);
 			pointcloud.name = "Heidentor";

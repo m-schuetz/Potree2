@@ -115,7 +115,7 @@ canvas{
 	// });
 
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
-	import {Potree2Loader} from "./src/potree/octree/loader_p2_1/Potree2Loader_1.js";
+	import {PotreeLoader, Potree3Loader} from "potree";
 	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
 
 	Potree.settings.edlEnabled = true;
@@ -151,12 +151,23 @@ canvas{
 
 
 	{
-		// Potree2Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
-		Potree2Loader.load("./resources/pointclouds/retz_potree3/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
-		// Potree2Loader.load("./resources/F/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
+
+		PotreeLoader.load("https://potree.org/pointclouds/heidentor/metadata.json").then(pointcloud => {
+			console.log(pointcloud);
+
+			scene.root.children.push(pointcloud);
+
+			let material = pointcloud.material;
+
+			
+		});
+
+		// Potree3Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
+		Potree3Loader.load("./resources/pointclouds/retz_potree3/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("./resources/F/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
 		
 			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
@@ -165,34 +176,6 @@ canvas{
 			let center = max.clone().add(min).multiplyScalar(0.5);
 			let diagonal = max.sub(min);
 			let campos = center.clone().add(diagonal);
-
-			// controls.set({
-			// 	position: campos.toArray(), 
-			// 	pivot:    center.toArray()
-			// });
-
-			// GARE
-			// controls.set({
-			// 	position: [2561590.3, 1204981.6, 671.1], 
-			// 	pivot:    [2561724.6, 1205243.1, 448.5]
-			// });
-
-			// // MORRO BAY ROCK
-			// controls.set({
-			// 	position: [-87.7, 520.1, 1235.2], 
-			// 	pivot:    [689.9, 855.3, 303.8]
-			// });
-
-			// // HELIMAP - MLS
-			// controls.set({
-			// 	position: [409.8, 1584.5, 12.0], 
-			// 	pivot:    [438.3, 1573.0, 3.7]
-			// });
-
-			// controls.set({
-			// 	position: [37.9, -21.0, 91.9], 
-			// 	pivot:    [83.9, 57.6, 4.7]
-			// });
 
 			controls.set({
 				position: [33.1, -39.3, 45.7], 
@@ -258,22 +241,6 @@ canvas{
 				material.registerMapping(mapping);
 			}
 			
-			
-			// retz
-			// controls.set({
-			// 	position: [596.2, 873.3, 62.3], 
-			// 	pivot:    [578.1, 864.7, 57.4]
-			// 	// position: [832.2, 879.7, 1234.2], 
-			// 	// pivot:    [744.8, 902.5, -5.2],
-			// });
-
-			// heidentor
-			// controls.set({
-			// 	position: [-6.8, 13.9, 7.8], 
-			// 	pivot:    [1.5, 8.9, 5.6],
-			// 	// position: [3.3, 16.6, 2.3], 
-			// 	// pivot:    [4.3, 14.9, 1.3]
-			// });
 		});
 
 	}

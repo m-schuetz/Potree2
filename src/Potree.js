@@ -33,8 +33,10 @@ export * from "./misc/EventDispatcher.js";
 export * from "./InputHandler.js";
 export * from "./potree/images/Images360.js";
 export * from "./potree/images/SphereMap.js";
-export * from "./potree/octree/loader/Potree2Loader.js";
+export * from "./potree/octree/loader_v3/Potree3Loader.js";
+export * from "./potree/octree/loader/PotreeLoader.js";
 export * from "./potree/ChunkedBuffer.js";
+export * from "./modules/attributes/mappings.js";
 
 export {render as renderPoints} from "./prototyping/renderPoints.js";
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";
