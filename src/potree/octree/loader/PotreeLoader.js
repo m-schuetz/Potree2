@@ -1,7 +1,7 @@
 
 import {PointAttributeTypes, PointAttribute, PointAttributes} from "potree";
 import {Vector3, Box3, Matrix4} from "potree";
-import {PointCloudOctree, PointCloudOctreeNode} from "potree";
+import {PointCloudOctree, REFINEMENT, PointCloudOctreeNode} from "potree";
 import {WorkerPool} from "potree";
 import {Geometry} from "potree";
 import {MAPPINGS} from "potree";
@@ -259,6 +259,7 @@ export class PotreeLoader{
 				geometry.buffer = data.buffer;
 				geometry.statsList = data.statsList;
 
+				node.numElements = node.numPoints;
 				node.loaded = true;
 				node.loading = false;
 				nodesLoading--;
@@ -328,6 +329,7 @@ export class PotreeLoader{
 		octree.boundingBox.max.sub(octree.boundingBox.min);
 		octree.boundingBox.min.set(0, 0, 0);
 		octree.updateWorld();
+		octree.refinement = REFINEMENT.ADDITIVE;
 
 		octree.attributes = attributes;
 		octree.loader = loader;

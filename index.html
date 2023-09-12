@@ -152,15 +152,23 @@ canvas{
 
 	{
 
-		PotreeLoader.load("https://potree.org/pointclouds/heidentor/metadata.json").then(pointcloud => {
-			console.log(pointcloud);
+		// PotreeLoader.load("https://potree.org/pointclouds/heidentor/metadata.json").then(pointcloud => {
+		// 	console.log(pointcloud);
 
-			scene.root.children.push(pointcloud);
+		// 	scene.root.children.push(pointcloud);
 
-			let material = pointcloud.material;
+		// 	pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
 
-			
-		});
+		// 	let material = pointcloud.material;
+
+		// 	// controls.set({
+		// 	// 	position: [-16.7, 5.9, 13.2], 
+		// 	// 	pivot:    [0.3, 1.5, 7.0]
+		// 	// });
+
+		// 	// [2547035.6, 1212135.1, 1022.5], 
+		// 	// [2547043.3, 1212154.7, 1000.0]
+		// });
 
 		// Potree3Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
 		Potree3Loader.load("./resources/pointclouds/retz_potree3/metadata.json").then(pointcloud => {
@@ -169,6 +177,8 @@ canvas{
 		// Potree3Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
 		// Potree3Loader.load("./resources/F/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
 			scene.root.children.push(pointcloud);
+
+			// pointcloud.position.set(2547035.6, 1212135.1, 970.5);
 		
 			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
 			let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);

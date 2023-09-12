@@ -1,5 +1,5 @@
 
-import {PointCloudOctree, PointCloudOctreeNode} from "potree";
+import {PointCloudOctree, REFINEMENT, PointCloudOctreeNode} from "potree";
 import {PointCloudMaterial} from "potree";
 import {PointAttribute, PointAttributes, PointAttributeTypes} from "potree";
 import {WorkerPool} from "potree";
@@ -118,12 +118,6 @@ export class Potree3Loader{
 		this.nodeMap = new Map();
 		this.batches = new Map();
 		this.octree = null;
-
-		for(let i = 0; i < 10; i++){
-			let workerPath = "./src/potree/octree/loader/DecoderWorker_Potree2Batch.js";
-			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
-			WorkerPool.returnWorker(workerPath, worker);
-		}
 	}
 
 	parseHierarchy(node, buffer){
@@ -364,7 +358,7 @@ export class Potree3Loader{
 	// loads filtered voxel data for inner nodes or full point data for leaf nodes
 	async loadNode(node){
 
-		const workerPath = "./src/potree/octree/loader_p2_1/DecoderWorker.js";
+		const workerPath = "./src/potree/octree/loader_v3/DecoderWorker.js";
 
 		if(WorkerPool.getWorkerCount(workerPath) > 6)
 		if(WorkerPool.getAvailableWorkerCount(workerPath) === 0)
@@ -559,6 +553,7 @@ export class Potree3Loader{
 		octree.boundingBox.max.sub(octree.boundingBox.min);
 		octree.boundingBox.min.set(0, 0, 0);
 		octree.updateWorld();
+		octree.refinement = REFINEMENT.REPLACING;
 
 		octree.attributes = attributes;
 		octree.loader = loader;

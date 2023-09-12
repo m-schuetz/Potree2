@@ -10,6 +10,11 @@ const _fm     = new Matrix4();
 const _vec3   = new Vector3();
 const _vec4   = new Vector4();
 
+export const REFINEMENT = {
+	ADDITIVE:  0,
+	REPLACING: 1,
+};
+
 export class PointCloudOctree extends SceneNode{
 
 	constructor(name){
@@ -22,6 +27,7 @@ export class PointCloudOctree extends SceneNode{
 		this.loading        = false;
 		this.visibleNodes   = [];
 		this.material       = new PointCloudMaterial();
+		this.refinement     = REFINEMENT.ADDITIVE;
 
 		this.gpuBuffer      = null;
 
@@ -51,7 +57,7 @@ export class PointCloudOctree extends SceneNode{
 
 	}
 
-	updateVisibility_break(camera, renderer){
+	updateVisibility_replacing(camera, renderer){
 		let tStart = performance.now();
 
 		if(this.root?.geometry?.statsList != null){
@@ -261,7 +267,7 @@ export class PointCloudOctree extends SceneNode{
 		return duration;
 	}
 
-	updateVisibility_add(camera, renderer){
+	updateVisibility_additive(camera, renderer){
 		let tStart = performance.now();
 
 		if(this.root?.geometry?.statsList != null){
@@ -458,9 +464,11 @@ export class PointCloudOctree extends SceneNode{
 
 	updateVisibility(camera, renderer){
 
-
-		return this.updateVisibility_break(camera, renderer);
-		// return this.updateVisibility_add(camera, renderer);
+		if(this.refinement === REFINEMENT.ADDITIVE){
+			return this.updateVisibility_additive(camera, renderer);
+		}else{
+			return this.updateVisibility_replacing(camera, renderer);
+		}
 		
 	}
 

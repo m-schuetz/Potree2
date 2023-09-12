@@ -355,6 +355,9 @@ function renderNotSoBasic(){
 	let points = renderables.get("Points") ?? [];
 	let octrees = renderables.get("PointCloudOctree") ?? [];
 
+	Potree.state.numPoints = 0;
+	Potree.state.numNodes  = 0;
+
 	for(let octree of octrees){
 		octree.showBoundingBox = Potree.settings.showBoundingBox;
 		octree.pointBudget = Potree.settings.pointBudget;
@@ -367,8 +370,8 @@ function renderNotSoBasic(){
 		let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
 		let numNodes = octree.visibleNodes.length;
 
-		Potree.state.numPoints = numPoints;
-		Potree.state.numNodes = numNodes;
+		Potree.state.numPoints += numPoints;
+		Potree.state.numNodes  += numNodes;
 	}
 
 	Timer.frameStart(renderer);
