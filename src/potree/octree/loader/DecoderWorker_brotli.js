@@ -289,6 +289,8 @@ async function load(event){
 
 onmessage = async function (event) {
 
+	// debugger;
+
 	try{
 		let loaded = await load(event);
 

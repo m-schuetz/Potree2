@@ -89,6 +89,8 @@ export class PointCloudMaterial{
 
 	registerMapping(mapping){
 
+		// debugger;
+
 		let index = 128 + this.mappings.length;
 		// let mapping = {name, condition, inputs, wgsl, index};
 		let {name, condition, inputs, wgsl} = mapping;

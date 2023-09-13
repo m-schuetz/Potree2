@@ -439,7 +439,18 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		<<TEMPLATE_MAPPING_SELECTION>>
 
 		output.color = color;
+
+		// if(attrib.byteSize == 6u && attrib.datatype == 5u){
+
+		// 	if(attrib.mapping == 131u){
+		// 		output.color.r = 1.0f;
+		// 		output.color = map_131(pointID, attrib, node, position);
+		// 	}
+		// }
 	}
+
+
+	
 
 
 	if(output.color.a == 0.0){

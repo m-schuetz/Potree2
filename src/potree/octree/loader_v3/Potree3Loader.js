@@ -406,7 +406,7 @@ export class Potree3Loader{
 
 			inContiguousMemory = (diff === totalBytes);
 		}
-		// inContiguousMemory = false;
+		inContiguousMemory = false;
 
 		let nodes = [node];
 

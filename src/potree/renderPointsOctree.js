@@ -75,7 +75,8 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 		ids++;
 	}
 
-	let key = `${octree.state_id}_${flags.join(";")}`;
+	let key_mappings = octree.material.mappings.map(m => m.name + "_" + m.inputs.join("_"))
+	let key = `${octree.state_id}_${flags.join(";")}_${key_mappings}`;
 
 	let state = octreeStates.get(key);
 
@@ -193,8 +194,8 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 		uniformsView.setFloat32(324, bb.max.z, true);
 		uniformsView.setFloat32(328, bb.max.z, true);
 
-		let attributeName = Potree.settings.attribute;
-		let settings = octree?.material?.attributes?.get(attributeName);
+		// let attributeName = Potree.settings.attribute;
+		// let settings = octree?.material?.attributes?.get(attributeName);
 	}
 
 
@@ -250,6 +251,12 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			attributeView.setFloat32( index * stride + 52,           range_max[1], true);
 			attributeView.setFloat32( index * stride + 56,           range_max[2], true);
 			attributeView.setFloat32( index * stride + 60,           range_max[3], true);
+
+			console.log({
+				dataset: octree.name, 
+				attributeName,
+				numElements, byteSize, dataType, mappingIndex: mapping.index,
+			});
 		};
 
 		let attributes = octree.loader.attributes;

@@ -90,6 +90,8 @@ export const VECTOR3 = {
 
 			var color = vec4f(r, g, b, 255.0) / 255.0;
 
+			// color.r = 1.0f;
+
 			return color;
 		}
 	`,
