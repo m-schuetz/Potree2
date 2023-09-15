@@ -252,11 +252,11 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			attributeView.setFloat32( index * stride + 56,           range_max[2], true);
 			attributeView.setFloat32( index * stride + 60,           range_max[3], true);
 
-			console.log({
-				dataset: octree.name, 
-				attributeName,
-				numElements, byteSize, dataType, mappingIndex: mapping.index,
-			});
+			// console.log({
+			// 	dataset: octree.name, 
+			// 	attributeName,
+			// 	numElements, byteSize, dataType, mappingIndex: mapping.index,
+			// });
 		};
 
 		let attributes = octree.loader.attributes;
@@ -426,6 +426,7 @@ async function renderOctree(octree, drawstate, flags){
 	if(!octreeState_quads.pipeline) return;
 
 	let nodes = octree.visibleNodes;
+	nodes = nodes.filter(node => node.numPoints != null ? node.numPoints > 0 : true);
 
 	updateUniforms(octree, octreeState_quads, drawstate, flags);
 	updateUniforms(octree, octreeState_points, drawstate, flags);

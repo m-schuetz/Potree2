@@ -165,10 +165,13 @@ export class PointCloudOctree extends SceneNode{
 					loadQueue.push(child);
 				}
 
+				node.visible = true;
 				visibleNodes.push(node);
 				numPoints += node.numElements;
 			}else if(visible && !shouldBreak){
 				// highest LOD node we want to draw
+
+				node.visible = true;
 				visibleNodes.push(node);
 				numPoints += node.numElements;
 			}else if(visible && shouldBreak){
@@ -227,6 +230,8 @@ export class PointCloudOctree extends SceneNode{
 					}else{
 						weight = pixelSize;
 					}
+
+					child.weight = weight;
 
 
 					priorityQueue.push({
@@ -340,12 +345,14 @@ export class PointCloudOctree extends SceneNode{
 			// _box.applyMcatrix4(this.world);
 			// let insideFrustum = frustum.intersectsBox(_box);
 			let insideFrustum = frustum.intersectsSphere(_sphere);
-			let fitsInPointBudget = numPoints + node.numElements < this.pointBudget;
+			// let fitsInPointBudget = numPoints + node.numElements < this.pointBudget;
 			let isLowLevel = node.level <= 2;
 
-			if(!fitsInPointBudget) break;
+			// if(!fitsInPointBudget) break;
 
-			let visible = fitsInPointBudget && insideFrustum;
+			// let visible = fitsInPointBudget && insideFrustum;
+			let visible = true;
+			visible = visible && insideFrustum;
 			visible = visible || isLowLevel;
 
 			node.visible = visible;
@@ -356,10 +363,12 @@ export class PointCloudOctree extends SceneNode{
 
 			if(Potree.debug.allowedNodes){
 				if(Potree.debug.allowedNodes.includes(node.name)){
+					node.visible = true;
 					visibleNodes.push(node);
 					numPoints += node.numElements;
 				}
 			}else{
+				node.visible = true;
 				visibleNodes.push(node);
 				numPoints += node.numElements;
 
@@ -427,7 +436,9 @@ export class PointCloudOctree extends SceneNode{
 				}else{
 					weight = pixelSize;
 				}
+					// weight = pixelSize;
 
+				child.weight = weight;
 
 				priorityQueue.push({
 					node: child, 
@@ -464,16 +475,103 @@ export class PointCloudOctree extends SceneNode{
 
 	updateVisibility(camera, renderer){
 
+		let camPos = camera.getWorldPosition();
+		let world = this.world;
+		let view = camera.view;
+		let proj = camera.proj;
+		let worldViewProj = new Matrix4().multiply(proj).multiply(view).multiply(world);
+		_fm.multiplyMatrices(proj, view);
+		let frustum = new Frustum();
+		frustum.setFromMatrix(_fm);
+
+		let octreeSize = this.boundingBox.max.x - this.boundingBox.min.x;
+		let octreeRadius = Math.sqrt(octreeSize * octreeSize + octreeSize * octreeSize + octreeSize * octreeSize) / 2;
+
 		if(this.refinement === REFINEMENT.ADDITIVE){
 			return this.updateVisibility_additive(camera, renderer);
 		}else{
-			return this.updateVisibility_replacing(camera, renderer);
+
+			this.root.traverse(node => {
+				node.visible = false;
+			});
+
+			let duration = this.updateVisibility_additive(camera, renderer);
+
+			let replacingVisibleNodes = [];
+			let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
+
+			for(let node of this.visibleNodes){
+
+				let anyChildVisible = false;
+				let allChildrenLoaded = true;
+				for(let child of node.children){
+					if(child == null) continue;
+
+					anyChildVisible = anyChildVisible || child.visible;
+					allChildrenLoaded = allChildrenLoaded && child.loaded;
+				}
+
+				if(anyChildVisible && !allChildrenLoaded){
+					for(let child of node.children){
+						if(child == null) continue;
+
+						this.loader.loadNode(child);
+
+						if(needsUnfiltered){
+							this.loader.loadNodeUnfiltered(child);
+						}
+					}
+				}else if(anyChildVisible && allChildrenLoaded){
+
+					// make children visible and hide this node
+					for(let child of node.children){
+						if(child == null) continue;
+
+						_sphere.center.x = 0.5 * (child.boundingBox.min.x + child.boundingBox.max.x);
+						_sphere.center.y = 0.5 * (child.boundingBox.min.y + child.boundingBox.max.y);
+						_sphere.center.z = 0.5 * (child.boundingBox.min.z + child.boundingBox.max.z);
+						_sphere.radius = octreeRadius / (2 ** child.level);
+						_sphere.applyMatrix4(this.world);
+
+						let insideFrustum = frustum.intersectsSphere(_sphere);
+
+						if(insideFrustum && !child.visible){
+							child.visible = true;
+							replacingVisibleNodes.push(child);
+						}
+
+						node.visible = false;
+					}
+
+				}else{
+					replacingVisibleNodes.push(node);
+				}
+
+				this.visibleNodes = replacingVisibleNodes;
+				// console.log(this.visibleNodes);
+			}
+
+			return duration;
+
+			// return this.updateVisibility_replacing(camera, renderer);
 		}
 		
 	}
 
 	render(drawstate){
 		renderPointsOctree([this], drawstate);
+	}
+
+	traverse(callback){
+
+		callback(this);
+
+		for(let child of this.children){
+			if(child == null) continue;
+
+			child.traverse(callback);
+		}
+
 	}
 
 	getBoundingBoxWorld(){

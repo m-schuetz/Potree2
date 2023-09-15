@@ -104,7 +104,7 @@ async function loadNode(event){
 	let numVoxels = data.numElements;
 	let name = data.name;
 
-	let first = data.byteOffset;
+	let first = event.data.metadata.pointBuffer.offset + data.byteOffset;
 	let last = first + data.byteSize - 1;
 	// let last = first + Math.min(numVoxels * 6, data.byteSize);
 

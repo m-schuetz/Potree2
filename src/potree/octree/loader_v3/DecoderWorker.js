@@ -35,6 +35,8 @@ async function loadNodes(event){
 		chunkSize += node.byteSize;
 	}
 
+	chunkOffset += event.data.metadata.pointBuffer.offset;
+
 	let numElements = nodes.reduce( (sum, node) => sum + node.numPoints + node.numVoxels, 0);
 	let bitsPerElement = Math.ceil(8 * chunkSize / numElements);
 
@@ -51,12 +53,14 @@ async function loadNodes(event){
 		},
 	});
 
+	// debugger;
+
 	let buffer = await response.arrayBuffer();
 
 	parentVoxelCoords = event.data.parentVoxelCoords;
 
 	for(let node of nodes){
-		let dataview = new DataView(buffer, node.byteOffset - chunkOffset, node.byteSize);
+		let dataview = new DataView(buffer, node.byteOffset - chunkOffset + event.data.metadata.pointBuffer.offset, node.byteSize);
 		
 		let buffers = loadNode(octree, node, dataview);
 

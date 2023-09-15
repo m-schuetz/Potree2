@@ -211,28 +211,49 @@ export class Potree3Loader{
 		// console.log(`load hierarchy(${node.name})`);
 
 		let {hierarchyByteOffset, hierarchyByteSize} = node;
-		let hierarchyPath = `${this.url}/../hierarchy.bin`;
 
-		let first = hierarchyByteOffset;
+		let first = this.metadata.hierarchyBuffer.offset + hierarchyByteOffset;
 		let last = first + hierarchyByteSize - 1;
-
-		let response = await fetch(hierarchyPath, {
+		
+		let response = await fetch(this.url, {
 			headers: {
 				'content-type': 'multipart/byteranges',
 				'Range': `bytes=${first}-${last}`,
 			},
 		});
 
-
 		let buffer = await response.arrayBuffer();
 
-		let tStart = performance.now();
+		// { // DEBUG
+		// 	let hierarchyPath = `${this.url}/../eclepens.las_converted_6/hierarchy.bin`;
+
+		// 	let first = 0;
+		// 	let last = hierarchyByteSize - 1;
+
+		// 	let response = await fetch(hierarchyPath, {
+		// 		headers: {
+		// 			'content-type': 'multipart/byteranges',
+		// 			'Range': `bytes=${first}-${last}`,
+		// 		},
+		// 	});
+
+
+		// 	let dbgbuffer = await response.arrayBuffer();
+
+		// 	console.log(new Uint8Array(dbgbuffer).join(", "));
+		// 	console.log(new Uint8Array(buffer).join(", "));
+
+		// }
+
+		// debugger;
+
+		// let tStart = performance.now();
 		this.parseHierarchy(node, buffer);
 
-		let tEnd = performance.now();
-		let durationMS = tEnd - tStart;
+		// let tEnd = performance.now();
+		// let durationMS = tEnd - tStart;
 
-		let strKB = Math.ceil(hierarchyByteSize / 1024);
+		// let strKB = Math.ceil(hierarchyByteSize / 1024);
 		// console.log(`parsed hierarchy (${strKB} kb) in ${durationMS.toFixed(1)} ms`);
 
 		// console.log(node);
@@ -294,13 +315,14 @@ export class Potree3Loader{
 			chunkSize += node.byteSize_unfiltered;
 		}
 
+		chunkOffset = chunkOffset + this.metadata.pointBuffer.offset;
+
 		if(chunkSize === 0 || chunkSize > 20_000_000){
 			debugger;
 		}
 
-		let url = new URL(`${this.url}/../octree.bin`, document.baseURI).href;
 		numActiveRequests++;
-		let promise = fetch(url, {
+		let promise = fetch(this.url, {
 			headers: {
 				'content-type': 'multipart/byteranges',
 				'Range': `bytes=${chunkOffset}-${chunkOffset + chunkSize - 1}`,
@@ -472,7 +494,6 @@ export class Potree3Loader{
 
 			};
 
-			let url = new URL(`${this.url}/../octree.bin`, document.baseURI).href;
 			let parentVoxelCoords = node.parent?.voxelCoords;
 
 			let msg_nodes = [];
@@ -504,7 +525,9 @@ export class Potree3Loader{
 				pointAttributes: this.attributes,
 			};
 
+			let url = new URL(`${this.url}`, document.baseURI).href;
 			let message = {
+				metadata: this.metadata,
 				octree: msg_octree,
 				nodes: msg_nodes, 
 				url, parentVoxelCoords
@@ -529,11 +552,28 @@ export class Potree3Loader{
 	}
 
 	static async load(url){
+
 		let loader = new Potree3Loader();
 		loader.url = url;
 
-		let response = await fetch(url);
-		let text = await response.text();
+		let response_metadataSize = await fetch(url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${0}-${3}`,
+			},
+		});
+
+		let metadataSizeBuffer = await response_metadataSize.arrayBuffer();
+		let metadataSize = new DataView(metadataSizeBuffer).getUint32(0, true);
+
+		let response_metadata = await fetch(url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${4}-${4 + metadataSize - 1}`,
+			},
+		});
+
+		let text = await response_metadata.text();
 		let metadata = JSON5.parse(text);
 
 		let attributes = parseAttributes(metadata.attributes);

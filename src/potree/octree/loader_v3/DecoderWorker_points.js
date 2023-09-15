@@ -10,7 +10,7 @@ async function loadNode(event){
 	let bufferSize = round4(18 * n);
 	let buffer = new ArrayBuffer(bufferSize);
 
-	let first = data.byteOffset;
+	let first = event.data.metadata.pointBuffer.offset + data.byteOffset;
 	let last = first + data.byteSize - 1;
 
 	let response = await fetch(data.url, {
