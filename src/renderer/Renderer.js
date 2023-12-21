@@ -45,6 +45,14 @@ class Draws{
 
 };
 
+export class TimestampEntry{
+	constructor(){
+		this.startIndex = 0;
+		this.endIndex = 0;
+		this.label = "";
+	}
+};
+
 export class Renderer{
 
 	constructor(){
@@ -60,6 +68,16 @@ export class Renderer{
 
 		this.defaultSampler = null;
 
+		this.timestamps = {
+			enabled:               false,
+			querySet:              null,
+			resolveBuffer:         null,
+			resultBuffer:          null,
+			resultBufferPool:      [],
+			numResolveRequested:   0,
+			entries:               []
+		};
+
 		// this.swapChain = null;
 		this.depthTexture = null;
 		this.screenbuffer = null;
@@ -72,17 +90,68 @@ export class Renderer{
 
 	async init(){
 		this.adapter = await navigator.gpu.requestAdapter();
+
+		this.timestamps.enabled = this.adapter.features.has("timestamp-query");
+
+		let requiredFeatures = [];
+
+		if(this.timestamps.enabled){
+			requiredFeatures.push("timestamp-query");
+		}
+
 		this.device = await this.adapter.requestDevice({
-			requiredFeatures: [
-				"timestamp-query", 
-				"timestamp-query-inside-passes"
-			],
+			requiredFeatures: requiredFeatures,
 			requiredLimits: {
-				maxStorageBufferBindingSize: 1073741824,
-				maxBufferSize: 1073741824,
+				maxStorageBufferBindingSize: 1_073_741_824,
+				maxBufferSize: 1_073_741_824,
 				// maxBindGroups: 16,
 			}
 		});
+		
+		Timer.setEnabled(false);
+		// Timer.setEnabled(this.timestampQueriesEnabled);
+
+		if(this.timestamps.enabled){
+
+			let MAX_ENTRIES = 256;
+
+			this.timestamps.querySet = this.device.createQuerySet({
+				type: 'timestamp',
+				count: MAX_ENTRIES,
+			});
+
+			// Create some resolve buffers
+			// Metal only allows 256 byte offsets, so we need to allocate 256 instead of 2*8 byte per timestamp entry
+			// for(let i = 0; i < 2; i++){
+
+			//  	let buffer = this.device.createBuffer({
+			// 		size: 256 * MAX_ENTRIES,
+			// 		usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
+			// 	});
+
+			// 	this.timestamps.resolveBufferPool.push(buffer);
+			// }
+			this.timestamps.resolveBuffer = this.device.createBuffer({
+				size: 256 * MAX_ENTRIES,
+				usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
+			});
+
+			// Metal only allows 256 byte offsets, so we need to allocate 256 instead of 2*8 byte per timestamp entry
+			// this.timestamps.resultBuffer = this.device.createBuffer({
+			// 	size: 256 * MAX_ENTRIES,
+			// 	usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+			// });
+			for(let i = 0; i < 2; i++){
+
+			 	let buffer = this.device.createBuffer({
+					size: 256 * MAX_ENTRIES,
+					usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+				});
+
+				this.timestamps.resultBufferPool.push(buffer);
+			}
+		}
+
 		this.canvas = document.getElementById("canvas");
 		this.context = this.canvas.getContext("webgpu");
 
@@ -625,10 +694,16 @@ export class Renderer{
 	}
 
 	start(){
+		if(this.timestamps.resultBufferPool.length > 0){
+			this.timestamps.resultBuffer = this.timestamps.resultBufferPool.pop();
+		}
 
 		this.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
 
 		this.updateScreenbuffer();
+
+		this.timestamps.entries = [];
+		this.timestamps.numResolveRequested = 0;
 	}
 
 	finish(){

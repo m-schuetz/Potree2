@@ -134,7 +134,7 @@ function getSumBuffer(renderer){
 
 }
 
-function startPass(renderer, target, args = {}){
+function startPass(renderer, target, label){
 	let view = target.colorAttachments[0].texture.createView();
 
 	let colorAttachments = [{
@@ -167,13 +167,33 @@ function startPass(renderer, target, args = {}){
 		sampleCount: 1,
 	};
 
+	let timestampEntry = null;
+	if(renderer.timestamps.enabled){
+		
+		let startIndex = 2 * renderer.timestamps.entries.length;
+
+		renderPassDescriptor.timestampWrites = {
+			querySet:                  renderer.timestamps.querySet,
+			beginningOfPassWriteIndex: startIndex,
+			endOfPassWriteIndex:       startIndex + 1,
+		};
+
+		timestampEntry = {
+			startIndex : startIndex,
+			endIndex   : startIndex + 1,
+			label      : label,
+		};
+
+		renderer.timestamps.entries.push(timestampEntry);
+	}
+
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-	return {commandEncoder, passEncoder};
+	return {commandEncoder, passEncoder, timestampEntry};
 }
 
-function revisitPass(renderer, target){
+function revisitPass(renderer, target, label){
 	let view = target.colorAttachments[0].texture.createView();
 
 	let colorAttachments = [
@@ -201,7 +221,7 @@ function revisitPass(renderer, target){
 	return {commandEncoder, passEncoder};
 }
 
-function startSumPass(renderer, target){
+function startSumPass(renderer, target, label){
 	let view = target.colorAttachments[0].texture.createView();
 
 	let colorAttachments = [
@@ -236,17 +256,62 @@ function startSumPass(renderer, target){
 		sampleCount: 1,
 	};
 
+	let timestampEntry = null;
+	if(renderer.timestamps.enabled){
+		
+		let startIndex = 2 * renderer.timestamps.entries.length;
+
+		renderPassDescriptor.timestampWrites = {
+			querySet:                  renderer.timestamps.querySet,
+			beginningOfPassWriteIndex: startIndex,
+			endOfPassWriteIndex:       startIndex + 1,
+		};
+
+		timestampEntry = {
+			startIndex : startIndex,
+			endIndex   : startIndex + 1,
+			label      : label,
+		};
+
+		renderer.timestamps.entries.push(timestampEntry);
+	}
+
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-	return {commandEncoder, passEncoder};
+	return {commandEncoder, passEncoder, timestampEntry};
 }
 
 function endPass(pass){
 
-	let {passEncoder, commandEncoder} = pass;
+	let {passEncoder, commandEncoder, timestampEntry} = pass;
 
 	passEncoder.end();
+
+	if(timestampEntry)
+	if(renderer.timestamps.resultBuffer){
+
+		let {resultBuffer} = renderer.timestamps;
+
+		if(resultBuffer.mapState === "mapped"){
+			debugger;
+		}
+		
+		let byteOffset = 256 * timestampEntry.startIndex / 2;
+		commandEncoder.resolveQuerySet(
+			renderer.timestamps.querySet, timestampEntry.startIndex, 2, 
+			renderer.timestamps.resolveBuffer, byteOffset
+		);
+
+		commandEncoder.copyBufferToBuffer(
+			renderer.timestamps.resolveBuffer, byteOffset,
+			renderer.timestamps.resultBuffer, byteOffset,
+			256
+		);
+
+		// renderer.timestamps.resultBufferPool.push(resultBuffer);
+	}
+
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.queue.submit([commandBuffer]);
 }
@@ -292,7 +357,7 @@ function renderBasic(){
 
 	let screenbuffer = renderer.screenbuffer;
 
-	let pass = startPass(renderer, screenbuffer);
+	let pass = startPass(renderer, screenbuffer, "render basic");
 	let drawstate = {renderer, camera, renderables, pass};
 
 	for(let [key, nodes] of renderables){
@@ -319,6 +384,7 @@ function renderNotSoBasic(){
 
 	let layers = new Map();
 
+	// Traverse scenegraph and assemble renderables
 	let stack = [scene.root];
 	while(stack.length > 0){
 		let node = stack.pop();
@@ -407,12 +473,10 @@ function renderNotSoBasic(){
 		fbo_hqs_depth.setSize(...screenbuffer.size);
 
 		{ // depth pass
-			let pass = startPass(renderer, fbo_hqs_depth);
+			let pass = startPass(renderer, fbo_hqs_depth, "HQS-depth");
 			let drawstate = {renderer, camera, renderables, pass};
 
-			Timer.timestamp(pass.passEncoder, "HQS-depth-start");
 			renderPointsOctree(octrees, drawstate, ["hqs-depth"]);
-			Timer.timestamp(pass.passEncoder, "HQS-depth-end");
 
 			endPass(pass);
 		}
@@ -420,18 +484,16 @@ function renderNotSoBasic(){
 		{ // attribute pass
 			fbo_hqs_sum.depth = fbo_hqs_depth.depth;
 
-			let pass = startSumPass(renderer, fbo_hqs_sum);
+			let pass = startSumPass(renderer, fbo_hqs_sum, "HQS-accumulate");
 			let drawstate = {renderer, camera, renderables, pass};
 
-			Timer.timestamp(pass.passEncoder, "HQS-attributes-start");
 			renderPointsOctree(octrees, drawstate, ["additive_blending"]);
-			Timer.timestamp(pass.passEncoder, "HQS-attributes-end");
 
 			endPass(pass);
 		}
 
 		{ // normalization pass
-			let pass = startPass(renderer, fboTarget);
+			let pass = startPass(renderer, fboTarget, "HQS-normalize");
 			let drawstate = {renderer, camera, renderables, pass};
 
 			// Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
@@ -465,7 +527,7 @@ function renderNotSoBasic(){
 	}else{
 
 		// render to intermediate framebuffer
-		let pass = startPass(renderer, fbo_0);
+		let pass = startPass(renderer, fbo_0, "render to intermediate");
 		let drawstate = {renderer, camera, renderables, pass};
 
 		renderPointsOctree(octrees, drawstate);
@@ -503,7 +565,7 @@ function renderNotSoBasic(){
 	// );
 
 	{ // render everything but point clouds
-		let pass = revisitPass(renderer, fbo_source);
+		let pass = revisitPass(renderer, fbo_source, "render everything else");
 		let drawstate = {renderer, camera, renderables, pass};
 
 		for(let [key, nodes] of renderables){
@@ -525,7 +587,7 @@ function renderNotSoBasic(){
 
 	// EDL
 	if(edlEnabled){ 
-		let pass = startPass(renderer, screenbuffer);
+		let pass = startPass(renderer, screenbuffer, "EDL");
 		let drawstate = {renderer, camera, renderables, pass};
 
 		EDL(fbo_source, drawstate);
@@ -675,6 +737,58 @@ function renderNotSoBasic(){
 	renderer.finish();
 
 	Timer.frameEnd(renderer);
+
+
+	if(renderer.timestamps.enabled)
+	if((renderer.frameCounter % 20) == 0)
+	if(renderer.timestamps.resultBuffer)
+	{
+
+		let entries = renderer.timestamps.entries;
+		let resultBuffer = renderer.timestamps.resultBuffer;
+
+		renderer.timestamps.resultBuffer = null;
+
+		resultBuffer.mapAsync(GPUMapMode.READ).then(() => {
+			let data = resultBuffer.getMappedRange();
+			let view = new DataView(data);
+
+			let msg = "durations: \n";
+			// msg += `label                  avg   min   max   \n`;
+			msg += `label                  duration   \n`;
+			msg += `=========================================\n`;
+
+			let firstTimestamp = view.getBigInt64(256 * 0 + 0, true);
+			let lastTimestamp = view.getBigInt64(256 * (entries.length - 1) + 8, true);
+			let totalNanos = Number(lastTimestamp - firstTimestamp);
+			let totalMillies = totalNanos / 1_000_000;
+
+			for(let i = 0; i < entries.length; i++){
+				let entry = entries[i];
+
+				let start = view.getBigInt64(256 * i + 0, true);
+				let end = view.getBigInt64(256 * i + 8, true);
+
+				let nanos = Number(end - start);
+				let millies = nanos / 1_000_000;
+
+				// console.log(`[${entry.label}] duration: ${millies.toFixed(1)} ms`);
+				msg += `${entry.label.padEnd(25)}   ${millies.toFixed(1)} ms\n`;
+			}
+			msg += `=========================================\n`;
+			msg += `${totalMillies.toFixed(1).padStart(31)} ms\n`;
+
+
+			document.getElementById("msg_dbg").innerText = msg;
+			
+			resultBuffer.unmap();
+
+			renderer.timestamps.resultBufferPool.push(resultBuffer);
+
+		});
+
+	}
+
 }
 
 
