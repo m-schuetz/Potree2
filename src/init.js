@@ -144,17 +144,14 @@ function startPass(renderer, target, label){
 		storeOp: 'store',
 	}];
 
-	// let disable_multi_attachments = args.disable_multi_attachments ?? false;
 	if(target.colorAttachments.length === 2){
 		let view = target.colorAttachments[1].texture.createView();
-		colorAttachments.push(
-			{
-				view, 
-				loadOp: "clear", 
-				clearValue: { r: 0, g: 0, b: 0, a: 0},
-				storeOp: 'store',
-			}
-		);
+		colorAttachments.push({
+			view, 
+			loadOp: "clear", 
+			clearValue: { r: 0, g: 0, b: 0, a: 0},
+			storeOp: 'store',
+		});
 	}
 
 	let renderPassDescriptor = {
@@ -224,26 +221,21 @@ function revisitPass(renderer, target, label){
 function startSumPass(renderer, target, label){
 	let view = target.colorAttachments[0].texture.createView();
 
-	let colorAttachments = [
-		{
-			view, 
-			loadOp: "clear", 
-			clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
-			storeOp: 'store',
-		}
-	];
+	let colorAttachments = [{
+		view, 
+		loadOp: "clear", 
+		clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+		storeOp: 'store',
+	}];
 
-	// let disable_multi_attachments = args.disable_multi_attachments ?? false;
 	if(target.colorAttachments.length === 2){
 		let view = target.colorAttachments[1].texture.createView();
-		colorAttachments.push(
-			{
-				view, 
-				loadOp: "clear", 
-				clearValue: { r: 0, g: 0, b: 0, a: 0},
-				storeOp: 'store',
-			}
-		);
+		colorAttachments.push({
+			view, 
+			loadOp: "clear", 
+			clearValue: { r: 0, g: 0, b: 0, a: 0},
+			storeOp: 'store',
+		});
 	}
 
 	let renderPassDescriptor = {
@@ -288,6 +280,7 @@ function endPass(pass){
 
 	passEncoder.end();
 
+	// handle timestamp queries
 	if(timestampEntry)
 	if(renderer.timestamps.resultBuffer){
 
@@ -308,8 +301,6 @@ function endPass(pass){
 			renderer.timestamps.resultBuffer, byteOffset,
 			256
 		);
-
-		// renderer.timestamps.resultBufferPool.push(resultBuffer);
 	}
 
 	let commandBuffer = commandEncoder.finish();
@@ -738,7 +729,7 @@ function renderNotSoBasic(){
 
 	Timer.frameEnd(renderer);
 
-
+	// read timestamp queries
 	if(renderer.timestamps.enabled)
 	if((renderer.frameCounter % 20) == 0)
 	if(renderer.timestamps.resultBuffer)
