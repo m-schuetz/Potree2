@@ -47,7 +47,7 @@ canvas{
 <div id="potree" style="width: 100%; height: 100%; position: fixed;">
 	<span style="position: relative">
 		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
-		<input id="btn_toggle" type="button" value="toggle" style="position: absolute; left: 10px; top: 10px"></input>
+		<!-- <input id="btn_toggle" type="button" value="toggle" style="position: absolute; left: 10px; top: 10px"></input> -->
 	</span>
 </div>
 
@@ -121,7 +121,7 @@ canvas{
 
 	Potree.settings.edlEnabled = true;
 	Potree.settings.dilateEnabled = false;
-	Potree.settings.hqsEnabled = false;
+	Potree.settings.hqsEnabled = true;
 	Potree.settings.pointBudget = 8_000_000;
 	Potree.settings.attribute = "rgba";
 	// Potree.settings.attribute = "intensity";
@@ -144,28 +144,52 @@ canvas{
 
 		tiles.projector = proj4("EPSG:4978", target_crs);
 
-		// controls.set({
-		// 	position: [2547023.7, 1212088.9, 1051.4], 
-		// 	pivot:    [2547028.8, 1212159.6, 999.3]
-		// });
+		controls.set({
+			position: [2547023.7, 1212088.9, 1051.4], 
+			pivot:    [2547028.8, 1212159.6, 999.3]
+		});
+		controls.set({
+			position: [2546872.8, 1211512.2, 1347.1], 
+			pivot:    [2546988.3, 1211950.4, 969.1]
+		});
 	});
 
+	// {
+	// 	let button = document.getElementById("btn_toggle");
+	// 	button.addEventListener("click", (event) => {
+	// 		console.log("toggle");
+
+	// 		let pointclouds = scene.root.children.filter(c => c.constructor.name === "PointCloudOctree");
+
+	// 		for(let pointcloud of pointclouds){
+	// 			pointcloud.visible = !pointcloud.visible;
+	// 		}
+
+	// 	});
+	// }
+
+
 	{
-		let button = document.getElementById("btn_toggle");
-		button.addEventListener("click", (event) => {
-			console.log("toggle");
+		
+		// if(false)
+		PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
+			console.log(pointcloud);
 
-			let pointclouds = scene.root.children.filter(c => c.constructor.name === "PointCloudOctree");
+			scene.root.children.push(pointcloud);
 
-			for(let pointcloud of pointclouds){
-				pointcloud.visible = !pointcloud.visible;
-			}
+			// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
+			pointcloud.name = "SITN 2022";
 
+			let material = pointcloud.material;
+
+			// controls.set({
+			// 	position: [-16.7, 5.9, 13.2], 
+			// 	pivot:    [0.3, 1.5, 7.0]
+			// });
+
+			// [2547035.6, 1212135.1, 1022.5], 
+			// [2547043.3, 1212154.7, 1000.0]
 		});
-	}
-
-
-	{
 
 		// PotreeLoader.load("https://potree.org/pointclouds/heidentor/metadata.json").then(pointcloud => {
 		// 	console.log(pointcloud);
@@ -186,24 +210,24 @@ canvas{
 		// });
 
 		// if(false)
-		PotreeLoader.load("./resources/E/resources/pointclouds/Riegl/retz.las_converted_v2.1.1/metadata.json").then(pointcloud => {
-			console.log(pointcloud);
+		// PotreeLoader.load("./resources/E/resources/pointclouds/Riegl/retz.las_converted_v2.1.1/metadata.json").then(pointcloud => {
+		// 	console.log(pointcloud);
 
-			scene.root.children.push(pointcloud);
-			pointcloud.name = "v2.1.1";
+		// 	scene.root.children.push(pointcloud);
+		// 	pointcloud.name = "v2.1.1";
 
-			// pointcloud.position.z = -10.5;
+		// 	// pointcloud.position.z = -10.5;
 
-			let material = pointcloud.material;
+		// 	let material = pointcloud.material;
 
-			// controls.set({
-			// 	position: [-16.7, 5.9, 13.2], 
-			// 	pivot:    [0.3, 1.5, 7.0]
-			// });
+		// 	// controls.set({
+		// 	// 	position: [-16.7, 5.9, 13.2], 
+		// 	// 	pivot:    [0.3, 1.5, 7.0]
+		// 	// });
 
-			// [2547035.6, 1212135.1, 1022.5], 
-			// [2547043.3, 1212154.7, 1000.0]
-		});
+		// 	// [2547035.6, 1212135.1, 1022.5], 
+		// 	// [2547043.3, 1212154.7, 1000.0]
+		// });
 
 		// Potree3Loader.load("./resources/E/resources/pointclouds/pix4d/eclepens_4.potree").then(pointcloud => {
 		// // Potree3Loader.load("./resources/E/resources/pointclouds/pix4d/eclepens.las_converted_5/metadata.json").then(pointcloud => {
@@ -220,91 +244,84 @@ canvas{
 		// 	});
 		// });
 
-		// Potree3Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
-		// if(false)
-		// Potree3Loader.load("./resources/pointclouds/retz_potree3/metadata.json").then(pointcloud => {
-		Potree3Loader.load("./resources/E/resources/pointclouds/riegl/retz.potree").then(pointcloud => {
-		// Potree3Loader.load("./resources/G/temp/eclepens/metadata.json").then(pointcloud => {
-		// Potree3Loader.load("./resources/G/temp/heidentor/metadata.json").then(pointcloud => {
-		// Potree3Loader.load("./resources/G/temp/test/metadata.json").then(pointcloud => {
-		// Potree3Loader.load("./resources/F/temp/las14_extra_attributes/metadata.json").then(pointcloud => {
-			scene.root.children.push(pointcloud);
-			pointcloud.name = "v3";
+		// Potree3Loader.load("./resources/E/resources/pointclouds/riegl/retz.potree").then(pointcloud => {
+		// 	scene.root.children.push(pointcloud);
+		// 	pointcloud.name = "v3";
 
-			// pointcloud.position.set(2547035.6, 1212135.1, 970.5);
+		// 	// pointcloud.position.set(2547035.6, 1212135.1, 970.5);
 		
-			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
-			let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
+		// 	let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
+		// 	let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
 
-			let center = max.clone().add(min).multiplyScalar(0.5);
-			let diagonal = max.sub(min);
-			let campos = center.clone().add(diagonal);
+		// 	let center = max.clone().add(min).multiplyScalar(0.5);
+		// 	let diagonal = max.sub(min);
+		// 	let campos = center.clone().add(diagonal);
 
-			controls.set({
-				position: [33.1, -39.3, 45.7], 
-				pivot:    [-20.3, 11.7, 13.6]
-			});
+		// 	controls.set({
+		// 		position: [33.1, -39.3, 45.7], 
+		// 		pivot:    [-20.3, 11.7, 13.6]
+		// 	});
 
-			let material = pointcloud.material;
+		// 	let material = pointcloud.material;
 
-			// add lastools visualization of return number and number of returns, if both are present
-			let idx_returnNumber = pointcloud.attributes.indexOf("return number");
-			let idx_numberReturns = pointcloud.attributes.indexOf("number of returns");
+		// 	// add lastools visualization of return number and number of returns, if both are present
+		// 	let idx_returnNumber = pointcloud.attributes.indexOf("return number");
+		// 	let idx_numberReturns = pointcloud.attributes.indexOf("number of returns");
 
-			// if(idx_returnNumber !== -1 && idx_numberReturns !== -1)
-			// material.registerMapping({
-			// 	name: "return nr. & num returns (lastools)",
-			// 	condition: (attribute) => (attribute.name === "return number"),
-			// 	wgsl: `
-			// 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+		// 	// if(idx_returnNumber !== -1 && idx_numberReturns !== -1)
+		// 	// material.registerMapping({
+		// 	// 	name: "return nr. & num returns (lastools)",
+		// 	// 	condition: (attribute) => (attribute.name === "return number"),
+		// 	// 	wgsl: `
+		// 	// 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-			// 			var att_return_number = attributes[${idx_returnNumber}];
-			// 			var att_num_returns = attributes[${idx_numberReturns}];
+		// 	// 			var att_return_number = attributes[${idx_returnNumber}];
+		// 	// 			var att_num_returns = attributes[${idx_numberReturns}];
 
-			// 			var rn = readU8(node.numPoints * att_return_number.offset + pointID);
-			// 			var nr = readU8(node.numPoints * att_num_returns.offset + pointID);
+		// 	// 			var rn = readU8(node.numPoints * att_return_number.offset + pointID);
+		// 	// 			var nr = readU8(node.numPoints * att_num_returns.offset + pointID);
 
-			// 			if(nr == 1u){
-			// 				return vec4f(1.0, 1.0, 0.0, 1.0);
-			// 			}else{
-			// 				if(rn == 1u){
-			// 					return vec4f(1.0, 0.0, 0.0, 1.0);
-			// 				}else if(rn == nr){
-			// 					return vec4f(0.0, 0.0, 1.0, 1.0);
-			// 				}else{
-			// 					return vec4f(0.0, 1.0, 0.0, 1.0);
-			// 				}
-			// 			}
-			// 		}
-			// 	`,
-			// });
+		// 	// 			if(nr == 1u){
+		// 	// 				return vec4f(1.0, 1.0, 0.0, 1.0);
+		// 	// 			}else{
+		// 	// 				if(rn == 1u){
+		// 	// 					return vec4f(1.0, 0.0, 0.0, 1.0);
+		// 	// 				}else if(rn == nr){
+		// 	// 					return vec4f(0.0, 0.0, 1.0, 1.0);
+		// 	// 				}else{
+		// 	// 					return vec4f(0.0, 1.0, 0.0, 1.0);
+		// 	// 				}
+		// 	// 			}
+		// 	// 		}
+		// 	// 	`,
+		// 	// });
 
-			// material.registerMapping({
-			// 	name: "Normal 3xDouble",
-			// 	condition: (attribute) => (attribute.name === "NormalX" && attribute.byteSize === 8),
-			// 	wgsl: `
-			// 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+		// 	// material.registerMapping({
+		// 	// 	name: "Normal 3xDouble",
+		// 	// 	condition: (attribute) => (attribute.name === "NormalX" && attribute.byteSize === 8),
+		// 	// 	wgsl: `
+		// 	// 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
 
-			// 			var nx = readF64(node.numPoints * (attrib.offset +  0) + 8 * pointID);
-			// 			var ny = readF64(node.numPoints * (attrib.offset +  8) + 8 * pointID);
-			// 			var nz = readF64(node.numPoints * (attrib.offset + 16) + 8 * pointID);
+		// 	// 			var nx = readF64(node.numPoints * (attrib.offset +  0) + 8 * pointID);
+		// 	// 			var ny = readF64(node.numPoints * (attrib.offset +  8) + 8 * pointID);
+		// 	// 			var nz = readF64(node.numPoints * (attrib.offset + 16) + 8 * pointID);
 
-			// 			var color = vec4f(nx, ny, nz, 1.0);
+		// 	// 			var color = vec4f(nx, ny, nz, 1.0);
 
-			// 			return color;
-			// 		}
-			// 	`,
-			// });
+		// 	// 			return color;
+		// 	// 		}
+		// 	// 	`,
+		// 	// });
 
 
-			// add standard attribute mappings
-			// for(let mapping of Object.values(MAPPINGS)){
+		// 	// add standard attribute mappings
+		// 	// for(let mapping of Object.values(MAPPINGS)){
 
-			// 	if(["vec3", "scalar"].includes(mapping.name))
-			// 	material.registerMapping(mapping);
-			// }
+		// 	// 	if(["vec3", "scalar"].includes(mapping.name))
+		// 	// 	material.registerMapping(mapping);
+		// 	// }
 			
-		});
+		// });
 
 	}
 

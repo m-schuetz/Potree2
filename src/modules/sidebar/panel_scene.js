@@ -33,7 +33,6 @@ class Panel{
 		scene.root.traverse(node => {
 
 			let i = nodes.length;
-
 			
 			if(node.constructor.name === "PointCloudOctree"){
 				let label = node.name ?? "&lt;unnamed pointcloud&gt;";
@@ -46,6 +45,15 @@ class Panel{
 				nodes.push(node);
 			}else if(node.constructor.name === "Images360"){
 				let label = node.name ?? "&lt;360° Images&gt;";
+				tableString += `
+					<span> </span>
+					<span>${label}</span>
+					<span><input type="checkbox" name="item_${i}"></span>
+				`;
+
+				nodes.push(node);
+			}else if(node.constructor.name === "TDTiles"){
+				let label = node.name ?? "&lt;3D Tiles&gt;";
 				tableString += `
 					<span> </span>
 					<span>${label}</span>

@@ -695,6 +695,76 @@ function renderNotSoBasic(){
 				};
 				
 				
+			}else if(node?.constructor.name === "TDTiles"){
+				// console.log("hovering a 3D Tile");
+			}else if(node?.constructor.name === "TDTilesNode"){
+
+				let tiles = node.tdtile;
+				let position = new Vector3();
+
+				let triangleIndex = elementIndex;
+
+				{
+					let b3dm = node.content.b3dm;
+					let json = b3dm.gltf.json;
+					let binStart = b3dm.gltf.chunks[1].start;
+
+					let indexBufferRef  = json.meshes[0].primitives[0].indices;
+					let POSITION_bufferRef = json.meshes[0].primitives[0].attributes.POSITION;
+					let TEXCOORD_bufferRef = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
+
+					let index_accessor      = json.accessors[indexBufferRef];
+					let POSITION_accessor   = json.accessors[POSITION_bufferRef];
+
+					let index_bufferView    = json.bufferViews[index_accessor.bufferView];
+					let POSITION_bufferView = json.bufferViews[POSITION_accessor.bufferView];
+
+					let buffer = node.content.b3dm.buffer;
+					let view = new DataView(buffer);
+
+					let offset_indexbuffer = binStart + 8 + index_bufferView.byteOffset
+					let offset_posbuffer   = binStart + 8 + POSITION_bufferView.byteOffset;
+
+					// 3 vertices per triangle, 2 bytes per vertex
+					let index_v0 = view.getUint16(offset_indexbuffer + 3 * 2 * triangleIndex + 0, true);
+					let index_v1 = view.getUint16(offset_indexbuffer + 3 * 2 * triangleIndex + 2, true);
+					let index_v2 = view.getUint16(offset_indexbuffer + 3 * 2 * triangleIndex + 4, true);
+
+
+					let v0 = new Vector3(
+						 view.getFloat32(offset_posbuffer + 12 * index_v0 + 0, true),
+						-view.getFloat32(offset_posbuffer + 12 * index_v0 + 8, true),
+						 view.getFloat32(offset_posbuffer + 12 * index_v0 + 4, true),
+					);
+					let v1 = new Vector3(
+						 view.getFloat32(offset_posbuffer + 12 * index_v1 + 0, true),
+						-view.getFloat32(offset_posbuffer + 12 * index_v1 + 8, true),
+						 view.getFloat32(offset_posbuffer + 12 * index_v1 + 4, true),
+					);
+					let v2 = new Vector3(
+						 view.getFloat32(offset_posbuffer + 12 * index_v2 + 0, true),
+						-view.getFloat32(offset_posbuffer + 12 * index_v2 + 8, true),
+						 view.getFloat32(offset_posbuffer + 12 * index_v2 + 4, true),
+					);
+
+					v0.applyMatrix4(node.world);
+					v1.applyMatrix4(node.world);
+					v2.applyMatrix4(node.world);
+
+					position.copy(v0).add(v1).add(v2).multiplyScalar(1 / 3);
+				}
+
+				Potree.pickPosition.copy(position);
+
+				Potree.hoveredItem = {
+					type: node?.constructor.name + " (Triangle)",
+					instance: node,
+					node: node,
+					pointIndex: elementIndex,
+					position: position,
+					object: node.tdtile,
+				};
+
 			}else{
 				Potree.hoveredItem = null;
 			}

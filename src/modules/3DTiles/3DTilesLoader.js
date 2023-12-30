@@ -173,6 +173,7 @@ export class TDTilesLoader{
 			childNode.level = node.level;
 			childNode.localIndex = i;
 			childNode.id = `${node.id}${i}`;
+			childNode.tdtile = this.tiles;
 
 			this.parseTiles(childNode, jsChild, tilesetUrl);
 			i++;
