@@ -139,20 +139,22 @@ canvas{
 	// import {TDTiles} from "./src/modules/3DTiles/3DTiles.js";
 	import {TDTilesLoader} from "./src/modules/3DTiles/3DTilesLoader.js";
 
+	// if(false)
 	TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
 		scene.root.children.push(tiles);
 
 		tiles.projector = proj4("EPSG:4978", target_crs);
 
 		controls.set({
-			position: [2547023.7, 1212088.9, 1051.4], 
-			pivot:    [2547028.8, 1212159.6, 999.3]
-		});
-		controls.set({
 			position: [2546872.8, 1211512.2, 1347.1], 
 			pivot:    [2546988.3, 1211950.4, 969.1]
 		});
 	});
+
+	controls.set({
+			position: [2546872.8, 1211512.2, 1347.1], 
+			pivot:    [2546988.3, 1211950.4, 969.1]
+		});
 
 	// {
 	// 	let button = document.getElementById("btn_toggle");
@@ -171,7 +173,7 @@ canvas{
 
 	{
 		
-		// if(false)
+		if(false)
 		PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
 			console.log(pointcloud);
 

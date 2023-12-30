@@ -354,32 +354,6 @@ export class InputHandler extends EventDispatcher {
 
 			this.drag = null;
 		}
-
-		// if(!consumed){
-		// 	if (e.button === MouseCodes.LEFT) {
-		// 		if (noMovement) {
-		// 			let selectable = this.hoveredElements
-		// 				.find(el => el.object._listeners && el.object._listeners['select']);
-
-		// 			if (selectable) {
-		// 				selectable = selectable.object;
-
-		// 				if (this.isSelected(selectable)) {
-		// 					this.selection
-		// 						.filter(e => e !== selectable)
-		// 						.forEach(e => this.toggleSelection(e));
-		// 				} else {
-		// 					this.deselectAll();
-		// 					this.toggleSelection(selectable);
-		// 				}
-		// 			} else {
-		// 				this.deselectAll();
-		// 			}
-		// 		}
-		// 	} else if ((e.button === MouseCodes.RIGHT) && noMovement) {
-		// 		this.deselectAll();
-		// 	}
-		// }
 	}
 
 	onMouseMove (e) {
@@ -388,7 +362,9 @@ export class InputHandler extends EventDispatcher {
 		let rect = this.domElement.getBoundingClientRect();
 		let x = e.clientX - rect.left;
 		let y = e.clientY - rect.top;
-		this.mouse.set(x, y);
+
+		let dpr = window.devicePixelRatio;
+		this.mouse.set(dpr * x, dpr * y);
 
 		for (let inputListener of this.getSortedListeners()) {
 			inputListener.dispatch("mousemove", {
@@ -456,8 +432,9 @@ export class InputHandler extends EventDispatcher {
 
 		let diff = new Vector3().sub(this.drag.end, this.drag.start);
 
-		diff.x = diff.x / this.domElement.clientWidth;
-		diff.y = diff.y / this.domElement.clientHeight;
+		let dpr = window.devicePixelRatio;
+		diff.x = diff.x / (dpr * this.domElement.clientWidth);
+		diff.y = diff.y / (dpr * this.domElement.clientHeight);
 
 		return diff;
 	}
@@ -469,8 +446,9 @@ export class InputHandler extends EventDispatcher {
 
 		let lastDrag = this.drag.lastDrag.clone();
 
-		lastDrag.x = lastDrag.x / this.domElement.clientWidth;
-		lastDrag.y = lastDrag.y / this.domElement.clientHeight;
+		let dpr = window.devicePixelRatio;
+		lastDrag.x = lastDrag.x / (dpr * this.domElement.clientWidth);
+		lastDrag.y = lastDrag.y / (dpr * this.domElement.clientHeight);
 
 		return lastDrag;
 	}
