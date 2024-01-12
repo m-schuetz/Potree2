@@ -1,5 +1,5 @@
 
-import {Vector3} from "potree";
+import {Vector3, Ray} from "potree";
 import {Scene, SceneNode, Camera, OrbitControls, PotreeControls, StationaryControls, Mesh, RenderTarget} from "potree";
 import {Renderer, Timer, EventDispatcher, InputHandler} from "potree";
 import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
@@ -611,9 +611,10 @@ function renderNotSoBasic(){
 		let renderedObjects = Potree.state.renderedObjects;
 		
 		let mouse = inputHandler.mouse;
-		let window = 3;
-		let wh = window / 2;
-		renderer.readPixels(fbo_source.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, window, window).then(buffer => {
+		let searchWindow = 3;
+		let wh = searchWindow / 2;
+		// console.log(mouse);
+		renderer.readPixels(fbo_source.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, searchWindow, searchWindow).then(buffer => {
 
 			let maxID = Math.max(...new Uint32Array(buffer));
 
@@ -772,7 +773,39 @@ function renderNotSoBasic(){
 					v2.applyMatrix4(node.world);
 
 					position.copy(v0).add(v1).add(v2).multiplyScalar(1 / 3);
+
+
+					let dpr = window.devicePixelRatio;
+					let u = mouse.x / (dpr * renderer.canvas.clientWidth);
+					let v = 1 - mouse.y / (dpr * renderer.canvas.clientHeight);
+					
+					let origin = controls.getPosition();
+					let dir = camera.mouseToDirection(u, v);
+
+					let ray = new Ray(origin, dir);
+					let closest_v0 = ray.closestPointToPoint(v0);
+					let closest_v1 = ray.closestPointToPoint(v1);
+					let closest_v2 = ray.closestPointToPoint(v2);
+					// closest_v0.distan
+
+					// TODO: should compute proper triangle intersection.
+					// Right now, we're bastically taking the distance to v0, 
+					// even if the interesection is further or closer
+					position.copy(closest_v0);
 				}
+
+				// let dpr = window.devicePixelRatio;
+				// let u = mouse.x / (dpr * renderer.canvas.clientWidth);
+				// let v = 1 - mouse.y / (dpr * renderer.canvas.clientHeight);
+				
+				// let origin = controls.getPosition();
+				// let dir = camera.mouseToDirection(u, v);
+
+				// let ray = new Ray(origin, direction);
+				// ray.closestPointToPoint(
+
+				// position.copy(dir).multiplyScalar(100).add(origin);
+
 
 				Potree.pickPosition.copy(position);
 

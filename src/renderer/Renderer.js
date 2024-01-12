@@ -699,7 +699,8 @@ export class Renderer{
 			this.timestamps.resultBuffer = this.timestamps.resultBufferPool.pop();
 		}
 
-		this.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+		let dpr = window.devicePixelRatio;
+		this.setSize(this.canvas.clientWidth * dpr, this.canvas.clientHeight * dpr);
 
 		this.updateScreenbuffer();
 
