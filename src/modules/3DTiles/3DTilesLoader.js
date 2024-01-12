@@ -128,6 +128,7 @@ export class TDTilesLoader{
 
 			node.contentLoaded = true;
 			this.parseTiles(node, json.root, url);
+			// debugger;
 			node.isLoading = false;
 			
 		}else if(isBatched){
@@ -172,7 +173,7 @@ export class TDTilesLoader{
 			node.children.push(childNode);
 			childNode.level = node.level;
 			childNode.localIndex = i;
-			childNode.id = `${node.id}${i}`;
+			childNode.id = `${node.id}_${i}`;
 			childNode.tdtile = this.tiles;
 
 			this.parseTiles(childNode, jsChild, tilesetUrl);
@@ -193,6 +194,7 @@ export class TDTilesLoader{
 		let response = await fetch(url);
 		let json = await response.json();
 
+		window.dbg_3dtile_json = json;
 		loader.parseTiles(tiles.root, json.root, url);
 
 		return tiles;

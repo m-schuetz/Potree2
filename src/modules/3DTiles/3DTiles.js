@@ -30,6 +30,10 @@ let _dirx      = new Vector3();
 let _diry      = new Vector3();
 let _dirz      = new Vector3();
 
+function isDescendant(nodeID, potentialDescendantID){
+	return nodeID === potentialDescendantID || potentialDescendantID.includes(`${nodeID}_`);
+}
+
 async function init(renderer){
 
 	if(initialized){
@@ -301,9 +305,10 @@ export class TDTiles extends SceneNode{
 
 		let numNodes = this.visibleNodes.length;
 
-		let counter = 0;
-		for(let i = 0; i < numNodes; i++){
-			let node = this.visibleNodes[i];
+		let meshCounter = 0;     // some nodes have multiple meshes
+		let triangleCounter = 0;
+		for(let nodeIndex = 0; nodeIndex < numNodes; nodeIndex++){
+			let node = this.visibleNodes[nodeIndex];
 
 			_dirx.set(...this.project([
 				node.boundingVolume.position.x + 1.0,
@@ -360,11 +365,8 @@ export class TDTiles extends SceneNode{
 
 			_world.multiplyMatrices(_trans, _rot);
 			_worldView.multiplyMatrices(view, _world);
-			// _worldView.multiplyMatrices(view, _world);
 
 			node.world.elements.set(_world.elements);
-
-			f32.set(_worldView.elements, i * WGSL_NODE_BYTESIZE / 4);
 
 			if(node?.content?.b3dm){
 
@@ -379,40 +381,43 @@ export class TDTiles extends SceneNode{
 				_world.elements[12] = _pos.x;
 				_world.elements[13] = _pos.y;
 				_world.elements[14] = _pos.z;
-
-
 				_worldView.multiplyMatrices(view, _world);
-				f32.set(_worldView.elements, i * WGSL_NODE_BYTESIZE / 4);
 
 				let binStart = b3dm.gltf.chunks[1].start;
-
 				let json = b3dm.gltf.json;
-				let indexBufferRef  = json.meshes[0].primitives[0].indices;
-				let POSITION_bufferRef = json.meshes[0].primitives[0].attributes.POSITION;
-				let TEXCOORD_bufferRef = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
 
-				let index_accessor      = json.accessors[indexBufferRef];
-				let POSITION_accessor   = json.accessors[POSITION_bufferRef];
-				let TEXCOORD_accessor   = json.accessors[TEXCOORD_bufferRef];
+				for(let primitive of json.meshes[0].primitives){
 
-				let index_bufferView    = json.bufferViews[index_accessor.bufferView];
-				let POSITION_bufferView = json.bufferViews[POSITION_accessor.bufferView];
-				let TEXCOORD_bufferView = json.bufferViews[TEXCOORD_accessor.bufferView];
+					f32.set(_worldView.elements, meshCounter * WGSL_NODE_BYTESIZE / 4);
 
-				bufferView.setUint32(WGSL_NODE_BYTESIZE * i + 64 +  0, binStart + 8 + index_bufferView.byteOffset, true);
-				bufferView.setUint32(WGSL_NODE_BYTESIZE * i + 64 +  4, binStart + 8 + POSITION_bufferView.byteOffset, true);
-				bufferView.setUint32(WGSL_NODE_BYTESIZE * i + 64 +  8, binStart + 8 + TEXCOORD_bufferView.byteOffset, true);
-				bufferView.setUint32(WGSL_NODE_BYTESIZE * i + 64 + 12, node.index, true);
-				bufferView.setUint32(WGSL_NODE_BYTESIZE * i + 64 + 16, counter, true);
+					let indexBufferRef      = primitive.indices;
+					let POSITION_bufferRef  = primitive.attributes.POSITION;
+					let TEXCOORD_bufferRef  = primitive.attributes.TEXCOORD_0;
 
-				let numTriangles = index_accessor.count / 3;
-				counter += numTriangles;
+					let index_accessor      = json.accessors[indexBufferRef];
+					let POSITION_accessor   = json.accessors[POSITION_bufferRef];
+					let TEXCOORD_accessor   = json.accessors[TEXCOORD_bufferRef];
+
+					let index_bufferView    = json.bufferViews[index_accessor.bufferView];
+					let POSITION_bufferView = json.bufferViews[POSITION_accessor.bufferView];
+					let TEXCOORD_bufferView = json.bufferViews[TEXCOORD_accessor.bufferView];
+
+					bufferView.setUint32(WGSL_NODE_BYTESIZE * meshCounter + 64 +  0, binStart + 8 + index_bufferView.byteOffset, true);
+					bufferView.setUint32(WGSL_NODE_BYTESIZE * meshCounter + 64 +  4, binStart + 8 + POSITION_bufferView.byteOffset, true);
+					bufferView.setUint32(WGSL_NODE_BYTESIZE * meshCounter + 64 +  8, binStart + 8 + TEXCOORD_bufferView.byteOffset, true);
+					bufferView.setUint32(WGSL_NODE_BYTESIZE * meshCounter + 64 + 12, node.index, true);
+					bufferView.setUint32(WGSL_NODE_BYTESIZE * meshCounter + 64 + 16, triangleCounter, true);
+
+					let numTriangles = index_accessor.count / 3;
+					triangleCounter += numTriangles;
+					meshCounter++;
+				}
 			}
 
 
 		}
 
-		renderer.device.queue.writeBuffer(nodesGpuBuffer, 0, nodesBuffer, 0, WGSL_NODE_BYTESIZE * numNodes);
+		renderer.device.queue.writeBuffer(nodesGpuBuffer, 0, nodesBuffer, 0, WGSL_NODE_BYTESIZE * meshCounter);
 	}
 
 	project(coord){
@@ -454,17 +459,32 @@ export class TDTiles extends SceneNode{
 				]), 1);
 
 				_box.min.set(
-					_pos.x - 0.5 * bv.radius,
-					_pos.y - 0.5 * bv.radius,
-					_pos.z - 0.5 * bv.radius,
+					_pos.x - 1.0 * bv.radius,
+					_pos.y - 1.0 * bv.radius,
+					_pos.z - 1.0 * bv.radius,
 				);
 				_box.max.set(
-					_pos.x + 0.5 * bv.radius,
-					_pos.y + 0.5 * bv.radius,
-					_pos.z + 0.5 * bv.radius,
+					_pos.x + 1.0 * bv.radius,
+					_pos.y + 1.0 * bv.radius,
+					_pos.z + 1.0 * bv.radius,
 				);
 
 				let inFrustum = _frustum.intersectsBox(_box);
+
+				// if(isDescendant(node.id, "r_245_0_0_0_0"))
+				// // if(node.id === "r_245")
+				// // if(node.id === "r_245")
+				// {
+				// 	// debug;
+
+				// 	let color = new Vector3(255, 255, 0);
+				// 	let size = 0.5 * bv.radius;
+				// 	renderer.drawBoundingBox(
+				// 		_pos.clone(),
+				// 		new Vector3(1, 1, 1).multiplyScalar(size),
+				// 		color,
+				// 	);
+				// }
 
 				if(!inFrustum) return false;
 
@@ -483,7 +503,7 @@ export class TDTiles extends SceneNode{
 				pixelSize = screenSize.width * bv.radius / distance;
 			}
 
-			let needsRefinement = sse > 5;
+			let needsRefinement = sse > 8;
 			node.sse = sse;
 
 			// if(node.id === "r170") needsRefinement = false;
@@ -546,6 +566,28 @@ export class TDTiles extends SceneNode{
 			return true;
 		});
 
+		// { // DEBUG: Only traverse to specific node
+		// 	this.visibleNodes = [];
+		// 	let targetNodeID = "r_245_0_0_0_0";
+		// 	this.root.traverse(node => {
+
+		// 		let hasContent = node.content != null;
+		// 		let nodeIsLoaded = hasContent && node.contentLoaded;
+
+		// 		if(hasContent && nodeIsLoaded){
+		// 			this.visibleNodes.push(node);
+
+		// 			return false;
+		// 		}else if(hasContent && !nodeIsLoaded){
+		// 			loadQueue.push(node);
+		// 		}
+		// 		
+		// 		let keepTraversing = node.id === targetNodeID || targetNodeID.includes(`${node.id}_`);
+
+		// 		return keepTraversing;
+		// 	});
+		// }
+
 		this.visibleNodes.push(this.root);
 
 		loadQueue.sort((a, b) => {
@@ -568,9 +610,41 @@ export class TDTiles extends SceneNode{
 		let {renderer, camera} = drawstate;
 		let {device} = renderer;
 
-		this.updateVisibility(renderer, camera);
+		if(Potree.settings.updateEnabled){
+			this.updateVisibility(renderer, camera);
+		}
 
-		// this.visibleNodes = this.visibleNodes.filter(n => n.id === "r170");
+		// this.visibleNodes = this.visibleNodes.filter(n => n.id === "r_245_0_0_0_0");
+		
+		if(Potree.settings.dbg3DTile){
+			this.visibleNodes = this.visibleNodes.filter(n => isDescendant(n.id, Potree.settings.dbg3DTile));
+		}
+
+		// {
+		// 	let drawBox = (node) => {
+		// 		let pos = new Vector3();
+		// 		pos.set(...this.project([
+		// 			node.boundingVolume.position.x,
+		// 			node.boundingVolume.position.y,
+		// 			node.boundingVolume.position.z,
+		// 		]), 1);
+		// 		let color = new Vector3(0, 255, 0);
+		// 		let size = node.boundingVolume.radius;
+		// 		renderer.drawBoundingBox(
+		// 			pos,
+		// 			new Vector3(1, 1, 1).multiplyScalar(size),
+		// 			color,
+		// 		);
+		// 	};
+
+		// 	let root = this.root;
+		// 	let r_245 = this.root.children[245];
+		// 	let r_245_0 = this.root.children[245].children[0];
+
+		// 	drawBox(root);
+		// 	drawBox(r_245);
+		// 	drawBox(r_245_0);
+		// }
 
 		init(renderer);
 
@@ -578,8 +652,6 @@ export class TDTiles extends SceneNode{
 
 		this.updateUniforms(drawstate);
 		this.updateNodesBuffer(drawstate);
-
-
 
 		if(!defaultTexture){
 			let array = new Uint8Array([255, 0, 0, 255]);
@@ -594,124 +666,124 @@ export class TDTiles extends SceneNode{
 			});
 		}
 
-
 		let {passEncoder} = drawstate.pass;
 
 		passEncoder.setPipeline(pipeline);
 		passEncoder.setBindGroup(0, bindGroup_0);
 
+		let meshCounter = 0;
+		let triangleCounter = 0;
+		for(let nodeIndex = 0; nodeIndex < this.visibleNodes.length; nodeIndex++){
 
-
-		// let nodesBindGroup = renderer.device.createBindGroup({
-		// 	layout: layout_nodes,
-		// 	entries: [
-		// 		{binding: 0, resource: {buffer: nodesGpuBuffer}},
-		// 	],
-		// });
-
-		// passEncoder.setBindGroup(1, nodesBindGroup);
-
-		// let vboPosition = renderer.getGpuBuffer(this.positions);
-
-		// passEncoder.setVertexBuffer(0, vboPosition);
-
-		// let numVertices = this.positions.length / 3;
-		// passEncoder.draw(6, 1, 0, 0);
-
-		// Potree.state.renderedElements += numVertices;
-		// Potree.state.renderedObjects.push({node: this, numElements: numVertices});
-
-		for(let i = 0; i < this.visibleNodes.length; i++){
-
-			let node = this.visibleNodes[i];
+			let node = this.visibleNodes[nodeIndex];
 
 			if(node.content && node.content.b3dm){
 				let state = getState(node, renderer);
 
 				let gltf = node.content.b3dm.gltf;
 				let json = node.content.b3dm.gltf.json;
-				let indexBufferRef  = json.meshes[0].primitives[0].indices;
-				// let POSITION_bufferRef = json.meshes[0].primitives[0].attributes.POSITION;
-				// let TEXCOORD_bufferRef = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
 
+				for(let primitive of json.meshes[0].primitives){
+					// let primitive = json.meshes[0].primitives[primitiveID];
+					let indexBufferRef  = primitive.indices;
+					// let indexBufferRef  = json.meshes[0].primitives[0].indices;
+					// let POSITION_bufferRef = json.meshes[0].primitives[0].attributes.POSITION;
+					// let TEXCOORD_bufferRef = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
 
-				if(gltf.image && !node.texture){
+					if(gltf.image && !node.texture){
 
-					let image = gltf.image;
-					let args = {format: "rgba8unorm"};
-					let texture = renderer.createTexture(image.width, image.height, args);
-					node.texture = texture;
+						let image = gltf.image;
+						let args = {format: "rgba8unorm"};
+						let texture = renderer.createTexture(image.width, image.height, args);
+						node.texture = texture;
 
-					device.queue.copyExternalImageToTexture(
-						{source: gltf.image},
-						{texture: texture},
-						[image.width, image.height]
-					);
+						device.queue.copyExternalImageToTexture(
+							{source: gltf.image},
+							{texture: texture},
+							[image.width, image.height]
+						);
 
-					
+						
+					}
+
+					let index_accessor      = json.accessors[indexBufferRef];
+					// let POSITION_accessor   = json.accessors[TEXCOORD_bufferRef];
+					// let TEXCOORD_accessor   = json.accessors[TEXCOORD_bufferRef];
+
+					// let index_bufferView    = json.bufferViews[index_accessor.bufferView];
+					// let POSITION_bufferView = json.bufferViews[POSITION_accessor.bufferView];
+					// let TEXCOORD_bufferView = json.bufferViews[TEXCOORD_accessor.bufferView];
+
+					// if(node.id === "r_174_0_0_0_0"){
+					// 	debugger;
+					// }
+
+					let numIndices = index_accessor.count;
+
+					let texture = node.texture ?? defaultTexture;
+
+					let bindGroup1 = device.createBindGroup({
+						layout: layout_1,
+						entries: [
+							{binding: 0, resource: {buffer: state.gpuBuffer}},
+							{binding: 1, resource: texture.createView()},
+							{binding: 2, resource: defaultSampler},
+						],
+					});
+
+					passEncoder.setBindGroup(1, bindGroup1);
+
+					passEncoder.draw(numIndices, 1, 0, meshCounter);
+
+					let numTriangles = numIndices / 3;
+					Potree.state.renderedElements += numTriangles;
+					Potree.state.renderedObjects.push({node: node, numElements: numTriangles});
+
+					triangleCounter += numTriangles;
+					meshCounter++;
 				}
 
-
-
-
-				let index_accessor      = json.accessors[indexBufferRef];
-				// let POSITION_accessor   = json.accessors[TEXCOORD_bufferRef];
-				// let TEXCOORD_accessor   = json.accessors[TEXCOORD_bufferRef];
-
-				// let index_bufferView    = json.bufferViews[index_accessor.bufferView];
-				// let POSITION_bufferView = json.bufferViews[POSITION_accessor.bufferView];
-				// let TEXCOORD_bufferView = json.bufferViews[TEXCOORD_accessor.bufferView];
-
-				let numIndices = index_accessor.count;
-
-				let texture = node.texture ?? defaultTexture;
-
-				let bindGroup1 = device.createBindGroup({
-					layout: layout_1,
-					entries: [
-						{binding: 0, resource: {buffer: state.gpuBuffer}},
-						{binding: 1, resource: texture.createView()},
-						{binding: 2, resource: defaultSampler},
-					],
-				});
-
-				passEncoder.setBindGroup(1, bindGroup1);
-
-				passEncoder.draw(numIndices, 1, 0, i);
-
-				let numTriangles = numIndices / 3;
-				Potree.state.renderedElements += numTriangles;
-				Potree.state.renderedObjects.push({node: node, numElements: numTriangles});
-
 				// draw bounding box
-				// let pos = new Vector3();
-				// pos.set(...this.project([
-				// 	node.boundingVolume.position.x,
-				// 	node.boundingVolume.position.y,
-				// 	node.boundingVolume.position.z,
-				// ]), 1);
-				// let color = new Vector3(0, 255, 0);
-				// let size = node.boundingVolume.radius;
-				// renderer.drawBoundingBox(
-				// 	pos,
-				// 	new Vector3(1, 1, 1).multiplyScalar(size),
-				// 	color,
-				// );
+				if(Potree.settings.showBoundingBox){
+					let pos = new Vector3();
+					pos.set(...this.project([
+						node.boundingVolume.position.x,
+						node.boundingVolume.position.y,
+						node.boundingVolume.position.z,
+					]), 1);
+					let color = new Vector3(0, 255, 0);
+					let size = node.boundingVolume.radius;
+					renderer.drawBoundingBox(
+						pos,
+						new Vector3(1, 1, 1).multiplyScalar(size),
+						color,
+					);
+
+					// TODO: would be neat to have helper functions like this:
+					// renderer.draw(geometries.boundingSphere, {position: pos, scale: size});
+					// renderer.draw(geometries.boundingBox, {position: pos, scale: size});
+
+					renderer.drawSphere(pos, 0.6 * size);
+				}
 			}else{
 				// draw bounding box
-				// let pos = new Vector3();
-				// pos.set(...this.project([
-				// 	node.boundingVolume.position.x,
-				// 	node.boundingVolume.position.y,
-				// 	node.boundingVolume.position.z,
-				// ]), 1);
-				// let color = new Vector3(255, 0, 0);
-				// let size = node.boundingVolume.radius;
-				// renderer.drawBoundingBox(
-				// 	pos,
-				// 	new Vector3(1, 1, 1).multiplyScalar(size),
-				// 	color,
-				// );
+				if(Potree.settings.showBoundingBox){
+					let pos = new Vector3();
+					pos.set(...this.project([
+						node.boundingVolume.position.x,
+						node.boundingVolume.position.y,
+						node.boundingVolume.position.z,
+					]), 1);
+					let color = new Vector3(255, 0, 0);
+					let size = node.boundingVolume.radius;
+					// renderer.drawBoundingBox(
+					// 	pos,
+					// 	new Vector3(1, 1, 1).multiplyScalar(size),
+					// 	color,
+					// );
+
+					renderer.drawSphere(pos, 0.6 * size);
+				}
 			}
 
 			// let num

@@ -4,6 +4,7 @@
 import * as shaders from "../prototyping/shaders.js";
 import {render as renderBoxes} from "../modules/drawCommands/renderBoxes.js";
 import {render as renderSpheres} from "../modules/drawCommands/renderSpheres.js";
+import {render as renderBoundingSpheres} from "../modules/drawCommands/renderBoundingSpheres.js";
 import {render as renderBoundingBoxes} from "../modules/drawCommands/renderBoundingBoxes.js";
 import {render as renderPoints} from "../modules/drawCommands/renderPoints.js";
 import {render as renderQuads} from "../modules/drawCommands/renderQuads.js";
@@ -720,7 +721,8 @@ export class Renderer{
 
 	renderDrawCommands(drawstate){
 		renderBoxes(this.draws.boxes, drawstate);
-		renderSpheres(this.draws.spheres, drawstate);
+		// renderSpheres(this.draws.spheres, drawstate);
+		renderBoundingSpheres(this.draws.spheres, drawstate);
 		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
 		// renderPoints(this.draws.points, drawstate);
 		// renderQuads(this.draws.quads, drawstate);

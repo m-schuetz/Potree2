@@ -133,14 +133,14 @@ struct VertexOut{
 	@builtin(position) position : vec4<f32>,
 	@location(0) @interpolate(flat) pointID : u32,
 	@location(1) @interpolate(linear) color : vec4<f32>,
-	@location(2) @interpolate(linear) uv : vec2f,
+	@location(2) @interpolate(perspective) uv : vec2f,
 	@location(3) @interpolate(flat)  instanceID : u32,
 };
 
 struct FragmentIn{
 	@location(0) @interpolate(flat) pointID : u32,
 	@location(1) @interpolate(linear) color : vec4<f32>,
-	@location(2) @interpolate(linear) uv : vec2f,
+	@location(2) @interpolate(perspective) uv : vec2f,
 	@location(3) @interpolate(flat)  instanceID : u32,
 };
 

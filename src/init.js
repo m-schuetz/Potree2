@@ -212,6 +212,26 @@ function revisitPass(renderer, target, label){
 		sampleCount: 1,
 	};
 
+	let timestampEntry = null;
+	if(renderer.timestamps.enabled){
+		
+		let startIndex = 2 * renderer.timestamps.entries.length;
+
+		renderPassDescriptor.timestampWrites = {
+			querySet:                  renderer.timestamps.querySet,
+			beginningOfPassWriteIndex: startIndex,
+			endOfPassWriteIndex:       startIndex + 1,
+		};
+
+		timestampEntry = {
+			startIndex : startIndex,
+			endIndex   : startIndex + 1,
+			label      : label,
+		};
+
+		renderer.timestamps.entries.push(timestampEntry);
+	}
+
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
