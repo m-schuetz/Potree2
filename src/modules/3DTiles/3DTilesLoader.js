@@ -64,21 +64,24 @@ export class TDTilesLoader{
 			let chunk_bin_type     = view.getUint32(binStart + 4, true);
 			let chunk_bin_data     = new Uint8Array(buffer, binStart + 8, chunk_bin_length);
 
-			let imageBufferViewRef = json.images[0].bufferView;
-			let imageBufferView    = json.bufferViews[imageBufferViewRef];
+			gltf.images = [];
+			for(let json_image of json.images){
+				let imageBufferViewRef = json_image.bufferView;
+				let imageBufferView    = json.bufferViews[imageBufferViewRef];
 
-			let jpegU8 = new Uint8Array(
-				buffer, 
-				binStart + 8 + imageBufferView.byteOffset, 
-				imageBufferView.byteLength
-			);
+				let jpegU8 = new Uint8Array(
+					buffer, 
+					binStart + 8 + imageBufferView.byteOffset, 
+					imageBufferView.byteLength
+				);
 
-			// LOAD JPEG ENCODED COLORS
-			{ // try loading image
-				let blob = new Blob([jpegU8]);
+				// LOAD JPEG ENCODED COLORS
+				{ // try loading image
+					let blob = new Blob([jpegU8]);
 
-				let image = await createImageBitmap(blob);
-				gltf.image = image;
+					let image = await createImageBitmap(blob);
+					gltf.images.push(image);
+				}
 			}
 			
 			gltf.json = json;

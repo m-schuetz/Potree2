@@ -503,7 +503,7 @@ export class TDTiles extends SceneNode{
 				pixelSize = screenSize.width * bv.radius / distance;
 			}
 
-			let needsRefinement = sse > 8;
+			let needsRefinement = sse > 2;
 			node.sse = sse;
 
 			// if(node.id === "r170") needsRefinement = false;
@@ -614,7 +614,7 @@ export class TDTiles extends SceneNode{
 			this.updateVisibility(renderer, camera);
 		}
 
-		// this.visibleNodes = this.visibleNodes.filter(n => n.id === "r_245_0_0_0_0");
+		// this.visibleNodes = this.visibleNodes.filter(n => n.id === "r_241_0_0_0_0_3_0_0_0_0_0");
 		
 		if(Potree.settings.dbg3DTile){
 			this.visibleNodes = this.visibleNodes.filter(n => isDescendant(n.id, Potree.settings.dbg3DTile));
@@ -683,25 +683,30 @@ export class TDTiles extends SceneNode{
 				let gltf = node.content.b3dm.gltf;
 				let json = node.content.b3dm.gltf.json;
 
-				for(let primitive of json.meshes[0].primitives){
-					// let primitive = json.meshes[0].primitives[primitiveID];
+				for(let primitiveID = 0; primitiveID < json.meshes[0].primitives.length; primitiveID++)
+				{
+					let primitive = json.meshes[0].primitives[primitiveID];
 					let indexBufferRef  = primitive.indices;
 					// let indexBufferRef  = json.meshes[0].primitives[0].indices;
 					// let POSITION_bufferRef = json.meshes[0].primitives[0].attributes.POSITION;
 					// let TEXCOORD_bufferRef = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
 
-					if(gltf.image && !node.texture){
+					if(gltf.images && !node.textures){
 
-						let image = gltf.image;
-						let args = {format: "rgba8unorm"};
-						let texture = renderer.createTexture(image.width, image.height, args);
-						node.texture = texture;
+						node.textures = [];
 
-						device.queue.copyExternalImageToTexture(
-							{source: gltf.image},
-							{texture: texture},
-							[image.width, image.height]
-						);
+						for(let image of gltf.images){
+							let args = {format: "rgba8unorm"};
+							let texture = renderer.createTexture(image.width, image.height, args);
+							node.textures.push(texture);
+
+							device.queue.copyExternalImageToTexture(
+								{source: image},
+								{texture: texture},
+								[image.width, image.height]
+							);
+						}
+						
 
 						
 					}
@@ -720,7 +725,15 @@ export class TDTiles extends SceneNode{
 
 					let numIndices = index_accessor.count;
 
-					let texture = node.texture ?? defaultTexture;
+					// let texture = node.texture ?? defaultTexture;
+					let texture = defaultTexture;
+					if(node.textures){
+						texture = node.textures[0];
+
+						if(node.textures.length > primitiveID){
+							texture = node.textures[primitiveID];
+						}
+					}
 
 					let bindGroup1 = device.createBindGroup({
 						layout: layout_1,

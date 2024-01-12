@@ -235,7 +235,7 @@ function revisitPass(renderer, target, label){
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-	return {commandEncoder, passEncoder};
+	return {commandEncoder, passEncoder, timestampEntry};
 }
 
 function startSumPass(renderer, target, label){
