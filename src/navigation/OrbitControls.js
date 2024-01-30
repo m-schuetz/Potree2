@@ -143,7 +143,7 @@ export class OrbitControls{
 		} 
 	}
 
-	zoomTo(node, args){
+	zoomTo(node, args = {}){
 
 		let box = new Box3();
 		let tmp = new Box3();

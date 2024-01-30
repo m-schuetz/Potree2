@@ -786,12 +786,19 @@ function renderNotSoBasic(){
 					let closest_v0 = ray.closestPointToPoint(v0);
 					let closest_v1 = ray.closestPointToPoint(v1);
 					let closest_v2 = ray.closestPointToPoint(v2);
-					// closest_v0.distan
+					
+					let d_0 = origin.distanceTo(closest_v0);
+					let d_1 = origin.distanceTo(closest_v1);
+					let d_2 = origin.distanceTo(closest_v2);
+
+					let closest = closest_v0;
+					if(d_1 < d_0) closest = closest_v1;
+					if(d_2 < d_1) closest = closest_v2;
 
 					// TODO: should compute proper triangle intersection.
 					// Right now, we're bastically taking the distance to v0, 
 					// even if the interesection is further or closer
-					position.copy(closest_v0);
+					position.copy(closest);
 				}
 
 				// let dpr = window.devicePixelRatio;
@@ -908,6 +915,10 @@ function renderNotSoBasic(){
 
 function loop(time){
 
+	Potree.state.frameCounter = renderer.frameCounter;
+
+	Potree.events.dispatcher.dispatch("frame_start");
+
 	stats.begin();
 
 	TWEEN.update(time);
@@ -916,6 +927,8 @@ function loop(time){
 	renderNotSoBasic();
 
 	stats.end();
+
+	Potree.events.dispatcher.dispatch("frame_end");
 
 	requestAnimationFrame(loop);
 }
@@ -941,6 +954,7 @@ window.dbgControls = dbgControls;
 export async function init(){
 
 	renderer = new Renderer();
+	Potree.renderer = renderer;
 
 	await renderer.init();
 

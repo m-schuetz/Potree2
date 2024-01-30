@@ -1,7 +1,10 @@
 
 import {SceneNode, Vector3, Vector4, Matrix4, Box3, Frustum, EventDispatcher, StationaryControls} from "potree";
+import {LRUItem, LRU} from "potree";
 
 const WGSL_NODE_BYTESIZE = 80 + 16;
+const TILES_CACHE_THRESHOLD = 300_000_000; // If we load more bytes, we start unloading least-recently-used nodes
+
 let initialized = false;
 let pipeline = null;
 let uniformsBuffer = new ArrayBuffer(256);
@@ -13,7 +16,6 @@ let layout_1 = null;
 let bindGroup_0 = null;
 let stateCache = new Map();
 
-let defaultTexture = null;
 let defaultSampler = null;
 
 // some reusable variables to reduce GC strain
@@ -29,6 +31,8 @@ let _box       = new Box3();
 let _dirx      = new Vector3();
 let _diry      = new Vector3();
 let _dirz      = new Vector3();
+
+let lru = new LRU();
 
 function isDescendant(nodeID, potentialDescendantID){
 	return nodeID === potentialDescendantID || potentialDescendantID.includes(`${nodeID}_`);
@@ -212,6 +216,7 @@ export class TDTilesNode{
 		this.id = "r";
 		this.tdtile = null;
 		this.world = new Matrix4();
+		this.last_used_in_frame = 0;
 
 		globalNodeCounter++;
 	}
@@ -446,6 +451,12 @@ export class TDTiles extends SceneNode{
 		// console.log("==== update visibility ==== ");
 		this.root.traverse(node => {
 
+			// mark this as "recently used"
+			node.last_used_in_frame = Potree.state.frameCounter;
+			if(node?.content?.b3dm != null && node.contentLoaded){
+				lru.touch(node);
+			}
+
 			let pixelSize = 0;
 			let sse       = 0;
 			let bv        = node.boundingVolume;
@@ -602,6 +613,54 @@ export class TDTiles extends SceneNode{
 			if(i > 10) break;
 		}
 
+		Potree.debug.lru_tiles = lru;
+	}
+
+	disposeLeastRecentlyUsed(renderer){
+
+		let tracker = Potree.resourceTracker["3DTiles"];
+		while(tracker.bytesLoaded > TILES_CACHE_THRESHOLD){
+			// start unloading least-recently-used nodes
+
+			let item = lru.first;
+			let node = item.node;
+
+			// console.log(`disposing ${node.id}`);
+
+			// avoid unloading very recently used nodes
+			if(node.last_used_in_frame + 5 >= Potree.state.frameCounter){
+				break;
+			}
+
+			if(node.isLoading) continue;
+
+			let b3dm = node?.content?.b3dm;
+
+			if(b3dm && node.contentLoaded){
+
+				tracker.bytesLoaded -= node.content.b3dm.buffer.byteLength;
+
+				let nodeBuffer = node.content.b3dm.gltf.buffer;
+				let gpuBuffer = renderer.typedBuffers.get(nodeBuffer);
+				
+				if(gpuBuffer) gpuBuffer.destroy();
+				if(node.textures) node.textures.forEach(texture => {
+					renderer.dispose(texture);
+				});
+				delete node.textures;
+
+				renderer.typedBuffers.delete(nodeBuffer);
+				stateCache.delete(node);
+
+
+				delete node.content.b3dm;
+				node.contentLoaded = false;
+				lru.remove(node);
+			}else{
+				// Nothing to unload
+			}
+
+		}
 
 	}
 
@@ -614,37 +673,13 @@ export class TDTiles extends SceneNode{
 			this.updateVisibility(renderer, camera);
 		}
 
+		this.disposeLeastRecentlyUsed(renderer);
+
 		// this.visibleNodes = this.visibleNodes.filter(n => n.id === "r_241_0_0_0_0_3_0_0_0_0_0");
 		
 		if(Potree.settings.dbg3DTile){
 			this.visibleNodes = this.visibleNodes.filter(n => isDescendant(n.id, Potree.settings.dbg3DTile));
 		}
-
-		// {
-		// 	let drawBox = (node) => {
-		// 		let pos = new Vector3();
-		// 		pos.set(...this.project([
-		// 			node.boundingVolume.position.x,
-		// 			node.boundingVolume.position.y,
-		// 			node.boundingVolume.position.z,
-		// 		]), 1);
-		// 		let color = new Vector3(0, 255, 0);
-		// 		let size = node.boundingVolume.radius;
-		// 		renderer.drawBoundingBox(
-		// 			pos,
-		// 			new Vector3(1, 1, 1).multiplyScalar(size),
-		// 			color,
-		// 		);
-		// 	};
-
-		// 	let root = this.root;
-		// 	let r_245 = this.root.children[245];
-		// 	let r_245_0 = this.root.children[245].children[0];
-
-		// 	drawBox(root);
-		// 	drawBox(r_245);
-		// 	drawBox(r_245_0);
-		// }
 
 		init(renderer);
 
@@ -652,11 +687,6 @@ export class TDTiles extends SceneNode{
 
 		this.updateUniforms(drawstate);
 		this.updateNodesBuffer(drawstate);
-
-		if(!defaultTexture){
-			let array = new Uint8Array([255, 0, 0, 255]);
-			defaultTexture = renderer.createTextureFromArray(array, 1, 1);
-		}
 
 		if(!defaultSampler){
 			defaultSampler = device.createSampler({
@@ -687,16 +717,13 @@ export class TDTiles extends SceneNode{
 				{
 					let primitive = json.meshes[0].primitives[primitiveID];
 					let indexBufferRef  = primitive.indices;
-					// let indexBufferRef  = json.meshes[0].primitives[0].indices;
-					// let POSITION_bufferRef = json.meshes[0].primitives[0].attributes.POSITION;
-					// let TEXCOORD_bufferRef = json.meshes[0].primitives[0].attributes.TEXCOORD_0;
 
 					if(gltf.images && !node.textures){
 
 						node.textures = [];
 
 						for(let image of gltf.images){
-							let args = {format: "rgba8unorm"};
+							let args = {format: "rgba8unorm", label: `3DTiles texture for node ${node.id}`};
 							let texture = renderer.createTexture(image.width, image.height, args);
 							node.textures.push(texture);
 
@@ -706,27 +733,12 @@ export class TDTiles extends SceneNode{
 								[image.width, image.height]
 							);
 						}
-						
-
-						
 					}
 
 					let index_accessor      = json.accessors[indexBufferRef];
-					// let POSITION_accessor   = json.accessors[TEXCOORD_bufferRef];
-					// let TEXCOORD_accessor   = json.accessors[TEXCOORD_bufferRef];
-
-					// let index_bufferView    = json.bufferViews[index_accessor.bufferView];
-					// let POSITION_bufferView = json.bufferViews[POSITION_accessor.bufferView];
-					// let TEXCOORD_bufferView = json.bufferViews[TEXCOORD_accessor.bufferView];
-
-					// if(node.id === "r_174_0_0_0_0"){
-					// 	debugger;
-					// }
-
 					let numIndices = index_accessor.count;
 
-					// let texture = node.texture ?? defaultTexture;
-					let texture = defaultTexture;
+					let texture = renderer.defaultTexture;
 					if(node.textures){
 						texture = node.textures[0];
 

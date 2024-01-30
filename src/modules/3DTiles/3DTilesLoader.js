@@ -92,6 +92,9 @@ export class TDTilesLoader{
 			];
 
 		}
+
+		let tracker = Potree.resourceTracker["3DTiles"];
+		tracker.bytesLoaded += buffer.byteLength;
 		
 		let b3dm = {
 			buffer,
@@ -99,15 +102,6 @@ export class TDTilesLoader{
 			version, byteLength,
 			gltf,
 		};
-
-		// console.log({
-		// 	version,
-		// 	byteLength,
-		// 	featureTableJsonByteLenght,
-		// 	featureTableBinaryByteLength,
-		// 	batchTableJSONByteLength,
-		// 	batchTableBinaryByteLength,
-		// });
 
 		return b3dm;
 	}

@@ -431,11 +431,14 @@ async function renderOctree(octree, drawstate, flags){
 	updateUniforms(octree, octreeState_quads, drawstate, flags);
 	updateUniforms(octree, octreeState_points, drawstate, flags);
 
+	let mapping = octree.material.selectedMappings.get(attributeName);
+
+	if(mapping)
 	{ // UPDATE COLORMAP BUFFER
 		let attributeName = Potree.settings.attribute;
 
-		let settings = octree?.material?.attributeSettings?.get(attributeName);
-		let mapping = octree.material.selectedMappings.get(attributeName);
+		// let settings = octree?.material?.attributeSettings?.get(attributeName);
+		
 		let listing = mapping.listing;
 
 		// if(settings?.constructor?.name === "Attribute_Listing")

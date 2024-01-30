@@ -37,6 +37,7 @@ export * from "./potree/octree/loader_v3/Potree3Loader.js";
 export * from "./potree/octree/loader/PotreeLoader.js";
 export * from "./potree/ChunkedBuffer.js";
 export * from "./modules/attributes/mappings.js";
+export * from "./potree/LRU.js"
 
 export {render as renderPoints} from "./prototyping/renderPoints.js";
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";
@@ -95,8 +96,10 @@ const dispatcher = new EventDispatcher();
 
 const events = {
 	dispatcher,
+	onFrameStart:       (callback, args) => dispatcher.add("frame_start", callback, args),
+	onFrameEnd:         (callback, args) => dispatcher.add("frame_end", callback, args),
 	onPointcloudLoaded: (callback, args) => dispatcher.add("pointcloud_loaded", callback, args),
-	onRootNodeLoaded: (callback, args) => dispatcher.add("root_node_loaded", callback, args),
+	onRootNodeLoaded:   (callback, args) => dispatcher.add("root_node_loaded", callback, args),
 };
 
 export const SplatType = {
@@ -161,6 +164,11 @@ export let Potree = {
 	instance: null,
 	version: "2.0 (WebGPU prototype)",
 	basePath: scriptPath,
+	resourceTracker: {
+		"3DTiles": {
+			bytesLoaded: 0,
+		},
+	},
 	debug: {}
 };
 

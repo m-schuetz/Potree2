@@ -68,6 +68,7 @@ export class Renderer{
 		this.frameCounter = 0;
 
 		this.defaultSampler = null;
+		this.defaultTexture = null;
 
 		this.timestamps = {
 			enabled:               false,
@@ -84,9 +85,50 @@ export class Renderer{
 		this.screenbuffer = null;
 
 		this.framebuffers = new Map();
-		this.buffers = new Map();
+		this.buffers      = new Set();
 		this.typedBuffers = new Map();
-		this.textures = new Map();
+		this.textures     = new Set();
+	}
+
+	createResourceReport(){
+
+		let framebufferBytes = 0;
+		let bufferBytes      = -1;
+		let typedBufferBytes = 0;
+		let textureBytes     = 0;
+
+		for(let [typedBuffer, gpuBuffer] of this.typedBuffers){
+			typedBufferBytes += typedBuffer.byteLength;
+		}
+
+		for(let texture of this.textures){
+			// TODO: assume every pixel needs 4 byte, for now
+			textureBytes += (texture.width * texture.height) * 4;
+		}
+
+		let msg =  `type              count           bytes\n`;
+		msg +=     `=======================================\n`;
+
+		{
+			let count = this.typedBuffers.size.toLocaleString().padStart(7);
+			let strBytes = `${(typedBufferBytes / 1_000_000).toFixed(1)} MB`.padStart(12);
+			msg += `typedBuffers    ${count}    ${strBytes}\n`;
+		}
+
+		{
+			let count = this.buffers.size.toLocaleString().padStart(7);
+			let strBytes = `${(bufferBytes / 1_000_000).toFixed(1)} MB`.padStart(12);
+			msg += `buffers         ${count}    ${strBytes}\n`;
+		}
+
+		{
+			let count = this.textures.size.toLocaleString().padStart(7);
+			let strBytes = `${(textureBytes / 1_000_000).toFixed(1)} MB`.padStart(12);
+			msg += `textures        ${count}    ${strBytes}\n`;
+		}
+
+
+		return msg;
 	}
 
 	async init(){
@@ -181,11 +223,8 @@ export class Renderer{
 				| GPUTextureUsage.RENDER_ATTACHMENT,
 		});
 
-		// this.screenbuffer = RenderTarget.create();
-
-		{
-			this.screenbuffer = Object.create(RenderTarget.prototype);
-		}
+		this.screenbuffer = Object.create(RenderTarget.prototype);
+		this.defaultTexture = this.createTextureFromArray(new Uint8Array([255, 0, 0, 255]), 1, 1);
 
 		this.updateScreenbuffer();
 	}
@@ -409,14 +448,14 @@ export class Renderer{
 		let imageData = new ImageData(raw, width, height);
 
 		createImageBitmap(imageData).then(bitmap => {
-
 			this.device.queue.copyExternalImageToTexture(
 				{source: bitmap}, 
 				{texture: texture},
 				[bitmap.width, bitmap.height, 1]
 			);
-			
 		});
+
+		this.textures.add(texture);
 
 		return texture;
 	}
@@ -424,6 +463,7 @@ export class Renderer{
 	createTexture(width, height, params = {}){
 
 		let format = params.format ?? "rgba8uint";
+		let label  = params.label ?? "missing texture label";
 
 		let texture = this.device.createTexture({
 			size: [width, height, 1],
@@ -432,6 +472,7 @@ export class Renderer{
 			mipLevelCount: 1,
 			sampleCount: 1,
 			dimension: "2d",
+			label: label,
 			usage: 
 				GPUTextureUsage.STORAGE_BINDING
 				| GPUTextureUsage.TEXTURE_BINDING 
@@ -439,6 +480,8 @@ export class Renderer{
 				| GPUTextureUsage.COPY_DST 
 				| GPUTextureUsage.RENDER_ATTACHMENT
 		});
+
+		this.textures.add(texture);
 
 		return texture;
 	}
@@ -456,6 +499,8 @@ export class Renderer{
 				| GPUBufferUsage.UNIFORM,
 		});
 
+		this.buffers.add(buffer);
+
 		return buffer;
 	}
 
@@ -464,6 +509,19 @@ export class Renderer{
 		let buffer = new ChunkedBuffer(size, chunkSize, this);
 
 		return buffer;
+	}
+
+	dispose(resource){
+		if(resource instanceof GPUTexture){
+			
+			if(this.textures.has(resource)){
+				this.textures.delete(resource);
+				resource.destroy();
+			}else{
+				console.error("the tracker did not know of this GPUTexture");
+			}
+
+		}
 	}
 
 	writeBuffer(args){
@@ -542,6 +600,10 @@ export class Renderer{
 	}
 
 	getGpuBuffers(geometry){
+
+		throw "deprecated";
+
+		debugger;
 
 		let buffers = this.buffers.get(geometry);
 

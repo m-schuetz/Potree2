@@ -180,7 +180,7 @@ export function render(node, drawstate){
 	let uniformsBuffer = getUniforms(renderer, node);
 	updateUniforms(node, uniformsBuffer, drawstate);
 
-	let vbos = renderer.getGpuBuffers(node.geometry);
+	// let vbos = renderer.getGpuBuffers(node.geometry);
 
 	let bindGroup = device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
@@ -192,8 +192,14 @@ export function render(node, drawstate){
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
 
-	let vboPosition = vbos.find(item => item.name === "position").vbo;
-	let vboNormal = vbos.find(item => item.name === "normal").vbo;
+	
+
+	let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(item => item.name === "position").buffer);
+	let vboNormal   = renderer.getGpuBuffer(node.geometry.buffers.find(item => item.name === "normal").buffer);
+
+	// let vboPosition = vbos.find(item => item.name === "position").vbo;
+	// let vboNormal   = vbos.find(item => item.name === "normal").vbo;
+
 	passEncoder.setVertexBuffer(0, vboPosition);
 	passEncoder.setVertexBuffer(1, vboNormal);
 

@@ -406,41 +406,7 @@ export class Potree3Loader{
 			console.log(e);
 		}
 
-		// CHECK IF NODE+CHILDREN IN CONTIGUOUS MEMORY
-		let inContiguousMemory = false;
-		let totalBytes = 0;
-		if((node.level % 2) === 0){
-			
-			let firstByte = Infinity;
-			let lastByte = 0;
-
-			for(let famNode of [node, ...node.children]){
-
-				if(famNode == null) continue;
-				if(famNode.nodeType === NodeType.PROXY) continue;
-
-				firstByte = Math.min(firstByte, famNode.byteOffset);
-				lastByte = Math.max(lastByte, famNode.byteOffset + famNode.byteSize);
-				totalBytes += famNode.byteSize;
-			}
-
-			let diff = lastByte - firstByte;
-
-			inContiguousMemory = (diff === totalBytes);
-		}
-		inContiguousMemory = false;
-
 		let nodes = [node];
-
-		// if all nodes in chunk of contiguous memory have less than <x> bytes, load them at once
-		if(inContiguousMemory && totalBytes < 1_000_000){
-			for(let child of node.children){
-				if(child == null) continue;
-
-				child.loading = true;
-				nodes.push(child);
-			}
-		}
 
 		for(let node of nodes){
 			node.loading = true;
@@ -478,8 +444,6 @@ export class Potree3Loader{
 					geometry.buffer = data.buffer;
 					geometry.statsList = data.statsList;
 
-					// console.log(`loaded ${loadedNode.name}`);
-
 					loadedNode.loaded = true;
 					loadedNode.loading = false;
 					loadedNode.geometry = geometry;
@@ -514,6 +478,15 @@ export class Potree3Loader{
 					byteOffset_unfiltered: node.byteOffset_unfiltered,
 					byteSize_unfiltered:   node.byteSize_unfiltered,
 				};
+
+				{
+					let name = node.name;
+					let offset = node.byteOffset.toLocaleString();
+					let byteOffset_unfiltered = node.byteOffset_unfiltered.toLocaleString();
+					let byteSize = node.byteSize.toLocaleString();
+					let byteSize_unfiltered = node.byteSize_unfiltered.toLocaleString();
+					console.log(`[${name}]: offsets: ${offset}, unfiltered: ${byteOffset_unfiltered} | sizes: ${byteSize}, unfiltered: ${byteSize_unfiltered}`);
+				}
 
 				msg_nodes.push(msg_node);
 			}
