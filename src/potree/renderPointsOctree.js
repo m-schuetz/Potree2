@@ -320,14 +320,17 @@ function updateNodesBuffer(octree, nodes, prefixSum, octreeState, drawstate, fla
 		// debugger;
 		let nodeSpacing = octree.spacing / (2 ** node.level);
 
-		let isLeaf = node.nodeType === 1;
-
 		let splatType = 0;
 		if(node.isSmallNode){
 			splatType = 0;
 		}else{
 			splatType = 1;
 		}
+
+		// DEBUG
+		// if(node.nodeType === 0){
+		// 	nodeSpacing = 123;
+		// }
 
 		view.setUint32 (WGSL_NODE_BYTESIZE * i +  0, node.geometry.numElements, true);
 		view.setUint32 (WGSL_NODE_BYTESIZE * i +  4, prefixSum[i], true);

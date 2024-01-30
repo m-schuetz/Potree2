@@ -457,6 +457,10 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		output.position.w = 0.0;
 	}
 
+	// if(node.spacing != 123.0f){
+	// 	output.color = vec4f(1.0f, 0.0f, 0.0f, 1.0f);
+	// }
+
 	output.point_id = node.counter + pointID;
 	output.point_position = point_position;
 

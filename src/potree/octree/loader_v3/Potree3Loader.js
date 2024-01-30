@@ -387,38 +387,34 @@ export class Potree3Loader{
 		{
 			return;
 		}
-	
 
-		if(node.loaded) return; 
-		if(node.loading) return;
-		if(node.loadAttempts > 5) return;
-		// if(nodesLoading >= 6) return;
-		// if(nodesLoading >= MAX_NODES_LOADING) return;
-		if(node.parent != null && !node.parent.loaded) return;
-
-		node.loading = true;
-
-		try{
-			if(node.nodeType === NodeType.PROXY){
-				await this.loadHierarchy(node);
-			}
-		}catch(e){
-			console.log(e);
-		}
+		// when loading non-root node, check if we can load all siblings in one go
 
 		let nodes = [node];
+		let siblings = node?.parent?.children?.filter(n => n != null);
+		if(siblings){
+			nodes = siblings;
+		}
 
 		for(let node of nodes){
+			if(node.loading) return;
+			if(node.loadAttempts > 5) continue;
+			if(node.parent != null && !node.parent.loaded) return;
+
 			node.loading = true;
+
+			try{
+				if(node.nodeType === NodeType.PROXY){
+					await this.loadHierarchy(node);
+				}
+			}catch(e){
+				console.log(e);
+			}
 		}
 
 		try{
-			if(node.nodeType === NodeType.PROXY){
-				await this.loadHierarchy(node);
-			}
 
 			// TODO fix path. This isn't flexible. should be relative from PotreeLoader.js
-			
 			let worker = WorkerPool.getWorker(workerPath, {type: "module"});
 
 			worker.onmessage = (e) => {
@@ -444,8 +440,8 @@ export class Potree3Loader{
 					geometry.buffer = data.buffer;
 					geometry.statsList = data.statsList;
 
-					loadedNode.loaded = true;
-					loadedNode.loading = false;
+					// loadedNode.loaded = true;
+					// loadedNode.loading = false;
 					loadedNode.geometry = geometry;
 					loadedNode.voxelCoords = data.voxelCoords;
 
@@ -454,6 +450,12 @@ export class Potree3Loader{
 					}
 				}else if(e.data === "finished"){
 					WorkerPool.returnWorker(workerPath, worker);
+
+					// wait with "loaded = true" state until all nodes in a batch are loaded
+					for(let node of nodes){
+						node.loading = false;
+						node.loaded = true;
+					}
 				}
 
 			};
@@ -478,15 +480,6 @@ export class Potree3Loader{
 					byteOffset_unfiltered: node.byteOffset_unfiltered,
 					byteSize_unfiltered:   node.byteSize_unfiltered,
 				};
-
-				{
-					let name = node.name;
-					let offset = node.byteOffset.toLocaleString();
-					let byteOffset_unfiltered = node.byteOffset_unfiltered.toLocaleString();
-					let byteSize = node.byteSize.toLocaleString();
-					let byteSize_unfiltered = node.byteSize_unfiltered.toLocaleString();
-					console.log(`[${name}]: offsets: ${offset}, unfiltered: ${byteOffset_unfiltered} | sizes: ${byteSize}, unfiltered: ${byteSize_unfiltered}`);
-				}
 
 				msg_nodes.push(msg_node);
 			}

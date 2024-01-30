@@ -15,6 +15,7 @@ function loadNode(octree, node, dataview){
 	if(node.numVoxels > 0){
 		return loadVoxels(octree, node, dataview, parentVoxelCoords);
 	}else if(node.numPoints > 0){
+		// debugger;
 		return loadPoints(octree, node, dataview);
 	}
 
@@ -40,10 +41,10 @@ async function loadNodes(event){
 	let numElements = nodes.reduce( (sum, node) => sum + node.numPoints + node.numVoxels, 0);
 	let bitsPerElement = Math.ceil(8 * chunkSize / numElements);
 
-	let strChunkSize = chunkSize.toLocaleString().padStart(10);
-	let strNumElements = numElements.toLocaleString().padStart(8);
-	let strBpe = bitsPerElement.toLocaleString().padStart(4);
-	let strBytes = (bitsPerElement / 8).toFixed(1).padStart(4);
+	// let strChunkSize = chunkSize.toLocaleString().padStart(10);
+	// let strNumElements = numElements.toLocaleString().padStart(8);
+	// let strBpe = bitsPerElement.toLocaleString().padStart(4);
+	// let strBytes = (bitsPerElement / 8).toFixed(1).padStart(4);
 	// console.log(`#nodes: ${nodes.length}, chunkSize: ${strChunkSize}, numElements: ${strNumElements}, bpe: ${strBpe} (${strBytes} bytes)`);
 
 	let response = await fetch(url, {
@@ -53,23 +54,26 @@ async function loadNodes(event){
 		},
 	});
 
-	// debugger;
+	// console.log(`loading chunk offset ${chunkOffset.toLocaleString()}. size ${chunkSize.toLocaleString()}`);
 
 	let buffer = await response.arrayBuffer();
 
 	parentVoxelCoords = event.data.parentVoxelCoords;
 
 	for(let node of nodes){
-		let dataview = new DataView(buffer, node.byteOffset - chunkOffset + event.data.metadata.pointBuffer.offset, node.byteSize);
+		// debugger;
+		let dataview = new DataView(buffer, 
+			node.byteOffset - chunkOffset + event.data.metadata.pointBuffer.offset, 
+			node.byteSize);
 		
 		let buffers = loadNode(octree, node, dataview);
 
 		// clone voxel coords, the child nodes need them to decode their coords
-		if(node === nodes[0] && node.numVoxels > 0){
-			let voxelCoords = buffers.voxelCoords;
-			parentVoxelCoords = new Uint8Array(voxelCoords.byteLength);
-			parentVoxelCoords.set(voxelCoords);
-		}
+		// if(node === nodes[0] && node.numVoxels > 0){
+		// 	let voxelCoords = buffers.voxelCoords;
+		// 	parentVoxelCoords = new Uint8Array(voxelCoords.byteLength);
+		// 	parentVoxelCoords.set(voxelCoords);
+		// }
 
 		// done loading node, send results to main thread
 		let message = {

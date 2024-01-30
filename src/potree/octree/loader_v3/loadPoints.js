@@ -74,6 +74,8 @@ export function loadPoints(octree, node, dataview){
 	let target_u8 = new Uint8Array(buffer);
 	for(let attribute of attributes.attributes){
 
+		debugger;
+
 		if(attribute.name === "position") continue;
 		// if(attribute.name === "rgba") continue;
 

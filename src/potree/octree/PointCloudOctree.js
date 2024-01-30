@@ -104,7 +104,7 @@ export class PointCloudOctree extends SceneNode{
 
 			if(!node.loaded){
 
-				if(loadQueue.length < 10){
+				if(loadQueue.length < 40){
 					loadQueue.push(node);
 				}
 
