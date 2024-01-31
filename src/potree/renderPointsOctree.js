@@ -252,6 +252,12 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			attributeView.setFloat32( index * stride + 56,           range_max[2], true);
 			attributeView.setFloat32( index * stride + 60,           range_max[3], true);
 
+			// debugger;
+
+			// if(attributeName === "rgba"){
+			// 	debugger;
+			// }
+
 			// console.log({
 			// 	dataset: octree.name, 
 			// 	attributeName,
@@ -508,76 +514,50 @@ async function renderOctree(octree, drawstate, flags){
 	updateNodesBuffer(octree, largeNodes, prefixSum, octreeState_quads, drawstate, flags, pass);
 	updateNodesBuffer(octree, smallNodes, prefixSum, octreeState_points, drawstate, flags, pass);
 
+	// { // DRAW LARGE NODES AS QUADS
+	// 	let {pipeline, uniformBindGroup, nodesBindGroup} = octreeState_quads;
+	// 	let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
 
-	// DRAW AS QUADS
-	{
-		let {pipeline, uniformBindGroup, nodesBindGroup} = octreeState_quads;
-		let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
+	// 	pass.passEncoder.setPipeline(pipeline);
+	// 	pass.passEncoder.setBindGroup(0, uniformBindGroup);
+	// 	pass.passEncoder.setBindGroup(1, bindGroup);
+	// 	pass.passEncoder.setBindGroup(3, nodesBindGroup);
 
-		// let nodesBindGroup = renderer.device.createBindGroup({
-		// 	layout: layout_3,
-		// 	entries: [
-		// 		{binding: 0, resource: {buffer: octreeState_quads.nodesGpuBuffer}},
-		// 		// {binding: 1, resource: {buffer: octree.gpuBuffer.gpuBuffer}},
-		// 	],
-		// });
+	// 	for(let [index, node] of largeNodes){
 
-		pass.passEncoder.setPipeline(pipeline);
-		pass.passEncoder.setBindGroup(0, uniformBindGroup);
-		pass.passEncoder.setBindGroup(1, bindGroup);
-		pass.passEncoder.setBindGroup(3, nodesBindGroup);
+	// 		let numElements = node.geometry.numElements;
 
-		for(let [index, node] of largeNodes){
+	// 		let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
+	// 		pass.passEncoder.setBindGroup(2, bufferBindGroup);
 
-			let numElements = node.geometry.numElements;
+	// 		if(node.dirty){
 
-			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
-			// if(node.justUploaded){
-			// 	node.justUploaded = false;
-			// 	continue;
-			// }
-			pass.passEncoder.setBindGroup(2, bufferBindGroup);
+	// 			let gpuBuffer = renderer.getGpuBuffer(node.geometry.buffer);
+	// 			renderer.device.queue.writeBuffer(
+	// 				gpuBuffer, 0, node.geometry.buffer, 0, node.geometry.buffer.byteLength);
 
-			if(node.dirty){
+	// 			node.dirty = false;
+	// 		}
 
-				let gpuBuffer = renderer.getGpuBuffer(node.geometry.buffer);
-				renderer.device.queue.writeBuffer(
-					gpuBuffer, 0, node.geometry.buffer, 0, node.geometry.buffer.byteLength);
+	// 		if(octree.showBoundingBox === true){
+	// 			let box = node.boundingBox.clone().applyMatrix4(octree.world);
+	// 			let position = box.min.clone();
+	// 			position.add(box.max).multiplyScalar(0.5);
+	// 			let size = box.size();
+	// 			let color = new Vector3(255, 255, 0);
+	// 			renderer.drawBoundingBox(position, size, color);
+	// 		}
 
-				node.dirty = false;
-			}
+			
+	// 		pass.passEncoder.draw(6 * numElements, 1, 0, index);
+	// 	}
+	// }
 
-			if(octree.showBoundingBox === true){
-				let box = node.boundingBox.clone().applyMatrix4(octree.world);
-				let position = box.min.clone();
-				position.add(box.max).multiplyScalar(0.5);
-				let size = box.size();
-				let color = new Vector3(255, 255, 0);
-				renderer.drawBoundingBox(position, size, color);
-			}
-
-			pass.passEncoder.draw(6 * numElements, 1, 0, index);
-
-			// Potree.state.renderedElements += numElements;
-			// Potree.state.renderedObjects.push({node, numElements});
-
-			// i++;
-		}
-	}
-
-	// DRAW AS POINTS
-	{
+	
+	{ // DRAW SMALL NODES AS POINTS
 
 		let {pipeline, uniformBindGroup, nodesBindGroup} = octreeState_points;
 		let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
-
-		// let nodesBindGroup = renderer.device.createBindGroup({
-		// 	layout: layout_3,
-		// 	entries: [
-		// 		{binding: 0, resource: {buffer: octreeState_points.nodesGpuBuffer}},
-		// 		{binding: 1, resource: {buffer: octree.gpuBuffer.gpuBuffer}},
-		// 	],
-		// });
 
 		pass.passEncoder.setPipeline(pipeline);
 		pass.passEncoder.setBindGroup(0, uniformBindGroup);
@@ -589,11 +569,6 @@ async function renderOctree(octree, drawstate, flags){
 			let numElements = node.geometry.numElements;
 
 			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
-			// if(node.justUploaded){
-			// 	node.justUploaded = false;
-			// 	continue;
-			// }
-
 			pass.passEncoder.setBindGroup(2, bufferBindGroup);
 
 			if(node.dirty){
@@ -613,18 +588,26 @@ async function renderOctree(octree, drawstate, flags){
 				renderer.drawBoundingBox(position, size, color);
 			}
 
-			pass.passEncoder.draw(1 * numElements, 1, 0, index);
+			let allowed = [
+				// "r046163",
+				// "r046167",
+				// "r402621",
+				// "r402230",
+				// "r402231",
+				// "r402232",
+				"r402233",
+			];
+
+			// if(node.name.length > 6)
+			// if(node.name === "r046341")
+			// if(allowed.includes(node.name))
+			{
+				pass.passEncoder.draw(1 * numElements, 1, 0, index);
+				// console.log(node.name);
+			}
 		}
 	}
 	
-	// let duration = performance.now() - tStart;
-	// if(duration > 5.0){
-	// 	console.log(`render octree duration: ${duration.toFixed(1)} ms`);
-	// }
-
-	// if(dbgUploadedInFrame > 0){
-	// 	console.log(`dbgUploadedInFrame: ${dbgUploadedInFrame.toLocaleString()}`);
-	// }
 }
 
 export function render(octrees, drawstate, flags = []){

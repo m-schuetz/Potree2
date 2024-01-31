@@ -77,31 +77,7 @@ const OUTSIDE  = vec4<f32>(10.0, 10.0, 10.0, 1.0);
 @binding(2) @group(1) var gradientTexture             : texture_2d<f32>;
 
 @binding(0) @group(2) var<storage, read> buffer       : array<u32>;
-
 @binding(0) @group(3) var<storage, read> nodes        : array<Node>;
-// @binding(1) @group(3) var<storage, read> octreeBuffer : array<u32>;
-
-
-// fn readU8_octreebuffer(offset : u32) -> u32{
-// 	var ipos    = offset / 4u;
-// 	var val_u32 = octreeBuffer[ipos];
-// 	var shift   = 8u * (offset % 4u);
-
-// 	var val_u8  = (val_u32 >> shift) & 0xFFu;
-
-// 	return val_u8;
-// }
-
-// fn readU16_octreebuffer(offset : u32) -> u32{
-	
-// 	var first = readU8_octreebuffer(offset + 0u);
-// 	var second = readU8_octreebuffer(offset + 1u);
-
-// 	var value = first | (second << 8u);
-
-// 	return value;
-// }
-
 
 fn readU8(offset : u32) -> u32{
 	var ipos    = offset / 4u;

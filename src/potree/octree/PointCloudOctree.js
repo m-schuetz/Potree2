@@ -248,10 +248,10 @@ export class PointCloudOctree extends SceneNode{
 		}
 
 		tStart = performance.now();
-		loadQueue.slice(0, 20);
+		loadQueue.slice(0, 40);
 		loadQueue.sort( (a, b) => a.level - b.level);
 
-		unfilteredLoadQueue.slice(0, 20);
+		unfilteredLoadQueue.slice(0, 40);
 		unfilteredLoadQueue.sort( (a, b) => a.level - b.level);
 
 		for(let node of loadQueue){

@@ -12,6 +12,10 @@ function loadNode(octree, node, dataview){
 
 	// console.log(`loading ${node.name}`);
 
+	// if(node.name === "r402233"){
+	// 	debugger;
+	// }
+
 	if(node.numVoxels > 0){
 		return loadVoxels(octree, node, dataview, parentVoxelCoords);
 	}else if(node.numPoints > 0){

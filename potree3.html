@@ -160,7 +160,7 @@ canvas{
 		
 	// if(false)
 	// Potree3Loader.load("../resources/pointclouds/lion.potree").then(pointcloud => {
-	Potree3Loader.load("../resources/pointclouds/eclepens.potree").then(pointcloud => {
+	Potree3Loader.load("../resources/pointclouds/meroe.potree").then(pointcloud => {
 		console.log(pointcloud);
 
 		scene.root.children.push(pointcloud);
@@ -172,10 +172,10 @@ canvas{
 
 		controls.zoomTo(pointcloud);
 
-		controls.set({
-			position: [376.8, -636.9, 407.6], 
-			pivot:    [118.6, -108.5, -81.7]
-		});
+		// controls.set({
+		// 	position: [255.7, -415.6, 258.0], 
+		// 	pivot:    [86.3, -114.1, -35.3]
+		// });
 	});
 
 	
