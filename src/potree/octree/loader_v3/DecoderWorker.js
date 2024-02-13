@@ -1,5 +1,5 @@
 import {loadVoxels} from "./loadVoxels.js";
-import {loadPoints} from "./loadPoints.js";
+import {loadPoints, loadPointsBrotli} from "./loadPoints.js";
 
 // - voxels are encoded relative to parent.
 // - the children of this chunk's root need the parent voxels.
@@ -10,17 +10,11 @@ let parentVoxelCoords = null;
 
 function loadNode(octree, node, dataview){
 
-	// console.log(`loading ${node.name}`);
-
-	// if(node.name === "r402233"){
-	// 	debugger;
-	// }
-
 	if(node.numVoxels > 0){
 		return loadVoxels(octree, node, dataview, parentVoxelCoords);
 	}else if(node.numPoints > 0){
 		// debugger;
-		return loadPoints(octree, node, dataview);
+		return loadPointsBrotli(octree, node, dataview);
 	}
 
 }

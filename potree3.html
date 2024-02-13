@@ -161,20 +161,21 @@ canvas{
 	// if(false)
 	// Potree3Loader.load("../resources/pointclouds/lion.potree").then(pointcloud => {
 	Potree3Loader.load("../resources/pointclouds/meroe.potree").then(pointcloud => {
+	// Potree3Loader.load("../resources/pointclouds/sitn_subset.potree").then(pointcloud => {
 		console.log(pointcloud);
 
 		scene.root.children.push(pointcloud);
 
 		// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
-		pointcloud.name = "AHN5";
+		pointcloud.name = "SITN";
 
 		let material = pointcloud.material;
 
 		controls.zoomTo(pointcloud);
 
 		// controls.set({
-		// 	position: [255.7, -415.6, 258.0], 
-		// 	pivot:    [86.3, -114.1, -35.3]
+		// 	position: [2547097.8, 1210654.3, 1669.0], 
+		// 	pivot:    [2547019.6, 1211366.0, 1061.8]
 		// });
 	});
 

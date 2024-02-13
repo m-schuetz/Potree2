@@ -1,3 +1,6 @@
+
+// import {BrotliDecode} from "../../../../libs/brotli/decode.js";
+
 function round4(number){
 	return number + (4 - (number % 4));
 }
