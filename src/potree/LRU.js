@@ -6,6 +6,7 @@ class LRUItem{
 		this.previous = null;
 		this.next = null;
 		this.node = node;
+		this.timestamp = 0;
 	}
 
 }
@@ -22,7 +23,7 @@ class LRU{
 		// the most recently used item
 		this.last = null;
 		// a list of all items in the lru list
-		this.items = {};
+		this.items = new Map();
 		this.elements = 0;
 	}
 
@@ -34,19 +35,21 @@ class LRU{
 		return this.items[node.id] == null;
 	}
 
-	touch(node){
+	touch(node, timestamp){
 
 		let item;
-		if (this.items[node.id] == null) {
+		if (!this.items.has(node)) {
 			// add to list
 			item = new LRUItem(node);
 			item.previous = this.last;
+			item.timestamp = timestamp;
+
 			this.last = item;
 			if (item.previous !== null) {
 				item.previous.next = item;
 			}
 
-			this.items[node.id] = item;
+			this.items.set(node, item);
 			this.elements++;
 
 			if (this.first === null) {
@@ -54,7 +57,9 @@ class LRU{
 			}
 		} else {
 			// update in list
-			item = this.items[node.id];
+			item = this.items.get(node);
+			item.timestamp = timestamp;
+
 			if (item.previous === null) {
 				// handle touch on first element
 				if (item.next !== null) {
@@ -80,7 +85,7 @@ class LRU{
 	}
 
 	remove(node){
-		let lruItem = this.items[node.id];
+		let lruItem = this.items.get(node);
 		if (lruItem) {
 			if (this.elements === 1) {
 				this.first = null;
@@ -100,7 +105,8 @@ class LRU{
 				}
 			}
 
-			delete this.items[node.id];
+			// delete this.items[node.id];
+			this.items.delete(node);
 			this.elements--;
 			this.numPoints -= node.numPoints;
 		}

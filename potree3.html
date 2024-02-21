@@ -161,6 +161,7 @@ canvas{
 	// if(false)
 	// Potree3Loader.load("../resources/pointclouds/lion.potree").then(pointcloud => {
 	Potree3Loader.load("../resources/pointclouds/meroe.potree").then(pointcloud => {
+	// Potree3Loader.load("../resources/pointclouds/eclepens.potree").then(pointcloud => {
 	// Potree3Loader.load("../resources/pointclouds/sitn_subset.potree").then(pointcloud => {
 		console.log(pointcloud);
 
@@ -173,10 +174,10 @@ canvas{
 
 		controls.zoomTo(pointcloud);
 
-		// controls.set({
-		// 	position: [2547097.8, 1210654.3, 1669.0], 
-		// 	pivot:    [2547019.6, 1211366.0, 1061.8]
-		// });
+		controls.set({
+			position: [579750.5, 1872842.7, 441.8], 
+			pivot:    [579729.3, 1872839.1, 431.9]
+		});
 	});
 
 	

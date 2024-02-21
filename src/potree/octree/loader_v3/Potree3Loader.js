@@ -56,19 +56,6 @@ function createChildAABB(aabb, index){
 	return new Box3(min, max);
 }
 
-function round4(number){
-	return number + (4 - (number % 4));
-}
-
-let SPECTRAL = [
-	[213,62,79],
-	[252,141,89],
-	[254,224,139],
-	[230,245,152],
-	[153,213,148],
-	[50,136,189],
-];
-
 function parseAttributes(jsonAttributes){
 
 
@@ -153,11 +140,15 @@ export class Potree3Loader{
 				// replace proxy with real node
 				current.byteOffset = byteOffset;
 				current.byteSize = byteSize;
+				current.byteSize_position = byteSize_position;
+				current.byteSize_filtered = byteSize_filtered;
 				current.numElements = numElements;
 				current.byteOffset_unfiltered = byteOffset_unfiltered;
 				current.byteSize_unfiltered = byteSize_unfiltered;
 			}else if(type === NodeType.PROXY){
 				// load proxy
+				current.byteSize_position = byteSize_position;
+				current.byteSize_filtered = byteSize_filtered;
 				current.hierarchyByteOffset = byteOffset;
 				current.hierarchyByteSize = byteSize;
 				current.numElements = numElements;
@@ -165,6 +156,8 @@ export class Potree3Loader{
 				// load real node 
 				current.byteOffset = byteOffset;
 				current.byteSize = byteSize;
+				current.byteSize_position = byteSize_position;
+				current.byteSize_filtered = byteSize_filtered;
 				current.numElements = numElements;
 				current.byteOffset_unfiltered = byteOffset_unfiltered;
 				current.byteSize_unfiltered = byteSize_unfiltered;
@@ -208,7 +201,6 @@ export class Potree3Loader{
 	}
 
 	async loadHierarchy(node){
-		// console.log(`load hierarchy(${node.name})`);
 
 		let {hierarchyByteOffset, hierarchyByteSize} = node;
 
@@ -224,87 +216,20 @@ export class Potree3Loader{
 
 		let buffer = await response.arrayBuffer();
 
-		// { // DEBUG
-		// 	let hierarchyPath = `${this.url}/../eclepens.las_converted_6/hierarchy.bin`;
-
-		// 	let first = 0;
-		// 	let last = hierarchyByteSize - 1;
-
-		// 	let response = await fetch(hierarchyPath, {
-		// 		headers: {
-		// 			'content-type': 'multipart/byteranges',
-		// 			'Range': `bytes=${first}-${last}`,
-		// 		},
-		// 	});
-
-
-		// 	let dbgbuffer = await response.arrayBuffer();
-
-		// 	console.log(new Uint8Array(dbgbuffer).join(", "));
-		// 	console.log(new Uint8Array(buffer).join(", "));
-
-		// }
-
-		// debugger;
-
-		// let tStart = performance.now();
 		this.parseHierarchy(node, buffer);
-
-		// let tEnd = performance.now();
-		// let durationMS = tEnd - tStart;
-
-		// let strKB = Math.ceil(hierarchyByteSize / 1024);
-		// console.log(`parsed hierarchy (${strKB} kb) in ${durationMS.toFixed(1)} ms`);
-
-		// console.log(node);
 	}
 
 	// loads unfiltered voxel data for inner nodes
 	async loadNodeUnfiltered(node){
 
-		if(numActiveRequests > 5) return;
+		if(numActiveRequests > 6) return;
 		if(!node.loaded) return; // regular filtered data needs to be loaded first
 		if(node.unfilteredLoaded) return; 
 		if(node.unfilteredLoading) return;
 		if(node.loadAttempts > 5) return;
 		if(node.nodeType === NodeType.PROXY) return;
 
-		// CHECK IF NODE+CHILDREN IN CONTIGUOUS MEMORY
-		// let inContiguousMemory = false;
-		// let totalBytes = 0;
-		// if((node.level % 2) === 0){
-			
-		// 	let firstByte = Infinity;
-		// 	let lastByte = 0;
-
-		// 	for(let famNode of [node, ...node.children]){
-
-		// 		if(famNode == null) continue;
-		// 		if(famNode.nodeType === NodeType.PROXY) continue;
-		// 		if(famNode.nodeType === NodeType.LEAF) continue;
-		// 		if(famNode.loaded === false) continue;
-
-		// 		firstByte = Math.min(firstByte, famNode.byteOffset_unfiltered);
-		// 		lastByte = Math.max(lastByte, famNode.byteOffset_unfiltered + famNode.byteSize_unfiltered);
-		// 		totalBytes += famNode.byteSize_unfiltered;
-		// 	}
-
-		// 	let diff = lastByte - firstByte;
-
-		// 	inContiguousMemory = (diff === totalBytes);
-		// }
-
 		let nodes = [node];
-
-		// if all nodes in chunk of contiguous memory have less than <x> bytes, load them at once
-		// if(inContiguousMemory && totalBytes < 1_000_000){
-		// 	for(let child of node.children){
-		// 		if(child == null) continue;
-
-		// 		child.loading = true;
-		// 		nodes.push(child);
-		// 	}
-		// }
 
 		let chunkOffset = Infinity;
 		let chunkSize = 0;
@@ -477,6 +402,8 @@ export class Potree3Loader{
 					max:                   node.boundingBox.max.toArray(),
 					byteOffset:            node.byteOffset,
 					byteSize:              node.byteSize,
+					byteSize_position:     node.byteSize_position,
+					byteSize_filtered:     node.byteSize_filtered,
 					byteOffset_unfiltered: node.byteOffset_unfiltered,
 					byteSize_unfiltered:   node.byteSize_unfiltered,
 				};

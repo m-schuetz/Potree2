@@ -1,6 +1,6 @@
 
 import {Vector3, Vector4, Matrix4, Box3, Sphere, Frustum, math, PMath, EventDispatcher} from "potree";
-import {SceneNode, PointCloudOctreeNode, PointCloudMaterial} from "potree";
+import {SceneNode, PointCloudOctreeNode, PointCloudMaterial, LRU} from "potree";
 import {renderPointsOctree} from "potree";
 import {BinaryHeap} from "BinaryHeap";
 
@@ -9,6 +9,7 @@ const _sphere = new Sphere();
 const _fm     = new Matrix4();
 const _vec3   = new Vector3();
 const _vec4   = new Vector4();
+const lru     = new LRU();
 
 export const REFINEMENT = {
 	ADDITIVE:  0,
@@ -55,221 +56,6 @@ export class PointCloudOctree extends SceneNode{
 			this.loader.loadNode(node);
 		}
 
-	}
-
-	updateVisibility_replacing(camera, renderer){
-		let tStart = performance.now();
-
-		if(this.root?.geometry?.statsList != null){
-			this.material.update(this);
-		}
-
-		for(let node of this.visibleNodes){
-			node.visible = false;
-		}
-
-		let visibleNodes = [];
-		let loadQueue = [];
-		let unfilteredLoadQueue = [];
-		let priorityQueue = new BinaryHeap(function (x) { return 1 / x.weight; });
-
-		let camPos = camera.getWorldPosition();
-		let world = this.world;
-		let view = camera.view;
-		let proj = camera.proj;
-		let worldViewProj = new Matrix4().multiply(proj).multiply(view).multiply(world);
-		_fm.multiplyMatrices(proj, view);
-		let frustum = new Frustum();
-		frustum.setFromMatrix(_fm);
-
-		let octreeSize = this.boundingBox.max.x - this.boundingBox.min.x;
-		let octreeRadius = Math.sqrt(octreeSize * octreeSize + octreeSize * octreeSize + octreeSize * octreeSize) / 2;
-		let framebufferSize = renderer.getSize();
-
-		priorityQueue.push({ 
-			node: this.root, 
-			weight: Number.MAX_VALUE,
-		});
-
-		let i = 0;
-		let numPoints = 0;
-
-		let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
-
-		this.root.__pixelSize = 10000;
-
-		while (priorityQueue.size() > 0) {
-			let element = priorityQueue.pop();
-			let {node, weight} = element;
-
-			if(!node.loaded){
-
-				if(loadQueue.length < 40){
-					loadQueue.push(node);
-				}
-
-				continue;
-			}
-
-			if(needsUnfiltered && !node.unfilteredLoaded){
-				if(unfilteredLoadQueue.length < 10){
-					unfilteredLoadQueue.push(node);
-				}
-
-				continue;
-			}
-
-			// _sphere.fromBox(node.boundingBox);
-			_sphere.center.x = 0.5 * (node.boundingBox.min.x + node.boundingBox.max.x);
-			_sphere.center.y = 0.5 * (node.boundingBox.min.y + node.boundingBox.max.y);
-			_sphere.center.z = 0.5 * (node.boundingBox.min.z + node.boundingBox.max.z);
-			_sphere.radius = octreeRadius / (2 ** node.level);
-			_sphere.applyMatrix4(this.world);
-
-			let center = _sphere.center;
-			let radius = _sphere.radius;
-
-			let dx = camPos.x - center.x;
-			let dy = camPos.y - center.y;
-			let dz = camPos.z - center.z;
-
-			let dd = dx * dx + dy * dy + dz * dz;
-			let distance = Math.sqrt(dd);
-
-			let fov = math.toRadians(camera.fov);
-			let slope = Math.tan(fov / 2);
-			let projFactor = 1 / (slope * distance);
-
-			let pixelSize = radius * projFactor * framebufferSize.height;
-			let insideFrustum = frustum.intersectsSphere(_sphere);
-			// let fitsInPointBudget = numPoints + node.numElements < this.pointBudget;
-			let isLowLevel = node.level <= 2;
-
-			// if(!fitsInPointBudget) break;
-
-			// let visible = fitsInPointBudget && insideFrustum;
-			// visible = visible || isLowLevel;
-
-			// node.visible = visible;
-
-			let visible = insideFrustum;
-			let isLeaf = node.children.every(n => n === null);
-			let allChildrenLoaded = node.children.every(n => n === null || n.loaded);
-			let shouldBreak = !isLeaf && insideFrustum && pixelSize > Potree.settings.minNodeSize * 2;
-
-
-			if(shouldBreak && !allChildrenLoaded){
-				for(let child of node.children){
-					if(!child) continue;
-
-					loadQueue.push(child);
-				}
-
-				node.visible = true;
-				visibleNodes.push(node);
-				numPoints += node.numElements;
-			}else if(visible && !shouldBreak){
-				// highest LOD node we want to draw
-
-				node.visible = true;
-				visibleNodes.push(node);
-				numPoints += node.numElements;
-			}else if(visible && shouldBreak){
-				// we want to draw higher LOD nodes
-				for(let child of node.children){
-					if(!child) continue;
-
-					_sphere.center.x = 0.5 * (node.boundingBox.min.x + node.boundingBox.max.x);
-					_sphere.center.y = 0.5 * (node.boundingBox.min.y + node.boundingBox.max.y);
-					_sphere.center.z = 0.5 * (node.boundingBox.min.z + node.boundingBox.max.z);
-					_sphere.radius = octreeRadius / (2 ** node.level);
-					_sphere.applyMatrix4(this.world);
-
-					let center = _sphere.center;
-					let radius = _sphere.radius;
-
-					let dx = camPos.x - center.x;
-					let dy = camPos.y - center.y;
-					let dz = camPos.z - center.z;
-
-					let dd = dx * dx + dy * dy + dz * dz;
-					let distance = Math.sqrt(dd);
-
-					let fov = math.toRadians(camera.fov);
-					let slope = Math.tan(fov / 2);
-					let projFactor = 1 / (slope * distance);
-
-					let weight = radius * projFactor;
-					let pixelSize = weight * framebufferSize.height;
-
-					child.__pixelSize = pixelSize;
-
-					if(distance - radius < 0){
-						weight = Number.MAX_VALUE;
-					}
-
-					_vec4.set(
-						0.5 * (node.boundingBox.min.x + node.boundingBox.max.x),
-						0.5 * (node.boundingBox.min.y + node.boundingBox.max.y),
-						0.5 * (node.boundingBox.min.z + node.boundingBox.max.z),
-						1.0
-					);
-					_vec4.applyMatrix4(worldViewProj);
-					
-					if(_vec4.w > 0){
-						// weight nodes in center of screen higher
-						let u = _vec4.x / _vec4.w;
-						let v = _vec4.y / _vec4.w;
-						u = math.clamp(u, -1, 1);
-						v = math.clamp(v, -1, 1);
-
-						let d = Math.sqrt(u * u + v * v);
-						let wCenter = math.clamp(1 - d, 0, 1) + 0.5;
-
-						weight = pixelSize * wCenter;
-					}else{
-						weight = pixelSize;
-					}
-
-					child.weight = weight;
-
-
-					priorityQueue.push({
-						node: child, 
-						weight: weight
-					});
-				}
-			}else{
-				// we don't want to draw this subtree
-			}
-
-			
-
-		}
-
-		tStart = performance.now();
-		loadQueue.slice(0, 40);
-		loadQueue.sort( (a, b) => a.level - b.level);
-
-		unfilteredLoadQueue.slice(0, 40);
-		unfilteredLoadQueue.sort( (a, b) => a.level - b.level);
-
-		for(let node of loadQueue){
-			this.loader.loadNode(node);
-		}
-
-		for(let node of unfilteredLoadQueue){
-			this.loader.loadNodeUnfiltered(node);
-		}
-
-		this.visibleNodes = visibleNodes;
-
-		let duration = 1000 * (performance.now() - tStart);
-		// if(duration > 3){
-		// 	console.log(`updateVisibility took long: ${duration} ms`);
-		// }
-
-		return duration;
 	}
 
 	updateVisibility_additive(camera, renderer){
@@ -475,11 +261,13 @@ export class PointCloudOctree extends SceneNode{
 
 	updateVisibility(camera, renderer){
 
-		let camPos = camera.getWorldPosition();
-		let world = this.world;
+		let t_start = Date.now();
+
+		// let camPos = camera.getWorldPosition();
+		// let world = this.world;
 		let view = camera.view;
 		let proj = camera.proj;
-		let worldViewProj = new Matrix4().multiply(proj).multiply(view).multiply(world);
+		// let worldViewProj = new Matrix4().multiply(proj).multiply(view).multiply(world);
 		_fm.multiplyMatrices(proj, view);
 		let frustum = new Frustum();
 		frustum.setFromMatrix(_fm);
@@ -488,14 +276,14 @@ export class PointCloudOctree extends SceneNode{
 		let octreeRadius = Math.sqrt(octreeSize * octreeSize + octreeSize * octreeSize + octreeSize * octreeSize) / 2;
 
 		if(this.refinement === REFINEMENT.ADDITIVE){
-			return this.updateVisibility_additive(camera, renderer);
+			updateVisibility_additive(camera, renderer);
 		}else{
 
 			this.root.traverse(node => {
 				node.visible = false;
 			});
 
-			let duration = this.updateVisibility_additive(camera, renderer);
+			this.updateVisibility_additive(camera, renderer);
 
 			let replacingVisibleNodes = [];
 			let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
@@ -548,14 +336,25 @@ export class PointCloudOctree extends SceneNode{
 				}
 
 				this.visibleNodes = replacingVisibleNodes;
-				// console.log(this.visibleNodes);
 			}
-
-			return duration;
-
-			// return this.updateVisibility_replacing(camera, renderer);
 		}
+
+		let timestamp = Date.now();
+		for(let node of this.visibleNodes){
+			lru.touch(node, timestamp);
+		}
+
+		let seconds = (Date.now() - t_start) / 1000;
 		
+		return seconds;
+	}
+
+	clearLRU(){
+
+		// unload least-recently-used nodes
+
+		// TODO
+
 	}
 
 	render(drawstate){

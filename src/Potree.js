@@ -6,6 +6,7 @@ export * from "./core/RenderTarget.js";
 export * from "./scene/Scene.js";
 export * from "./scene/SceneNode.js";
 export * from "./scene/PointLight.js";
+export * from "./potree/LRU.js"
 export * from "./modules/mesh/Mesh.js";
 export * from "./modules/mesh/NormalMaterial.js";
 export * from "./modules/mesh/PhongMaterial.js";
@@ -37,7 +38,7 @@ export * from "./potree/octree/loader_v3/Potree3Loader.js";
 export * from "./potree/octree/loader/PotreeLoader.js";
 export * from "./potree/ChunkedBuffer.js";
 export * from "./modules/attributes/mappings.js";
-export * from "./potree/LRU.js"
+
 
 export {render as renderPoints} from "./prototyping/renderPoints.js";
 export {render as renderPointsOctree}  from "./potree/renderPointsOctree.js";
