@@ -304,8 +304,8 @@ export class TDTiles extends SceneNode{
 		let bufferView = new DataView(nodesBuffer);
 		let f32 = new Float32Array(nodesBuffer);
 
-		_world.makeIdentity();
 		let view = camera.view;
+		_world.makeIdentity();
 		_worldView.makeIdentity();
 
 		let numNodes = this.visibleNodes.length;
@@ -448,7 +448,6 @@ export class TDTiles extends SceneNode{
 		
 		this.visibleNodes = [];
 
-		// console.log("==== update visibility ==== ");
 		this.root.traverse(node => {
 
 			// mark this as "recently used"
@@ -481,21 +480,6 @@ export class TDTiles extends SceneNode{
 				);
 
 				let inFrustum = _frustum.intersectsBox(_box);
-
-				// if(isDescendant(node.id, "r_245_0_0_0_0"))
-				// // if(node.id === "r_245")
-				// // if(node.id === "r_245")
-				// {
-				// 	// debug;
-
-				// 	let color = new Vector3(255, 255, 0);
-				// 	let size = 0.5 * bv.radius;
-				// 	renderer.drawBoundingBox(
-				// 		_pos.clone(),
-				// 		new Vector3(1, 1, 1).multiplyScalar(size),
-				// 		color,
-				// 	);
-				// }
 
 				if(!inFrustum) return false;
 
@@ -811,16 +795,7 @@ export class TDTiles extends SceneNode{
 				}
 			}
 
-			// let num
 		}
-
-		// this.root.traverse(node => {
-		// 	renderer.drawBoundingBox(
-		// 		node.boundingVolume.position,
-		// 		new Vector3(1, 1, 1).multiplyScalar(node.boundingVolume.radius),
-		// 		node.dbgColor,
-		// 	);
-		// });
 
 	}
 

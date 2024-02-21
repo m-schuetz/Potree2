@@ -1,6 +1,9 @@
 
 import {Vector3, Ray} from "potree";
-import {Scene, SceneNode, Camera, OrbitControls, PotreeControls, StationaryControls, Mesh, RenderTarget} from "potree";
+import {
+	Scene, SceneNode, Camera, OrbitControls, PotreeControls, StationaryControls, Mesh, RenderTarget,
+	PointCloudOctree,
+} from "potree";
 import {Renderer, Timer, EventDispatcher, InputHandler} from "potree";
 import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
 import {geometries} from "potree";
@@ -450,6 +453,8 @@ function renderNotSoBasic(){
 		Potree.state.numPoints += numPoints;
 		Potree.state.numNodes  += numNodes;
 	}
+
+	PointCloudOctree.clearLRU(renderer);
 
 	Timer.frameStart(renderer);
 	

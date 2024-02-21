@@ -80,25 +80,28 @@ export class Renderer{
 			entries:               []
 		};
 
-		// this.swapChain = null;
-		this.depthTexture = null;
-		this.screenbuffer = null;
+		this.depthTexture  = null;
+		this.screenbuffer  = null;
 
-		this.framebuffers = new Map();
-		this.buffers      = new Set();
-		this.typedBuffers = new Map();
-		this.textures     = new Set();
+		this.framebuffers  = new Map();
+		this.buffers       = new Set();
+		this.cpuGpuBuffers = new Map();
+		this.textures      = new Set();
 	}
 
 	createResourceReport(){
 
-		let framebufferBytes = 0;
+		let framebufferBytes  = 0;
 		let bufferBytes      = -1;
-		let typedBufferBytes = 0;
-		let textureBytes     = 0;
+		let cpuGpuBufferBytes  = 0;
+		let textureBytes      = 0;
 
-		for(let [typedBuffer, gpuBuffer] of this.typedBuffers){
-			typedBufferBytes += typedBuffer.byteLength;
+		for(let [cpuBuffer, gpuBuffer] of this.cpuGpuBuffers){
+			cpuGpuBufferBytes += cpuBuffer.byteLength;
+		}
+
+		for(let buffer of this.buffers){
+			bufferBytes += buffer.size;
 		}
 
 		for(let texture of this.textures){
@@ -110,21 +113,21 @@ export class Renderer{
 		msg +=     `=======================================\n`;
 
 		{
-			let count = this.typedBuffers.size.toLocaleString().padStart(7);
-			let strBytes = `${(typedBufferBytes / 1_000_000).toFixed(1)} MB`.padStart(12);
-			msg += `typedBuffers    ${count}    ${strBytes}\n`;
+			let count = this.cpuGpuBuffers.size.toLocaleString().padStart(7);
+			let strBytes = `${(cpuGpuBufferBytes / 1_000_000).toFixed(1)} MB`.padStart(12);
+			msg += `CPU-GPU Buffers   ${count}    ${strBytes}\n`;
 		}
 
 		{
 			let count = this.buffers.size.toLocaleString().padStart(7);
 			let strBytes = `${(bufferBytes / 1_000_000).toFixed(1)} MB`.padStart(12);
-			msg += `buffers         ${count}    ${strBytes}\n`;
+			msg += `buffers           ${count}    ${strBytes}\n`;
 		}
 
 		{
 			let count = this.textures.size.toLocaleString().padStart(7);
 			let strBytes = `${(textureBytes / 1_000_000).toFixed(1)} MB`.padStart(12);
-			msg += `textures        ${count}    ${strBytes}\n`;
+			msg += `textures          ${count}    ${strBytes}\n`;
 		}
 
 
@@ -486,18 +489,19 @@ export class Renderer{
 		return texture;
 	}
 
-	createBuffer(size){
+	createBuffer({size, usage}){
 
-		console.log(`createBuffer(${size.toLocaleString()})`);
-
-		let buffer = this.device.createBuffer({
-			size: size,
-			usage: GPUBufferUsage.VERTEX 
+		if(!usage){
+			usage = GPUBufferUsage.VERTEX 
 				| GPUBufferUsage.STORAGE
 				| GPUBufferUsage.COPY_SRC
 				| GPUBufferUsage.COPY_DST
-				| GPUBufferUsage.UNIFORM,
-		});
+				| GPUBufferUsage.UNIFORM
+		}
+
+		console.log(`createBuffer(${size.toLocaleString()})`);
+
+		let buffer = this.device.createBuffer({size, usage});
 
 		this.buffers.add(buffer);
 
@@ -566,15 +570,15 @@ export class Renderer{
 		return gpuTexture;
 	}
 
-	getGpuBuffer(typedArray){
-		let buffer = this.typedBuffers.get(typedArray);
+	getGpuBuffer(cpuBuffer){
+		let gpuBuffer = this.cpuGpuBuffers.get(cpuBuffer);
 		
-		if(!buffer){
+		if(!gpuBuffer){
 			let {device} = renderer;
 
-			let byteSize = typedArray.byteLength;
+			let byteSize = cpuBuffer.byteLength;
 			
-			let vbo = device.createBuffer({
+			gpuBuffer = device.createBuffer({
 				size: byteSize,
 				usage: GPUBufferUsage.VERTEX 
 					| GPUBufferUsage.INDEX  
@@ -584,19 +588,27 @@ export class Renderer{
 				mappedAtCreation: true,
 			});
 
-			if(typedArray instanceof ArrayBuffer){
-				new Uint8Array(vbo.getMappedRange()).set(new Uint8Array(typedArray, 0, byteSize));
+			if(cpuBuffer instanceof ArrayBuffer){
+				new Uint8Array(gpuBuffer.getMappedRange()).set(new Uint8Array(cpuBuffer, 0, byteSize));
 			}else{
-				new Uint8Array(vbo.getMappedRange()).set(new Uint8Array(typedArray.buffer, 0, byteSize));
+				new Uint8Array(gpuBuffer.getMappedRange()).set(new Uint8Array(cpuBuffer.buffer, 0, byteSize));
 			}
 
-			vbo.unmap();
-			buffer = vbo;
+			gpuBuffer.unmap();
 
-			this.typedBuffers.set(typedArray, buffer);
+			this.cpuGpuBuffers.set(cpuBuffer, gpuBuffer);
 		}
 
-		return buffer;
+		return gpuBuffer;
+	}
+
+	disposeGpuBuffer(cpuBuffer){
+		let gpuBuffer = this.cpuGpuBuffers.get(cpuBuffer);
+
+		if(gpuBuffer){
+			gpuBuffer.destroy();
+			this.cpuGpuBuffers.delete(cpuBuffer);
+		}
 	}
 
 	getGpuBuffers(geometry){

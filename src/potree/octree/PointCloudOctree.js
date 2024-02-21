@@ -4,12 +4,15 @@ import {SceneNode, PointCloudOctreeNode, PointCloudMaterial, LRU} from "potree";
 import {renderPointsOctree} from "potree";
 import {BinaryHeap} from "BinaryHeap";
 
-const _box    = new Box3();
-const _sphere = new Sphere();
-const _fm     = new Matrix4();
-const _vec3   = new Vector3();
-const _vec4   = new Vector4();
-const lru     = new LRU();
+// preallocate frequently used objects to avoid construction and garbage collection overhead
+const _box             = new Box3();
+const _sphere          = new Sphere();
+const _fm              = new Matrix4();
+const _worldViewProj   = new Matrix4();
+const _frustum         = new Frustum();
+const _vec3            = new Vector3();
+const _vec4            = new Vector4();
+const lru              = new LRU();
 
 export const REFINEMENT = {
 	ADDITIVE:  0,
@@ -61,6 +64,8 @@ export class PointCloudOctree extends SceneNode{
 	updateVisibility_additive(camera, renderer){
 		let tStart = performance.now();
 
+		let lru_timestamp = Date.now();
+
 		if(this.root?.geometry?.statsList != null){
 			this.material.update(this);
 		}
@@ -78,11 +83,10 @@ export class PointCloudOctree extends SceneNode{
 		let world = this.world;
 		let view = camera.view;
 		let proj = camera.proj;
-		let worldViewProj = new Matrix4().multiply(proj).multiply(view).multiply(world);
-		_fm.multiplyMatrices(proj, view);
-		let frustum = new Frustum();
-		frustum.setFromMatrix(_fm);
 
+		_worldViewProj.copy(proj).multiply(view).multiply(world);
+		_fm.multiplyMatrices(proj, view);
+		_frustum.setFromMatrix(_fm);
 		let octreeSize = this.boundingBox.max.x - this.boundingBox.min.x;
 		let octreeRadius = Math.sqrt(octreeSize * octreeSize + octreeSize * octreeSize + octreeSize * octreeSize) / 2;
 		let framebufferSize = renderer.getSize();
@@ -92,11 +96,8 @@ export class PointCloudOctree extends SceneNode{
 			weight: Number.MAX_VALUE,
 		});
 
-		let i = 0;
 		let numPoints = 0;
-
 		let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
-
 		this.root.__pixelSize = 10000;
 
 		while (priorityQueue.size() > 0) {
@@ -105,38 +106,32 @@ export class PointCloudOctree extends SceneNode{
 
 			if(!node.loaded){
 
-				if(loadQueue.length < 10){
+				if(loadQueue.length < 40){
 					loadQueue.push(node);
 				}
 
 				continue;
 			}
 
+			lru.touch(node, lru_timestamp);
+
 			if(needsUnfiltered && !node.unfilteredLoaded){
-				if(unfilteredLoadQueue.length < 10){
+				if(unfilteredLoadQueue.length < 40){
 					unfilteredLoadQueue.push(node);
 				}
 
 				continue;
 			}
 
-			// _sphere.fromBox(node.boundingBox);
 			_sphere.center.x = 0.5 * (node.boundingBox.min.x + node.boundingBox.max.x);
 			_sphere.center.y = 0.5 * (node.boundingBox.min.y + node.boundingBox.max.y);
 			_sphere.center.z = 0.5 * (node.boundingBox.min.z + node.boundingBox.max.z);
 			_sphere.radius = octreeRadius / (2 ** node.level);
 			_sphere.applyMatrix4(this.world);
 
-			// _box.copy(node.boundingBox);
-			// _box.applyMcatrix4(this.world);
-			// let insideFrustum = frustum.intersectsBox(_box);
-			let insideFrustum = frustum.intersectsSphere(_sphere);
-			// let fitsInPointBudget = numPoints + node.numElements < this.pointBudget;
+			let insideFrustum = _frustum.intersectsSphere(_sphere);
 			let isLowLevel = node.level <= 2;
 
-			// if(!fitsInPointBudget) break;
-
-			// let visible = fitsInPointBudget && insideFrustum;
 			let visible = true;
 			visible = visible && insideFrustum;
 			visible = visible || isLowLevel;
@@ -190,7 +185,6 @@ export class PointCloudOctree extends SceneNode{
 				let pixelSize = weight * framebufferSize.height;
 
 				child.__pixelSize = pixelSize;
-				// debugger;
 
 				if(pixelSize < Potree.settings.minNodeSize){
 					continue;
@@ -206,7 +200,7 @@ export class PointCloudOctree extends SceneNode{
 					0.5 * (node.boundingBox.min.z + node.boundingBox.max.z),
 					1.0
 				);
-				_vec4.applyMatrix4(worldViewProj);
+				_vec4.applyMatrix4(_worldViewProj);
 				
 				if(_vec4.w > 0){
 					// weight nodes in center of screen higher
@@ -222,7 +216,6 @@ export class PointCloudOctree extends SceneNode{
 				}else{
 					weight = pixelSize;
 				}
-					// weight = pixelSize;
 
 				child.weight = weight;
 
@@ -235,11 +228,15 @@ export class PointCloudOctree extends SceneNode{
 		}
 
 		tStart = performance.now();
-		loadQueue.slice(0, 20);
+		loadQueue.slice(0, 50);
 		loadQueue.sort( (a, b) => a.level - b.level);
 
 		unfilteredLoadQueue.slice(0, 20);
 		unfilteredLoadQueue.sort( (a, b) => a.level - b.level);
+
+		// if(loadQueue.length > 0){
+		// 	console.log(`loadQueue.length: ${loadQueue.length}`);
+		// }
 
 		for(let node of loadQueue){
 			this.loader.loadNode(node);
@@ -263,25 +260,21 @@ export class PointCloudOctree extends SceneNode{
 
 		let t_start = Date.now();
 
-		// let camPos = camera.getWorldPosition();
-		// let world = this.world;
 		let view = camera.view;
 		let proj = camera.proj;
-		// let worldViewProj = new Matrix4().multiply(proj).multiply(view).multiply(world);
 		_fm.multiplyMatrices(proj, view);
-		let frustum = new Frustum();
-		frustum.setFromMatrix(_fm);
+		_frustum.setFromMatrix(_fm);
 
 		let octreeSize = this.boundingBox.max.x - this.boundingBox.min.x;
 		let octreeRadius = Math.sqrt(octreeSize * octreeSize + octreeSize * octreeSize + octreeSize * octreeSize) / 2;
 
 		if(this.refinement === REFINEMENT.ADDITIVE){
-			updateVisibility_additive(camera, renderer);
+			this.updateVisibility_additive(camera, renderer);
 		}else{
 
-			this.root.traverse(node => {
-				node.visible = false;
-			});
+			// this.root.traverse(node => {
+			// 	node.visible = false;
+			// });
 
 			this.updateVisibility_additive(camera, renderer);
 
@@ -321,7 +314,7 @@ export class PointCloudOctree extends SceneNode{
 						_sphere.radius = octreeRadius / (2 ** child.level);
 						_sphere.applyMatrix4(this.world);
 
-						let insideFrustum = frustum.intersectsSphere(_sphere);
+						let insideFrustum = _frustum.intersectsSphere(_sphere);
 
 						if(insideFrustum && !child.visible){
 							child.visible = true;
@@ -339,21 +332,45 @@ export class PointCloudOctree extends SceneNode{
 			}
 		}
 
-		let timestamp = Date.now();
-		for(let node of this.visibleNodes){
-			lru.touch(node, timestamp);
-		}
+		// let timestamp = Date.now();
+		// for(let node of this.visibleNodes){
+		// 	lru.touch(node, timestamp);
+		// }
 
 		let seconds = (Date.now() - t_start) / 1000;
 		
 		return seconds;
 	}
 
-	clearLRU(){
+	// unload least-recently-used nodes
+	static clearLRU(renderer){
+		
 
-		// unload least-recently-used nodes
+		if(lru.items.size < 10) return;
 
-		// TODO
+		for(let i = 0; i < 5; i++){
+			let tooOld = (lru.newest.timestamp - lru.oldest.timestamp) > 100;
+			let item = lru.oldest;
+			let node = item.node;
+
+			if(tooOld){
+				
+				// dispose node and descendants
+				node.traverse(node => {
+					let isLoaded = (node.loading === false && node.loaded === true);
+
+					if(!isLoaded) return;
+
+					renderer.disposeGpuBuffer(node.geometry.buffer);
+					
+					node.voxelCoords = null;
+					node.geometry = null;
+					node.loaded = false;
+
+					lru.remove(node);
+				});
+			}
+		}
 
 	}
 

@@ -36,6 +36,7 @@ export * from "./potree/images/Images360.js";
 export * from "./potree/images/SphereMap.js";
 export * from "./potree/octree/loader_v3/Potree3Loader.js";
 export * from "./potree/octree/loader/PotreeLoader.js";
+export * from "./modules/3DTiles/3DTilesLoader.js"
 export * from "./potree/ChunkedBuffer.js";
 export * from "./modules/attributes/mappings.js";
 

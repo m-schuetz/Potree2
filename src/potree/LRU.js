@@ -19,9 +19,9 @@ class LRU{
 
 	constructor(){
 		// the least recently used item
-		this.first = null;
+		this.oldest = null;
 		// the most recently used item
-		this.last = null;
+		this.newest = null;
 		// a list of all items in the lru list
 		this.items = new Map();
 		this.elements = 0;
@@ -41,10 +41,10 @@ class LRU{
 		if (!this.items.has(node)) {
 			// add to list
 			item = new LRUItem(node);
-			item.previous = this.last;
+			item.previous = this.newest;
 			item.timestamp = timestamp;
 
-			this.last = item;
+			this.newest = item;
 			if (item.previous !== null) {
 				item.previous.next = item;
 			}
@@ -52,8 +52,8 @@ class LRU{
 			this.items.set(node, item);
 			this.elements++;
 
-			if (this.first === null) {
-				this.first = item;
+			if (this.oldest === null) {
+				this.oldest = item;
 			}
 		} else {
 			// update in list
@@ -61,24 +61,24 @@ class LRU{
 			item.timestamp = timestamp;
 
 			if (item.previous === null) {
-				// handle touch on first element
+				// handle touch on oldest element
 				if (item.next !== null) {
-					this.first = item.next;
-					this.first.previous = null;
-					item.previous = this.last;
+					this.oldest = item.next;
+					this.oldest.previous = null;
+					item.previous = this.newest;
 					item.next = null;
-					this.last = item;
+					this.newest = item;
 					item.previous.next = item;
 				}
 			} else if (item.next === null) {
-				// handle touch on last element
+				// handle touch on newest element
 			} else {
 				// handle touch on any other element
 				item.previous.next = item.next;
 				item.next.previous = item.previous;
-				item.previous = this.last;
+				item.previous = this.newest;
 				item.next = null;
-				this.last = item;
+				this.newest = item;
 				item.previous.next = item;
 			}
 		}
@@ -86,18 +86,19 @@ class LRU{
 
 	remove(node){
 		let lruItem = this.items.get(node);
+		
 		if (lruItem) {
 			if (this.elements === 1) {
-				this.first = null;
-				this.last = null;
+				this.oldest = null;
+				this.newest = null;
 			} else {
 				if (!lruItem.previous) {
-					this.first = lruItem.next;
-					this.first.previous = null;
+					this.oldest = lruItem.next;
+					this.oldest.previous = null;
 				}
 				if (!lruItem.next) {
-					this.last = lruItem.previous;
-					this.last.next = null;
+					this.newest = lruItem.previous;
+					this.newest.next = null;
 				}
 				if (lruItem.previous && lruItem.next) {
 					lruItem.previous.next = lruItem.next;
@@ -113,17 +114,17 @@ class LRU{
 	}
 
 	getLRUItem(){
-		if (this.first === null) {
+		if (this.oldest === null) {
 			return null;
 		}
-		let lru = this.first;
+		let lru = this.oldest;
 
 		return lru.node;
 	}
 
 	toString(){
 		let string = '{ ';
-		let curr = this.first;
+		let curr = this.oldest;
 		while (curr !== null) {
 			string += curr.node.id;
 			if (curr.next !== null) {

@@ -365,8 +365,6 @@ export class Potree3Loader{
 					geometry.buffer = data.buffer;
 					geometry.statsList = data.statsList;
 
-					// loadedNode.loaded = true;
-					// loadedNode.loading = false;
 					loadedNode.geometry = geometry;
 					loadedNode.voxelCoords = data.voxelCoords;
 

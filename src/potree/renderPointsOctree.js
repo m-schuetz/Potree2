@@ -83,34 +83,53 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 	if(state === undefined){
 		// create new state
 
-		octreeStates.set(key, {
-			stage: "building"
-		});
+		octreeStates.set(key, {stage: "building"});
 
-		// console.log("generating state");
+		// const uniformBuffer = device.createBuffer({
+		// 	size: 512,
+		// 	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		// });
 
-		const uniformBuffer = device.createBuffer({
+		const uniformBuffer = renderer.createBuffer({
 			size: 512,
 			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 
 		let nodesBuffer = new ArrayBuffer(10_000 * WGSL_NODE_BYTESIZE);
-		let nodesGpuBuffer = device.createBuffer({
+		let nodesGpuBuffer = renderer.createBuffer({
 			size: nodesBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		let attributesDescBuffer = new ArrayBuffer(16_384);
-		let attributesDescGpuBuffer = device.createBuffer({
+		let attributesDescGpuBuffer = renderer.createBuffer({
 			size: attributesDescBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
 		let colormapBuffer = new ArrayBuffer(4 * 256);
-		let colormapGpuBuffer = device.createBuffer({
+		let colormapGpuBuffer = renderer.createBuffer({
 			size: colormapBuffer.byteLength,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
+
+		// let nodesBuffer = new ArrayBuffer(10_000 * WGSL_NODE_BYTESIZE);
+		// let nodesGpuBuffer = device.createBuffer({
+		// 	size: nodesBuffer.byteLength,
+		// 	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		// });
+
+		// let attributesDescBuffer = new ArrayBuffer(16_384);
+		// let attributesDescGpuBuffer = device.createBuffer({
+		// 	size: attributesDescBuffer.byteLength,
+		// 	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		// });
+
+		// let colormapBuffer = new ArrayBuffer(4 * 256);
+		// let colormapGpuBuffer = device.createBuffer({
+		// 	size: colormapBuffer.byteLength,
+		// 	usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		// });
 
 		let state = {};
 		state.uniformBuffer = uniformBuffer;
@@ -251,18 +270,6 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			attributeView.setFloat32( index * stride + 52,           range_max[1], true);
 			attributeView.setFloat32( index * stride + 56,           range_max[2], true);
 			attributeView.setFloat32( index * stride + 60,           range_max[3], true);
-
-			// debugger;
-
-			// if(attributeName === "rgba"){
-			// 	debugger;
-			// }
-
-			// console.log({
-			// 	dataset: octree.name, 
-			// 	attributeName,
-			// 	numElements, byteSize, dataType, mappingIndex: mapping.index,
-			// });
 		};
 
 		let attributes = octree.loader.attributes;
@@ -366,28 +373,20 @@ function getCachedBufferBindGroup(renderer, pipeline, node){
 
 	let bindGroup = bufferBindGroupCache.get(node);
 
+	// Remove outdated bind groups. (Old buffer was destroyed, a new buffer was later reloaded)
+	if(bindGroup && bindGroup.geometry_id !== node.geometry.id){
+		// console.log(`removing old bind group for ${node.name}`);
+		bufferBindGroupCache.delete(bindGroup);
+		bindGroup = null;
+	}
+
 	if(bindGroup){
 		return bindGroup;
 	}else{
-
-		// let tStart = performance.now();
-
-		// if(dbgBuffer === null){
-		// 	dbgBuffer = renderer.device.createBuffer({
-		// 		size: 10_000_000,
-		// 		usage: GPUBufferUsage.VERTEX 
-		// 			| GPUBufferUsage.INDEX  
-		// 			| GPUBufferUsage.COPY_DST 
-		// 			| GPUBufferUsage.COPY_SRC 
-		// 			| GPUBufferUsage.STORAGE,
-		// 		mappedAtCreation: false,
-		// 	});
-		// }
-
-
 		let buffer = node.geometry.buffer;
-		// let gpuBuffer = dbgBuffer;
 		let gpuBuffer = renderer.getGpuBuffer(buffer);
+		gpuBuffer.label = node.name;
+
 		dbgUploadedInFrame += buffer.byteLength;
 
 		let bufferBindGroup = renderer.device.createBindGroup({
@@ -396,13 +395,9 @@ function getCachedBufferBindGroup(renderer, pipeline, node){
 				{binding: 0, resource: {buffer: gpuBuffer}}
 			],
 		});
+		bufferBindGroup.geometry_id = node.geometry.id;
 
 		bufferBindGroupCache.set(node, bufferBindGroup);
-		
-		// node.justUploaded = true;
-
-		// let duration = performance.now() - tStart;
-		// console.log(`getCachedBufferBindGroup duration: ${duration.toFixed(1)} ms`);
 
 		return bufferBindGroup;
 	}
@@ -445,16 +440,10 @@ async function renderOctree(octree, drawstate, flags){
 	if(mapping)
 	{ // UPDATE COLORMAP BUFFER
 		let attributeName = Potree.settings.attribute;
-
-		// let settings = octree?.material?.attributeSettings?.get(attributeName);
-		
 		let listing = mapping.listing;
 
-		// if(settings?.constructor?.name === "Attribute_Listing")
-
 		for(let state of [octreeState_quads, octreeState_points]){
-			if(listing)
-			{
+			if(listing){
 				let {colormapBuffer, colormapGpuBuffer} = state;
 
 				let u8 = new Uint8Array(colormapBuffer);
@@ -588,15 +577,15 @@ async function renderOctree(octree, drawstate, flags){
 				renderer.drawBoundingBox(position, size, color);
 			}
 
-			let allowed = [
-				// "r046163",
-				// "r046167",
-				// "r402621",
-				// "r402230",
-				// "r402231",
-				// "r402232",
-				"r402233",
-			];
+			// let allowed = [
+			// 	// "r046163",
+			// 	// "r046167",
+			// 	// "r402621",
+			// 	// "r402230",
+			// 	// "r402231",
+			// 	// "r402232",
+			// 	"r402233",
+			// ];
 
 			// if(node.name.length > 6)
 			// if(node.name === "r046341")
