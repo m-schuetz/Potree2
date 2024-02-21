@@ -218,6 +218,11 @@ export class TDTilesNode{
 		this.world = new Matrix4();
 		this.last_used_in_frame = 0;
 
+		this.projected_dirx = null;
+		this.projected_diry = null;
+		this.projected_dirz = null;
+		this.projected_pos  = null;
+
 		globalNodeCounter++;
 	}
 
@@ -315,58 +320,66 @@ export class TDTiles extends SceneNode{
 		for(let nodeIndex = 0; nodeIndex < numNodes; nodeIndex++){
 			let node = this.visibleNodes[nodeIndex];
 
-			_dirx.set(...this.project([
-				node.boundingVolume.position.x + 1.0,
-				node.boundingVolume.position.y + 0.0,
-				node.boundingVolume.position.z + 0.0,
-			]), 1);
-			_diry.set(...this.project([
-				node.boundingVolume.position.x + 0.0,
-				node.boundingVolume.position.y + 1.0,
-				node.boundingVolume.position.z + 0.0,
-			]), 1);
-			_dirz.set(...this.project([
-				node.boundingVolume.position.x + 0.0,
-				node.boundingVolume.position.y + 0.0,
-				node.boundingVolume.position.z + 1.0,
-			]), 1);
-			_pos.set(...this.project([
-				node.boundingVolume.position.x,
-				node.boundingVolume.position.y,
-				node.boundingVolume.position.z,
-			]), 1);
+			if(!node.projected_pos){
 
-			_dirx.set(
-				_dirx.x - _pos.x,
-				_dirx.y - _pos.y,
-				_dirx.z - _pos.z,
-			);
-			_diry.set(
-				_diry.x - _pos.x,
-				_diry.y - _pos.y,
-				_diry.z - _pos.z,
-			);
-			_dirz.set(
-				_dirz.x - _pos.x,
-				_dirz.y - _pos.y,
-				_dirz.z - _pos.z,
-			);
-			_dirx.normalize();
-			_diry.normalize();
-			_dirz.normalize();
+				node.projected_dirx = new Vector3();
+				node.projected_diry = new Vector3();
+				node.projected_dirz = new Vector3();
+				node.projected_pos  = new Vector3();
+
+				node.projected_dirx.set(...this.project([
+					node.boundingVolume.position.x + 1.0,
+					node.boundingVolume.position.y + 0.0,
+					node.boundingVolume.position.z + 0.0,
+				]), 1);
+				node.projected_diry.set(...this.project([
+					node.boundingVolume.position.x + 0.0,
+					node.boundingVolume.position.y + 1.0,
+					node.boundingVolume.position.z + 0.0,
+				]), 1);
+				node.projected_dirz.set(...this.project([
+					node.boundingVolume.position.x + 0.0,
+					node.boundingVolume.position.y + 0.0,
+					node.boundingVolume.position.z + 1.0,
+				]), 1);
+				node.projected_pos.set(...this.project([
+					node.boundingVolume.position.x,
+					node.boundingVolume.position.y,
+					node.boundingVolume.position.z,
+				]), 1);
+
+				node.projected_dirx.set(
+					node.projected_dirx.x - node.projected_pos.x,
+					node.projected_dirx.y - node.projected_pos.y,
+					node.projected_dirx.z - node.projected_pos.z,
+				);
+				node.projected_diry.set(
+					node.projected_diry.x - node.projected_pos.x,
+					node.projected_diry.y - node.projected_pos.y,
+					node.projected_diry.z - node.projected_pos.z,
+				);
+				node.projected_dirz.set(
+					node.projected_dirz.x - node.projected_pos.x,
+					node.projected_dirz.y - node.projected_pos.y,
+					node.projected_dirz.z - node.projected_pos.z,
+				);
+				node.projected_dirx.normalize();
+				node.projected_diry.normalize();
+				node.projected_dirz.normalize();
+			}
 
 			_rot.makeIdentity();
 			_rot.set(
-				_dirx.x, _diry.x, _dirz.x, 0.0,
-				_dirx.y, _diry.y, _dirz.y, 0.0,
-				_dirx.z, _diry.z, _dirz.z, 0.0,
+				node.projected_dirx.x, node.projected_diry.x, node.projected_dirz.x, 0.0,
+				node.projected_dirx.y, node.projected_diry.y, node.projected_dirz.y, 0.0,
+				node.projected_dirx.z, node.projected_diry.z, node.projected_dirz.z, 0.0,
 				      0,       0,       0, 1.0,
 			);
 
 			_trans.makeIdentity();
-			_trans.elements[12] = _pos.x;
-			_trans.elements[13] = _pos.y;
-			_trans.elements[14] = _pos.z;
+			_trans.elements[12] = node.projected_pos.x;
+			_trans.elements[13] = node.projected_pos.y;
+			_trans.elements[14] = node.projected_pos.z;
 
 			_world.multiplyMatrices(_trans, _rot);
 			_worldView.multiplyMatrices(view, _world);
@@ -377,15 +390,27 @@ export class TDTiles extends SceneNode{
 
 				let b3dm = node.content.b3dm;
 
-				_pos.set(...this.project([
-					b3dm.json.RTC_CENTER[0],
-					b3dm.json.RTC_CENTER[1],
-					b3dm.json.RTC_CENTER[2],
-				]), 1);
+				if(!b3dm._pos){
+					b3dm._pos = new Vector3();
 
-				_world.elements[12] = _pos.x;
-				_world.elements[13] = _pos.y;
-				_world.elements[14] = _pos.z;
+					b3dm._pos.set(...this.project([
+						b3dm.json.RTC_CENTER[0],
+						b3dm.json.RTC_CENTER[1],
+						b3dm.json.RTC_CENTER[2],
+					]), 1);
+				}
+
+				// _pos.set(...this.project([
+				// 	b3dm.json.RTC_CENTER[0],
+				// 	b3dm.json.RTC_CENTER[1],
+				// 	b3dm.json.RTC_CENTER[2],
+				// ]), 1);
+
+				
+
+				_world.elements[12] = b3dm._pos.x;
+				_world.elements[13] = b3dm._pos.y;
+				_world.elements[14] = b3dm._pos.z;
 				_worldView.multiplyMatrices(view, _world);
 
 				let binStart = b3dm.gltf.chunks[1].start;
