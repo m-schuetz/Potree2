@@ -420,6 +420,8 @@ export class PointCloudOctree extends SceneNode{
 
 		let point = {};
 
+		if(!node.geometry) return null;
+
 		let view = new DataView(node.geometry.buffer);
 		let readers = {
 			"double"  : view.getFloat64.bind(view),

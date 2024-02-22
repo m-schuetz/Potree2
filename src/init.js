@@ -435,8 +435,10 @@ function renderNotSoBasic(){
 	let points = renderables.get("Points") ?? [];
 	let octrees = renderables.get("PointCloudOctree") ?? [];
 
-	Potree.state.numPoints = 0;
-	Potree.state.numNodes  = 0;
+	Potree.state.numPoints          = 0;
+	Potree.state.numNodes           = 0;
+	Potree.state.num3DTileNodes     = 0;
+	Potree.state.num3DTileTriangles = 0;
 
 	for(let octree of octrees){
 		octree.showBoundingBox = Potree.settings.showBoundingBox;

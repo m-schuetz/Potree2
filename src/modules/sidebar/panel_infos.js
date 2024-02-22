@@ -55,6 +55,14 @@ class Panel{
 				<td>#nodes</td>
 				<td>${Potree.state.numNodes.toLocaleString()}</td>
 			</tr><tr>
+			</tr><tr>
+				<td>#3D Tile Nodes</td>
+				<td>${Potree.state.num3DTileNodes.toLocaleString()}</td>
+			</tr><tr>
+			</tr><tr>
+				<td>3D Tile Triangles</td>
+				<td>${Potree.state.num3DTileTriangles.toLocaleString()}</td>
+			</tr><tr>
 				<td>FPS</td>
 				<td>${Potree.state.fps}</td>
 			</tr><tr>

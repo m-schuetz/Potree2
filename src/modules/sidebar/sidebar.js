@@ -9,6 +9,7 @@ import {createPanel as createScenePanel} from "./panel_scene.js";
 
 let sidebar = null;
 let dir = new URL(import.meta.url + "/../").href;
+let sidebarWidth = "30em";
 
 class Section{
 
@@ -45,14 +46,14 @@ function toggle(){
 		sidebar.elContainer.style.gridTemplateColumns = "48px 1fr";
 	}else{
 		isOpen = true;
-		sidebar.elContainer.style.gridTemplateColumns = "23em 1fr";
+		sidebar.elContainer.style.gridTemplateColumns = `${sidebarWidth} 1fr`;
 	}
 }
 
 function open(){
 	if(!isOpen){
 		isOpen = true;
-		sidebar.elContainer.style.gridTemplateColumns = "23em 1fr";
+		sidebar.elContainer.style.gridTemplateColumns = `${sidebarWidth} 1fr`;
 	}
 }
 
@@ -182,7 +183,7 @@ export async function installSidebar(elPotree, potree){
 	`;
 
 	elPotree.style.display = "grid";
-	elPotree.style.gridTemplateColumns = "23em 1fr";
+	elPotree.style.gridTemplateColumns = `${sidebarWidth} 1fr`;
 	elPotree.prepend(elSidebar);
 
 	let elSectionSelection = elSidebar.querySelector("#potree_sidebar_section_selection");

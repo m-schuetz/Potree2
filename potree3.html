@@ -1,6 +1,7 @@
 <html>
 <head>
 <meta http-equiv="origin-trial" content="AmgwKkyLeQetn/dhGSsOlfOa/QLp1JOUgqyYSeFTadHtP83gkgHrDEj62CN//MgSjDbVwOY/LAr4qg/XyU2YYwMAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY3NTIwOTU5OSwiaXNTdWJkb21haW4iOnRydWV9">
+<link rel="stylesheet" href="resources/potree.css">
 <style>
 
 td{
@@ -35,7 +36,7 @@ td{
 
 #msg_resources{
 	position: absolute; 
-	left: 400px; 
+	left: 1em; 
 	top: 10px; 
 	color: white;
 	text-shadow: 4px 4px 4px black;
@@ -60,6 +61,7 @@ canvas{
 <div id="potree" style="width: 100%; height: 100%; position: fixed;">
 	<span style="position: relative">
 		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
+		<pre id="msg_resources"></pre>
 		<!-- <input id="btn_toggle" type="button" value="toggle" style="position: absolute; left: 10px; top: 10px"></input> -->
 	</span>
 </div>
@@ -159,15 +161,21 @@ canvas{
 
 	
 
-	// TDTilesLoader.load("https://sitn.ne.ch/3dtiles/chaux81123/Production_1_pro_tie_3d_cesium.json").then(tiles => {
+	// // TDTilesLoader.load("https://sitn.ne.ch/3dtiles/chaux81123/Production_1_pro_tie_3d_cesium.json").then(tiles => {
 	await TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
-		scene.root.children.push(tiles);
-
+		tiles.name = "le_locle_est";
 		tiles.projector = proj4("EPSG:4978", target_crs);
 
+		let box = tiles.root.boundingVolume.toBox();
+		box.min.set(...tiles.project(box.min.toArray()));
+		box.max.set(...tiles.project(box.max.toArray()));
+		tiles.boundingBox.copy(box);
+
+		scene.root.children.push(tiles);
+
 		controls.set({
-			position: [2546872.8, 1211512.2, 1347.1], 
-			pivot:    [2546988.3, 1211950.4, 969.1]
+			position: [2546980.6, 1211930.3, 986.6], 
+			pivot:    [2546985.7, 1211949.0, 975.4]
 		});
 	});
 		
@@ -175,23 +183,94 @@ canvas{
 	// Potree3Loader.load("../resources/pointclouds/lion.potree").then(pointcloud => {
 	// Potree3Loader.load("../resources/pointclouds/meroe.potree").then(pointcloud => {
 	// Potree3Loader.load("../resources/pointclouds/eclepens.potree").then(pointcloud => {
-	// Potree3Loader.load("../resources/pointclouds/sitn_subset.potree").then(pointcloud => {
-	// 	console.log(pointcloud);
+	await Potree3Loader.load("../resources/pointclouds/sitn_subset.potree").then(pointcloud => {
+		scene.root.children.push(pointcloud);
 
-	// 	scene.root.children.push(pointcloud);
+		pointcloud.name = "SITN";
 
-	// 	// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
-	// 	pointcloud.name = "SITN";
+		let material = pointcloud.material;
 
-	// 	let material = pointcloud.material;
+		controls.zoomTo(pointcloud);
 
-	// 	controls.zoomTo(pointcloud);
+		controls.set({
+			position: [2546741.1, 1211599.5, 973.0], 
+			pivot:    [2546758.8, 1211683.2, 925.1]
+		});
+	});
 
-	// 	controls.set({
-	// 		position: [2546741.1, 1211599.5, 973.0], 
-	// 		pivot:    [2546758.8, 1211683.2, 925.1]
-	// 	});
-	// });
+	PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
+
+		scene.root.children.push(pointcloud);
+
+		// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
+		pointcloud.name = "SITN 2022";
+
+		let material = pointcloud.material;
+
+		controls.zoomTo(pointcloud);
+
+		controls.set({
+			position: [2546741.1, 1211599.5, 973.0], 
+			pivot:    [2546758.8, 1211683.2, 925.1]
+		});
+
+	});
+
+	PotreeLoader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.laz_converted/metadata.json").then(pointcloud => {
+	// Potree3Loader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.potree").then(pointcloud => {
+
+		pointcloud.name = "Helimap MLS Drive 3";
+
+		scene.root.children.push(pointcloud);
+
+		let imageList = [];
+		fetch("./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt").then(async (response) => {
+
+			let text = await response.text();
+			let lines = text.split("\n");
+
+			let min = null;
+			// let projector = proj4("EPSG:4978", target_crs);
+			let projTo = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs";
+			
+			for(let i = 1; i < lines.length; i++){
+				let line = lines[i];
+
+				if(line.trim().length === 0){
+					continue;
+				}
+
+				let tokens = line.split("\t");
+
+				console.log(tokens);
+
+
+				let imgPath = tokens[0];
+				let long = Number(tokens[2]);
+				let lat = Number(tokens[3]);
+				let z = Number(tokens[4]);
+
+				let [x, y] = proj4(projTo, [long, lat]);
+				if(min == null){
+					min = new Vector3(x, y, 0);
+				}
+
+				let image = new Image360();
+				image.position.x = x - min.x;
+				image.position.y = y - min.y;
+				image.position.z = z;
+				image.name = imgPath;
+
+				imageList.push(image);
+			}
+
+			let images = new Images360(imageList);
+			images.position.copy(min);
+			images.name = "Helimap MLS Drive 3 Images";
+			scene.add(scene.root, images);
+		});
+
+	});
 
 	
 

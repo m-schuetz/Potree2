@@ -6,16 +6,14 @@ export class SceneNode{
 	constructor(name){
 		this.name = name;
 		
-		this.position = new Vector3(0, 0, 0);
-		this.rotation = new Matrix4();
-		this.scale = new Vector3(1, 1, 1);
+		this.position    = new Vector3(0, 0, 0);
+		this.rotation    = new Matrix4();
+		this.scale       = new Vector3(1, 1, 1);
 		this.boundingBox = new Box3();
 		this.renderLayer = 0;
-		this.visible = true;
-
-		this.children = [];
-
-		this.world = new Matrix4();
+		this.visible     = true;
+		this.children    = [];
+		this.world       = new Matrix4();
 	}
 
 	updateWorld(){

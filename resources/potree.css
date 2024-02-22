@@ -33,3 +33,11 @@ td{
 	/* from https://stackoverflow.com/a/14249403/913630 */
 	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
 }
+
+.textButton {
+    background: none;
+    border:     none;
+    margin:     0;
+    padding:    0;
+    cursor:     pointer;
+}

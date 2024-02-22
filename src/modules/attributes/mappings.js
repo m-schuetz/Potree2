@@ -100,6 +100,7 @@ export const VECTOR3 = {
 export const POSITION = {
 	name: "position",
 	condition: (attribute) => (attribute.name === "position"),
+	inputs: [],
 	wgsl: `fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 
 		var worldPos = (uniforms.world * position);
@@ -118,6 +119,7 @@ export const POSITION = {
 export const ELEVATION = {
 	name: "elevation",
 	condition: (attribute) => (attribute.name === "elevation"),
+	inputs: [],
 	wgsl: `fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 
 		var worldPos = (uniforms.world * position);
@@ -296,6 +298,7 @@ export const LAS_GPS_TIME = {
 export const TERRASCAN_NORMAL = {
 	name: "normal (terrascan 2-15-15)",
 	condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
+	inputs: [],
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 			var PI = 3.1415;
@@ -330,6 +333,7 @@ export const TERRASCAN_NORMAL = {
 export const TERRASCAN_GROUP = {
 	name: "group (terrascan)",
 	condition: (attribute) => (attribute.name === "Group"),
+	inputs: [],
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;
@@ -349,6 +353,7 @@ export const TERRASCAN_GROUP = {
 export const TERRASCAN_DISTANCE = {
 	name: "distance (terrascan)",
 	condition: (attribute) => (attribute.name === "Distance"),
+	inputs: [],
 	wgsl: `
 		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
 			var offset = node.numPoints * attrib.offset + attrib.byteSize * pointID;

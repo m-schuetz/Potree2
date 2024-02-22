@@ -44,6 +44,8 @@ class Panel{
 
 			let point = octree.parsePoint(node, hoveredItem.pointIndex);
 
+			if(!point) return;
+
 			valueRows += `
 			<tr>
 				<td>octree.name</td>

@@ -3,7 +3,7 @@ import {SceneNode, Vector3, Vector4, Matrix4, Box3, Frustum, EventDispatcher, St
 import {LRUItem, LRU} from "potree";
 
 const WGSL_NODE_BYTESIZE = 80 + 16;
-const TILES_CACHE_THRESHOLD = 300_000_000; // If we load more bytes, we start unloading least-recently-used nodes
+const TILES_CACHE_THRESHOLD = 200_000_000; // If we load more bytes, we start unloading least-recently-used nodes
 
 let initialized = false;
 let pipeline = null;
@@ -46,12 +46,12 @@ async function init(renderer){
 	
 	let {device} = renderer;
 
-	uniformsGpuBuffer = device.createBuffer({
+	uniformsGpuBuffer = renderer.createBuffer({
 		size: uniformsBuffer.byteLength,
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	});
 
-	nodesGpuBuffer = device.createBuffer({
+	nodesGpuBuffer = renderer.createBuffer({
 		size: nodesBuffer.byteLength,
 		usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 	});
@@ -197,6 +197,21 @@ export class BVSphere{
 		this.position = new Vector3(0, 0, 0);
 		this.radius = 1;
 	}
+
+	toBox(){
+
+		let box = new Box3();
+
+		box.min.x = this.position.x - this.radius;
+		box.min.y = this.position.y - this.radius;
+		box.min.z = this.position.z - this.radius;
+
+		box.max.x = this.position.x + this.radius;
+		box.max.y = this.position.y + this.radius;
+		box.max.z = this.position.z + this.radius;
+
+		return box;
+	}
 }
 
 let globalNodeCounter = 0;
@@ -226,6 +241,27 @@ export class TDTilesNode{
 		globalNodeCounter++;
 	}
 
+	// getBoundingVolumeAsBox(){
+	// 	let volume = this.boundingVolume;
+	// 	let box = new Box3();
+
+	// 	if(volume instanceof BVSphere){
+	// 		let radius = volume.sphere[3];
+
+	// 		box.min.x = volume.sphere[0] - radius;
+	// 		box.min.y = volume.sphere[1] - radius;
+	// 		box.min.z = volume.sphere[2] - radius;
+
+	// 		box.max.x = volume.sphere[0] + radius;
+	// 		box.max.y = volume.sphere[1] + radius;
+	// 		box.max.z = volume.sphere[2] + radius;
+	// 	}else{
+	// 		throw "not implemented";
+	// 	}
+
+	// 	return box;
+	// }
+
 	traverse(callback){
 
 		let keepGoing = callback(this);
@@ -236,6 +272,40 @@ export class TDTilesNode{
 			child.traverse(callback);
 		}
 
+	}
+
+}
+
+let bufferBindGroupCache = new Map();
+
+function getCachedBufferBindGroup(renderer, node, layout, gpuBuffer, texture, sampler){
+
+	let cached = bufferBindGroupCache.get(node);
+
+	let isOutdated = cached && (cached.gpuBuffer !== gpuBuffer || cached.texture !== texture);
+	if(isOutdated){
+		bufferBindGroupCache.delete(node);
+		cached = null;
+	}
+
+	if(cached){
+		return cached.bindGroup;
+	}else{
+
+		let bindGroup = renderer.device.createBindGroup({
+			layout: layout,
+			entries: [
+				{binding: 0, resource: {buffer: gpuBuffer}},
+				{binding: 1, resource: texture.createView()},
+				{binding: 2, resource: sampler},
+			],
+		});
+
+		let cached = {bindGroup, gpuBuffer, texture};
+
+		bufferBindGroupCache.set(node, cached);
+
+		return bindGroup;
 	}
 
 }
@@ -631,7 +701,7 @@ export class TDTiles extends SceneNode{
 		while(tracker.bytesLoaded > TILES_CACHE_THRESHOLD){
 			// start unloading least-recently-used nodes
 
-			let item = lru.first;
+			let item = lru.oldest;
 			let node = item.node;
 
 			// console.log(`disposing ${node.id}`);
@@ -650,15 +720,16 @@ export class TDTiles extends SceneNode{
 				tracker.bytesLoaded -= node.content.b3dm.buffer.byteLength;
 
 				let nodeBuffer = node.content.b3dm.gltf.buffer;
-				let gpuBuffer = renderer.typedBuffers.get(nodeBuffer);
+				// let gpuBuffer = renderer.typedBuffers.get(nodeBuffer);
 				
-				if(gpuBuffer) gpuBuffer.destroy();
+				// if(gpuBuffer) gpuBuffer.destroy();
 				if(node.textures) node.textures.forEach(texture => {
 					renderer.dispose(texture);
 				});
 				delete node.textures;
 
-				renderer.typedBuffers.delete(nodeBuffer);
+				// renderer.typedBuffers.delete(nodeBuffer);
+				renderer.disposeGpuBuffer(nodeBuffer);
 				stateCache.delete(node);
 
 
@@ -744,7 +815,7 @@ export class TDTiles extends SceneNode{
 						}
 					}
 
-					let index_accessor      = json.accessors[indexBufferRef];
+					let index_accessor = json.accessors[indexBufferRef];
 					let numIndices = index_accessor.count;
 
 					let texture = renderer.defaultTexture;
@@ -756,14 +827,15 @@ export class TDTiles extends SceneNode{
 						}
 					}
 
-					let bindGroup1 = device.createBindGroup({
-						layout: layout_1,
-						entries: [
-							{binding: 0, resource: {buffer: state.gpuBuffer}},
-							{binding: 1, resource: texture.createView()},
-							{binding: 2, resource: defaultSampler},
-						],
-					});
+					// let bindGroup1 = device.createBindGroup({
+					// 	layout: layout_1,
+					// 	entries: [
+					// 		{binding: 0, resource: {buffer: state.gpuBuffer}},
+					// 		{binding: 1, resource: texture.createView()},
+					// 		{binding: 2, resource: defaultSampler},
+					// 	],
+					// });
+					let bindGroup1 = getCachedBufferBindGroup(renderer, node, layout_1, state.gpuBuffer, texture, defaultSampler);
 
 					passEncoder.setBindGroup(1, bindGroup1);
 
@@ -775,6 +847,9 @@ export class TDTiles extends SceneNode{
 
 					triangleCounter += numTriangles;
 					meshCounter++;
+
+					Potree.state.num3DTileNodes++;
+					Potree.state.num3DTileTriangles += numTriangles;
 				}
 
 				// draw bounding box

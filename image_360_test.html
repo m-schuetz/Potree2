@@ -99,7 +99,7 @@ canvas{
 	installSidebar(elPotree, potree);
 
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
-	import {Potree3Loader} from "./src/potree/octree/loader_v3/Potree3Loader.js";
+	import {PotreeLoader, Potree3Loader} from "potree";
 	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
 
 	window.Potree = Potree;
@@ -156,7 +156,8 @@ canvas{
 	// });
 
 	// Potree.load("./nocommit/F_pointclouds/helimap/MLS/MLS_converted/metadata.json").then(pointcloud => {
-	Potree3Loader.load("./resources/G/temp/helimap_MLS/metadata.json").then(pointcloud => {
+	PotreeLoader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.laz_converted/metadata.json").then(pointcloud => {
+	// Potree3Loader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.potree").then(pointcloud => {
 
 		let box = pointcloud.getBoundingBoxWorld();
 		let min = box.min.clone();
@@ -195,7 +196,7 @@ canvas{
 		console.log(result);
 
 		let imageList = [];
-		fetch("./resources/Drive3/coordinates.txt").then(async (response) => {
+		fetch("./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt").then(async (response) => {
 
 			let text = await response.text();
 			let lines = text.split("\n");
@@ -217,6 +218,7 @@ canvas{
 				let imgPath = tokens[0];
 				let long = Number(tokens[2]);
 				let lat = Number(tokens[3]);
+				let elevation = Number(tokens[4]);
 
 				let xy = proj4(projTo, [long, lat]);
 
@@ -227,40 +229,40 @@ canvas{
 				let image = new Image360();
 				image.position.x = xy[0] - min.x;
 				image.position.y = xy[1] - min.y;
-				image.position.z = 396;
+				// image.position.z = 396;
+				// image.position.x = xy[0];
+				// image.position.y = xy[1];
+				image.position.z = elevation;
 				image.name = imgPath;
 
 				imageList.push(image);
-				
 			}
 
 			let images = new Images360(imageList);
 			images.position.copy(min);
 			scene.add(scene.root, images);
-
-
 		});
 
 	});
 
-	let origin = new Vector3(0, 0, 0);
-	let X = new Vector3(10, 0, 0);
-	let Y = new Vector3(0, 10, 0);
-	let Z = new Vector3(0, 0, 10);
-	let red = new Vector3(255, 0, 0);
-	let green = new Vector3(0, 255, 0);
-	let blue = new Vector3(0, 0, 255);
+	// let origin = new Vector3(0, 0, 0);
+	// let X = new Vector3(10, 0, 0);
+	// let Y = new Vector3(0, 10, 0);
+	// let Z = new Vector3(0, 0, 10);
+	// let red = new Vector3(255, 0, 0);
+	// let green = new Vector3(0, 255, 0);
+	// let blue = new Vector3(0, 0, 255);
 
-	import {sphere} from "./src/modules/geometries/sphere.js";
+	// import {sphere} from "./src/modules/geometries/sphere.js";
 
-	potree.onUpdate( () => {
+	// potree.onUpdate( () => {
 
-		potree.renderer.drawLine(origin, X, red);
-		potree.renderer.drawLine(origin, Y, green);
-		potree.renderer.drawLine(origin, Z, blue);
+	// 	potree.renderer.drawLine(origin, X, red);
+	// 	potree.renderer.drawLine(origin, Y, green);
+	// 	potree.renderer.drawLine(origin, Z, blue);
 
-		potree.renderer.drawSphere(origin, 2);
-	});
+	// 	potree.renderer.drawSphere(origin, 2);
+	// });
 
 
 

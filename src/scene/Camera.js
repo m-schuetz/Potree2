@@ -7,12 +7,12 @@ export class Camera extends SceneNode{
 	constructor(name){
 		super(name ?? "camera");
 
-		this.fov = 80;
-		this.near = 0.01;
-		this.far = 10_000;
+		this.fov    = 80;
+		this.near   = 0.01;
+		this.far    = 10_000;
 		this.aspect = 1;
-		this.proj = new Matrix4();
-		this.view = new Matrix4();
+		this.proj   = new Matrix4();
+		this.view   = new Matrix4();
 
 	}
 
