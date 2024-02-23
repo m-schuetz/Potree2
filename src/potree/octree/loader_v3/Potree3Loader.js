@@ -365,6 +365,13 @@ export class Potree3Loader{
 					geometry.buffer = data.buffer;
 					geometry.statsList = data.statsList;
 
+					if(node.nodeType === NodeType.LEAF){
+						geometry.numVoxels = node.numElements;
+					}else{
+						geometry.numPoints = node.numElements;
+					}
+
+
 					loadedNode.geometry = geometry;
 					loadedNode.voxelCoords = data.voxelCoords;
 

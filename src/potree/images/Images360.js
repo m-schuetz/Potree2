@@ -1,5 +1,9 @@
 
-import {SceneNode, Vector3, Matrix4, EventDispatcher, StationaryControls} from "potree";
+import {
+	SceneNode, Vector3, Matrix4, EventDispatcher, StationaryControls,
+	Box3
+} from "potree";
+import {proj4} from "proj4";
 
 let shaderCode = `
 
@@ -188,7 +192,6 @@ export class Images360 extends SceneNode{
 			this.positions[3 * i + 0] = image.position.x;
 			this.positions[3 * i + 1] = image.position.y;
 			this.positions[3 * i + 2] = image.position.z;
-
 		}
 
 		this.dispatcher.addEventListener("drag", (e) => {
@@ -350,7 +353,73 @@ export class Images360 extends SceneNode{
 		Potree.state.renderedElements += numVertices;
 		Potree.state.renderedObjects.push({node: this, numElements: numVertices});
 
+		if(this.isHighlighted){
+			let pos = this.boundingBox.center();
+			let size = this.boundingBox.size();
+			let color = new Vector3(255, 0, 0);
+
+			renderer.drawBoundingBox(pos, size, color,);
+		}
+
 	}
 
+
+}
+
+export class Images360Loader{
+
+	static async load(url, target_crs){
+
+		let response = await fetch(url);
+		let text = await response.text();
+		let lines = text.split("\n");
+		
+		let box = new Box3();
+
+		let imageList = [];
+
+		for(let i = 1; i < lines.length; i++){
+			let line = lines[i];
+
+			if(line.trim().length === 0){
+				continue;
+			}
+
+			let tokens = line.split("\t");
+
+			console.log(tokens);
+
+
+			let imgPath = tokens[0];
+			let long = Number(tokens[2]);
+			let lat = Number(tokens[3]);
+			let z = Number(tokens[4]);
+
+			let [x, y] = proj4(target_crs, [long, lat]);
+			box.expandByXYZ(x, y, z);
+
+			let image = new Image360();
+			image.position.x = x;
+			image.position.y = y;
+			image.position.z = z;
+			image.name = imgPath;
+
+			imageList.push(image);
+		}
+
+		for(let image of imageList){
+			image.position.x -= box.min.x;
+			image.position.y -= box.min.y;
+			image.position.z -= box.min.z;
+		}
+
+		let images = new Images360(imageList);
+		images.position.copy(box.min);
+		images.boundingBox.copy(box);
+		images.name = "Helimap MLS Drive 3 Images";
+		// scene.add(scene.root, images);
+
+		return images;
+	}
 
 }

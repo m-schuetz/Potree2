@@ -577,24 +577,25 @@ async function renderOctree(octree, drawstate, flags){
 				renderer.drawBoundingBox(position, size, color);
 			}
 
-			// let allowed = [
-			// 	// "r046163",
-			// 	// "r046167",
-			// 	// "r402621",
-			// 	// "r402230",
-			// 	// "r402231",
-			// 	// "r402232",
-			// 	"r402233",
-			// ];
 
-			// if(node.name.length > 6)
-			// if(node.name === "r046341")
-			// if(allowed.includes(node.name))
-			{
-				pass.passEncoder.draw(1 * numElements, 1, 0, index);
-				// console.log(node.name);
-			}
+			
+			pass.passEncoder.draw(1 * numElements, 1, 0, index);
+
+			// debugger;
+			Potree.state.numPoints += node.geometry.numPoints;
+			Potree.state.numVoxels += node.geometry.numVoxels;
+			Potree.state.numNodes++;
+			
 		}
+	}
+
+	if(octree.isHighlighted){
+		let box = octree.boundingBox.clone().applyMatrix4(octree.world);
+		let position = box.min.clone();
+		position.add(box.max).multiplyScalar(0.5);
+		let size = box.size();
+		let color = new Vector3(255, 255, 0);
+		renderer.drawBoundingBox(position, size, color);
 	}
 	
 }

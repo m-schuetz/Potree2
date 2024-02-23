@@ -145,21 +145,28 @@ export class OrbitControls{
 
 	zoomTo(node, args = {}){
 
-		let box = new Box3();
-		let tmp = new Box3();
-		node.traverse((node) => {
+		// let box = new Box3();
+		// let tmp = new Box3();
+		// node.traverse((node) => {
 
-			let childBox = node.boundingBox;
+		// 	let childBox = node.boundingBox;
 
-			if(!childBox.isFinite()){
-				return;
-			}
+		// 	if(!childBox.isFinite()){
+		// 		return;
+		// 	}
 
-			tmp.copy(childBox);
-			tmp.applyMatrix4(node.world);
+		// 	tmp.copy(childBox);
+		// 	tmp.applyMatrix4(node.world);
 			
-			box.expandByBox(tmp);
-		});
+		// 	box.expandByBox(tmp);
+		// });
+
+		let box = new Box3();
+		if(node.getBoundingBoxWorld){
+			box.copy(node.getBoundingBoxWorld());
+		}else{
+			box = node.boundingBox;
+		}
 
 		let pivot = box.center();
 		let multiplier = args.zoom ?? 1.0;

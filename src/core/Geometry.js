@@ -10,6 +10,8 @@ export class Geometry{
 		this.indices = indices ?? null;
 		this.numElements = numElements ?? 0;
 		this.boundingBox = new Box3();
+		this.numPoints = 0;
+		this.numVoxels = 0;
 
 		this.id = g_counter;
 		g_counter++;

@@ -2,59 +2,6 @@
 <head>
 <meta http-equiv="origin-trial" content="AmgwKkyLeQetn/dhGSsOlfOa/QLp1JOUgqyYSeFTadHtP83gkgHrDEj62CN//MgSjDbVwOY/LAr4qg/XyU2YYwMAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY3NTIwOTU5OSwiaXNTdWJkb21haW4iOnRydWV9">
 <link rel="stylesheet" href="resources/potree.css">
-<style>
-
-td{
-	padding: 2px 10px 0px 0px;
-}
-
-#big_message{
-	position: absolute; 
-	left: calc(50%); 
-	bottom: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 4em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
-
-#msg_dbg{
-	position: absolute; 
-	left: 10px; 
-	bottom: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 1em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
-
-#msg_resources{
-	position: absolute; 
-	left: 1em; 
-	top: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 1em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
-
-canvas{
-	image-rendering: pixelated;
-	display: flex;
-	position: absolute;
-	height: 100%;
-}
-
-</style>
 </head>
 <body style="padding: 0; margin: 0">
 
@@ -62,13 +9,11 @@ canvas{
 	<span style="position: relative">
 		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
 		<pre id="msg_resources"></pre>
-		<!-- <input id="btn_toggle" type="button" value="toggle" style="position: absolute; left: 10px; top: 10px"></input> -->
+		<pre id="msg_dbg"></pre>
 	</span>
 </div>
 
 <span id="big_message"></span>
-<pre id="msg_dbg"></pre>
-<pre id="msg_resources"></pre>
 
 <script type="importmap">
 {
@@ -82,7 +27,8 @@ canvas{
 		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
 		"tween":         "./libs/tween/tween.esm.js",
 		"range-select":  "./libs/range-select/RangeSelect.js",
-		"json5":         "./libs/json5/json5.js"
+		"json5":         "./libs/json5/json5.js",
+		"proj4":         "./libs/proj4js/proj4-src.js"
 	}
 }
 </script>
@@ -90,11 +36,11 @@ canvas{
 <script type="module">
 
 	import {Potree} from "potree";
-	import {Vector3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
+	import {Vector3, Box3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	import "range-select";
-	import {proj4} from "./libs/proj4js/proj4-src.js";
+	import {proj4} from "proj4";
 	import {load as loadGLB} from "./src/misc/GLBLoader.js";
 	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 
@@ -109,6 +55,10 @@ canvas{
 	let {scene, controls} = potree;
 	// installToolbar(potree.renderer.canvas, potree);
 
+	window.Potree = Potree;
+	window.potree = potree;
+	window.Vector3 = Vector3;
+
 	installSidebar(elPotree, potree).then(sidebar => {
 		window.sidebar = sidebar;
 		let panelAttributes = sidebar.sections.find(section => section.handler.name === "Attributes").handler;
@@ -118,12 +68,8 @@ canvas{
 			panelAttributes.set(pointcloud);
 		}
 
+		// sidebar.toggle();
 	});
-	// window.sidebar.toggle();
-
-	window.Potree = Potree;
-	window.potree = potree;
-	window.Vector3 = Vector3;
 
 	// default, if not overriden later on
 	// controls.set({
@@ -131,7 +77,7 @@ canvas{
 	// 	pivot: [-0.0, 2.2, 3.9],
 	// });
 
-	import {CopcLoader, Image360, Images360, SplatType} from "potree";
+	import {CopcLoader, Image360, Images360, Images360Loader, SplatType} from "potree";
 	import {PotreeLoader, Potree3Loader, TDTilesLoader} from "potree";
 	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
 
@@ -147,36 +93,43 @@ canvas{
 	Potree.settings.minNodeSize     = 200;
 	Potree.settings.showBoundingBox = false;
 
-	Potree.events.onFrameStart(() => {
-		let report = Potree.renderer.createResourceReport();
-
-		document.getElementById("msg_resources").innerText = report;
-	});
-
 	// swiss coordinate reference system
 	let target_crs = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs ";
 	
 	// standard CRS of 3D Tiles, see: https://docs.ogc.org/cs/22-025r4/22-025r4.html
 	proj4.defs("EPSG:4978","+proj=geocent +datum=WGS84 +units=m +no_defs +type=crs");
 
-	
+	Potree.events.onFrameStart(() => {
+		let report = Potree.renderer.createResourceReport();
 
+		document.getElementById("msg_resources").innerText = report;
+	});
+
+	controls.set({
+		position: [2546741.1, 1211599.5, 973.0], 
+		pivot:    [2546758.8, 1211683.2, 925.1]
+	});
+
+	
 	// // TDTilesLoader.load("https://sitn.ne.ch/3dtiles/chaux81123/Production_1_pro_tie_3d_cesium.json").then(tiles => {
 	await TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
 		tiles.name = "le_locle_est";
 		tiles.projector = proj4("EPSG:4978", target_crs);
 
 		let box = tiles.root.boundingVolume.toBox();
-		box.min.set(...tiles.project(box.min.toArray()));
-		box.max.set(...tiles.project(box.max.toArray()));
-		tiles.boundingBox.copy(box);
+		let bbox = new Box3();
+
+		bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.min.z]));
+		bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.max.z]));
+		bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.min.z]));
+		bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.max.z]));
+		bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.min.z]));
+		bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.max.z]));
+		bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.min.z]));
+		bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.max.z]));
+		tiles.boundingBox.copy(bbox);
 
 		scene.root.children.push(tiles);
-
-		controls.set({
-			position: [2546980.6, 1211930.3, 986.6], 
-			pivot:    [2546985.7, 1211949.0, 975.4]
-		});
 	});
 		
 	// if(false)
@@ -184,92 +137,27 @@ canvas{
 	// Potree3Loader.load("../resources/pointclouds/meroe.potree").then(pointcloud => {
 	// Potree3Loader.load("../resources/pointclouds/eclepens.potree").then(pointcloud => {
 	await Potree3Loader.load("../resources/pointclouds/sitn_subset.potree").then(pointcloud => {
-		scene.root.children.push(pointcloud);
-
 		pointcloud.name = "SITN";
-
-		let material = pointcloud.material;
-
-		controls.zoomTo(pointcloud);
-
-		controls.set({
-			position: [2546741.1, 1211599.5, 973.0], 
-			pivot:    [2546758.8, 1211683.2, 925.1]
-		});
+		scene.root.children.push(pointcloud);
 	});
 
-	PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
-
+	await PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
 		scene.root.children.push(pointcloud);
 
-		// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
 		pointcloud.name = "SITN 2022";
 
 		let material = pointcloud.material;
 
-		controls.zoomTo(pointcloud);
-
-		controls.set({
-			position: [2546741.1, 1211599.5, 973.0], 
-			pivot:    [2546758.8, 1211683.2, 925.1]
-		});
-
+		// controls.zoomTo(pointcloud);
 	});
 
-	PotreeLoader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.laz_converted/metadata.json").then(pointcloud => {
-	// Potree3Loader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.potree").then(pointcloud => {
-
+	await PotreeLoader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.laz_converted/metadata.json").then(async pointcloud => {
+	//await Potree3Loader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.potree").then(pointcloud => {
 		pointcloud.name = "Helimap MLS Drive 3";
-
 		scene.root.children.push(pointcloud);
 
-		let imageList = [];
-		fetch("./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt").then(async (response) => {
-
-			let text = await response.text();
-			let lines = text.split("\n");
-
-			let min = null;
-			// let projector = proj4("EPSG:4978", target_crs);
-			let projTo = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs";
-			
-			for(let i = 1; i < lines.length; i++){
-				let line = lines[i];
-
-				if(line.trim().length === 0){
-					continue;
-				}
-
-				let tokens = line.split("\t");
-
-				console.log(tokens);
-
-
-				let imgPath = tokens[0];
-				let long = Number(tokens[2]);
-				let lat = Number(tokens[3]);
-				let z = Number(tokens[4]);
-
-				let [x, y] = proj4(projTo, [long, lat]);
-				if(min == null){
-					min = new Vector3(x, y, 0);
-				}
-
-				let image = new Image360();
-				image.position.x = x - min.x;
-				image.position.y = y - min.y;
-				image.position.z = z;
-				image.name = imgPath;
-
-				imageList.push(image);
-			}
-
-			let images = new Images360(imageList);
-			images.position.copy(min);
-			images.name = "Helimap MLS Drive 3 Images";
-			scene.add(scene.root, images);
-		});
-
+		let images = await Images360Loader.load("./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt", target_crs);
+		scene.add(scene.root, images);
 	});
 
 	

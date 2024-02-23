@@ -133,6 +133,7 @@ const state = {
 	
 	num3DTileNodes: 0,
 	num3DTileTriangles: 0,
+	
 	numPoints: 0,
 	numVoxels: 0,
 	numNodes: 0,

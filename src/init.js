@@ -436,6 +436,7 @@ function renderNotSoBasic(){
 	let octrees = renderables.get("PointCloudOctree") ?? [];
 
 	Potree.state.numPoints          = 0;
+	Potree.state.numVoxels          = 0;
 	Potree.state.numNodes           = 0;
 	Potree.state.num3DTileNodes     = 0;
 	Potree.state.num3DTileTriangles = 0;
@@ -449,11 +450,11 @@ function renderNotSoBasic(){
 			octree.updateVisibility(camera, renderer);
 		}
 
-		let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
-		let numNodes = octree.visibleNodes.length;
+		// let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
+		// let numNodes = octree.visibleNodes.length;
 
-		Potree.state.numPoints += numPoints;
-		Potree.state.numNodes  += numNodes;
+		// Potree.state.numPoints += numPoints;
+		// Potree.state.numNodes  += numNodes;
 	}
 
 	PointCloudOctree.clearLRU(renderer);

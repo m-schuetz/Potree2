@@ -258,6 +258,8 @@ export class PotreeLoader{
 				geometry.numElements = node.numPoints;
 				geometry.buffer = data.buffer;
 				geometry.statsList = data.statsList;
+				geometry.numVoxels = 0;
+				geometry.numPoints = node.numPoints;
 
 				node.numElements = node.numPoints;
 				node.loaded = true;

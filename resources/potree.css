@@ -1,7 +1,9 @@
 
 canvas{
 	image-rendering: pixelated;
-	display: absolute;
+	display: flex;
+	position: absolute;
+	height: 100%;
 }
 
 td{
@@ -25,6 +27,19 @@ td{
 	position: absolute; 
 	left: 10px; 
 	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 1em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+#msg_resources{
+	position: absolute; 
+	left: 1em; 
+	top: 10px; 
 	color: white;
 	text-shadow: 4px 4px 4px black;
 	font-size: 1em;

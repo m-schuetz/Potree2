@@ -49,14 +49,18 @@ class Panel{
 
 		valueRows += `
 			<tr>
-				<td>#points</td>
+				<td>rendered points</td>
 				<td>${Potree.state.numPoints.toLocaleString()}</td>
 			</tr><tr>
-				<td>#nodes</td>
+				<td>rendered voxels</td>
+				<td>${Potree.state.numVoxels.toLocaleString()}</td>
+			</tr><tr>
+			</tr><tr>
+				<td>rendered octree nodes</td>
 				<td>${Potree.state.numNodes.toLocaleString()}</td>
 			</tr><tr>
 			</tr><tr>
-				<td>#3D Tile Nodes</td>
+				<td># 3D Tile Nodes</td>
 				<td>${Potree.state.num3DTileNodes.toLocaleString()}</td>
 			</tr><tr>
 			</tr><tr>

@@ -197,11 +197,6 @@ export class TDTilesLoader{
 		loader.parseTiles(tiles.root, json.root, url);
 
 		tiles.boundingBox.copy(tiles.root.boundingVolume.toBox());
-
-		// let box = tiles.root.boundingVolume.toBox();
-		// box.min.set(...tiles.project(box.min.toArray()));
-		// box.max.set(...tiles.project(box.max.toArray()));
-
 		// debugger;
 
 		return tiles;

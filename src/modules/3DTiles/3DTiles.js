@@ -874,6 +874,7 @@ export class TDTiles extends SceneNode{
 
 					renderer.drawSphere(pos, 0.6 * size);
 				}
+
 			}else{
 				// draw bounding box
 				if(Potree.settings.showBoundingBox){
@@ -897,6 +898,13 @@ export class TDTiles extends SceneNode{
 
 		}
 
+		if(this.isHighlighted){
+			let pos = this.boundingBox.center();
+			let size = this.boundingBox.size();
+			let color = new Vector3(255, 0, 0);
+
+			renderer.drawBoundingBox(pos, size, color,);
+		}
 	}
 
 

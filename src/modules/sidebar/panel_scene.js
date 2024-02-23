@@ -38,19 +38,19 @@ class Panel{
 				let label = node.name ?? "&lt;unnamed pointcloud&gt;";
 				tableString += `
 					<span> </span>
-					<span>${label}</span>
-					<span name="zoom_${i}" style="cursor: pointer;">◉</span>
+					<span name="label_${i}">${label}</span>
+					<span name="zoom_${i}" style="cursor: pointer;" title="Focus">◉</span>
 					<span><input type="checkbox" name="item_${i}"></span>
 				`;
 				// <span><input type="button" class="textButton" name="zoom_${i}" value="◉"/></span>
-
+				// <span><input type="checkbox" name="item_${i}"></span>
 				nodes.push(node);
 			}else if(node.constructor.name === "Images360"){
 				let label = node.name ?? "&lt;360° Images&gt;";
 				tableString += `
 					<span> </span>
-					<span>${label}</span>
-					<span name="zoom_${i}" style="cursor: pointer;">◉</span>
+					<span name="label_${i}">${label}</span>
+					<span name="zoom_${i}" style="cursor: pointer;" title="Focus">◉</span>
 					<span><input type="checkbox" name="item_${i}"></span>
 				`;
 
@@ -59,8 +59,8 @@ class Panel{
 				let label = node.name ?? "&lt;3D Tiles&gt;";
 				tableString += `
 					<span> </span>
-					<span>${label}</span>
-					<span name="zoom_${i}" style="cursor: pointer;">◉</span>
+					<span name="label_${i}">${label}</span>
+					<span name="zoom_${i}" style="cursor: pointer;" title="Focus">◉</span>
 					<span><input type="checkbox" name="item_${i}"></span>
 				`;
 
@@ -78,15 +78,37 @@ class Panel{
 
 			for(let i = 0; i < nodes.length; i++){
 				let node = nodes[i];
-				let elCheckbox = this.elTable.querySelector(`input[name=item_${i}]`);
-				let elZoom = this.elTable.querySelector(`input[name=zoom_${i}]`)
-					?? this.elTable.querySelector(`span[name=zoom_${i}]`)
-				
-				elCheckbox.checked = node.visible;
 
-				elCheckbox.onclick = () => {
-					node.visible = elCheckbox.checked;
-				};
+				let elLabel    = this.elTable.querySelector(`span[name=label_${i}]`);
+				let elCheckbox = this.elTable.querySelector(`input[name=item_${i}]`);
+				// let elVisibility = this.elTable.querySelector(`span[name=visibility_${i}]`);
+				let elZoom     = this.elTable.querySelector(`input[name=zoom_${i}]`)
+					?? this.elTable.querySelector(`span[name=zoom_${i}]`)
+
+				if(elLabel){
+					elLabel.onmouseenter = () => {node.isHighlighted = true;};
+					elLabel.onmouseleave = () => {node.isHighlighted = false;};
+				}
+
+				if(elZoom){
+					elZoom.onmouseenter = () => {node.isHighlighted = true;};
+					elZoom.onmouseleave = () => {node.isHighlighted = false;};
+				}
+				
+				if(elCheckbox){
+					elCheckbox.checked = node.visible;
+					elCheckbox.onclick = () => {
+						node.visible = elCheckbox.checked;
+					};
+
+					elCheckbox.onmouseenter = () => {node.isHighlighted = true;};
+					elCheckbox.onmouseleave = () => {node.isHighlighted = false;};
+				}
+
+				// if(elVisibility){
+					
+				// }
+
 
 				if(elZoom){
 					elZoom.onclick = () => {
