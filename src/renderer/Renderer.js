@@ -20,6 +20,10 @@ import {ChunkedBuffer} from "potree";
 
 let dbgSet = new Set();
 
+
+let dbg_numNewlyCreatedBuffers = 0;
+let dbg_newBufferBytes = 0;
+
 class Draws{
 
 	constructor(){
@@ -570,6 +574,8 @@ export class Renderer{
 		return gpuTexture;
 	}
 
+
+
 	getGpuBuffer(cpuBuffer){
 		let gpuBuffer = this.cpuGpuBuffers.get(cpuBuffer);
 		
@@ -577,6 +583,9 @@ export class Renderer{
 			let {device} = renderer;
 
 			let byteSize = cpuBuffer.byteLength;
+
+			dbg_numNewlyCreatedBuffers++;
+			dbg_newBufferBytes += byteSize;
 			
 			gpuBuffer = device.createBuffer({
 				size: byteSize,
@@ -773,6 +782,9 @@ export class Renderer{
 			this.timestamps.resultBuffer = this.timestamps.resultBufferPool.pop();
 		}
 
+		dbg_numNewlyCreatedBuffers = 0;
+		dbg_newBufferBytes = 0;
+
 		let dpr = window.devicePixelRatio;
 		this.setSize(this.canvas.clientWidth * dpr, this.canvas.clientHeight * dpr);
 
@@ -786,6 +798,11 @@ export class Renderer{
 		this.draws.reset();
 		this.currentBindGroup = -1;
 		this.frameCounter++;
+
+		if(dbg_numNewlyCreatedBuffers > 0){
+			let strNewBytes = dbg_newBufferBytes / 1000;
+			console.log(`[frame ${this.frameCounter}] newBuffers: ${dbg_numNewlyCreatedBuffers}, newBufferBytes: ${strNewBytes} kb`);
+		}
 	}
 
 	getNextBindGroup(){

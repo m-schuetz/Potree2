@@ -553,9 +553,22 @@ async function renderOctree(octree, drawstate, flags){
 		pass.passEncoder.setBindGroup(1, bindGroup);
 		pass.passEncoder.setBindGroup(3, nodesBindGroup);
 
+		
+
 		for(let [index, node] of smallNodes){
 
 			let numElements = node.geometry.numElements;
+
+			// { // DEBUG
+			// 	let cached = bufferBindGroupCache.get(node);
+
+			// 	if(cached){
+
+			// 	}else{
+			// 		dbg_numNewlyCreatedBuffers++;
+			// 		dbg_newBufferBytes += 
+			// 	}
+			// }
 
 			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
 			pass.passEncoder.setBindGroup(2, bufferBindGroup);

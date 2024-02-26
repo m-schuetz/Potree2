@@ -194,6 +194,13 @@ export class Images360 extends SceneNode{
 			this.positions[3 * i + 2] = image.position.z;
 		}
 
+		this.stationaryControls.dispatcher.addEventListener("exit", e => {
+			console.log("exit event");
+
+			let controls = Potree.instance.controls_list[0];
+			Potree.instance.setControls(controls);
+		});
+
 		this.dispatcher.addEventListener("drag", (e) => {
 			console.log("drag", e);
 		});

@@ -16,6 +16,18 @@ export class StationaryControls{
 
 		this.sphereMap = new SphereMap();
 
+		this.elExit = document.createElement("input");
+		this.element.parentElement.append(this.elExit);
+		this.elExit.type = "button";
+		this.elExit.value = "exit stationary controls";
+		this.elExit.style.zIndex = 1000;
+		this.elExit.style.right = "10px";
+		this.elExit.style.bottom = "10px";
+		this.elExit.style.position = "absolute";
+		this.elExit.onclick = () => {
+			this.dispatcher.dispatch("exit", this);
+		};
+
 		this.elFocusLabel = document.createElement("div");
 		this.element.parentElement.append(this.elFocusLabel);
 		this.elFocusLabel.innerText = `Currently viewing: nothing`;
@@ -76,7 +88,7 @@ export class StationaryControls{
 			Potree.instance.scene.root.children.push(this.sphereMap);
 		});
 
-		this.dispatcher.add("unfocusd", e => {
+		this.dispatcher.add("unfocused", e => {
 
 			console.log("unfocused!");
 			this.elFocusLabel.style.display = "none";
@@ -85,6 +97,14 @@ export class StationaryControls{
 			root.children = root.children.filter(node => node !== this.sphereMap);
 			
 		});
+
+		// this.dispatcher.add("exit", e => {
+			
+		// 	console.log("exit event");
+
+		// 	// Potree.instance.setControls(this.stationaryControls);
+		
+		// });
 
 	}
 
