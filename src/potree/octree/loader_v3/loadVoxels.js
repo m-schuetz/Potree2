@@ -34,6 +34,10 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 	let target_rgb         = new DataView(targetBuffer, offset_rgb * numVoxels, 6 * numVoxels);
 	let voxelCoords        = new Uint8Array(3 * numVoxels);
 
+	// if(targetBuffer.byteLength > 1000_000){
+	// 	debugger;
+	// }
+
 	let nodeSize = [
 		node.max[0] - node.min[0],
 		node.max[1] - node.min[1],
