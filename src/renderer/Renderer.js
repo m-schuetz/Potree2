@@ -799,10 +799,10 @@ export class Renderer{
 		this.currentBindGroup = -1;
 		this.frameCounter++;
 
-		if(dbg_numNewlyCreatedBuffers > 0){
-			let strNewBytes = dbg_newBufferBytes / 1000;
-			console.log(`[frame ${this.frameCounter}] newBuffers: ${dbg_numNewlyCreatedBuffers}, newBufferBytes: ${strNewBytes} kb`);
-		}
+		// if(dbg_numNewlyCreatedBuffers > 0){
+		// 	let strNewBytes = dbg_newBufferBytes / 1000;
+		// 	console.log(`[frame ${this.frameCounter}] newBuffers: ${dbg_numNewlyCreatedBuffers}, newBufferBytes: ${strNewBytes} kb`);
+		// }
 	}
 
 	getNextBindGroup(){

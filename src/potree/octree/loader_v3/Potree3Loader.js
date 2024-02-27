@@ -114,6 +114,8 @@ export class Potree3Loader{
 		let bytesPerNode = 38;
 		let numNodes = buffer.byteLength / bytesPerNode;
 
+		// console.log(numNodes);
+
 		let nodes = new Array(numNodes);
 		nodes[0] = node;
 		let nodePos = 1;
@@ -207,12 +209,18 @@ export class Potree3Loader{
 		let first = this.metadata.hierarchyBuffer.offset + hierarchyByteOffset;
 		let last = first + hierarchyByteSize - 1;
 		
-		let response = await fetch(this.url, {
+		let urlWithInfos = new URL(this.url, document.baseURI);
+		urlWithInfos.searchParams.set("query", "loadHierarchy");
+		let response = await fetch(urlWithInfos, {
 			headers: {
 				'content-type': 'multipart/byteranges',
 				'Range': `bytes=${first}-${last}`,
 			},
 		});
+
+		// if(hierarchyByteSize > 4000){
+		// 	console.log(`load large hierarchy. ${hierarchyByteSize} bytes}`);
+		// }
 
 		let buffer = await response.arrayBuffer();
 
@@ -365,16 +373,8 @@ export class Potree3Loader{
 					geometry.buffer = data.buffer;
 					geometry.statsList = data.statsList;
 
-					// if(geometry.buffer.byteLength > 1000_000){
-					// 	debugger;
-					// }
-
-					if(node.nodeType === NodeType.LEAF){
-						geometry.numVoxels = node.numElements;
-					}else{
-						geometry.numPoints = node.numElements;
-					}
-
+					geometry.numVoxels = node.nodeType === NodeType.NORMAL ? node.numElements : 0;
+					geometry.numPoints = node.nodeType === NodeType.LEAF ? node.numElements : 0;
 
 					loadedNode.geometry = geometry;
 					loadedNode.voxelCoords = data.voxelCoords;

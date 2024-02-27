@@ -225,6 +225,136 @@ fn doIgnores(){
 	// _ = &octreeBuffer;
 }
 
+fn readPosition(pointID : u32, node : Node) -> vec4<f32>{
+
+	
+
+
+	if(node.numPoints > 0){
+		// point storage
+		var offset = 12u * pointID;
+				
+		var position = vec4<f32>(
+			readF32(offset + 0u),
+			readF32(offset + 4u),
+			readF32(offset + 8u),
+			1.0,
+		);
+		
+		return position;
+	}else{
+		// Voxel storage
+
+		var position = vec4<f32>(0.0f, 0.0f, 0.0f, 1.0f);
+
+		var encoded = readU32(4u * pointID);
+
+		// reverse quantization: nodeSize * XYZ / 128.0f + nodeMin
+		position.x = (node.max_x - node.min_x) * (f32((encoded >>  0) & 0xff) / 128.0f) + node.min_x;
+		position.y = (node.max_y - node.min_y) * (f32((encoded >>  8) & 0xff) / 128.0f) + node.min_y;
+		position.z = (node.max_z - node.min_z) * (f32((encoded >> 16) & 0xff) / 128.0f) + node.min_z;
+
+		return position;
+	}
+};
+
+fn toQuadPos(vertexID : u32, viewPos : vec4<f32>, node : Node) -> vec4<f32>{
+
+	// QUAD
+	var localIndex = vertexID % 6u;
+
+	var transX = node.spacing * 0.690f;
+	var transY = node.spacing * 0.690f;
+
+	var tmpViewPos = viewPos;
+
+	if(localIndex == 0u){
+		tmpViewPos.x = viewPos.x - transX;
+		tmpViewPos.y = viewPos.y - transY;
+	}else if(localIndex == 1u){
+		tmpViewPos.x = viewPos.x + transX;
+		tmpViewPos.y = viewPos.y - transY;
+	}else if(localIndex == 2u){
+		tmpViewPos.x = viewPos.x + transX;
+		tmpViewPos.y = viewPos.y + transY;
+	}else if(localIndex == 3u){
+		tmpViewPos.x = viewPos.x - transX;
+		tmpViewPos.y = viewPos.y - transY;
+	}else if(localIndex == 4u){
+		tmpViewPos.x = viewPos.x + transX;
+		tmpViewPos.y = viewPos.y + transY;
+	}else if(localIndex == 5u){
+		tmpViewPos.x = viewPos.x - transX;
+		tmpViewPos.y = viewPos.y + transY;
+	}
+
+	var position = uniforms.proj * tmpViewPos;
+
+	return position;
+};
+
+fn toVoxelPos(vertexID : u32, position: vec4<f32>, projPos : vec4<f32>, node : Node) -> vec4<f32>{
+	var localIndex = vertexID % 18u;
+
+	var s = node.spacing * 0.25f;
+	var o = 0.00f;
+	// s = 0.001f;
+
+	var voxelVertexPos : vec4<f32>;
+	// TOP
+	if(localIndex == 0u){
+		voxelVertexPos = position + vec4<f32>(-s, -s,  s, o);
+	}else if(localIndex == 1u){
+		voxelVertexPos = position + vec4<f32>( s, -s,  s, o);
+	}else if(localIndex == 2u){
+		voxelVertexPos = position + vec4<f32>( s,  s,  s, o);
+	}else if(localIndex == 3u){
+		voxelVertexPos = position + vec4<f32>(-s, -s,  s, o);
+	}else if(localIndex == 4u){
+		voxelVertexPos = position + vec4<f32>( s,  s,  s, o);
+	}else if(localIndex == 5u){
+		voxelVertexPos = position + vec4<f32>(-s,  s,  s, o);
+	}
+	// FRONT
+	else if(localIndex == 6u){
+		voxelVertexPos = position + vec4<f32>(-s, -s, -s, o);
+	}else if(localIndex == 7u){
+		voxelVertexPos = position + vec4<f32>( s, -s, -s, o);
+	}else if(localIndex == 8u){
+		voxelVertexPos = position + vec4<f32>( s, -s,  s, o);
+	}else if(localIndex == 9u){
+		voxelVertexPos = position + vec4<f32>(-s, -s, -s, o);
+	}else if(localIndex == 10u){
+		voxelVertexPos = position + vec4<f32>( s, -s,  s, o);
+	}else if(localIndex == 11u){
+		voxelVertexPos = position + vec4<f32>(-s, -s,  s, o);
+	}
+	// SIDE
+	else if(localIndex == 12u){
+		voxelVertexPos = position + vec4<f32>(-s, -s, -s, o);
+	}else if(localIndex == 13u){
+		voxelVertexPos = position + vec4<f32>(-s, -s,  s, o);
+	}else if(localIndex == 14u){
+		voxelVertexPos = position + vec4<f32>(-s,  s,  s, o);
+	}else if(localIndex == 15u){
+		voxelVertexPos = position + vec4<f32>(-s, -s, -s, o);
+	}else if(localIndex == 16u){
+		voxelVertexPos = position + vec4<f32>(-s,  s,  s, o);
+	}else if(localIndex == 17u){
+		voxelVertexPos = position + vec4<f32>(-s,  s, -s, o);
+	}
+
+	// output.position = uniforms.proj * uniforms.worldView * voxelVertexPos;
+	var voxelOutPos = uniforms.proj * uniforms.worldView * voxelVertexPos;
+
+	// // need to make sure that all vertices of a voxel are in front of the near plane
+	// if(projPos.w > 2.0f * node.spacing){
+	// 	viewPos = uniforms.worldView * voxelVertexPos;
+	// }
+
+	return voxelOutPos;
+};
+
 @vertex
 fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
@@ -236,6 +366,7 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	var position       : vec4<f32>;
 	var point_position : vec4<f32>;
 	var viewPos        : vec4<f32>;
+	var projPos        : vec4<f32>;
 
 	// map vertex index to point index.
 	// (e.g. quads utilize 6 vertices)
@@ -248,154 +379,41 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		pointID = vertex.vertexID / 18u;
 	}
 
-	{
+	
+	{ // compute vertex position
+		position = readPosition(pointID, node);
+		
+		viewPos = uniforms.worldView * position;
+		projPos = uniforms.proj * viewPos;
 
-		{ // 3xFLOAT
-			var offset = 12u * pointID;
-			
-			position = vec4<f32>(
-				readF32(offset + 0u),
-				readF32(offset + 4u),
-				readF32(offset + 8u),
-				1.0,
+		{ // point_position
+			var ndcPos = projPos.xy / projPos.w;
+			point_position = vec4<f32>(
+				(ndcPos.x * 0.5 + 0.5) * uniforms.screen_width,
+				(ndcPos.y * 0.5 + 0.5) * uniforms.screen_height,
+				0.0, 1.0
 			);
-			
-			viewPos = uniforms.worldView * position;
-			output.position = uniforms.proj * viewPos;
+		}
 
-			{ // point_position
+		if(node.splatType == 1u){
+			// QUAD
+			projPos = toQuadPos(vertex.vertexID, viewPos, node);
+		}else if(node.splatType == 2u){
+			// VOXEL
 
-				var ndcPos = output.position.xy / output.position.w;
-				point_position = vec4<f32>(
-					(ndcPos.x * 0.5 + 0.5) * uniforms.screen_width,
-					(ndcPos.y * 0.5 + 0.5) * uniforms.screen_height,
-					0.0, 1.0
-				);
+			var voxelVertexPos = toVoxelPos(vertex.vertexID, position, projPos, node);
 
-			}
-
-			if(node.splatType == 1u){
-				// QUAD
-				var localIndex = vertex.vertexID % 6u;
-
-				var transX = node.spacing * 0.690f;
-				var transY = node.spacing * 0.690f;
-
-				if(localIndex == 0u){
-					viewPos.x = viewPos.x - transX;
-					viewPos.y = viewPos.y - transY;
-				}else if(localIndex == 1u){
-					viewPos.x = viewPos.x + transX;
-					viewPos.y = viewPos.y - transY;
-				}else if(localIndex == 2u){
-					viewPos.x = viewPos.x + transX;
-					viewPos.y = viewPos.y + transY;
-				}else if(localIndex == 3u){
-					viewPos.x = viewPos.x - transX;
-					viewPos.y = viewPos.y - transY;
-				}else if(localIndex == 4u){
-					viewPos.x = viewPos.x + transX;
-					viewPos.y = viewPos.y + transY;
-				}else if(localIndex == 5u){
-					viewPos.x = viewPos.x - transX;
-					viewPos.y = viewPos.y + transY;
-				}
-
-				output.position = uniforms.proj * viewPos;
-
-
-				// var pixelSize = uniforms.pointSize;
-
-				// var transX = (pixelSize / uniforms.screen_width) * output.position.w;
-				// var transY = (pixelSize / uniforms.screen_height) * output.position.w;
-
-				// if(localIndex == 0u){
-				// 	output.position.x = output.position.x - transX;
-				// 	output.position.y = output.position.y - transY;
-				// }else if(localIndex == 1u){
-				// 	output.position.x = output.position.x + transX;
-				// 	output.position.y = output.position.y - transY;
-				// }else if(localIndex == 2u){
-				// 	output.position.x = output.position.x + transX;
-				// 	output.position.y = output.position.y + transY;
-				// }else if(localIndex == 3u){
-				// 	output.position.x = output.position.x - transX;
-				// 	output.position.y = output.position.y - transY;
-				// }else if(localIndex == 4u){
-				// 	output.position.x = output.position.x + transX;
-				// 	output.position.y = output.position.y + transY;
-				// }else if(localIndex == 5u){
-				// 	output.position.x = output.position.x - transX;
-				// 	output.position.y = output.position.y + transY;
-				// }
-			}else if(node.splatType == 2u){
-				// VOXEL
-
-				var localIndex = vertex.vertexID % 18u;
-
-				var s = node.spacing * 0.25f;
-				var o = 0.00f;
-				// s = 0.001f;
-
-				var voxelVertexPos : vec4<f32>;
-				// TOP
-				if(localIndex == 0u){
-					voxelVertexPos = position + vec4<f32>(-s, -s,  s, o);
-				}else if(localIndex == 1u){
-					voxelVertexPos = position + vec4<f32>( s, -s,  s, o);
-				}else if(localIndex == 2u){
-					voxelVertexPos = position + vec4<f32>( s,  s,  s, o);
-				}else if(localIndex == 3u){
-					voxelVertexPos = position + vec4<f32>(-s, -s,  s, o);
-				}else if(localIndex == 4u){
-					voxelVertexPos = position + vec4<f32>( s,  s,  s, o);
-				}else if(localIndex == 5u){
-					voxelVertexPos = position + vec4<f32>(-s,  s,  s, o);
-				}
-				// FRONT
-				else if(localIndex == 6u){
-					voxelVertexPos = position + vec4<f32>(-s, -s, -s, o);
-				}else if(localIndex == 7u){
-					voxelVertexPos = position + vec4<f32>( s, -s, -s, o);
-				}else if(localIndex == 8u){
-					voxelVertexPos = position + vec4<f32>( s, -s,  s, o);
-				}else if(localIndex == 9u){
-					voxelVertexPos = position + vec4<f32>(-s, -s, -s, o);
-				}else if(localIndex == 10u){
-					voxelVertexPos = position + vec4<f32>( s, -s,  s, o);
-				}else if(localIndex == 11u){
-					voxelVertexPos = position + vec4<f32>(-s, -s,  s, o);
-				}
-				// SIDE
-				else if(localIndex == 12u){
-					voxelVertexPos = position + vec4<f32>(-s, -s, -s, o);
-				}else if(localIndex == 13u){
-					voxelVertexPos = position + vec4<f32>(-s, -s,  s, o);
-				}else if(localIndex == 14u){
-					voxelVertexPos = position + vec4<f32>(-s,  s,  s, o);
-				}else if(localIndex == 15u){
-					voxelVertexPos = position + vec4<f32>(-s, -s, -s, o);
-				}else if(localIndex == 16u){
-					voxelVertexPos = position + vec4<f32>(-s,  s,  s, o);
-				}else if(localIndex == 17u){
-					voxelVertexPos = position + vec4<f32>(-s,  s, -s, o);
-				}
-
-				// output.position = uniforms.proj * uniforms.worldView * voxelVertexPos;
-				var voxelOutPos = uniforms.proj * uniforms.worldView * voxelVertexPos;
-
-				// need to make sure that all vertices of a voxel are in front of the near plane
-				if(output.position.w > 2.0f * node.spacing)
-				{
-					viewPos = uniforms.worldView * voxelVertexPos;
-					output.position = voxelOutPos;
-				}
-
+			// need to make sure that all vertices of a voxel are in front of the near plane
+			if(projPos.w > 2.0f * node.spacing){
+				viewPos = uniforms.worldView * voxelVertexPos;
+				projPos = uniforms.proj * viewPos;
 			}
 
 		}
 
 	}
+
+	output.position = projPos;
 
 	// in the HQS depth pass, shift points 1% further away from camera
 	if(uniforms.hqs_flag > 0u){
@@ -416,66 +434,15 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		output.color = color;
 
-		// if(attrib.byteSize == 6u && attrib.datatype == 5u){
 
-		// 	if(attrib.mapping == 131u){
-		// 		output.color.r = 1.0f;
-		// 		output.color = map_131(pointID, attrib, node, position);
-		// 	}
-		// }
 	}
-
-
-	
-
 
 	if(output.color.a == 0.0){
 		output.position.w = 0.0;
 	}
 
-	// if(node.spacing != 123.0f){
-	// 	output.color = vec4f(1.0f, 0.0f, 0.0f, 1.0f);
-	// }
-
 	output.point_id = node.counter + pointID;
 	output.point_position = point_position;
-
-	// var neginf = 1.0f / 0.0f;
-	// var neginf = bitcast<f32>(0xff800000u);
-
-	// replacing LOD => discard regions where child is visible
-	// if(uniforms.isAdditive == 0)
-	// { // DEBUG
-	// 	var offset = 12u * pointID;
-			
-	// 	var position = vec4<f32>(
-	// 		readF32(offset + 0u),
-	// 		readF32(offset + 4u),
-	// 		readF32(offset + 8u),
-	// 		1.0,
-	// 	);
-
-	// 	var size = node.max_x - node.min_x;
-
-	// 	var ix = i32(2.0 * (position.x - node.min_x) / size);
-	// 	var iy = i32(2.0 * (position.y - node.min_y) / size);
-	// 	var iz = i32(2.0 * (position.z - node.min_z) / size);
-
-	// 	ix = min(ix, 1);
-	// 	iy = min(iy, 1);
-	// 	iz = min(iz, 1);
-
-	// 	var childIndex = u32((ix << 2) | (iy << 1) | iz);
-
-	// 	var isChildVisible = (node.childmask & (1u << childIndex)) != 0;
-
-	// 	if(isChildVisible){
-	// 		// output.color = vec4<f32>(1.0, 0.0, 0.0, 1.0);
-	// 		output.position = vec4<f32>(10.0, 10.0, 10.0, 1.0);
-	// 	}
-	// }
-
-	// output.point_position = vec4f(f32(vertex.vertexID), 0.0, 0.0, 1.0);
  
 	return output;
 }

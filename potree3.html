@@ -106,7 +106,7 @@
 	});
 
 	controls.set({
-		position: [2546741.1, 1211599.5, 973.0], 
+		position: [2546649.5, 1211242.3, 1226.6], 
 		pivot:    [2546758.8, 1211683.2, 925.1]
 	});
 
@@ -140,6 +140,13 @@
 		pointcloud.name = "SITN";
 		scene.root.children.push(pointcloud);
 	});
+
+	// await Potree3Loader.load("../resources/pointclouds/ot_35120A4202A_1_1.potree").then(pointcloud => {
+	// 	pointcloud.name = "CA13 - ot_35120A4202A_1_1";
+	// 	scene.root.children.push(pointcloud);
+
+	// 	controls.zoomTo(pointcloud);
+	// });
 
 	// await PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
 	// 	scene.root.children.push(pointcloud);

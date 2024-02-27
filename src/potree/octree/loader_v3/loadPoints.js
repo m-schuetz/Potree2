@@ -31,11 +31,13 @@ export function loadPointsBrotli(octree, node, dataview){
 	// console.log(`#points: ${n} in ${milliseconds.toFixed(1)} ms. points/sec: ${pointsPerSec}`);
 	let view = new DataView(decoded.buffer);
 
+	new Uint8Array(buffer).set(decoded);
+
 	// decode int32 encoded positions to float positions
 	for(let i = 0; i < n; i++){
-		let X = view.getInt32(s_stride * i + 0, true);
-		let Y = view.getInt32(s_stride * i + 4, true);
-		let Z = view.getInt32(s_stride * i + 8, true);
+		let X = view.getInt32(12 * i + 0, true);
+		let Y = view.getInt32(12 * i + 4, true);
+		let Z = view.getInt32(12 * i + 8, true);
 
 		let x = X * scale[0] + offset[0] - octree.min[0];
 		let y = Y * scale[1] + offset[1] - octree.min[1];
@@ -47,24 +49,27 @@ export function loadPointsBrotli(octree, node, dataview){
 	}
 
 
+	// NOTE: old code that was used to transform from array-of-struct order to struct-of-array order
+	// Now it's already stored in the expected order.
+	// 
 	// copy unfiltered attributes
 	// let source_u8 = new Uint8Array(dataview.buffer);
-	let target_u8 = new Uint8Array(buffer);
-	for(let attribute of attributes.attributes){
+	// let target_u8 = new Uint8Array(buffer);
+	// for(let attribute of attributes.attributes){
 
-		if(attribute.name === "position") continue;
-		// if(attribute.name === "rgba") continue;
+	// 	if(attribute.name === "position") continue;
+	// 	// if(attribute.name === "rgba") continue;
 
-		for(let pointIndex = 0; pointIndex < n; pointIndex++)
-		{
+	// 	for(let pointIndex = 0; pointIndex < n; pointIndex++)
+	// 	{
 
-			for(let j = 0; j < attribute.byteSize; j++){
-				// let value = source_u8[s_stride * pointIndex + attribute.byteOffset + j];
-				let value = view.getUint8(s_stride * pointIndex + attribute.byteOffset + j);
-				target_u8[n * attribute.byteOffset + pointIndex * attribute.byteSize + j] = value;
-			}
-		}
-	}
+	// 		for(let j = 0; j < attribute.byteSize; j++){
+	// 			// let value = source_u8[s_stride * pointIndex + attribute.byteOffset + j];
+	// 			let value = view.getUint8(s_stride * pointIndex + attribute.byteOffset + j);
+	// 			target_u8[n * attribute.byteOffset + pointIndex * attribute.byteSize + j] = value;
+	// 		}
+	// 	}
+	// }
 
 	return {buffer};
 

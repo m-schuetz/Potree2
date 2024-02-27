@@ -45,7 +45,21 @@ async function loadNodes(event){
 	// let strBytes = (bitsPerElement / 8).toFixed(1).padStart(4);
 	// console.log(`#nodes: ${nodes.length}, chunkSize: ${strChunkSize}, numElements: ${strNumElements}, bpe: ${strBpe} (${strBytes} bytes)`);
 
-	let response = await fetch(url, {
+	// Add some infos to the url for debugging.
+	let urlWithInfos = new URL(url);
+	urlWithInfos.searchParams.set("query", "loadNodes");
+	urlWithInfos.searchParams.set("numNodes", nodes.length);
+	
+	let has = new Set();
+	for(let node of nodes){
+		if(node.numPoints > 0) has.add("points");
+		if(node.numVoxels > 0) has.add("voxels");
+	}
+	urlWithInfos.searchParams.set("has", [...has].join("_"));
+
+
+
+	let response = await fetch(urlWithInfos, {
 		headers: {
 			'content-type': 'multipart/byteranges',
 			'Range': `bytes=${chunkOffset}-${chunkOffset + chunkSize - 1}`,
