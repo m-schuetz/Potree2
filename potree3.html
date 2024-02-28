@@ -112,25 +112,25 @@
 
 	
 	// // TDTilesLoader.load("https://sitn.ne.ch/3dtiles/chaux81123/Production_1_pro_tie_3d_cesium.json").then(tiles => {
-	// await TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
-	// 	tiles.name = "le_locle_est";
-	// 	tiles.projector = proj4("EPSG:4978", target_crs);
+	await TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
+		tiles.name = "le_locle_est";
+		tiles.projector = proj4("EPSG:4978", target_crs);
 
-	// 	let box = tiles.root.boundingVolume.toBox();
-	// 	let bbox = new Box3();
+		let box = tiles.root.boundingVolume.toBox();
+		let bbox = new Box3();
 
-	// 	bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.min.z]));
-	// 	bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.max.z]));
-	// 	bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.min.z]));
-	// 	bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.max.z]));
-	// 	bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.min.z]));
-	// 	bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.max.z]));
-	// 	bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.min.z]));
-	// 	bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.max.z]));
-	// 	tiles.boundingBox.copy(bbox);
+		bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.min.z]));
+		bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.max.z]));
+		bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.min.z]));
+		bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.max.z]));
+		bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.min.z]));
+		bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.max.z]));
+		bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.min.z]));
+		bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.max.z]));
+		tiles.boundingBox.copy(bbox);
 
-	// 	scene.root.children.push(tiles);
-	// });
+		scene.root.children.push(tiles);
+	});
 		
 	// if(false)
 	// Potree3Loader.load("../resources/pointclouds/lion.potree").then(pointcloud => {
@@ -139,6 +139,14 @@
 	await Potree3Loader.load("../resources/pointclouds/sitn_subset.potree").then(pointcloud => {
 		pointcloud.name = "SITN";
 		scene.root.children.push(pointcloud);
+
+		// controls.zoomTo(pointcloud);
+
+		
+		// controls.set({
+		// 	position: [625.7, -668.1, 610.2], 
+		// 	pivot:    [177.0, -82.9, 41.8]
+		// });
 	});
 
 	// await Potree3Loader.load("../resources/pointclouds/ot_35120A4202A_1_1.potree").then(pointcloud => {

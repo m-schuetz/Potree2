@@ -30,6 +30,7 @@ struct Node {
 	spacing     : f32,
 	splatType   : u32,
 	chunkOffset : u32,
+	isVoxelNode : u32,
 };
 
 struct AttributeDescriptor{
@@ -230,7 +231,7 @@ fn readPosition(pointID : u32, node : Node) -> vec4<f32>{
 	
 
 
-	if(node.numPoints > 0){
+	if(node.isVoxelNode == 0){
 		// point storage
 		var offset = 12u * pointID;
 				
@@ -243,16 +244,16 @@ fn readPosition(pointID : u32, node : Node) -> vec4<f32>{
 		
 		return position;
 	}else{
-		// Voxel storage
+		// voxel storage
 
-		var position = vec4<f32>(0.0f, 0.0f, 0.0f, 1.0f);
+		var encoded = readU32(3u * pointID);
 
-		var encoded = readU32(4u * pointID);
-
-		// reverse quantization: nodeSize * XYZ / 128.0f + nodeMin
-		position.x = (node.max_x - node.min_x) * (f32((encoded >>  0) & 0xff) / 128.0f) + node.min_x;
-		position.y = (node.max_y - node.min_y) * (f32((encoded >>  8) & 0xff) / 128.0f) + node.min_y;
-		position.z = (node.max_z - node.min_z) * (f32((encoded >> 16) & 0xff) / 128.0f) + node.min_z;
+		var position = vec4<f32>(
+			(node.max_x - node.min_x) * (f32((encoded >>  0) & 0xff) / 128.0f) + node.min_x,
+			(node.max_y - node.min_y) * (f32((encoded >>  8) & 0xff) / 128.0f) + node.min_y,
+			(node.max_z - node.min_z) * (f32((encoded >> 16) & 0xff) / 128.0f) + node.min_z,
+			1.0f
+		);
 
 		return position;
 	}
@@ -433,8 +434,42 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 		<<TEMPLATE_MAPPING_SELECTION>>
 
 		output.color = color;
+	}
 
+	// voxels are BC-ish compressed
+	if(node.isVoxelNode != 0u){
+		var blockSize = 8u;
+		var bytesPerBlock = 8u;
+		var bitsPerSample = 2u;
+		var numSamples = 4;
+		var blockIndex = pointID / bytesPerBlock;
+		var offset = node.numPoints * 3u;
 
+		var start_x = f32(readU8(offset + bytesPerBlock * blockIndex + 0));
+		var start_y = f32(readU8(offset + bytesPerBlock * blockIndex + 1));
+		var start_z = f32(readU8(offset + bytesPerBlock * blockIndex + 2));
+
+		var end_x = f32(readU8(offset + bytesPerBlock * blockIndex + 3));
+		var end_y = f32(readU8(offset + bytesPerBlock * blockIndex + 4));
+		var end_z = f32(readU8(offset + bytesPerBlock * blockIndex + 5));
+
+		var bits = readU16(offset + bytesPerBlock * blockIndex + 6);
+		var sampleIndex = pointID % blockSize;
+
+		var T = (bits >> (bitsPerSample * sampleIndex)) & 3u;
+		var t = f32(T / u32(numSamples - 1));
+
+		var dx = end_x - start_x;
+		var dy = end_y - start_y;
+		var dz = end_z - start_z;
+
+		var x = (dx * t + start_x) / 256.0f;
+		var y = (dy * t + start_y) / 256.0f;
+		var z = (dz * t + start_z) / 256.0f;
+
+		output.color.x = x;
+		output.color.y = y;
+		output.color.z = z;
 	}
 
 	if(output.color.a == 0.0){

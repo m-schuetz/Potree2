@@ -373,8 +373,8 @@ export class Potree3Loader{
 					geometry.buffer = data.buffer;
 					geometry.statsList = data.statsList;
 
-					geometry.numVoxels = node.nodeType === NodeType.NORMAL ? node.numElements : 0;
-					geometry.numPoints = node.nodeType === NodeType.LEAF ? node.numElements : 0;
+					geometry.numVoxels = loadedNode.nodeType === NodeType.NORMAL ? loadedNode.numElements : 0;
+					geometry.numPoints = loadedNode.nodeType === NodeType.LEAF ? loadedNode.numElements : 0;
 
 					loadedNode.geometry = geometry;
 					loadedNode.voxelCoords = data.voxelCoords;
@@ -394,7 +394,7 @@ export class Potree3Loader{
 
 			};
 
-			let parentVoxelCoords = node.parent?.voxelCoords;
+			let parentVoxelCoords = node.parent?.geometry.buffer;
 
 			let msg_nodes = [];
 			for(let node of nodes){

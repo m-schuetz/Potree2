@@ -647,29 +647,31 @@ function renderNotSoBasic(){
 
 			if(node?.constructor.name === "PointCloudOctreeNode"){
 
-				let pointBuffer = node.geometry.buffer;
-				let view = new DataView(pointBuffer);
+				// let pointBuffer = node.geometry.buffer;
+				// let view = new DataView(pointBuffer);
 
-				let x = view.getFloat32(12 * elementIndex + 0, true);
-				let y = view.getFloat32(12 * elementIndex + 4, true);
-				let z = view.getFloat32(12 * elementIndex + 8, true);
+				// // node.getPoint(elementIndex);
 
-				x = x + node.octree.position.x;
-				y = y + node.octree.position.y;
-				z = z + node.octree.position.z;
+				// let x = view.getFloat32(12 * elementIndex + 0, true);
+				// let y = view.getFloat32(12 * elementIndex + 4, true);
+				// let z = view.getFloat32(12 * elementIndex + 8, true);
 
-				let position = new Vector3(x, y, z);
+				// x = x + node.octree.position.x;
+				// y = y + node.octree.position.y;
+				// z = z + node.octree.position.z;
 
-				Potree.pickPosition.copy(position);
+				// let position = new Vector3(x, y, z);
 
-				Potree.hoveredItem = {
-					type: node?.constructor.name + " (Point)",
-					instance: node,
-					node: node,
-					pointIndex: elementIndex,
-					position: position,
-					object: node.octree,
-				};
+				// Potree.pickPosition.copy(position);
+
+				// Potree.hoveredItem = {
+				// 	type: node?.constructor.name + " (Point)",
+				// 	instance: node,
+				// 	node: node,
+				// 	pointIndex: elementIndex,
+				// 	position: position,
+				// 	object: node.octree,
+				// };
 
 			}else if(node?.constructor.name === "Images360"){
 

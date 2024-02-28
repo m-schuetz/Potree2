@@ -11,7 +11,7 @@ let gradientSampler_clamp = null;
 let initialized = false;
 let gradientTextureMap = new Map();
 
-const WGSL_NODE_BYTESIZE = 48;
+const WGSL_NODE_BYTESIZE = 52;
 const tmp = new ArrayBuffer(10_000_000);
 let dbgUploadedInFrame = 0;
 
@@ -357,6 +357,9 @@ function updateNodesBuffer(octree, nodes, prefixSum, octreeState, drawstate, fla
 		view.setFloat32(WGSL_NODE_BYTESIZE * i + 36, nodeSpacing, true);
 		view.setUint32 (WGSL_NODE_BYTESIZE * i + 40, splatType, true);
 		// view.setUint32 (WGSL_NODE_BYTESIZE * i + 44, node.gpuChunks[0].offset, true);
+		view.setUint32 (WGSL_NODE_BYTESIZE * i + 48, node.geometry.numVoxels > 0 ? 1 : 0, true);
+
+		// debugger;
 
 		counter += node.geometry.numElements;
 	}
@@ -591,7 +594,10 @@ async function renderOctree(octree, drawstate, flags){
 			}
 
 
-			
+			// if(node.name === "r444")
+			// if(node.name === "r444"){
+			// 	debugger;
+			// }
 			pass.passEncoder.draw(1 * numElements, 1, 0, index);
 
 			// debugger;

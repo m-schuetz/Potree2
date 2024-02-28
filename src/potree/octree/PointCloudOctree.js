@@ -420,6 +420,9 @@ export class PointCloudOctree extends SceneNode{
 
 		let point = {};
 
+		// DEBUG
+		return null;
+
 		if(!node.geometry) return null;
 
 		let view = new DataView(node.geometry.buffer);

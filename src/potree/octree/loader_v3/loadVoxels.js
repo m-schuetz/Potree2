@@ -6,7 +6,57 @@ const gridSize = 128;
 
 // round up to nearest <n>
 function ceil_n(number, n){
-	return number + (n - (number % n));
+
+	if(number % n === 0){
+		return number;
+	}else{
+		return number - (number % n) + n;
+	}
+}
+
+function loadBC(source, target, numVoxels){
+
+	let blocksize = 8;
+	let bytesPerBlock = 8;
+	let bitsPerSample = 2;
+	let numSamples = 4;
+	let numBlocks = Math.ceil(numVoxels / blocksize);
+
+	let colorsProcessed = 0;
+	let color = new Vector3();
+	let line = new Line3();
+	for(let blockIndex = 0; blockIndex < numBlocks; blockIndex++){
+
+		line.start.x = source.getUint8(bytesPerBlock * blockIndex + 0);
+		line.start.y = source.getUint8(bytesPerBlock * blockIndex + 1);
+		line.start.z = source.getUint8(bytesPerBlock * blockIndex + 2);
+		line.end.x   = source.getUint8(bytesPerBlock * blockIndex + 3);
+		line.end.y   = source.getUint8(bytesPerBlock * blockIndex + 4);
+		line.end.z   = source.getUint8(bytesPerBlock * blockIndex + 5);
+
+		let bits = source.getUint16(bytesPerBlock * blockIndex + 6, true);
+
+		// if(blockIndex === 0){
+		// 	debugger;
+		// }
+
+		for(let sampleIndex = 0; sampleIndex < blocksize; sampleIndex++){
+
+			let T = bits >>> (bitsPerSample * sampleIndex) & 0b11;
+			let t = T / (numSamples - 1);
+
+			line.at(t, color);
+
+			target.setUint16(6 * colorsProcessed + 0, color.x, true);
+			target.setUint16(6 * colorsProcessed + 2, color.y, true);
+			target.setUint16(6 * colorsProcessed + 4, color.z, true);
+
+			colorsProcessed++;
+			if(colorsProcessed === numVoxels) break;
+		}
+		if(colorsProcessed === numVoxels) break;
+	}
+
 }
 
 
@@ -29,65 +79,42 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 		}
 	}
 
-	let targetBuffer       = new ArrayBuffer(ceil_n(bytesPerPoint * numVoxels, 4));
-	let target_coordinates = new DataView(targetBuffer, 0, 12 * numVoxels);
-	let target_rgb         = new DataView(targetBuffer, offset_rgb * numVoxels, 6 * numVoxels);
-	let voxelCoords        = new Uint8Array(3 * numVoxels);
+	// let targetBuffer       = new ArrayBuffer(ceil_n(bytesPerPoint * numVoxels, 4));
+	// let target_coordinates = new DataView(targetBuffer, 0, 12 * numVoxels);
+	// let target_rgb         = new DataView(targetBuffer, offset_rgb * numVoxels, 6 * numVoxels);
+	// let voxelCoords        = new Uint8Array(3 * numVoxels);
 
-	// if(targetBuffer.byteLength > 1000_000){
-	// 	debugger;
+	// 3 byte xyz, 1 byte BC-ish encoded colors
+	let xyzByteSize = 3 * numVoxels;
+	let rgbByteSize = ceil_n(numVoxels, 8);
+	let numBytes = ceil_n(xyzByteSize + rgbByteSize, 16);
+	// let numBytes = ceil_n(3 * numVoxels + numVoxels, 16);
+	let targetBuffer    = new ArrayBuffer(numBytes);
+	let target_xyz      = new DataView(targetBuffer, 0, 3 * numVoxels);
+	let target_rgb      = new DataView(targetBuffer, 3 * numVoxels, ceil_n(numVoxels, 8));
+
+	// if(node.name === "r444"){
 	// }
-
-	let nodeSize = [
-		node.max[0] - node.min[0],
-		node.max[1] - node.min[1],
-		node.max[2] - node.min[2],
-	];
+	// debugger;
 
 	if(node.name === "r"){
 		// root node encodes voxel coordinates directly
 
+		let rgbOffset = 3 * numVoxels;
+
 		for(let i = 0; i < numVoxels; i++){
-			let cx = source.getUint8(3 * i + 0) + 0.5;
-			let cy = source.getUint8(3 * i + 1) + 0.5;
-			let cz = source.getUint8(3 * i + 2) + 0.5;
-
-			let x = (cx / gridSize) * nodeSize[0] + node.min[0];
-			let y = (cy / gridSize) * nodeSize[1] + node.min[1];
-			let z = (cz / gridSize) * nodeSize[2] + node.min[2];
-
-			voxelCoords[3 * i + 0] = source.getUint8(3 * i + 0);
-			voxelCoords[3 * i + 1] = source.getUint8(3 * i + 1);
-			voxelCoords[3 * i + 2] = source.getUint8(3 * i + 2);
-
-			target_coordinates.setFloat32(12 * i + 0, x, true);
-			target_coordinates.setFloat32(12 * i + 4, y, true);
-			target_coordinates.setFloat32(12 * i + 8, z, true);
-
-			let mortoncode = i;
-				
-			let mx = 0;
-			let my = 0;
-			for(let bitindex = 0; bitindex < 10; bitindex++){
-				let bx = (mortoncode >> (2 * bitindex + 0)) & 1;
-				let by = (mortoncode >> (2 * bitindex + 1)) & 1;
-
-				mx = mx | (bx << bitindex);
-				my = my | (by << bitindex);
-			}
-
-			let r = source.getUint8(3 * numVoxels + 3 * i + 0);
-			let g = source.getUint8(3 * numVoxels + 3 * i + 1);
-			let b = source.getUint8(3 * numVoxels + 3 * i + 2);
-			target_rgb.setUint16(6 * i + 0, r, true);
-			target_rgb.setUint16(6 * i + 2, g, true);
-			target_rgb.setUint16(6 * i + 4, b, true);
+			target_xyz.setUint8(3 * i + 0, source.getUint8(3 * i + 0));
+			target_xyz.setUint8(3 * i + 1, source.getUint8(3 * i + 1));
+			target_xyz.setUint8(3 * i + 2, source.getUint8(3 * i + 2));
+			target_rgb.setUint8(i, source.getUint8(rgbOffset + i));
 		}
 
 	}else{
 		// other inner nodes encode voxels relative to parent voxels
 
-		let parentVoxels = parentVoxelCoords;
+		
+
+		let parentVoxels = new Uint8Array(parentVoxelCoords);
 		let numParentVoxels = parentVoxels.length / 3;
 		let thisChildIndex = parseInt(node.name.at(node.name.length - 1));
 
@@ -110,6 +137,7 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 
 		// now parent_i points to first parent voxel inside current node
 		// next, use child masks to break parent voxels into current node's voxels
+		// debugger;
 		let numGeneratedVoxels = 0;
 		let i = 0;
 		while(numGeneratedVoxels < numVoxels){
@@ -131,20 +159,24 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 					let iy = 2 * (py % (gridSize / 2)) + cy;
 					let iz = 2 * (pz % (gridSize / 2)) + cz;
 
-					voxelCoords[3 * numGeneratedVoxels + 0] = ix;
-					voxelCoords[3 * numGeneratedVoxels + 1] = iy;
-					voxelCoords[3 * numGeneratedVoxels + 2] = iz;
+					// voxelCoords[3 * numGeneratedVoxels + 0] = ix;
+					// voxelCoords[3 * numGeneratedVoxels + 1] = iy;
+					// voxelCoords[3 * numGeneratedVoxels + 2] = iz;
 
-					let x = nodeSize[0] * ((ix + 0.5) / gridSize) + node.min[0];
-					let y = nodeSize[1] * ((iy + 0.5) / gridSize) + node.min[1];
-					let z = nodeSize[2] * ((iz + 0.5) / gridSize) + node.min[2];
+					target_xyz.setUint8(3 * numGeneratedVoxels + 0, ix);
+					target_xyz.setUint8(3 * numGeneratedVoxels + 1, iy);
+					target_xyz.setUint8(3 * numGeneratedVoxels + 2, iz);
 
-					if(12 * numGeneratedVoxels + 8 > target_coordinates.byteLength){
-						debugger;
-					}
-					target_coordinates.setFloat32(12 * numGeneratedVoxels + 0, x, true);
-					target_coordinates.setFloat32(12 * numGeneratedVoxels + 4, y, true);
-					target_coordinates.setFloat32(12 * numGeneratedVoxels + 8, z, true);
+					// let x = nodeSize[0] * ((ix + 0.5) / gridSize) + node.min[0];
+					// let y = nodeSize[1] * ((iy + 0.5) / gridSize) + node.min[1];
+					// let z = nodeSize[2] * ((iz + 0.5) / gridSize) + node.min[2];
+
+					// if(12 * numGeneratedVoxels + 8 > target_coordinates.byteLength){
+					// 	debugger;
+					// }
+					// target_coordinates.setFloat32(12 * numGeneratedVoxels + 0, x, true);
+					// target_coordinates.setFloat32(12 * numGeneratedVoxels + 4, y, true);
+					// target_coordinates.setFloat32(12 * numGeneratedVoxels + 8, z, true);
 
 					numGeneratedVoxels++;
 				}
@@ -154,59 +186,18 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 			parent_i++;
 		}
 
-
 		// normal rgb decoding
-		// let numChildmasks = i;
-		// let rgbOffset = numChildmasks;
-		// for(let i = 0; i < numGeneratedVoxels; i++){
-		// 	let r = source.getUint8(rgbOffset + 3 * i + 0);
-		// 	let g = source.getUint8(rgbOffset + 3 * i + 1);
-		// 	let b = source.getUint8(rgbOffset + 3 * i + 2);
-		// 	target_rgb.setUint16(6 * i + 0, r, true);
-		// 	target_rgb.setUint16(6 * i + 2, g, true);
-		// 	target_rgb.setUint16(6 * i + 4, b, true);
-		// }
-
-		// BC-ish decoding
 		let numChildmasks = i;
 		let rgbOffset = numChildmasks;
-		let rgbByteSize = node.byteSize - rgbOffset;
-		let blocksize = 8;
-		let bytesPerBlock = 8;
-		let bitsPerSample = 2;
-		let numSamples = 4;
-		let numBlocks = rgbByteSize / blocksize;
 
-		let colorsProcessed = 0;
-		let color = new Vector3();
-		let line = new Line3();
-		for(let blockIndex = 0; blockIndex < numBlocks; blockIndex++){
+		// BC-ish decoding
+		let source_bc  = new DataView(source.buffer, source.byteOffset + rgbOffset, ceil_n(numVoxels, 8));
 
-			line.start.x = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 0);
-			line.start.y = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 1);
-			line.start.z = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 2);
-			line.end.x   = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 3);
-			line.end.y   = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 4);
-			line.end.z   = source.getUint8(rgbOffset + bytesPerBlock * blockIndex + 5);
-
-			let bits = source.getUint16(rgbOffset + bytesPerBlock * blockIndex + 6, true);
-
-			for(let sampleIndex = 0; sampleIndex < blocksize; sampleIndex++){
-
-				let T = bits >>> (bitsPerSample * sampleIndex) & 0b11;
-				let t = T / (numSamples - 1);
-
-				line.at(t, color);
-
-				target_rgb.setUint16(6 * colorsProcessed + 0, color.x, true);
-				target_rgb.setUint16(6 * colorsProcessed + 2, color.y, true);
-				target_rgb.setUint16(6 * colorsProcessed + 4, color.z, true);
-
-				colorsProcessed++;
-				if(colorsProcessed === numVoxels) break;
-			}
-			if(colorsProcessed === numVoxels) break;
+		for(let i = 0; i < numVoxels; i++){
+			target_rgb.setUint8(i, source_bc.getUint8(i));
 		}
+
+		// loadBC(source_bc, target_rgb, numVoxels);
 	}
 
 	// let dTotal = performance.now() - tStart;
@@ -224,5 +215,5 @@ export function loadVoxels(octree, node, source, parentVoxelCoords){
 	// console.log(`[${name.padStart(10)}] #voxels: ${strVoxels}, ${strKB} kb, parse: ${strDParse} ms, total: ${strDTotal} ms. ${strMPS} MP/s`);
 	// console.log(`[${name.padStart(10)}] #voxels: ${strVoxels}, ${strKB} kb, brotli: ${strDBrotli} ms, parse: ${strDParse} ms, total: ${strDTotal} ms. ${strMPS} MP/s`);
 
-	return {buffer: targetBuffer, voxelCoords};
+	return {buffer: targetBuffer};
 }
