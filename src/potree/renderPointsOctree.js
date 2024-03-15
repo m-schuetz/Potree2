@@ -340,11 +340,6 @@ function updateNodesBuffer(octree, nodes, prefixSum, octreeState, drawstate, fla
 			splatType = 1;
 		}
 
-		// DEBUG
-		// if(node.nodeType === 0){
-		// 	nodeSpacing = 123;
-		// }
-
 		view.setUint32 (WGSL_NODE_BYTESIZE * i +  0, node.geometry.numElements, true);
 		view.setUint32 (WGSL_NODE_BYTESIZE * i +  4, prefixSum[i], true);
 		view.setFloat32(WGSL_NODE_BYTESIZE * i +  8, bbWorld.min.x + bb.min.x, true);
@@ -482,7 +477,7 @@ async function renderOctree(octree, drawstate, flags){
 	let largeNodes = [];
 	let smallNodes = [];
 	let prefixSum = [];
-	let count = 0;
+	let count = Potree.state.numElements;
 
 	for(let i = 0; i < nodes.length; i++){
 		let node = nodes[i];
@@ -556,22 +551,9 @@ async function renderOctree(octree, drawstate, flags){
 		pass.passEncoder.setBindGroup(1, bindGroup);
 		pass.passEncoder.setBindGroup(3, nodesBindGroup);
 
-		
-
 		for(let [index, node] of smallNodes){
 
 			let numElements = node.geometry.numElements;
-
-			// { // DEBUG
-			// 	let cached = bufferBindGroupCache.get(node);
-
-			// 	if(cached){
-
-			// 	}else{
-			// 		dbg_numNewlyCreatedBuffers++;
-			// 		dbg_newBufferBytes += 
-			// 	}
-			// }
 
 			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
 			pass.passEncoder.setBindGroup(2, bufferBindGroup);
@@ -593,16 +575,11 @@ async function renderOctree(octree, drawstate, flags){
 				renderer.drawBoundingBox(position, size, color);
 			}
 
-
-			// if(node.name === "r444")
-			// if(node.name === "r444"){
-			// 	debugger;
-			// }
 			pass.passEncoder.draw(1 * numElements, 1, 0, index);
 
-			// debugger;
-			Potree.state.numPoints += node.geometry.numPoints;
-			Potree.state.numVoxels += node.geometry.numVoxels;
+			Potree.state.numPoints   += node.geometry.numPoints;
+			Potree.state.numVoxels   += node.geometry.numVoxels;
+			Potree.state.numElements += node.geometry.numElements;
 			Potree.state.numNodes++;
 			
 		}

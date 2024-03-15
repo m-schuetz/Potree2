@@ -1,6 +1,10 @@
 
 export const css = `
 
+
+tr:hover {background-color: coral;}
+
+
 #potree_sidebar{
 	background: #333333;
 	color: #ffffff;

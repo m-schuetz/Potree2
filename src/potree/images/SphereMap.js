@@ -140,6 +140,8 @@ let initialized = false;
 let pipeline = null;
 let sampler = null;
 
+let garbageTexture = null;
+
 function init(renderer){
 
 	if(initialized){
@@ -312,6 +314,8 @@ export class SphereMap extends SceneNode{
 			return;
 		}
 
+		garbageTexture = this.texture;
+
 		this.image = image;
 		this.textureNeedsUpdate = true;
 	}
@@ -319,6 +323,11 @@ export class SphereMap extends SceneNode{
 	updateTexture(drawstate){
 
 		let renderer = drawstate.renderer;
+
+		if(garbageTexture){
+			renderer.dispose(garbageTexture);
+			garbageTexture = null;
+		}
 
 		if(this.image === null && this.texture === null){
 			// this.texture = renderer.createTexture(128, 128, {format: "rgba8unorm"});
@@ -338,6 +347,8 @@ export class SphereMap extends SceneNode{
 	}
 
 	render(drawstate){
+
+		// return;
 
 
 		let {renderer} = drawstate;

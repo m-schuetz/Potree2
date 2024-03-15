@@ -437,6 +437,7 @@ function renderNotSoBasic(){
 
 	Potree.state.numPoints          = 0;
 	Potree.state.numVoxels          = 0;
+	Potree.state.numElements        = 0;
 	Potree.state.numNodes           = 0;
 	Potree.state.num3DTileNodes     = 0;
 	Potree.state.num3DTileTriangles = 0;
@@ -647,10 +648,10 @@ function renderNotSoBasic(){
 
 			if(node?.constructor.name === "PointCloudOctreeNode"){
 
-				// let pointBuffer = node.geometry.buffer;
-				// let view = new DataView(pointBuffer);
+				let pointBuffer = node.geometry.buffer;
+				let view = new DataView(pointBuffer);
 
-				// // node.getPoint(elementIndex);
+				let point = node.getPoint(elementIndex);
 
 				// let x = view.getFloat32(12 * elementIndex + 0, true);
 				// let y = view.getFloat32(12 * elementIndex + 4, true);
@@ -662,16 +663,16 @@ function renderNotSoBasic(){
 
 				// let position = new Vector3(x, y, z);
 
-				// Potree.pickPosition.copy(position);
+				Potree.pickPosition.copy(point.position);
 
-				// Potree.hoveredItem = {
-				// 	type: node?.constructor.name + " (Point)",
-				// 	instance: node,
-				// 	node: node,
-				// 	pointIndex: elementIndex,
-				// 	position: position,
-				// 	object: node.octree,
-				// };
+				Potree.hoveredItem = {
+					type: node?.constructor.name + " (Point)",
+					instance: node,
+					node: node,
+					pointIndex: elementIndex,
+					position: point.position,
+					object: node.octree,
+				};
 
 			}else if(node?.constructor.name === "Images360"){
 
@@ -842,7 +843,7 @@ function renderNotSoBasic(){
 		});
 
 		{
-			let radius = controls.radius / 70;
+			let radius = controls.getPosition().distanceTo(Potree.pickPosition) / 80;
 			dbgSphere.position.copy(Potree.pickPosition);
 			dbgSphere.scale.set(radius, radius, radius);
 			dbgSphere.updateWorld();

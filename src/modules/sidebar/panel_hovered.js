@@ -42,38 +42,76 @@ class Panel{
 			let node = hoveredItem.instance;
 			let octree = node.octree;
 
-			let point = octree.parsePoint(node, hoveredItem.pointIndex);
+			// let point = octree.getPoint(node, hoveredItem.pointIndex);
+			let point = node.getPoint(hoveredItem.pointIndex);
 
-			if(!point) return;
+			if(point){
 
-			valueRows += `
-			<tr>
-				<td>octree.name</td>
-				<td class="table_attributes_td">${octree.name}</td>
-			</tr>
-			<tr>
-				<td>node.name</td>
-				<td class="table_attributes_td">${node.name}</td>
-			</tr>
-			<!--<tr>
-				<td >position</td>
-				<td class="table_attributes_td">${strPos}</td>
-			</tr>-->
-			`;
-
-			let attributes = octree.loader.attributes;
-			for(let i = 0; i < attributes.attributes.length; i++){
-				let attribute = attributes.attributes[i];
-
-				let attributeValues = point[attribute.name]
+				let strPos = point.position.toArray().map(v => v.toFixed(2)).join(", ");
 
 				valueRows += `
-					<tr>
-						<td >${attribute.name}</td>
-						<td class="table_attributes_td">${attributeValues.strValue}</td>
-					</tr>
+				<tr>
+					<td>octree.name</td>
+					<td class="table_attributes_td">${octree.name}</td>
+				</tr>
+				<tr>
+					<td>node.name</td>
+					<td class="table_attributes_td">${node.name}</td>
+				</tr>
+				<tr>
+					<td>point index</td>
+					<td class="table_attributes_td">${hoveredItem.pointIndex}</td>
+				</tr>
+				<tr>
+					<td>position</td>
+					<td class="table_attributes_td">${strPos}</td>
+				</tr>
+				<tr>
+					<td colspan="2" style="text-align: center">- Raw Buffer Data -</td>
+				</tr>
+				<!--<tr>
+					<td>point</td>
+					<td class="table_attributes_td">${JSON.stringify(point, null, "<br> ")}</td>
+				</tr>-->
+				<!--<tr>
+					<td >position</td>
+					<td class="table_attributes_td">${strPos}</td>
+				</tr>-->
 				`;
 
+
+				let attributes = octree.loader.attributes;
+				if(point.attributes)
+				for(let i = 0; i < attributes.attributes.length; i++){
+					let attribute = attributes.attributes[i];
+
+					let attributeValues = point.attributes[attribute.name];
+
+					if(!attributeValues) continue;
+					
+					let str = attributeValues.join(", ");
+
+					valueRows += `
+						<tr>
+							<td >${attribute.name}</td>
+							<td class="table_attributes_td">${str}</td>
+						</tr>
+					`;
+
+				}
+				// let attributes = octree.loader.attributes;
+				// for(let i = 0; i < attributes.attributes.length; i++){
+				// 	let attribute = attributes.attributes[i];
+
+				// 	let attributeValues = point[attribute.name]
+
+				// 	valueRows += `
+				// 		<tr>
+				// 			<td >${attribute.name}</td>
+				// 			<td class="table_attributes_td">${attributeValues.strValue}</td>
+				// 		</tr>
+				// 	`;
+				// }
 			}
 		}else if(hoveredItem?.type === "Image360"){
 			let {image, images} = hoveredItem;

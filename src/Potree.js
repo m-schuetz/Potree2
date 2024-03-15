@@ -136,6 +136,7 @@ const state = {
 	
 	numPoints: 0,
 	numVoxels: 0,
+	numElements: 0,
 	numNodes: 0,
 
 	renderedObjects: [],

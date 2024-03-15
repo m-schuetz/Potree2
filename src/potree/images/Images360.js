@@ -199,6 +199,27 @@ export class Images360 extends SceneNode{
 
 			let controls = Potree.instance.controls_list[0];
 			Potree.instance.setControls(controls);
+
+			controls.set({
+				radius: this.stationaryControls.radius, 
+				pivot:  this.stationaryControls.pivot,
+				yaw:    this.stationaryControls.yaw,
+				pitch:  this.stationaryControls.pitch,
+			});
+
+			let radius_start = this.stationaryControls.radius;
+			let radius_end = 10;
+
+			let value = {radius: radius_start};
+			let animationDuration = 200;
+			let tween = new TWEEN.Tween(value).to({radius: radius_end}, animationDuration);
+			tween.easing(TWEEN.Easing.Quartic.Out);
+
+			tween.onUpdate(() => {
+				controls.set({radius: value.radius});
+			});
+			tween.onComplete(() => {});
+			tween.start();
 		});
 
 		this.dispatcher.addEventListener("drag", (e) => {
@@ -211,26 +232,75 @@ export class Images360 extends SceneNode{
 			let image = e.hovered.image;
 			let position = this.position.clone().add(image.position);
 
-			this.stationaryControls.pivot.copy(position);
-			this.stationaryControls.radius = 0;
+			// this.stationaryControls.pivot.copy(position);
+			// this.stationaryControls.radius = 0;
 			this.stationaryControls.setLabel(`Currently viewing: ${image.name}`);
 
+			let controls = Potree.instance.controls;
+
+			let radius_start = controls.radius;
+			let pivot_start = controls.pivot.clone();
+			let radius_end = 0;
+			let pivot_end = image.position.clone().add(this.position);
+
+			// debugger;
+
+			this.stationaryControls.set({
+				radius: controls.radius,
+				yaw:    controls.yaw,
+				pitch:  controls.pitch,
+				pivot:  controls.pivot,
+			});
+
 			Potree.instance.setControls(this.stationaryControls);
+
+
+			console.log({pivot_start, pivot_end});
+
+			let value = {x: 0};
+			let animationDuration = 200;
+			let tween = new TWEEN.Tween(value).to({x: 1}, animationDuration);
+			tween.easing(TWEEN.Easing.Quartic.Out);
+
+			tween.onUpdate(() => {
+				let t = value.x;
+				let radius = (1 - t) * radius_start + t * radius_end;
+				let pivot = new Vector3(
+					(1 - t) * pivot_start.x + t * pivot_end.x,
+					(1 - t) * pivot_start.y + t * pivot_end.y,
+					(1 - t) * pivot_start.z + t * pivot_end.z,
+				);
+				
+				this.stationaryControls.set({pivot, radius});
+			});
+			tween.onComplete(() => {});
+			tween.start();
 
 			{
 				// TODO: prototype hack
 				let imageName = image.name.split("\\").at(-1).replaceAll("\"", "");
-				let path = `./resources/Drive3/${imageName}`;
-				let response = await fetch(path);
-				let buffer = await response.arrayBuffer();
-				let mimeType = "image/jpg";
+				let path      = `./resources/Drive3/${imageName}`;
+				let response  = await fetch(path);
+				let buffer    = await response.arrayBuffer();
+				let mimeType  = "image/jpg";
 
 				var u8 = new Uint8Array(buffer);
 				var blob = new Blob([u8], {type: mimeType});
 
 				let imageBitmap = await createImageBitmap(blob);
 
+				// let prev = {
+				// 	image: this.stationaryControls.sphereMap.image,
+				// 	texture: this.stationaryControls.sphereMap.texture,
+				// };
+				
 				this.stationaryControls.sphereMap.setImage(imageBitmap);
+
+				// if(prevImage !== imageBitmap){
+				// 	// remove old image
+
+
+				// }
 
 				window.factors = window.factors = [
 					-1, -2 * Math.PI / 4, 
@@ -394,7 +464,7 @@ export class Images360Loader{
 
 			let tokens = line.split("\t");
 
-			console.log(tokens);
+			// console.log(tokens);
 
 
 			let imgPath = tokens[0];

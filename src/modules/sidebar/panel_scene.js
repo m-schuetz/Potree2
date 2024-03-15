@@ -30,60 +30,53 @@ class Panel{
 
 		let nodes = [];
 
+		// let tableString = "";
+		tableString += `<table style="border-collapse: collapse; "> \n`;
+		tableString += `	<tr> \n`;
+		tableString += `		<th></th> \n`;
+		tableString += `		<th style="text-align: left;"></th> \n`;
+		tableString += `		<th></th> \n`;
+		tableString += `		<th></th> \n`;
+		tableString += `	</tr> \n`;
+
 		scene.root.traverse(node => {
-
 			let i = nodes.length;
-			
-			if(node.constructor.name === "PointCloudOctree"){
-				let label = node.name ?? "&lt;unnamed pointcloud&gt;";
-				tableString += `
-					<span> </span>
-					<span name="label_${i}">${label}</span>
-					<span name="zoom_${i}" style="cursor: pointer;" title="Focus">◉</span>
-					<span><input type="checkbox" name="item_${i}"></span>
-				`;
-				// <span><input type="button" class="textButton" name="zoom_${i}" value="◉"/></span>
-				// <span><input type="checkbox" name="item_${i}"></span>
-				nodes.push(node);
-			}else if(node.constructor.name === "Images360"){
-				let label = node.name ?? "&lt;360° Images&gt;";
-				tableString += `
-					<span> </span>
-					<span name="label_${i}">${label}</span>
-					<span name="zoom_${i}" style="cursor: pointer;" title="Focus">◉</span>
-					<span><input type="checkbox" name="item_${i}"></span>
-				`;
 
-				nodes.push(node);
-			}else if(node.constructor.name === "TDTiles"){
-				let label = node.name ?? "&lt;3D Tiles&gt;";
-				tableString += `
-					<span> </span>
-					<span name="label_${i}">${label}</span>
-					<span name="zoom_${i}" style="cursor: pointer;" title="Focus">◉</span>
-					<span><input type="checkbox" name="item_${i}"></span>
-				`;
+			let isValidSceneObject = [
+				"PointCloudOctree",
+				"Images360",
+				"TDTiles"
+			].includes(node.constructor.name);
 
+			if(isValidSceneObject){
+				tableString += `
+					<tr>
+						<td style="width: 10px; padding: 0;"></td>
+						<td name="label_${i}" style="cursor: pointer; width: 100%"></td>
+						<td name="zoom_${i}" style="cursor: pointer;">◉</td>
+						<td><input type="checkbox" name="item_${i}"></td>
+					</tr>
+				`;
 				nodes.push(node);
 			}
-
 		});
 
 		if(tableString !== this.oldTableString){
 			this.elTable.style.display = "grid";
-			this.elTable.style.gridTemplateColumns = "1em 1fr 1em 1em";
 			this.elTable.innerHTML = tableString;
-
 			this.oldTableString = tableString;
 
 			for(let i = 0; i < nodes.length; i++){
 				let node = nodes[i];
 
-				let elLabel    = this.elTable.querySelector(`span[name=label_${i}]`);
+				let elLabel    = this.elTable.querySelector(`td[name=label_${i}]`);
 				let elCheckbox = this.elTable.querySelector(`input[name=item_${i}]`);
-				// let elVisibility = this.elTable.querySelector(`span[name=visibility_${i}]`);
 				let elZoom     = this.elTable.querySelector(`input[name=zoom_${i}]`)
-					?? this.elTable.querySelector(`span[name=zoom_${i}]`)
+					?? this.elTable.querySelector(`td[name=zoom_${i}]`);
+
+				
+				elLabel.innerHTML = node.name ?? `&lt;${node.constructor.name} object&gt;`;
+				
 
 				if(elLabel){
 					elLabel.onmouseenter = () => {node.isHighlighted = true;};
@@ -104,11 +97,6 @@ class Panel{
 					elCheckbox.onmouseenter = () => {node.isHighlighted = true;};
 					elCheckbox.onmouseleave = () => {node.isHighlighted = false;};
 				}
-
-				// if(elVisibility){
-					
-				// }
-
 
 				if(elZoom){
 					elZoom.onclick = () => {

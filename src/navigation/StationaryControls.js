@@ -24,7 +24,9 @@ export class StationaryControls{
 		this.elExit.style.right = "10px";
 		this.elExit.style.bottom = "10px";
 		this.elExit.style.position = "absolute";
+		this.elExit.style.display = "none";
 		this.elExit.onclick = () => {
+			this.elExit.style.display = "none";
 			this.dispatcher.dispatch("exit", this);
 		};
 
@@ -84,6 +86,7 @@ export class StationaryControls{
 			console.log("focused!");
 
 			this.elFocusLabel.style.display = "block";
+			this.elExit.style.display = "block";
 
 			Potree.instance.scene.root.children.push(this.sphereMap);
 		});
@@ -112,9 +115,18 @@ export class StationaryControls{
 		this.elFocusLabel.innerText = label;
 	}
 
-	set({yaw, pitch}){
+	set({yaw, pitch, pivot, radius}){
 		this.yaw = yaw ?? this.yaw;
 		this.pitch = pitch ?? this.pitch;
+		this.radius = radius ?? 0;
+
+		if(pivot){
+			if(typeof pivot.x !== "undefined"){
+				this.pivot.copy(pivot);
+			}else{
+				this.pivot.set(...pivot);
+			}
+		}
 	}
 
 	getPosition(){
@@ -131,7 +143,7 @@ export class StationaryControls{
 		);
 
 		this.world.makeIdentity();
-		// this.world.translate(0, 0, this.radius);
+		this.world.translate(0, 0, this.radius);
 		this.world.multiplyMatrices(flip, this.world);
 		this.world.rotate(Math.PI / 2 - this.pitch, new Vector3(1, 0, 0));
 		this.world.rotate(-this.yaw, new Vector3(0, 1, 0));

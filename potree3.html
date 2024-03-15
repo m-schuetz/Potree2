@@ -38,26 +38,39 @@
 	import {Potree} from "potree";
 	import {Vector3, Box3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
-	import {initGUI} from "./src/modules/gui_dat/gui.js";
+	import {CopcLoader, Image360, Images360, Images360Loader, SplatType} from "potree";
+	import {PotreeLoader, Potree3Loader, TDTilesLoader} from "potree";
 	import "range-select";
 	import {proj4} from "proj4";
+	import * as TWEEN from "tween";
 	import {load as loadGLB} from "./src/misc/GLBLoader.js";
+	// import {initGUI} from "./src/modules/gui_dat/gui.js";
+	// import {MAPPINGS} from "./src/modules/attributes/mappings.js";
 	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
-
-	console.log(proj4.version);
-
 	// import {installToolbar} from "toolbar";
 	import {installSidebar} from "sidebar";
 
-	let canvas = document.getElementById("canvas");
+	let canvas   = document.getElementById("canvas");
 	let elPotree = document.getElementById("potree");
-	let potree = await Potree.init(canvas);
+	let potree   = await Potree.init(canvas);
 	let {scene, controls} = potree;
 	// installToolbar(potree.renderer.canvas, potree);
 
 	window.Potree = Potree;
 	window.potree = potree;
 	window.Vector3 = Vector3;
+	window.TWEEN = TWEEN;
+
+	Potree.settings.edlEnabled      = true;
+	Potree.settings.dilateEnabled   = false;
+	Potree.settings.hqsEnabled      = true;
+	Potree.settings.pointBudget     = 8_000_000;
+	Potree.settings.attribute       = "rgba";
+	Potree.settings.splatType       = SplatType.QUADS;
+	Potree.settings.splatType       = SplatType.POINTS;
+	Potree.settings.pointSize       = 2;
+	Potree.settings.minNodeSize     = 500;
+	Potree.settings.showBoundingBox = false;
 
 	installSidebar(elPotree, potree).then(sidebar => {
 		window.sidebar = sidebar;
@@ -71,28 +84,6 @@
 		// sidebar.toggle();
 	});
 
-	// default, if not overriden later on
-	// controls.set({
-	// 	position: [-19.0, 13.6, 12.2],
-	// 	pivot: [-0.0, 2.2, 3.9],
-	// });
-
-	import {CopcLoader, Image360, Images360, Images360Loader, SplatType} from "potree";
-	import {PotreeLoader, Potree3Loader, TDTilesLoader} from "potree";
-	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
-
-	Potree.settings.edlEnabled      = true;
-	Potree.settings.dilateEnabled   = false;
-	Potree.settings.hqsEnabled      = true;
-	Potree.settings.pointBudget     = 8_000_000;
-	Potree.settings.attribute       = "rgba";
-	// Potree.settings.attribute = "intensity";
-	Potree.settings.splatType       = SplatType.QUADS;
-	Potree.settings.splatType       = SplatType.POINTS;
-	Potree.settings.pointSize       = 2;
-	Potree.settings.minNodeSize     = 200;
-	Potree.settings.showBoundingBox = false;
-
 	// swiss coordinate reference system
 	let target_crs = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs ";
 	
@@ -100,18 +91,20 @@
 	proj4.defs("EPSG:4978","+proj=geocent +datum=WGS84 +units=m +no_defs +type=crs");
 
 	Potree.events.onFrameStart(() => {
-		let report = Potree.renderer.createResourceReport();
-
-		document.getElementById("msg_resources").innerText = report;
+		document.getElementById("msg_resources").innerText = Potree.renderer.createResourceReport();
 	});
 
+	// default, if not overriden later on
 	controls.set({
-		position: [2546649.5, 1211242.3, 1226.6], 
-		pivot:    [2546758.8, 1211683.2, 925.1]
+		position: [2546599.1, 1211503.9, 955.9], 
+		pivot:    [2546612.5, 1211565.2, 922.6]
 	});
+
+	// * Awaiting the loaders is done to guarantee the order in which they appear in the GUI. It is not essential, though.
 
 	
-	// // TDTilesLoader.load("https://sitn.ne.ch/3dtiles/chaux81123/Production_1_pro_tie_3d_cesium.json").then(tiles => {
+	// TDTilesLoader.load("https://sitn.ne.ch/3dtiles/chaux81123/Production_1_pro_tie_3d_cesium.json").then(tiles => {
+	if(false)
 	await TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
 		tiles.name = "le_locle_est";
 		tiles.projector = proj4("EPSG:4978", target_crs);
@@ -130,6 +123,16 @@
 		tiles.boundingBox.copy(bbox);
 
 		scene.root.children.push(tiles);
+	});
+
+	if(false)
+	await PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
+		scene.root.children.push(pointcloud);
+		pointcloud.name = "SITN 2022";
+
+		// let material = pointcloud.material;
+
+		// controls.zoomTo(pointcloud);
 	});
 		
 	// if(false)
@@ -156,24 +159,16 @@
 	// 	controls.zoomTo(pointcloud);
 	// });
 
-	// await PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
-	// 	scene.root.children.push(pointcloud);
+	
 
-	// 	pointcloud.name = "SITN 2022";
+	await PotreeLoader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.laz_converted/metadata.json").then(async pointcloud => {
+	//await Potree3Loader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.potree").then(pointcloud => {
+		pointcloud.name = "Helimap MLS Drive 3";
+		scene.root.children.push(pointcloud);
 
-	// 	let material = pointcloud.material;
-
-	// 	// controls.zoomTo(pointcloud);
-	// });
-
-	// await PotreeLoader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.laz_converted/metadata.json").then(async pointcloud => {
-	// //await Potree3Loader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.potree").then(pointcloud => {
-	// 	pointcloud.name = "Helimap MLS Drive 3";
-	// 	scene.root.children.push(pointcloud);
-
-	// 	let images = await Images360Loader.load("./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt", target_crs);
-	// 	scene.add(scene.root, images);
-	// });
+		let images = await Images360Loader.load("./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt", target_crs);
+		scene.add(scene.root, images);
+	});
 
 	
 

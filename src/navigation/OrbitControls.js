@@ -67,12 +67,8 @@ export class OrbitControls{
 
 			if(Potree.hoveredItem){
 
-
 				let newPivot = Potree.hoveredItem.position;
 				let newRadius = this.getPosition().distanceTo(newPivot) * 0.25;
-				// let newRadius = result.distance * 0.25;
-
-				// this.set({radius: newRadius, pivot: newPivot});
 
 				let value = {x: 0};
 				let animationDuration = 400;
@@ -139,7 +135,6 @@ export class OrbitControls{
 			this.yaw = yaw;
 			this.pitch = pitch;
 			this.radius = radius;
-
 		} 
 	}
 
