@@ -1,8 +1,7 @@
-
-import {Vector3, Matrix4} from "../../math/math.js";
+import { Matrix4, Vector3 } from "../../math/math.js";
 
 const vs = `
-[[block]] struct Uniforms {
+struct Uniforms {
 	worldView : mat4x4<f32>;
 	proj : mat4x4<f32>;
 	numPointLights : u32;
@@ -10,26 +9,26 @@ const vs = `
 	color : vec4<f32>;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+@group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
 struct VertexInput {
-	[[location(0)]] position        : vec4<f32>;
-	[[location(1)]] normal          : vec4<f32>;
-	[[location(2)]] uv              : vec2<f32>;
-	[[location(3)]] color           : vec4<f32>;
+	@location(0) position        : vec4<f32>,
+	@location(1) normal          : vec4<f32>,
+	@location(2) uv              : vec2<f32>,
+	@location(3) color           : vec4<f32>,
 };
 
 struct VertexOutput {
-	[[builtin(position)]] position  : vec4<f32>;
-	[[location(0)]] view_position   : vec4<f32>;
-	[[location(1)]] normal          : vec4<f32>;
-	[[location(2)]] uv              : vec2<f32>;
-	[[location(3)]] color           : vec4<f32>;
+	@builtin(position) position  : vec4<f32>,
+	@location(0) view_position   : vec4<f32>,
+	@location(1) normal          : vec4<f32>,
+	@location(2) uv              : vec2<f32>,
+	@location(3) color           : vec4<f32>,
 };
 
 
-[[stage(vertex)]]
-fn main(vertex : VertexInput) -> VertexOutput {
+@vertex
+fn phongMaterial(vertex : VertexInput) -> VertexOutput {
 
 	var output : VertexOutput;
 
@@ -50,11 +49,11 @@ struct PointLight {
 	position : vec4<f32>;
 };
 
-[[block]] struct PointLights {
+struct PointLights {
 	values : [[stride(16)]] array<PointLight>;
 };
 
-[[block]] struct Uniforms {
+struct Uniforms {
 	worldView : mat4x4<f32>;
 	proj : mat4x4<f32>;
 	numPointLights : u32;
@@ -62,20 +61,20 @@ struct PointLight {
 	color : vec4<f32>;
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), set(0)]] var<storage_buffer> pointLights : [[access(read)]]PointLights;
+@group(0) @binding(0) var<uniform> uniforms : Uniforms;
+@binding(1), set(0) var<storage_buffer> pointLights : [[access(read)]]PointLights,
 [[binding(2), set(0)]] var mySampler: sampler;
 [[binding(3), set(0)]] var myTexture: texture_2d<f32>;
 
 struct FragmentInput {
-	[[location(0)]] view_position   : vec4<f32>;
-	[[location(1)]] normal          : vec4<f32>;
-	[[location(2)]] uv              : vec2<f32>;
-	[[location(3)]] color           : vec4<f32>;
+	@location(0) view_position   : vec4<f32>;
+	@location(1) normal          : vec4<f32>;
+	@location(2) uv              : vec2<f32>;
+	@location(3) color           : vec4<f32>;
 };
 
 struct FragmentOutput {
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 fn getColor(fragment : FragmentInput) -> vec4<f32>{
@@ -109,8 +108,8 @@ fn getColor(fragment : FragmentInput) -> vec4<f32>{
 	return color;
 };
 
-[[stage(fragment)]]
-fn main(fragment : FragmentInput) -> FragmentOutput {
+@fragment
+fn phongMaterial(fragment : FragmentInput) -> FragmentOutput {
 
 	var light : vec3<f32>;
 	
@@ -157,25 +156,21 @@ fn main(fragment : FragmentInput) -> FragmentOutput {
 }
 `;
 
-
 export let ColorMode = {
-	VERTEX_COLOR: 0,
-	NORMALS: 1,
-	DIFFUSE_COLOR: 2,
-	TEXTURE: 3
+  VERTEX_COLOR: 0,
+  NORMALS: 1,
+  DIFFUSE_COLOR: 2,
+  TEXTURE: 3,
 };
 
-export class PhongMaterial{
-
-	constructor(){
-		this.image = null;
-		this.colorMode = ColorMode.DIFFUSE_COLOR;
-		this.color = new Vector3(1.0, 0.0, 0.5);
-		this.uniformBufferData = new ArrayBuffer(256);
-	}
-	
+export class PhongMaterial {
+  constructor() {
+    this.image = null;
+    this.colorMode = ColorMode.DIFFUSE_COLOR;
+    this.color = new Vector3(1.0, 0.0, 0.5);
+    this.uniformBufferData = new ArrayBuffer(256);
+  }
 }
-
 
 let initialized = false;
 let pipeline = null;
@@ -183,224 +178,258 @@ let ssbo_pointLights = null;
 let sampler = null;
 let uniformBufferCache = new Map();
 
-function initialize(renderer){
+function initialize(renderer) {
+  if (initialized) {
+    return;
+  }
 
-	if(initialized){
-		return;
-	}
+  let { device } = renderer;
+  const bindGroupLayout = device.createBindGroupLayout({
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {
+          type: "uniform",
+        },
+      },
+      // Add other entries if needed
+    ],
+  });
+  const layout = device.createPipelineLayout({
+    bindGroupLayouts: [bindGroupLayout],
+  });
+  pipeline = device.createRenderPipeline({
+    layout,
+    vertexStage: {
+      module: device.createShaderModule({ code: vs }),
+      entryPoint: "phongMaterial",
+    },
+    fragmentStage: {
+      module: device.createShaderModule({ code: fs }),
+      entryPoint: "phongMaterial",
+    },
+    primitiveTopology: "triangle-list",
+    depthStencilState: {
+      depthWriteEnabled: true,
+      depthCompare: "greater",
+      format: "depth32float",
+    },
+    vertexState: {
+      vertexBuffers: [
+        {
+          // position
+          arrayStride: 3 * 4,
+          attributes: [
+            {
+              shaderLocation: 0,
+              offset: 0,
+              format: "float32x3",
+            },
+          ],
+        },
+        {
+          // normal
+          arrayStride: 3 * 4,
+          attributes: [
+            {
+              shaderLocation: 1,
+              offset: 0,
+              format: "float32x3",
+            },
+          ],
+        },
+        {
+          // uv
+          arrayStride: 2 * 4,
+          attributes: [
+            {
+              shaderLocation: 2,
+              offset: 0,
+              format: "float32x2",
+            },
+          ],
+        },
+        {
+          // color
+          arrayStride: 4,
+          attributes: [
+            {
+              shaderLocation: 3,
+              offset: 0,
+              format: "unorm8x4",
+            },
+          ],
+        },
+      ],
+    },
+    rasterizationState: {
+      cullMode: "none",
+    },
+    colorStates: [
+      {
+        format: "bgra8unorm",
+      },
+    ],
+  });
 
-	let {device} = renderer;
+  let maxLights = 100;
+  ssbo_pointLights = renderer.createBuffer(maxLights * 16);
 
-	pipeline = device.createRenderPipeline({
-		vertexStage: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
-		},
-		fragmentStage: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-		},
-		primitiveTopology: "triangle-list",
-		depthStencilState: {
-			depthWriteEnabled: true,
-			depthCompare: 'greater',
-			format: "depth32float",
-		},
-		vertexState: {
-			vertexBuffers: [
-				{ // position
-					arrayStride: 3 * 4,
-					attributes: [{ 
-						shaderLocation: 0,
-						offset: 0,
-						format: "float32x3",
-					}],
-				},{ // normal
-					arrayStride: 3 * 4,
-					attributes: [{ 
-						shaderLocation: 1,
-						offset: 0,
-						format: "float32x3",
-					}],
-				},{ // uv
-					arrayStride: 2 * 4,
-					attributes: [{ 
-						shaderLocation: 2,
-						offset: 0,
-						format: "float32x2",
-					}],
-				},{ // color
-					arrayStride: 4,
-					attributes: [{ 
-						shaderLocation: 3,
-						offset: 0,
-						format: "unorm8x4",
-					}],
-				},
-			],
-		},
-		rasterizationState: {
-			cullMode: "none",
-		},
-		colorStates: [{
-				format: "bgra8unorm",
-		}],
-	});
+  sampler = device.createSampler({
+    magFilter: "linear",
+    minFilter: "linear",
+    mipmapFilter: "linear",
+    addressModeU: "repeat",
+    addressModeV: "repeat",
+    maxAnisotropy: 1,
+  });
 
-	let maxLights = 100;
-	ssbo_pointLights = renderer.createBuffer(maxLights * 16);
-
-	sampler = device.createSampler({
-		magFilter: 'linear',
-		minFilter: 'linear',
-		mipmapFilter : 'linear',
-		addressModeU: "repeat",
-		addressModeV: "repeat",
-		maxAnisotropy: 1,
-	});
-
-	initialized = true;
+  initialized = true;
 }
 
-function getUniformBuffer(renderer, node){
+function getUniformBuffer(renderer, node) {
+  let uniformBuffer = uniformBufferCache.get(node);
 
-	let uniformBuffer = uniformBufferCache.get(node);
+  if (!uniformBuffer) {
+    const uniformBufferSize = 256;
 
-	if(!uniformBuffer){
-		const uniformBufferSize = 256; 
+    uniformBuffer = renderer.device.createBuffer({
+      size: uniformBufferSize,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
 
-		uniformBuffer = renderer.device.createBuffer({
-			size: uniformBufferSize,
-			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-		});
+    uniformBufferCache.set(node, uniformBuffer);
+  }
 
-		uniformBufferCache.set(node, uniformBuffer);
-	}
-
-	return uniformBuffer;
+  return uniformBuffer;
 }
 
 let bindGroupCache = new Map();
-function getBindGroup(renderer, node){
-	let bindGroup = bindGroupCache.get(node);
+function getBindGroup(renderer, node) {
+  let bindGroup = bindGroupCache.get(node);
 
-	if(!bindGroup){
+  if (!bindGroup) {
+    let uniformBuffer = getUniformBuffer(renderer, node);
+    let texture = renderer.getGpuTexture(node.material.image);
 
-		let uniformBuffer = getUniformBuffer(renderer, node);
-		let texture = renderer.getGpuTexture(node.material.image);
+    bindGroup = renderer.device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: uniformBuffer } },
+        { binding: 1, resource: { buffer: ssbo_pointLights } },
+        { binding: 2, resource: sampler },
+        { binding: 3, resource: texture.createView() },
+      ],
+    });
 
-		bindGroup = renderer.device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [
-				{binding: 0, resource: {buffer: uniformBuffer}},
-				{binding: 1, resource: {buffer: ssbo_pointLights}},
-				{binding: 2, resource: sampler},
-				{binding: 3, resource: texture.createView()},
-			]
-		});
+    bindGroupCache.set(node, bindGroup);
+  }
 
-		bindGroupCache.set(node, bindGroup);
-	}
-	
-	return bindGroup;
+  return bindGroup;
 }
 
-export function render(pass, node, drawstate){
-	
-	let {renderer, camera, renderables} = drawstate;
-	let {device} = renderer;
-	let {material} = node;
+export function render(pass, node, drawstate) {
+  let { renderer, camera, renderables } = drawstate;
+  let { device } = renderer;
+  let { material } = node;
 
-	initialize(renderer);
+  initialize(renderer);
 
-	let uniformBuffer = getUniformBuffer(renderer, node);
-	let pointLights = renderables.get("PointLight") ?? [];
+  let uniformBuffer = getUniformBuffer(renderer, node);
+  let pointLights = renderables.get("PointLight") ?? [];
 
-	{ // update uniforms
-		let data = material.uniformBufferData
-		let f32 = new Float32Array(data);
-		let view = new DataView(data);
+  {
+    // update uniforms
+    let data = material.uniformBufferData;
+    let f32 = new Float32Array(data);
+    let view = new DataView(data);
 
-		{ // transform
-			let world = node.world;
-			let view = camera.view;
-			let worldView = new Matrix4().multiplyMatrices(view, world);
+    {
+      // transform
+      let world = node.world;
+      let view = camera.view;
+      let worldView = new Matrix4().multiplyMatrices(view, world);
 
-			f32.set(worldView.elements, 0);
-			f32.set(camera.proj.elements, 16);
-		}
+      f32.set(worldView.elements, 0);
+      f32.set(camera.proj.elements, 16);
+    }
 
-		{ // misc
-			view.setUint32(128, pointLights.length, true);
-			view.setUint32(132, material.colorMode, true);
-			view.setFloat32(144, material.color.x, true);
-			view.setFloat32(148, material.color.y, true);
-			view.setFloat32(152, material.color.z, true);
-			view.setFloat32(156, 1.0);
-		}
+    {
+      // misc
+      view.setUint32(128, pointLights.length, true);
+      view.setUint32(132, material.colorMode, true);
+      view.setFloat32(144, material.color.x, true);
+      view.setFloat32(148, material.color.y, true);
+      view.setFloat32(152, material.color.z, true);
+      view.setFloat32(156, 1.0);
+    }
 
-		device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
-	}
+    device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
+  }
 
-	
-	if(pointLights.length > 0){
+  if (pointLights.length > 0) {
+    let data = new Float32Array(pointLights.length * 4);
+    for (let i = 0; i < pointLights.length; i++) {
+      let light = pointLights[i];
+      let lightPos = light.position.clone().applyMatrix4(camera.view);
 
-		let data = new Float32Array(pointLights.length * 4);
-		for(let i = 0; i < pointLights.length; i++){
-			let light = pointLights[i];
-			let lightPos = light.position.clone().applyMatrix4(camera.view);
+      data[4 * i + 0] = lightPos.x;
+      data[4 * i + 1] = lightPos.y;
+      data[4 * i + 2] = lightPos.z;
+      data[4 * i + 3] = 0.0;
+    }
 
-			data[4 * i + 0] = lightPos.x;
-			data[4 * i + 1] = lightPos.y;
-			data[4 * i + 2] = lightPos.z;
-			data[4 * i + 3] = 0.0;
-		}
-		
-		device.queue.writeBuffer(
-			ssbo_pointLights, 0,
-			data.buffer, 0, data.byteLength
-		);
-	}
+    device.queue.writeBuffer(
+      ssbo_pointLights,
+      0,
+      data.buffer,
+      0,
+      data.byteLength
+    );
+  }
 
+  let { passEncoder } = pass;
+  let vbos = renderer.getGpuBuffers(node.geometry);
 
-	let {passEncoder} = pass;
-	let vbos = renderer.getGpuBuffers(node.geometry);
+  passEncoder.setPipeline(pipeline);
 
-	passEncoder.setPipeline(pipeline);
+  let bindGroup = getBindGroup(renderer, node);
 
-	let bindGroup = getBindGroup(renderer, node);
-	
-	let bindGroupIndex = renderer.getNextBindGroup();
-	passEncoder.setBindGroup(0, bindGroup);
+  let bindGroupIndex = renderer.getNextBindGroup();
+  passEncoder.setBindGroup(0, bindGroup);
 
-	let vboPosition = vbos.find(item => item.name === "position").vbo;
-	let vboNormal = vbos.find(item => item.name === "normal").vbo;
-	let vboColor = vbos.find(item => item.name === "color").vbo;
+  let vboPosition = vbos.find((item) => item.name === "position").vbo;
+  let vboNormal = vbos.find((item) => item.name === "normal").vbo;
+  let vboColor = vbos.find((item) => item.name === "color").vbo;
 
-	if(material.mode === ColorMode.TEXTURE){
-		let vboUV = vbos.find(item => item.name === "uv").vbo;
-		passEncoder.setVertexBuffer(2, vboUV);
-	}else{
-		// TODO: set garbage data since it's not used but required
-		// TODO: could we just set this buffer empty somehow?
-		passEncoder.setVertexBuffer(2, vboPosition);
-	}
+  if (material.mode === ColorMode.TEXTURE) {
+    let vboUV = vbos.find((item) => item.name === "uv").vbo;
+    passEncoder.setVertexBuffer(2, vboUV);
+  } else {
+    // TODO: set garbage data since it's not used but required
+    // TODO: could we just set this buffer empty somehow?
+    passEncoder.setVertexBuffer(2, vboPosition);
+  }
 
-	passEncoder.setVertexBuffer(0, vboPosition);
-	passEncoder.setVertexBuffer(1, vboNormal);
-	passEncoder.setVertexBuffer(3, vboColor);
+  passEncoder.setVertexBuffer(0, vboPosition);
+  passEncoder.setVertexBuffer(1, vboNormal);
+  passEncoder.setVertexBuffer(3, vboColor);
 
-	if(node.geometry.indices){
-		let indexBuffer = renderer.getGpuBuffer(node.geometry.indices);
+  if (node.geometry.indices) {
+    let indexBuffer = renderer.getGpuBuffer(node.geometry.indices);
 
-		passEncoder.setIndexBuffer(indexBuffer, "uint32", 0, indexBuffer.byteLength);
+    passEncoder.setIndexBuffer(
+      indexBuffer,
+      "uint32",
+      0,
+      indexBuffer.byteLength
+    );
 
-		let numIndices = node.geometry.indices.length;
-		passEncoder.drawIndexed(numIndices);
-	}else{
-		let numElements = node.geometry.numElements;
-		passEncoder.draw(numElements, 1, 0, 0);
-	}
-
+    let numIndices = node.geometry.indices.length;
+    passEncoder.drawIndexed(numIndices);
+  } else {
+    let numElements = node.geometry.numElements;
+    passEncoder.draw(numElements, 1, 0, 0);
+  }
 }
-

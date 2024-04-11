@@ -1,38 +1,36 @@
-
-
 const vs = `
-[[block]] struct Uniforms {
-	[[size(64)]] worldView : mat4x4<f32>;
-	[[size(64)]] proj : mat4x4<f32>;
-	[[size(4)]] screen_width : f32;
-	[[size(4)]] screen_height : f32;
+struct Uniforms {
+	@size(64) worldView : mat4x4<f32>,
+	@size(64) proj : mat4x4<f32>,
+	@size(4) screen_width : f32,
+	@size(4) screen_height : f32,
 };
 
-[[block]] struct ColorAdjustments {
-	[[size(4)]] shift : f32;
-	[[size(4)]] scale : f32;
-	[[size(4)]] gamma : f32;
-	[[size(4)]] brightness : f32;
-	[[size(4)]] contrast : f32;
+struct ColorAdjustments {
+	@size(4) shift : f32,
+	@size(4) scale : f32,
+	@size(4) gamma : f32,
+	@size(4) brightness : f32,
+	@size(4) contrast : f32,
 };
 
-[[block]] struct U32s {
-	[[offset(0)]] values : [[stride(4)]] array<u32>;
+struct U32s {
+	@offset(0) values : [[stride(4)]] array<u32>,
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
-[[binding(1), set(0)]] var<uniform> in_adjust : ColorAdjustments;
-[[binding(3), set(0)]] var<storage_buffer> ssbo_attribute : [[access(read)]]U32s;
+@group(0) @binding(0) var<uniform> uniforms : Uniforms;
+@binding(1), set(0) var<uniform> in_adjust : ColorAdjustments,
+@binding(3), set(0) var<storage_buffer> ssbo_attribute : [[access(read)]]U32s,
 
 [[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
-[[binding(11), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
+[[binding(1), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
 
-[[location(0)]] var<in> in_position : vec4<f32>;
+@location(0) var<in> in_position : vec4<f32>;
 
-[[builtin(instance_index)]] var<in> instanceIdx : i32;
-[[builtin(vertex_index)]] var<in> vertexID : u32;
-[[builtin(position)]] var<out> out_pos : vec4<f32>;
-[[location(0)]] var<out> out_color : vec4<f32>;
+@builtin(instance_index) var<in> instanceIdx : i32,
+@builtin(vertex_index) var<in> vertexID : u32,
+@builtin(position) var<out> out_pos : vec4<f32>;
+@location(0) var<out> out_color : vec4<f32>;
 
 // formula adapted from: http://www.dfstudios.co.uk/articles/programming/image-programming-algorithms/image-processing-algorithms-part-5-contrast-adjustment/
 fn getContrastFactor(contrast : f32) -> f32{
@@ -69,8 +67,8 @@ fn readU32(offset : u32) -> u32{
 import {getColor};
 
 
-[[stage(vertex)]]
-fn main() -> void {
+@vertex
+fn sh_scalar() -> void {
 
 	var viewPos : vec4<f32> = uniforms.worldView * in_position;
 	out_pos = uniforms.proj * viewPos;
@@ -82,34 +80,32 @@ fn main() -> void {
 `;
 
 const fs = `
-[[location(0)]] var<in> fragColor : vec4<f32>;
-[[location(0)]] var<out> outColor : vec4<f32>;
+@location(0) var<in> fragColor : vec4<f32>;
+@location(0) var<out> outColor : vec4<f32>;
 
 [[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
-[[binding(11), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
+[[binding(1), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
 
-[[stage(fragment)]]
-fn main() -> void {
+@fragment
+fn sh_scalar() -> void {
 	outColor = fragColor;
 
 	return;
 }
 `;
 
-function createColorSampler(size, numElements, type){
+function createColorSampler(size, numElements, type) {
+  if (numElements === 1) {
+    let reader = "";
+    if (type === "uint8") {
+      reader = "readU8(vertexID)";
+    } else if (type === "uint16") {
+      reader = "readU16(vertexID * 2u)";
+    } else if (type === "uint32") {
+      reader = "readU32(vertexID * 4u)";
+    }
 
-	if(numElements === 1){
-
-		let reader = "";
-		if(type === "uint8"){
-			reader = "readU8(vertexID)";
-		}else if(type === "uint16"){
-			reader = "readU16(vertexID * 2u)";
-		}else if(type === "uint32"){
-			reader = "readU32(vertexID * 4u)";
-		}
-
-		let code = `
+    let code = `
 			fn getColor() -> vec4<f32>{
 
 				var shift : f32 = in_adjust.shift;
@@ -140,12 +136,11 @@ function createColorSampler(size, numElements, type){
 			}
 		`;
 
-		return code;
-	}else if(numElements > 1 && size <= 4){
-		throw "TODO";
-	}else if(numElements >= 1 && size > 4){
-
-		let code = `
+    return code;
+  } else if (numElements > 1 && size <= 4) {
+    throw "TODO";
+  } else if (numElements >= 1 && size > 4) {
+    let code = `
 			fn getColor() -> vec4<f32>{
 
 				var shift : f32 = in_adjust.shift;
@@ -188,72 +183,91 @@ function createColorSampler(size, numElements, type){
 			}
 		`;
 
-		return code;
-	}else{
-		throw `could not generate color sampler for ${{size, numElements, type}}`;
-	}
-
-
-
+    return code;
+  } else {
+    throw `could not generate color sampler for ${{ size, numElements, type }}`;
+  }
 }
-
-
 
 let cache = new Map();
 
-export function getPipeline(renderer, octree, attributeName){
-	let {device} = renderer;
+export function getPipeline(renderer, octree, attributeName) {
+  let { device } = renderer;
 
-	let cached = cache.get(octree);
-	let needsUpdate = cached ? cached.attributeName !== attributeName : true;
+  let cached = cache.get(octree);
+  let needsUpdate = cached ? cached.attributeName !== attributeName : true;
 
-	if(needsUpdate){
+  if (needsUpdate) {
+    let attribute = octree.loader.attributes.attributes.find(
+      (a) => a.name === attributeName
+    );
 
-		let attribute = octree.loader.attributes.attributes.find(a => a.name === attributeName);
+    let colorSampler = createColorSampler(
+      attribute.byteSize,
+      attribute.numElements,
+      attribute.type.name
+    );
+    let vsCode = vs.replace("import {getColor};", colorSampler);
+    const bindGroupLayout = device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: {
+            type: "uniform",
+          },
+        },
+        // Add other entries if needed
+      ],
+    });
+    const layout = device.createPipelineLayout({
+      bindGroupLayouts: [bindGroupLayout],
+    });
+    let pipeline = device.createRenderPipeline({
+      layout,
+      vertexStage: {
+        module: device.createShaderModule({ code: vsCode }),
+        entryPoint: "sh_scalar",
+      },
+      fragmentStage: {
+        module: device.createShaderModule({ code: fs }),
+        entryPoint: "sh_scalar",
+      },
+      primitiveTopology: "point-list",
+      depthStencilState: {
+        depthWriteEnabled: true,
+        depthCompare: "greater",
+        format: "depth32float",
+      },
+      vertexState: {
+        vertexBuffers: [
+          {
+            // point position
+            arrayStride: 3 * 4,
+            stepMode: "vertex",
+            attributes: [
+              {
+                shaderLocation: 0,
+                offset: 0,
+                format: "float32x3",
+              },
+            ],
+          },
+        ],
+      },
+      rasterizationState: {
+        cullMode: "none",
+      },
+      colorStates: [
+        {
+          format: "bgra8unorm",
+        },
+      ],
+    });
 
-		let colorSampler = createColorSampler(attribute.byteSize, attribute.numElements, attribute.type.name);
-		let vsCode = vs.replace("import {getColor};", colorSampler);
+    cached = { pipeline, attributeName };
+    cache.set(octree, cached);
+  }
 
-		let pipeline = device.createRenderPipeline({
-			vertexStage: {
-				module: device.createShaderModule({code: vsCode}),
-				entryPoint: "main",
-			},
-			fragmentStage: {
-				module: device.createShaderModule({code: fs}),
-				entryPoint: "main",
-			},
-			primitiveTopology: "point-list",
-			depthStencilState: {
-				depthWriteEnabled: true,
-				depthCompare: 'greater',
-				format: "depth32float",
-			},
-			vertexState: {
-				vertexBuffers: [
-					{ // point position
-						arrayStride: 3 * 4,
-						stepMode: "vertex",
-						attributes: [{ 
-							shaderLocation: 0,
-							offset: 0,
-							format: "float32x3",
-						}],
-					}
-				],
-			},
-			rasterizationState: {
-				cullMode: "none",
-			},
-			colorStates: [{
-				format: "bgra8unorm",
-			}],
-		});
-
-		cached = {pipeline, attributeName};
-		cache.set(octree, cached);
-	}
-
-	return cached.pipeline;
+  return cached.pipeline;
 }
-

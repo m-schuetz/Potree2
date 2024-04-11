@@ -1,33 +1,29 @@
+function toWgslType(attribute) {
+  let typename = attribute.type.name;
+  let numElements = attribute.numElements;
 
-
-function toWgslType(attribute){
-
-	let typename = attribute.type.name
-	let numElements = attribute.numElements;
-
-	if(typename === "uint16" && numElements === 1){
-		return "u32";
-	}else if(typename === "uint16" && numElements === 3){
-		return "vec4<f32>";
-	}else{
-		throw "unsupported type";
-	}
-
+  if (typename === "uint16" && numElements === 1) {
+    return "u32";
+  } else if (typename === "uint16" && numElements === 3) {
+    return "vec4<f32>";
+  } else {
+    throw "unsupported type";
+  }
 }
 
 const getColor_rgba = `
 fn getColor(vertex : VertexInput) -> vec4<f32> {
-	return vertex.attribute;
+	return vertex.attr;
 }
 `;
 
 const getColor_scalar = `
 fn getColor(vertex : VertexInput) -> vec4<f32> {
 
-	var w : f32 = (f32(vertex.attribute) - 0.0) / 255.0;
+	var w : f32 = (f32(vertex.attr) - 0.0) / 255.0;
 	w = clamp(1.0 - w, 0.0, 1.0);
 
-	// var w : f32 = f32(vertex.attribute % 10u) / 10.0;
+	// var w : f32 = f32(vertex.attr % 10u) / 10.0;
 	// w = clamp(1.0 - w, 0.0, 1.0);
 
 	var uv : vec2<f32> = vec2<f32>(w, 0.0);
@@ -37,49 +33,46 @@ fn getColor(vertex : VertexInput) -> vec4<f32> {
 }
 `;
 
+function createVS(args) {
+  let type = toWgslType(args.attribute);
+  let strAttribute = `@location(${1}) attr : ${type},\n`;
 
-function createVS(args){
+  let fnGetColor;
 
-	let type = toWgslType(args.attribute);
-	let strAttribute = `[[location(${1})]] attribute : ${type};\n`;
-	
-	let fnGetColor;
+  if (args.mapping === "rgba") {
+    fnGetColor = getColor_rgba;
+  } else if (args.mapping === "scalar") {
+    fnGetColor = getColor_scalar;
+  }
 
-	if(args.mapping === "rgba"){
-		fnGetColor = getColor_rgba;
-	}else if(args.mapping === "scalar"){
-		fnGetColor = getColor_scalar;
-	}
-
-
-let shader = `
-[[block]] struct Uniforms {
-	[[size(64)]] worldView : mat4x4<f32>;
-	[[size(64)]] proj : mat4x4<f32>;
-	[[size(4)]] screen_width : f32;
-	[[size(4)]] screen_height : f32;
-	[[size(4)]] hqs_flag : u32;
+  let shader = `
+struct Uniforms {
+	@size(64) worldView : mat4x4<f32>,
+	@size(64) proj : mat4x4<f32>,
+	@size(4) screen_width : f32,
+	@size(4) screen_height : f32,
+	@size(4) hqs_flag : u32,
 };
 
-[[binding(0), group(0)]] var<uniform> uniforms : Uniforms;
-[[binding(0), group(1)]] var mySampler: sampler;
-[[binding(1), group(1)]] var myTexture: texture_2d<f32>;
+@group(0) @binding(0) var<uniform> uniforms : Uniforms;
+@group(1) @binding(0) var mySampler: sampler;
+@group(1) @binding(1) var myTexture: texture_2d<f32>;
 
 struct VertexInput {
-	[[builtin(instance_index)]] instanceIdx : u32;
-	[[builtin(vertex_index)]] vertexID : u32;
-	[[location(0)]] position : vec4<f32>;
+	@builtin(instance_index) instanceIdx : u32,
+	@builtin(vertex_index) vertexID : u32,
+	@location(0) position : vec4<f32>,
 	${strAttribute}
 };
 
 struct VertexOutput {
-	[[builtin(position)]] position : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
+	@builtin(position) position : vec4<f32>,
+	@location(0) color : vec4<f32>,
 };
 
 ${fnGetColor}
 
-[[stage(vertex)]]
+@vertex
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var output : VertexOutput;
@@ -106,20 +99,20 @@ fn main(vertex : VertexInput) -> VertexOutput {
 }
 `;
 
-	return shader;
+  return shader;
 }
 
 const fsBase = `
 
 struct FragmentInput {
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
 struct FragmentOutput {
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
-[[stage(fragment)]]
+@fragment
 fn main(fragment : FragmentInput) -> FragmentOutput {
 	var output : FragmentOutput;
 	output.color = fragment.color;
@@ -128,15 +121,9 @@ fn main(fragment : FragmentInput) -> FragmentOutput {
 }
 `;
 
+export function generate(args = {}) {
+  let vs = createVS(args);
+  let fs = fsBase;
 
-export function generate(args = {}){
-
-	let vs = createVS(args);
-	let fs = fsBase;
-
-	return {vs, fs};
+  return { vs, fs };
 }
-
-
-
-
