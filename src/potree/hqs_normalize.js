@@ -1,5 +1,4 @@
-
-import {Timer} from "potree";
+import { Timer } from "potree";
 
 let vs = `
 	let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
@@ -20,28 +19,28 @@ let vs = `
 		vec2<f32>(0.0, 0.0)
 	);
 
-	[[block]] struct Uniforms {
-		uTest : u32;
-		x : f32;
-		y : f32;
-		width : f32;
-		height : f32;
-		near : f32;
+	struct Uniforms {
+		uTest : u32,
+		x : f32,
+		y : f32,
+		width : f32,
+		height : f32,
+		near : f32,
 	};
 
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	@group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
-		[[builtin(vertex_idx)]] index : u32;
+		@builtin(vertex_index) index : u32,
 	};
 
 	struct VertexOutput {
-		[[builtin(position)]] position : vec4<f32>;
-		[[location(0)]] uv : vec2<f32>;
+		@builtin(position) position : vec4<f32>,
+		@location(0) uv : vec2<f32>,
 	};
 
-	[[stage(vertex)]]
-	fn main(vertex : VertexInput) -> VertexOutput {
+	@vertex
+	fn hqs_normalize(vertex : VertexInput) -> VertexOutput {
 
 		var output : VertexOutput;
 
@@ -54,7 +53,7 @@ let vs = `
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		var vi : i32 = vertex.index;
+		var vi : u32 = vertex.index;
 		
 		if(vi == 0 || vi == 3 || vi == 5){
 			output.position.x = x;
@@ -74,11 +73,11 @@ let vs = `
 
 let fs = `
 
-	[[binding(1), set(0)]] var mySampler: sampler;
-	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
-	[[binding(3), set(0)]] var myDepth: texture_2d<f32>;
+	@group(0) @binding(1) var mySampler: sampler;
+	@group(0) @binding(2) var myTexture: texture_2d<f32>;
+	@group(0) @binding(3) var myDepth: texture_2d<f32>;
 
-	[[block]] struct Uniforms {
+	struct Uniforms {
 		uTest   : u32;
 		x       : f32;
 		y       : f32;
@@ -88,24 +87,24 @@ let fs = `
 		window  : i32;
 	};
 	
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	@group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
 	struct FragmentInput {
-		[[builtin(position)]] fragCoord : vec4<f32>;
-		[[location(0)]] uv: vec2<f32>;
+		@builtin(position) fragCoord : vec4<f32>,
+		@location(0) uv: vec2<f32>,
 	};
 
 	struct FragmentOutput{
-		[[builtin(frag_depth)]] depth : f32;
-		[[location(0)]] color : vec4<f32>;
+		@builtin(frag_depth) depth : f32,
+		@location(0) color : vec4<f32>,
 	};
 
 	fn toLinear(depth: f32, near: f32) -> f32{
 		return near / depth;
 	}
 
-	[[stage(fragment)]]
-	fn main(input : FragmentInput) -> FragmentOutput {
+	@fragment
+	fn hqs_normalize(input : FragmentInput) -> FragmentOutput {
 
 		var output : FragmentOutput;
 
@@ -135,95 +134,114 @@ let pipeline = null;
 // let uniformBindGroup = null;
 let uniformBuffer = null;
 
-function init(renderer){
+function init(renderer) {
+  if (pipeline !== null) {
+    return;
+  }
 
-	if(pipeline !== null){
-		return;
-	}
+  let { device, swapChainFormat } = renderer;
+  const bindGroupLayout = device.createBindGroupLayout({
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {
+          type: "uniform",
+        },
+      },
+      // Add other entries if needed
+    ],
+  });
+  const layout = device.createPipelineLayout({
+    bindGroupLayouts: [bindGroupLayout],
+  });
+  pipeline = device.createRenderPipeline({
+    layout,
+    vertex: {
+      module: device.createShaderModule({ code: vs }),
+      entryPoint: "hqs_normalize",
+    },
+    fragment: {
+      module: device.createShaderModule({ code: fs }),
+      entryPoint: "hqs_normalize",
+      targets: [{ format: "bgra8unorm" }],
+    },
+    primitive: {
+      topology: "triangle-list",
+      cullMode: "none",
+    },
+    depthStencil: {
+      depthWriteEnabled: true,
+      depthCompare: "always",
+      format: "depth32float",
+    },
+  });
 
-	let {device, swapChainFormat} = renderer;
-
-	pipeline = device.createRenderPipeline({
-		vertex: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
-		},
-		fragment: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-			targets: [{format: "bgra8unorm"}],
-		},
-		primitive: {
-			topology: 'triangle-list',
-			cullMode: 'none',
-		},
-		depthStencil: {
-				depthWriteEnabled: true,
-				depthCompare: "always",
-				format: "depth32float",
-		},
-	});
-
-	let uniformBufferSize = 256;
-	uniformBuffer = device.createBuffer({
-		size: uniformBufferSize,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	});
+  let uniformBufferSize = 256;
+  uniformBuffer = device.createBuffer({
+    size: uniformBufferSize,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
 }
 
-export function hqs_normalize(source, drawstate){
+export function hqs_normalize(source, drawstate) {
+  let { renderer, camera, pass } = drawstate;
+  let { passEncoder } = pass;
 
-	let {renderer, camera, pass} = drawstate;
-	let {passEncoder} = pass;
+  init(renderer);
 
-	init(renderer);
+  Timer.timestamp(passEncoder, "dilate-start");
 
-	Timer.timestamp(passEncoder,"dilate-start");
+  let sampler = renderer.device.createSampler({
+    magFilter: "linear",
+    minFilter: "linear",
+  });
 
-	let sampler = renderer.device.createSampler({
-		magFilter: "linear",
-		minFilter: "linear",
-	});
+  // TODO: possible issue: re-creating bind group every frame
+  // doing that because the render target attachments may change after resize
+  let uniformBindGroup = renderer.device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: uniformBuffer } },
+      { binding: 1, resource: sampler },
+      { binding: 2, resource: source.colorAttachments[0].texture.createView() },
+      {
+        binding: 3,
+        resource: source.depth.texture.createView({ aspect: "depth-only" }),
+      },
+    ],
+  });
 
-	// TODO: possible issue: re-creating bind group every frame
-	// doing that because the render target attachments may change after resize
-	let uniformBindGroup = renderer.device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
-		entries: [
-			{binding: 0, resource: {buffer: uniformBuffer}},
-			{binding: 1, resource: sampler},
-			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
-			{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
-		],
-	});
+  passEncoder.setPipeline(pipeline);
 
-	passEncoder.setPipeline(pipeline);
+  {
+    // update uniforms
+    let source = new ArrayBuffer(32);
+    let view = new DataView(source);
 
-	{ // update uniforms
-		let source = new ArrayBuffer(32);
-		let view = new DataView(source);
+    let size = Potree.settings.pointSize;
+    let window = Math.round((size - 1) / 2);
 
-		let size = Potree.settings.pointSize;
-		let window = Math.round((size - 1) / 2);
+    view.setUint32(0, 5, true);
+    view.setFloat32(4, 0, true);
+    view.setFloat32(8, 0, true);
+    view.setFloat32(12, 1, true);
+    view.setFloat32(16, 1, true);
+    view.setFloat32(20, camera.near, true);
+    view.setInt32(24, window, true);
 
-		view.setUint32(0, 5, true);
-		view.setFloat32(4, 0, true);
-		view.setFloat32(8, 0, true);
-		view.setFloat32(12, 1, true);
-		view.setFloat32(16, 1, true);
-		view.setFloat32(20, camera.near, true);
-		view.setInt32(24, window, true);
-		
-		renderer.device.queue.writeBuffer(
-			uniformBuffer, 0,
-			source, 0, source.byteLength
-		);
+    renderer.device.queue.writeBuffer(
+      uniformBuffer,
+      0,
+      source,
+      0,
+      source.byteLength
+    );
 
-		passEncoder.setBindGroup(0, uniformBindGroup);
-	}
+    passEncoder.setBindGroup(0, uniformBindGroup);
+  }
 
-	passEncoder.draw(6, 1, 0, 0);
+  passEncoder.draw(6, 1, 0, 0);
 
-	Timer.timestamp(passEncoder,"dilate-end");
-
+  Timer.timestamp(passEncoder, "dilate-end");
 }

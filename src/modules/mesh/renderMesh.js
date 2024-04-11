@@ -1,52 +1,48 @@
-
-import { render as renderNormal, NormalMaterial } from "./NormalMaterial.js";
-import { render as renderPhong, PhongMaterial } from "./PhongMaterial.js";
 import * as Timer from "../../renderer/Timer.js";
+import { NormalMaterial, render as renderNormal } from "./NormalMaterial.js";
+import { PhongMaterial, render as renderPhong } from "./PhongMaterial.js";
 
+export function renderMeshes(args = {}) {
+  let meshes = args.in;
+  let target = args.target;
+  let drawstate = args.drawstate;
+  let { renderer, camera } = drawstate;
+  let { device } = renderer;
 
-export function renderMeshes(args = {}){
+  let firstDraw = target.version < renderer.frameCounter;
+  let view = target.colorAttachments[0].texture.createView();
+  let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
+  let depthLoadValue = firstDraw ? 0 : "load";
+  let renderPassDescriptor = {
+    colorAttachments: [{ view, loadValue }],
+    depthStencilAttachment: {
+      view: target.depth.texture.createView(),
+      depthLoadValue: depthLoadValue,
+      depthStoreOp: "store",
+      stencilLoadValue: 0,
+      // stencilStoreOp: "store",
+    },
+    sampleCount: 1,
+  };
+  target.version = renderer.frameCounter;
 
-	let meshes = args.in;
-	let target = args.target;
-	let drawstate = args.drawstate;
-	let {renderer, camera} = drawstate;
-	let {device} = renderer;
+  const commandEncoder = renderer.device.createCommandEncoder();
+  const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+  const pass = { commandEncoder, passEncoder, renderPassDescriptor };
 
-	let firstDraw = target.version < renderer.frameCounter;
-	let view = target.colorAttachments[0].texture.createView();
-	let loadValue = firstDraw ? { r: 0.1, g: 0.2, b: 0.3, a: 1.0 } : "load";
-	let depthLoadValue = firstDraw ? 0 : "load";
-	let renderPassDescriptor = {
-		colorAttachments: [{view, loadValue}],
-		depthStencilAttachment: {
-			view: target.depth.texture.createView(),
-			depthLoadValue: depthLoadValue,
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
-	target.version = renderer.frameCounter;
+  Timer.timestamp(passEncoder, "meshes-start");
 
-	const commandEncoder = renderer.device.createCommandEncoder();
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-	const pass = {commandEncoder, passEncoder, renderPassDescriptor};
+  for (let mesh of meshes) {
+    if (mesh.material instanceof NormalMaterial) {
+      renderNormal(pass, mesh, drawstate);
+    } else if (mesh.material instanceof PhongMaterial) {
+      renderPhong(pass, mesh, drawstate);
+    }
+  }
 
-	Timer.timestamp(passEncoder, "meshes-start");
+  Timer.timestamp(passEncoder, "meshes-end");
 
-	for(let mesh of meshes){
-		if(mesh.material instanceof NormalMaterial){
-			renderNormal(pass, mesh, drawstate);
-		}else if(mesh.material instanceof PhongMaterial){
-			renderPhong(pass, mesh, drawstate);
-		}
-	}
-
-	Timer.timestamp(passEncoder, "meshes-end");
-
-	passEncoder.endPass();
-	let commandBuffer = commandEncoder.finish();
-	renderer.device.queue.submit([commandBuffer]);
-
+  passEncoder.end();
+  let commandBuffer = commandEncoder.finish();
+  renderer.device.queue.submit([commandBuffer]);
 }

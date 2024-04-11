@@ -1,17 +1,24 @@
-
-import {Vector3} from "potree";
-import {Scene, SceneNode, Camera, OrbitControls, Mesh, RenderTarget} from "potree";
-import {Renderer, Timer, EventDispatcher} from "potree";
-import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
-import {geometries} from "potree";
-import {Potree} from "potree";
-import {loadGLB} from "potree";
-import {MeasureTool} from "./interaction/measure.js";
-import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoader.js";
-import {readPixels, readDepth} from "./renderer/readPixels.js";
-import {renderPoints, renderMeshes, renderPointsCompute, renderPointsOctree} from "potree";
-import {dilate, EDL, hqs_normalize} from "potree";
+import {
+  Camera,
+  EDL,
+  EventDispatcher,
+  Mesh,
+  OrbitControls,
+  Potree,
+  RenderTarget,
+  Renderer,
+  Scene,
+  Timer,
+  dilate,
+  geometries,
+  hqs_normalize,
+  renderPoints,
+  renderPointsCompute,
+  renderPointsOctree,
+} from "potree";
 import Stats from "stats";
+import { MeasureTool } from "./interaction/measure.js";
+import * as ProgressiveLoader from "./modules/progressive_loader/ProgressiveLoader.js";
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -29,359 +36,362 @@ let dispatcher = new EventDispatcher();
 
 let scene = new Scene();
 
-function addEventListener(name, callback){
-	dispatcher.addEventListener(name, callback);
+function addEventListener(name, callback) {
+  dispatcher.addEventListener(name, callback);
 }
 
-function removeEventListener(name, callback){
-	dispatcher.removeEventListener(name, callback);
+function removeEventListener(name, callback) {
+  dispatcher.removeEventListener(name, callback);
 }
 
-function initScene(){
-	{
-		let mesh = new Mesh("cube", geometries.cube);
-		mesh.scale.set(0.5, 0.5, 0.5);
+function initScene() {
+  {
+    let mesh = new Mesh("cube", geometries.cube);
+    mesh.scale.set(0.5, 0.5, 0.5);
 
-		scene.root.children.push(mesh);
-	}
+    scene.root.children.push(mesh);
+  }
 }
 
-function update(){
-	let now = performance.now();
+function update() {
+  let now = performance.now();
 
-	if((now - lastFpsCount) >= 1000.0){
+  if (now - lastFpsCount >= 1000.0) {
+    fps = framesSinceLastCount;
 
-		fps = framesSinceLastCount;
+    lastFpsCount = now;
+    framesSinceLastCount = 0;
+    Potree.state.fps = Math.floor(fps).toLocaleString();
+  }
 
-		lastFpsCount = now;
-		framesSinceLastCount = 0;
-		Potree.state.fps = Math.floor(fps).toLocaleString();
-	}
+  frame++;
+  framesSinceLastCount++;
 
-	frame++;
-	framesSinceLastCount++;
+  controls.update();
+  camera.world.copy(controls.world);
 
-	controls.update();
-	camera.world.copy(controls.world);
+  camera.updateView();
+  Potree.state.camPos = camera.getWorldPosition().toString(1);
+  Potree.state.camTarget = controls.pivot.toString(1);
+  Potree.state.camDir = camera.getWorldDirection().toString(1);
 
-	camera.updateView();
-	Potree.state.camPos = camera.getWorldPosition().toString(1);
-	Potree.state.camTarget = controls.pivot.toString(1);
-	Potree.state.camDir = camera.getWorldDirection().toString(1);
+  let size = renderer.getSize();
+  camera.aspect = size.width / size.height;
+  camera.updateProj();
 
-	let size = renderer.getSize();
-	camera.aspect = size.width / size.height;
-	camera.updateProj();
-
-	dispatcher.dispatch("update");
-
+  dispatcher.dispatch("update");
 }
 
 let sumBuffer = null;
-function getSumBuffer(renderer){
+function getSumBuffer(renderer) {
+  if (sumBuffer) {
+    return sumBuffer;
+  }
 
-	if(sumBuffer){
-		return sumBuffer;
-	}
+  let size = [128, 128, 1];
+  let descriptor = {
+    size: size,
+    colorDescriptors: [
+      {
+        size: size,
+        format: "rgba32float",
+        usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.RENDER_ATTACHMENT,
+      },
+    ],
+    depthDescriptor: {
+      size: size,
+      format: "depth32float",
+      usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.RENDER_ATTACHMENT,
+    },
+  };
 
-	let size = [128, 128, 1];
-	let descriptor = {
-		size: size,
-		colorDescriptors: [{
-			size: size,
-			format: "rgba32float",
-			usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.RENDER_ATTACHMENT,
-		}],
-		depthDescriptor: {
-			size: size,
-			format: "depth32float",
-			usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.RENDER_ATTACHMENT,
-		}
-	};
+  sumBuffer = new RenderTarget(renderer, descriptor);
 
-	sumBuffer = new RenderTarget(renderer, descriptor);
-
-	return sumBuffer;
-
+  return sumBuffer;
 }
 
-function startPass(renderer, target){
-	let view = target.colorAttachments[0].texture.createView();
+function startPass(renderer, target) {
+  let view = target.colorAttachments[0].texture.createView();
 
-	let renderPassDescriptor = {
-		colorAttachments: [{
-			view, 
-			loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 }
-		}],
-		depthStencilAttachment: {
-			view: target.depth.texture.createView(),
-			depthLoadValue: 0,
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
+  let renderPassDescriptor = {
+    colorAttachments: [
+      {
+        view,
+        loadOp: "clear", // Corrected from loadValue to loadOp
+        storeOp: "store",
+        loadValue: { r: 0.1, g: 0.2, b: 0.3, a: 1.0 },
+      },
+    ],
+    depthStencilAttachment: {
+      view: target.depth.texture.createView(),
+      depthLoadValue: 0,
+      depthLoadOp: "clear",
+      depthClearValue: 1.0,
+      depthStoreOp: "store",
+      stencilLoadValue: 0,
+      //   stencilLoadOp: "clear",
+      //   stencilStoreOp: "store",
+    },
+    sampleCount: 1,
+  };
 
-	const commandEncoder = renderer.device.createCommandEncoder();
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+  const commandEncoder = renderer.device.createCommandEncoder();
+  const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-	return {commandEncoder, passEncoder};
+  return { commandEncoder, passEncoder };
 }
 
-function startSumPass(renderer, target){
-	let view = target.colorAttachments[0].texture.createView();
+function startSumPass(renderer, target) {
+  let view = target.colorAttachments[0].texture.createView();
 
-	let renderPassDescriptor = {
-		colorAttachments: [{
-			view, 
-			loadValue: { r: 0, g: 0, b: 0, a: 0.0 }
-		}],
-		depthStencilAttachment: {
-			view: target.depth.texture.createView(),
-			depthLoadValue: "load",
-			depthStoreOp: "store",
-			stencilLoadValue: 0,
-			stencilStoreOp: "store",
-		},
-		sampleCount: 1,
-	};
+  let renderPassDescriptor = {
+    colorAttachments: [
+      {
+        view,
+        loadValue: { r: 0, g: 0, b: 0, a: 0.0 },
+      },
+    ],
+    depthStencilAttachment: {
+      view: target.depth.texture.createView(),
+      depthLoadValue: "load",
+      depthStoreOp: "store",
+      stencilLoadValue: 0,
+      //   stencilStoreOp: "store",
+    },
+    sampleCount: 1,
+  };
 
-	const commandEncoder = renderer.device.createCommandEncoder();
-	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+  const commandEncoder = renderer.device.createCommandEncoder();
+  const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-	return {commandEncoder, passEncoder};
+  return { commandEncoder, passEncoder };
 }
 
-function endPass(pass){
+function endPass(pass) {
+  let { passEncoder, commandEncoder } = pass;
 
-	let {passEncoder, commandEncoder} = pass;
-
-	passEncoder.endPass();
-	let commandBuffer = commandEncoder.finish();
-	renderer.device.queue.submit([commandBuffer]);
+  passEncoder.end();
+  let commandBuffer = commandEncoder.finish();
+  renderer.device.queue.submit([commandBuffer]);
 }
 
-function render(){
-	Timer.setEnabled(true);
+function render() {
+  Timer.setEnabled(true);
 
-	let renderables = new Map();
+  let renderables = new Map();
 
-	let stack = [scene.root];
-	while(stack.length > 0){
-		let node = stack.pop();
+  let stack = [scene.root];
+  while (stack.length > 0) {
+    let node = stack.pop();
 
-		let nodeType = node.constructor.name;
-		if(!renderables.has(nodeType)){
-			renderables.set(nodeType, []);
-		}
-		renderables.get(nodeType).push(node);
+    let nodeType = node.constructor.name;
+    if (!renderables.has(nodeType)) {
+      renderables.set(nodeType, []);
+    }
+    renderables.get(nodeType).push(node);
 
-		for(let child of node.children){
+    for (let child of node.children) {
+      child.updateWorld();
+      child.world.multiplyMatrices(node.world, child.world);
 
-			child.updateWorld();
-			child.world.multiplyMatrices(node.world, child.world);
+      stack.push(child);
+    }
+  }
 
-			stack.push(child);
-		}
-	}
+  let points = renderables.get("Points") ?? [];
+  let octrees = renderables.get("PointCloudOctree") ?? [];
 
-	let points = renderables.get("Points") ?? [];
-	let octrees = renderables.get("PointCloudOctree") ?? [];
+  for (let octree of octrees) {
+    octree.showBoundingBox = Potree.settings.showBoundingBox;
+    octree.pointBudget = Potree.settings.pointBudget;
+    octree.pointSize = Potree.settings.pointSize;
 
-	for(let octree of octrees){
-		octree.showBoundingBox = Potree.settings.showBoundingBox;
-		octree.pointBudget = Potree.settings.pointBudget;
-		octree.pointSize = Potree.settings.pointSize;
+    if (Potree.settings.updateEnabled) {
+      octree.updateVisibility(camera);
+    }
 
-		if(Potree.settings.updateEnabled){
-			octree.updateVisibility(camera);
-		}
+    let numPoints = octree.visibleNodes
+      .map((n) => n.geometry.numElements)
+      .reduce((a, i) => a + i, 0);
+    let numNodes = octree.visibleNodes.length;
 
-		let numPoints = octree.visibleNodes.map(n => n.geometry.numElements).reduce( (a, i) => a + i, 0);
-		let numNodes = octree.visibleNodes.length;
+    Potree.state.numPoints = numPoints;
+    Potree.state.numNodes = numNodes;
+  }
 
-		Potree.state.numPoints = numPoints;
-		Potree.state.numNodes = numNodes;
-	}
+  Timer.frameStart(renderer);
 
-	Timer.frameStart(renderer);
-	
-	let hqsEnabled = Potree.settings.hqsEnabled;
-	let edlEnabled = Potree.settings.edlEnabled;
-	let dilateEnabled = Potree.settings.dilateEnabled;
-	// let dilateEnabled = Potree.settings.mode === "dilate";
+  let hqsEnabled = Potree.settings.hqsEnabled;
+  let edlEnabled = Potree.settings.edlEnabled;
+  let dilateEnabled = Potree.settings.dilateEnabled;
+  // let dilateEnabled = Potree.settings.mode === "dilate";
 
-	renderer.start();
+  renderer.start();
 
-	let screenbuffer = renderer.screenbuffer;
-	let fbo_source = null;
+  let screenbuffer = renderer.screenbuffer;
+  let fbo_source = null;
 
-	let fbo_0 = renderer.getFramebuffer("fbo intermediate 0");
-	let fbo_1 = renderer.getFramebuffer("fbo intermediate 1");
-	
-	fbo_0.setSize(...screenbuffer.size);
-	fbo_1.setSize(...screenbuffer.size);
-	
-	let forwardRendering = !(hqsEnabled || dilateEnabled || edlEnabled);
+  let fbo_0 = renderer.getFramebuffer("fbo intermediate 0");
+  let fbo_1 = renderer.getFramebuffer("fbo intermediate 1");
 
-	let fboTarget = (!dilateEnabled && !edlEnabled) ? screenbuffer : fbo_0;
-	
-	if(hqsEnabled){
+  fbo_0.setSize(...screenbuffer.size);
+  fbo_1.setSize(...screenbuffer.size);
 
-		Timer.timestampSep(renderer, "HQS(total)-start");
+  let forwardRendering = !(hqsEnabled || dilateEnabled || edlEnabled);
 
-		let fbo_hqs_depth = renderer.getFramebuffer("hqs depth");
-		let fbo_hqs_sum = getSumBuffer(renderer);
+  let fboTarget = !dilateEnabled && !edlEnabled ? screenbuffer : fbo_0;
 
-		fbo_hqs_sum.setSize(...screenbuffer.size);
-		fbo_hqs_depth.setSize(...screenbuffer.size);
+  if (hqsEnabled) {
+    Timer.timestampSep(renderer, "HQS(total)-start");
 
-		{ // depth pass
-			let pass = startPass(renderer, fbo_hqs_depth);
-			let drawstate = {renderer, camera, renderables, pass};
+    let fbo_hqs_depth = renderer.getFramebuffer("hqs depth");
+    let fbo_hqs_sum = getSumBuffer(renderer);
 
-			Timer.timestamp(pass.passEncoder, "HQS-depth-start");
-			renderPointsOctree(octrees, drawstate, ["hqs-depth"]);
-			Timer.timestamp(pass.passEncoder, "HQS-depth-end");
+    fbo_hqs_sum.setSize(...screenbuffer.size);
+    fbo_hqs_depth.setSize(...screenbuffer.size);
 
-			endPass(pass);
-		}
+    {
+      // depth pass
+      let pass = startPass(renderer, fbo_hqs_depth);
+      let drawstate = { renderer, camera, renderables, pass };
 
-		{ // attribute pass
-			fbo_hqs_sum.depth = fbo_hqs_depth.depth;
+      Timer.timestamp(pass.passEncoder, "HQS-depth-start");
+      renderPointsOctree(octrees, drawstate, ["hqs-depth"]);
+      Timer.timestamp(pass.passEncoder, "HQS-depth-end");
 
-			let pass = startSumPass(renderer, fbo_hqs_sum);
-			let drawstate = {renderer, camera, renderables, pass};
+      endPass(pass);
+    }
 
-			Timer.timestamp(pass.passEncoder, "HQS-attributes-start");
-			renderPointsOctree(octrees, drawstate, ["additive_blending"]);
-			Timer.timestamp(pass.passEncoder, "HQS-attributes-end");
+    {
+      // attribute pass
+      fbo_hqs_sum.depth = fbo_hqs_depth.depth;
 
-			endPass(pass);
-		}
+      let pass = startSumPass(renderer, fbo_hqs_sum);
+      let drawstate = { renderer, camera, renderables, pass };
 
-		{ // normalization pass
-			let pass = startPass(renderer, fboTarget);
-			let drawstate = {renderer, camera, renderables, pass};
+      Timer.timestamp(pass.passEncoder, "HQS-attributes-start");
+      renderPointsOctree(octrees, drawstate, ["additive_blending"]);
+      Timer.timestamp(pass.passEncoder, "HQS-attributes-end");
 
-			Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
-			hqs_normalize(fbo_hqs_sum, drawstate);
-			Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
+      endPass(pass);
+    }
 
-			endPass(pass);
-		}
+    {
+      // normalization pass
+      let pass = startPass(renderer, fboTarget);
+      let drawstate = { renderer, camera, renderables, pass };
 
-		fbo_source = fboTarget;
+      Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
+      hqs_normalize(fbo_hqs_sum, drawstate);
+      Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
 
-		Timer.timestampSep(renderer, "HQS(total)-end");
+      endPass(pass);
+    }
 
-	}else if(forwardRendering){
+    fbo_source = fboTarget;
 
-		// render directly to screenbuffer
-		let pass = startPass(renderer, screenbuffer);
-		let drawstate = {renderer, camera, renderables, pass};
+    Timer.timestampSep(renderer, "HQS(total)-end");
+  } else if (forwardRendering) {
+    // render directly to screenbuffer
+    let pass = startPass(renderer, screenbuffer);
+    let drawstate = { renderer, camera, renderables, pass };
 
-		if(!Potree.settings.useCompute){
-			renderPoints(points, drawstate);
-		}else{
-			renderPointsCompute(points, drawstate);
-		}
+    if (!Potree.settings.useCompute) {
+      renderPoints(points, drawstate);
+    } else {
+      renderPointsCompute(points, drawstate);
+    }
 
-		renderPointsOctree(octrees, drawstate);
+    renderPointsOctree(octrees, drawstate);
 
-		endPass(pass);
-	}else{
+    endPass(pass);
+  } else {
+    // render to intermediate framebuffer
+    let pass = startPass(renderer, fbo_0);
+    let drawstate = { renderer, camera, renderables, pass };
 
-		// render to intermediate framebuffer
-		let pass = startPass(renderer, fbo_0);
-		let drawstate = {renderer, camera, renderables, pass};
+    renderPointsOctree(octrees, drawstate);
 
-		renderPointsOctree(octrees, drawstate);
+    endPass(pass);
 
-		endPass(pass);
+    fbo_source = fbo_0;
+  }
 
-		fbo_source = fbo_0;
-	}
+  if (dilateEnabled) {
+    // dilate
+    let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
 
+    let pass = startPass(renderer, fboTarget);
+    let drawstate = { renderer, camera, renderables, pass };
 
-	if(dilateEnabled){ // dilate
-		let fboTarget = edlEnabled ? fbo_1 : screenbuffer;
+    dilate(fbo_source, drawstate);
 
-		let pass = startPass(renderer, fboTarget);
-		let drawstate = {renderer, camera, renderables, pass};
+    endPass(pass);
 
-		dilate(fbo_source, drawstate);
+    fbo_source = fboTarget;
+  }
 
-		endPass(pass);
+  if (edlEnabled) {
+    // EDL
+    let pass = startPass(renderer, screenbuffer);
+    let drawstate = { renderer, camera, renderables, pass };
 
-		fbo_source = fboTarget;
-	}
+    EDL(fbo_source, drawstate);
 
-	if(edlEnabled){ // EDL
-		let pass = startPass(renderer, screenbuffer);
-		let drawstate = {renderer, camera, renderables, pass};
+    endPass(pass);
+  }
 
-		EDL(fbo_source, drawstate);
+  // { // HANDLE PICKING
+  // 	for(let {x, y, callback} of Potree.pickQueue){
 
-		endPass(pass);
-	}
+  // 		let u = x / renderer.canvas.clientWidth;
+  // 		let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
+  // 		let pos = camera.getWorldPosition();
+  // 		let dir = camera.mouseToDirection(u, v);
+  // 		let near = camera.near;
 
+  // 		let window = 2;
+  // 		let wh = 1;
+  // 		readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
 
-	// { // HANDLE PICKING
-	// 	for(let {x, y, callback} of Potree.pickQueue){
+  // 			let depth = near / d;
 
-	// 		let u = x / renderer.canvas.clientWidth;
-	// 		let v = (renderer.canvas.clientHeight - y) / renderer.canvas.clientHeight;
-	// 		let pos = camera.getWorldPosition();
-	// 		let dir = camera.mouseToDirection(u, v);
-	// 		let near = camera.near;
+  // 			dir.multiplyScalar(depth);
+  // 			let position = pos.add(dir);
 
-	// 		let window = 2;
-	// 		let wh = 1;
-	// 		readDepth(renderer, renderer.depthTexture, x - wh, y - wh, window, window, ({d}) => {
-				
-	// 			let depth = near / d;
-				
-	// 			dir.multiplyScalar(depth);
-	// 			let position = pos.add(dir);
+  // 			// console.log(position);
 
-	// 			// console.log(position);
+  // 			callback({depth, position});
+  // 		});
+  // 	}
+  // 	Potree.pickQueue.length = 0;
+  // }
 
-	// 			callback({depth, position});
-	// 		});
-	// 	}
-	// 	Potree.pickQueue.length = 0;
-	// }
+  // { // MESHES
+  // 	let meshes = renderables.get("Mesh") ?? [];
 
-	// { // MESHES
-	// 	let meshes = renderables.get("Mesh") ?? [];
+  // 	renderMeshes({in: meshes      , target: screenbuffer  , drawstate});
+  // }
 
-	// 	renderMeshes({in: meshes      , target: screenbuffer  , drawstate});
-	// }
+  // renderer.renderDrawCommands(pass, camera);
+  renderer.finish();
 
-	// renderer.renderDrawCommands(pass, camera);
-	renderer.finish();
-
-	Timer.frameEnd(renderer);
+  Timer.frameEnd(renderer);
 }
 
+function loop() {
+  stats.begin();
 
-function loop(){
+  update();
+  render();
 
-	stats.begin();
+  stats.end();
 
-	update();
-	render();
-
-	stats.end();
-
-	requestAnimationFrame(loop);
+  requestAnimationFrame(loop);
 }
 
-function dbgControls(){
-
-	let str = `
+function dbgControls() {
+  let str = `
 	
 		controls.set({
 			yaw: ${controls.yaw},
@@ -392,49 +402,44 @@ function dbgControls(){
 
 	`;
 
-	console.log(str);
-
+  console.log(str);
 }
 window.dbgControls = dbgControls;
 
-export async function init(){
+export async function init() {
+  renderer = new Renderer();
 
-	renderer = new Renderer();
+  await renderer.init();
 
-	await renderer.init();
+  camera = new Camera();
+  controls = new OrbitControls(renderer.canvas);
+  measure = new MeasureTool(renderer);
 
-	camera = new Camera();
-	controls = new OrbitControls(renderer.canvas);
-	measure = new MeasureTool(renderer);
+  // make things available in dev tools for debugging
+  window.camera = camera;
+  window.controls = controls;
+  window.scene = scene;
+  window.renderer = renderer;
 
-	// make things available in dev tools for debugging
-	window.camera = camera;
-	window.controls = controls;
-	window.scene = scene;
-	window.renderer = renderer;
+  stats = new Stats();
+  stats.showPanel(0);
+  document.body.appendChild(stats.dom);
 
-	stats = new Stats();
-	stats.showPanel(0);
-	document.body.appendChild( stats.dom );
+  initScene();
 
-	initScene();
+  // progressive loader
+  let element = document.getElementById("canvas");
+  ProgressiveLoader.install(element, {
+    onSetup: (node) => {
+      scene.root.children.push(node);
+      console.log("setup done");
+    },
+    onProgress: (e) => {
+      console.log("progress", e);
+    },
+  });
 
-	// progressive loader
-	let element = document.getElementById("canvas");
-	ProgressiveLoader.install(element, {
-		onSetup: (node) => {
-			scene.root.children.push(node)
-			console.log("setup done");
-		},
-		onProgress: (e) => {
-			console.log("progress", e);
-		}
-	});
+  requestAnimationFrame(loop);
 
-	requestAnimationFrame(loop);
-
-	return {scene, controls, addEventListener, removeEventListener};
+  return { scene, controls, addEventListener, removeEventListener };
 }
-
-
-
