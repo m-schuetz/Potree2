@@ -482,7 +482,7 @@ export class Renderer {
   }
 
   finish() {
-    // pass.passEncoder.endPass();
+    // pass.passEncoder.end();
 
     // Timer.resolve(renderer, pass.commandEncoder);
 

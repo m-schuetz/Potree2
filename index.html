@@ -1,49 +1,55 @@
 <html>
-<head>
-<style>
+  <head>
+    <style>
+      td {
+        padding: 2px 10px 0px 0px;
+      }
 
-td{
-	padding: 2px 10px 0px 0px;
-}
+      #big_message {
+        position: absolute;
+        left: calc(50%);
+        bottom: 10px;
+        color: white;
+        text-shadow: 4px 4px 4px black;
+        font-size: 4em;
+        font-weight: bold;
+        font-family: "Consolas";
+        /* from https://stackoverflow.com/a/14249403/913630 */
+        text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black,
+          0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black,
+          0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black,
+          0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black,
+          0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+      }
 
-#big_message{
-	position: absolute; 
-	left: calc(50%); 
-	bottom: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 4em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
+      #msg_dbg {
+        position: absolute;
+        left: 10px;
+        bottom: 10px;
+        color: white;
+        text-shadow: 4px 4px 4px black;
+        font-size: 1em;
+        font-weight: bold;
+        font-family: "Consolas";
+        /* from https://stackoverflow.com/a/14249403/913630 */
+        text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black,
+          0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black,
+          0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black,
+          0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black,
+          0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+      }
+    </style>
+  </head>
+  <body style="padding: 0; margin: 0">
+    <canvas
+      id="canvas"
+      width="800"
+      height="600"
+      style="width: 100%; height: 100%; grid-column: 1; grid-row: 1"
+    >
+    </canvas>
 
-#msg_dbg{
-	position: absolute; 
-	left: 10px; 
-	bottom: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 1em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
-
-</style>
-</head>
-<body style="padding: 0; margin: 0">
-
-
-<canvas id="canvas" width="800" height="600" 
-	style="
-		width: 100%; height: 100%;
-		grid-column: 1; grid-row: 1">
-</canvas>
-
-<!-- <span style="position: absolute; left: 10px; top: 70px; 
+    <!-- <span style="position: absolute; left: 10px; top: 70px; 
 	background-color: white; opacity: 0.7; padding: 10px;">
 	
 	<span style="font-weight: bold">Rewriting Potree in WebGPU:</span>
@@ -57,141 +63,139 @@ td{
 
 </span> -->
 
-<span id="big_message"></span>
-<span id="msg_dbg"></span>
+    <span id="big_message"></span>
+    <span id="msg_dbg"></span>
 
-<script type="importmap">
-{
-	"imports": {
-		"potree": "./src/Potree.js",
-		"dat.gui": "./libs/dat.gui/dat.gui.module.js",
-		"glslang": "./libs/glslang/glslang.js",
-		"stats": "./libs/stats.js/stats.module.js"
-	}
-}
-</script>
+    <script type="importmap">
+      {
+        "imports": {
+          "potree": "./src/Potree.js",
+          "dat.gui": "./libs/dat.gui/dat.gui.module.js",
+          "glslang": "./libs/glslang/glslang.js",
+          "stats": "./libs/stats.js/stats.module.js"
+        }
+      }
+    </script>
 
-<!-- <script type="module" src="main.js"></script> -->
+    <!-- <script type="module" src="main.js"></script> -->
 
-<script type="module">
+    <script type="module">
+      import { Potree } from "potree";
+      import { Vector3, geometries, Points } from "potree";
 
-	import {Potree} from "potree";
-	import {Vector3, geometries, Points} from "potree";
+      window.Potree = Potree;
 
-	window.Potree = Potree;
+      let canvas = document.getElementById("canvas");
+      let potree = await Potree.init(canvas);
+      let { scene, controls } = potree;
 
-	let canvas = document.getElementById("canvas");
-	let potree = await Potree.init(canvas);
-	let {scene, controls} = potree;
+      import { initGUI } from "./src/modules/gui_dat/gui.js";
+      // import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
 
-	import {initGUI} from "./src/modules/gui_dat/gui.js";
-	// import {initGUI} from "./src/modules/gui_dat/gui_compute_demo.js";
+      initGUI(potree);
+      guiContent["point budget (M)"] = 4;
+      guiContent["point size"] = 3;
+      // guiContent["High-Quality"] = false;
+      // guiContent["Eye-Dome-Lighting"] = false;
+      // guiContent["dilate"] = false;
+      // guiContent["attribute"] = "intensity";
 
-	initGUI(potree);
-	guiContent["point budget (M)"] = 4;
-	guiContent["point size"] = 3;
-	// guiContent["High-Quality"] = false;
-	// guiContent["Eye-Dome-Lighting"] = false;
-	// guiContent["dilate"] = false;
-	// guiContent["attribute"] = "intensity";
+      // default, if not overriden later on
+      controls.set({
+        yaw: -0.2,
+        pitch: 0.8,
+        radius: 10,
+      });
 
-	// default, if not overriden later on
-	controls.set({
-		yaw: -0.2,
-		pitch: 0.8,
-		radius: 10,
-	});
+      // let url = "./resources/pointclouds/lion/metadata.json";
+      // Potree.load(url, {name: "Lion"}).then(pointcloud => {
+      // 	scene.root.children.push(pointcloud);
 
-	// let url = "./resources/pointclouds/lion/metadata.json";
-	// Potree.load(url, {name: "Lion"}).then(pointcloud => {
-	// 	scene.root.children.push(pointcloud);
+      // 	controls.set({
+      // 		position: [6.3, -4.0, 7.6],
+      // 		pivot: [0.6, -0.2, 4.5],
+      // 	});
+      // });
 
-	// 	controls.set({
-	// 		position: [6.3, -4.0, 7.6],
-	// 		pivot: [0.6, -0.2, 4.5],
-	// 	});
-	// });
+      // {
+      // 	let geometry = geometries.createPointsData(6000);
+      // 	// let geometry = geometries.createPointsSphere(50_000_000);
+      // 	let points = new Points("points", geometry.geometry);
 
-	// {
-	// 	let geometry = geometries.createPointsData(6000);
-	// 	// let geometry = geometries.createPointsSphere(50_000_000);
-	// 	let points = new Points("points", geometry.geometry);
+      // 	scene.root.children.push(points);
+      // 	camera.fov = 60;
+      // }
 
-	// 	scene.root.children.push(points);
-	// 	camera.fov = 60;
-	// }
+      // let url = "./resources/pointclouds/heidentor/metadata.json";
+      // Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
+      // 	scene.root.children.push(pointcloud);
 
-	// let url = "./resources/pointclouds/heidentor/metadata.json";
-	// Potree.load(url, {name: "Heidentor"}).then(pointcloud => {
-	// 	scene.root.children.push(pointcloud);
+      // 	controls.set({
+      // 		radius: 26.8, yaw: -4.2, pitch: 0.31,
+      // 		pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
+      // 	});
 
-	// 	controls.set({
-	// 		radius: 26.8, yaw: -4.2, pitch: 0.31,
-	// 		pivot: [-0.182792265881022, 1.9724050351418307, 5.693598313985278],
-	// 	});
+      // 	controls.set({
+      // 		position: [-16.8, 12.0, 10.8],
+      // 		pivot: [-1.7482506615697777, 4.1140199696259545, 7.4239815576054085],
+      // 	});
 
-	// 	controls.set({
-	// 		position: [-16.8, 12.0, 10.8],
-	// 		pivot: [-1.7482506615697777, 4.1140199696259545, 7.4239815576054085],
-	// 	});
+      // });
 
+      Potree.load("/pointclouds/CA13/metadata.json", { name: "CA13" }).then(
+        (pointcloud) => {
+          // Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
+          scene.root.children.push(pointcloud);
 
-	// });
+          // // close-up
+          // controls.set({
+          // 	position: [737368.845, 3890920.357, 923.367],
+          // 	pivot: [736054.256, 3890998.977, 236.332],
+          // });
 
-	Potree.load("./resources/pointclouds/ca13/metadata.json", {name: "CA13"}).then(pointcloud => {
-	// Potree.load("https://potree.org/pointclouds/CA13/metadata.json", {name: "CA13"}).then(pointcloud => {
-		scene.root.children.push(pointcloud);
+          // overview
+          controls.set({
+            position: [687630.7, 3888448.6, 38021.8],
+            pivot: [693764.5, 3916109.6, -46.0],
+          });
+        }
+      );
 
-		// // close-up
-		// controls.set({
-		// 	position: [737368.845, 3890920.357, 923.367],
-		// 	pivot: [736054.256, 3890998.977, 236.332],
-		// });
+      // Potree.load(url, {name: "Anita", target: scene.root});
 
-		// overview
-		controls.set({
-			position: [687630.7, 3888448.6, 38021.8],
-			pivot: [693764.5, 3916109.6, -46.0],
-		});
-	});
+      // TODO:
+      // Potree.load("./resources/models/anita_mui.glb").then(node => {
+      // Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+      // 	scene.root.children.push(node);
 
-	// Potree.load(url, {name: "Anita", target: scene.root});
+      // 	node.set({
+      // 		position: [5, 0, 3],
+      // 		scale: [2, 2, 2],
+      // 	});
+      // 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+      // });
 
-	// TODO: 
-	// Potree.load("./resources/models/anita_mui.glb").then(node => {
-	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
-	// 	scene.root.children.push(node);
+      // Potree.loadGLB("./resources/models/vcity_sitn.glb").then(node => {
+      // Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
+      // Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
+      // 	scene.root.children.push(node);
 
-	// 	node.set({
-	// 		position: [5, 0, 3],
-	// 		scale: [2, 2, 2],
-	// 	});
-	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-	// });
+      // 	node.set({
+      // 		position: [5, 0, 3],
+      // 		scale: [2, 2, 2],
+      // 	});
+      // 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+      // });
 
-	// Potree.loadGLB("./resources/models/vcity_sitn.glb").then(node => {
-	// Potree.loadGLB("./resources/models/anita_mui.glb").then(node => {
-	// Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
-	// 	scene.root.children.push(node);
+      // Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
+      // 	scene.root.children.push(node);
 
-	// 	node.set({
-	// 		position: [5, 0, 3],
-	// 		scale: [2, 2, 2],
-	// 	});
-	// 	node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-	// });
-
-	// Potree.loadGLB("./resources/models/lausanne_wood_thing.glb").then(node => {
-	// 	scene.root.children.push(node);
-
-	// 	node.set({
-	// 		position: [-10, 10, 10],
-	// 		scale: [2, 2, 2],
-	// 	});
-	// 	// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
-	// });
-
-</script>
-
-</body>
+      // 	node.set({
+      // 		position: [-10, 10, 10],
+      // 		scale: [2, 2, 2],
+      // 	});
+      // 	// node.rotation.rotate(0.9 * Math.PI / 2, new Vector3(0, 1, 0));
+      // });
+    </script>
+  </body>
 </html>

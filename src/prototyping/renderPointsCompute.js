@@ -29,7 +29,7 @@ layout(std430, set = 0, binding = 3) buffer SSBO_color {
 	uint colors[];
 };
 
-// [[binding(4), set(0)]] var myTexture: texture_2d<f32>;
+// @group(0) @binding(4) var myTexture: texture_2d<f32>;
 // layout(binding = 4) writeonly  uniform image2D destTex;
 // uniform layout(set = 0, binding = 4, rgba8ui) writeonly  uimage2D uFractalTexture;
 
@@ -37,7 +37,7 @@ shared uint sX;
 shared uint sY;
 shared uint sDiverging;
 
-void renderPointsCompute(){
+void main(){
 
 	uint index = gl_GlobalInvocationID.x;
 
@@ -123,20 +123,20 @@ void renderPointsCompute(){
 // };
 
 // struct U32s{
-// 	values : [[stride(4)]] array<u32>;
+// 	values :  array<u32>;
 // };
 
 // struct F32s{
-// 	values : [[stride(4)]] array<f32>;
+// 	values :  array<f32>;
 // };
 
 // @binding(0), group(0) var<uniform> uniforms : Uniforms,
-// @binding(1), group(0) var<storage> framebuffer : [[access(read_write)]] U32s,
-// @binding(2), group(0) var<storage> positions : [[access(read)]] F32s,
-// @binding(3), group(0) var<storage> colors : [[access(read)]] U32s,
+// @binding(1), group(0) var<storage> framebuffer : @access(read_write)  U32s,
+// @binding(2), group(0) var<storage> positions : @access(read)  F32s,
+// @binding(3), group(0) var<storage> colors : @access(read)  U32s,
 
 // [[stage(compute), workgroup_size(128)]]
-// fn renderPointsCompute([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
+// fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 
 // 	var index : u32 = GlobalInvocationID.x;
 
@@ -212,7 +212,7 @@ layout(std430, set = 0, binding = 4) buffer SSBO_color {
 
 
 
-void renderPointsCompute(){
+void main(){
 
 	uint index = gl_GlobalInvocationID.x;
 
@@ -292,7 +292,7 @@ layout(set = 0, binding = 1) uniform Uniforms {
 	uint value;
 } uniforms;
 
-void renderPointsCompute(){
+void main(){
 
 	uint index = gl_GlobalInvocationID.x;
 
@@ -312,7 +312,7 @@ let vs = `
 	@group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
-		@builtin(vertex_idx) index : u32,
+		@builtin(vertex_index) index : u32,
 	};
 
 	struct VertexOutput {
@@ -320,7 +320,7 @@ let vs = `
 	};
 
 	@vertex
-	fn renderPointsCompute(vertex : VertexInput) -> VertexOutput {
+	fn main(vertex : VertexInput) -> VertexOutput {
 
 		var output : VertexOutput;
 
@@ -329,7 +329,7 @@ let vs = `
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		var vi : i32 = vertex.index;
+		var vi : u32 = vertex.index;
 
 		if(vi == 0 || vi == 3 || vi == 5){
 			output.position.x = x;
@@ -353,28 +353,28 @@ let vs = `
 let fs = `
 
 	struct Colors {
-		values : [[stride(4)]] array<u32>;
+		values :  array<u32>;
 	};
 
 	struct Uniforms {
-		uTest : u32;
-		x : f32;
-		y : f32;
-		width : f32;
-		height : f32;
-		screenWidth : f32;
-		screenHeight : f32;
+		uTest : u32,
+		x : f32,
+		y : f32,
+		width : f32,
+		height : f32,
+		screenWidth : f32,
+		screenHeight : f32,
 	};
 	@group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
-	@binding(1), set(0) var<storage_buffer> ssbo_colors : [[access(read)]]Colors,
+	@group(0) @binding(1) var<storage_buffer> ssbo_colors : @access(read) Colors,
 
 	@location(0) var<out> outColor : vec4<f32>;
 
 	@builtin(frag_coord) var<in> fragCoord : vec4<f32>,
 
 	@fragment
-	fn renderPointsCompute() -> void {
+	fn main() -> void {
 
 		var frag_x : i32 = i32(fragCoord.x);
 		var frag_y : i32 = i32(uniforms.screenHeight) - i32(fragCoord.y);
@@ -426,10 +426,41 @@ function getDepthState(renderer) {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
+    const bindGroupLayout = device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "uniform" },
+        },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "storage", readWrite: true },
+        },
+        {
+          binding: 2,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "storage", readWrite: true },
+        },
+        {
+          binding: 3,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "storage", readWrite: true },
+        },
+        // Add more entries if your shader uses more resources
+      ],
+    });
+    const pipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [bindGroupLayout],
+    });
+
     let pipeline = device.createComputePipeline({
+      layout: pipelineLayout, // Include the pipeline layout here
+
       compute: {
         module: csModule,
-        entryPoint: "renderPointsCompute",
+        entryPoint: "main",
       },
     });
 
@@ -458,13 +489,42 @@ function getColorState(renderer) {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    let pipeline = device.createComputePipeline({
-      compute: {
-        module: csModule,
-        entryPoint: "renderPointsCompute",
-      },
+    const bindGroupLayout = device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "uniform" },
+        },
+        {
+          binding: 1,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "storage", readWrite: true },
+        },
+        {
+          binding: 2,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "storage", readWrite: true },
+        },
+        {
+          binding: 3,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "storage", readWrite: true },
+        },
+        // Add more entries if your shader uses more resources
+      ],
+    });
+    const pipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [bindGroupLayout],
     });
 
+    let pipeline = device.createComputePipeline({
+      layout: pipelineLayout,
+      compute: {
+        module: csModule,
+        entryPoint: "main",
+      },
+    });
     colorState = { pipeline, ssbo_colors, ssboSize, uniformBuffer };
   }
 
@@ -487,10 +547,24 @@ function getResetState(renderer) {
     };
     let csModule = device.createShaderModule(csDescriptor);
 
+    const bindGroupLayout = device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "uniform" },
+        },
+      ],
+    });
+    const pipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [bindGroupLayout],
+    });
+
     let pipeline = device.createComputePipeline({
+      layout: pipelineLayout,
       compute: {
         module: csModule,
-        entryPoint: "renderPointsCompute",
+        entryPoint: "main",
       },
     });
 
@@ -524,11 +598,11 @@ function getScreenPassState(renderer) {
       layout,
       vertex: {
         module: device.createShaderModule({ code: vs }),
-        entryPoint: "renderPointsCompute",
+        entryPoint: "main",
       },
       fragment: {
         module: device.createShaderModule({ code: fs }),
-        entryPoint: "renderPointsCompute",
+        entryPoint: "main",
         targets: [{ format: "bgra8unorm" }],
       },
       primitive: {
@@ -588,8 +662,8 @@ function reset(renderer, ssbo, numUints, value) {
   passEncoder.setBindGroup(0, bindGroup);
 
   let groups = numUints / 128;
-  passEncoder.dispatch(groups, 1, 1);
-  passEncoder.endPass();
+  passEncoder.dispatchWorkgroups(groups, 1, 1);
+  passEncoder.end();
 
   device.queue.submit([commandEncoder.finish()]);
 }
@@ -680,7 +754,7 @@ function depthPass(renderer, nodes, camera) {
 
   Timer.timestamp(passEncoder, "depth-end");
 
-  passEncoder.endPass();
+  passEncoder.end();
 
   Timer.resolve(renderer, commandEncoder);
 
@@ -770,7 +844,7 @@ function colorPass(renderer, nodes, camera) {
 
   Timer.timestamp(passEncoder, "color-end");
 
-  passEncoder.endPass();
+  passEncoder.end();
 
   Timer.resolve(renderer, commandEncoder);
 

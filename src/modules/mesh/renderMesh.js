@@ -42,7 +42,7 @@ export function renderMeshes(args = {}) {
 
   Timer.timestamp(passEncoder, "meshes-end");
 
-  passEncoder.endPass();
+  passEncoder.end();
   let commandBuffer = commandEncoder.finish();
   renderer.device.queue.submit([commandBuffer]);
 }

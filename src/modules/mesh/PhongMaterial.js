@@ -50,7 +50,7 @@ struct PointLight {
 };
 
 struct PointLights {
-	values : [[stride(16)]] array<PointLight>;
+	values : array<PointLight>;
 };
 
 struct Uniforms {
@@ -62,9 +62,9 @@ struct Uniforms {
 };
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
-@binding(1), set(0) var<storage_buffer> pointLights : [[access(read)]]PointLights,
-[[binding(2), set(0)]] var mySampler: sampler;
-[[binding(3), set(0)]] var myTexture: texture_2d<f32>;
+@group(0) @binding(1) var<storage_buffer> pointLights : @access(read) PointLights,
+@group(0) @binding(2) var mySampler: sampler;
+@group(0) @binding(3) var myTexture: texture_2d<f32>;
 
 struct FragmentInput {
 	@location(0) view_position   : vec4<f32>;
@@ -86,19 +86,19 @@ fn getColor(fragment : FragmentInput) -> vec4<f32>{
 
 		color = fragment.color;
 
-	}elseif(uniforms.color_source == 1u){
+	}else if(uniforms.color_source == 1u){
 		// NORMALS
 
 		// color = vec4<f32>(0.0, 0.0, 1.0, 1.0);
 		color = fragment.normal;
 		color.a = 1.0;
 
-	}elseif(uniforms.color_source == 2u){
+	}else if(uniforms.color_source == 2u){
 		// uniform color
 
 		color = uniforms.color;
 
-	}elseif(uniforms.color_source == 3u){
+	}else if(uniforms.color_source == 3u){
 		// TEXTURE
 
 		color = textureSample(myTexture, mySampler, fragment.uv);

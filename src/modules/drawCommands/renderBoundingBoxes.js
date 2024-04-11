@@ -4,10 +4,10 @@ import { cube_wireframe_thick } from "../geometries/cube.js";
 
 const vs = `
 struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>,
-	[[offset(64)]] proj : mat4x4<f32>,
-	[[offset(128)]] screen_width : f32,
-	[[offset(132)]] screen_height : f32,
+	@offset(0) worldView : mat4x4<f32>,
+	@offset(64) proj : mat4x4<f32>,
+	@offset(128) screen_width : f32,
+	@offset(132) screen_height : f32,
 };
 
 

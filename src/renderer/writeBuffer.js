@@ -1,7 +1,7 @@
 let cs = `
 
 struct U32s {
-	@offset(0) values : [[stride(4)]] array<u32>,
+	@offset(0) values :  array<u32>,
 };
 
 struct Uniforms {
@@ -9,7 +9,7 @@ struct Uniforms {
 	@offset(4) size : u32,
 };
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
-@binding(1), set(0) var<storage_buffer> ssbo_source : U32s,
+@group(0) @binding(1) var<storage_buffer> ssbo_source : U32s,
 @binding(2), set(0) var<storage_buffer> ssbo_target : U32s,
 
 @builtin(global_invocation_id) var<in> GlobalInvocationID : vec3<u32>,
@@ -24,7 +24,7 @@ fn readU8(offset : u32) -> u32{
 	return val_u8;
 }
 
-[[stage(compute)]]
+@compute
 fn main() -> void {
 
 	var index : u32 = GlobalInvocationID.x;
@@ -44,11 +44,11 @@ fn main() -> void {
 			newValue = newValue | (readU8(0u) <<  8u);
 			newValue = newValue | (readU8(1u) << 16u);
 			newValue = newValue | (readU8(2u) << 24u);
-		}elseif(shift == 2u){
+		}else if(shift == 2u){
 			newValue = old & 0xFFFFu;
 			newValue = newValue | (readU8(0u) << 16u);
 			newValue = newValue | (readU8(1u) << 24u);
-		}elseif(shift == 3u){
+		}else if(shift == 3u){
 			newValue = old & 0xFFFFFFu;
 			newValue = newValue | (readU8(0u) << 24u);
 		}else{
@@ -58,17 +58,17 @@ fn main() -> void {
 			newValue = newValue | (readU8(3u) << 24u);
 		}
 
-	}elseif(targetIndex == uniforms.size / 4u){
+	}else if(targetIndex == uniforms.size / 4u){
 		// last, if overflow
 
 		if(shift == 1u){
 			newValue = old & 0xFFFFFF00u;
 			newValue = newValue | (readU8(4u * sourceIndex + shift + 0u) << 0u);
-		}elseif(shift == 2u){
+		}else if(shift == 2u){
 			newValue = old >> 0xFFFF0000u;
 			newValue = newValue | (readU8(4u * sourceIndex + shift + 0u) << 0u);
 			newValue = newValue | (readU8(4u * sourceIndex + shift + 1u) << 8u);
-		}elseif(shift == 3u){
+		}else if(shift == 3u){
 			newValue = old >> 0xFF000000u;
 			newValue = newValue | (readU8(4u * sourceIndex + shift + 0u) <<  0u);
 			newValue = newValue | (readU8(4u * sourceIndex + shift + 1u) <<  8u);
@@ -179,6 +179,6 @@ export function writeBuffer(
   // passEncoder.dispatch(groups, 1, 1);
   passEncoder.dispatch(Math.ceil(size) / 4);
 
-  passEncoder.endPass();
+  passEncoder.end();
   device.queue.submit([commandEncoder.finish()]);
 }

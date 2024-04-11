@@ -12,15 +12,15 @@ struct Uniforms {
 };
 
 struct U32s {
-	values : [[stride(4)]] array<u32>;
+	values :  array<u32>;
 };
 
 @binding(0), group(0) var<uniform> uniforms : Uniforms,
 @binding(1), group(0) var source : texture_2d<f32>,
-@binding(2), group(0) var<storage> target : [[access(read_write)]] U32s,
+@binding(2), group(0) var<storage> target : @access(read_write)  U32s,
 
-[[stage(compute)]]
-fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
+@compute
+fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
 
 	if(GlobalInvocationID.x > uniforms.width){
 		return;
@@ -40,7 +40,7 @@ fn main([[builtin(global_invocation_id)]] GlobalInvocationID : vec3<u32>) {
 	if(uniforms.format == ${FORMAT_COLOR}u){
 		target.values[index] = u32(color.r * 256.0);
 		// TODO
-	}elseif(uniforms.format == ${FORMAT_DEPTH}u){
+	}else if(uniforms.format == ${FORMAT_DEPTH}u){
 		target.values[index] = bitcast<u32>(color.r);
 	}
 
@@ -116,7 +116,7 @@ function read(renderer, texture, x, y, width, height, callback, format) {
   passEncoder.setPipeline(pipeline);
   passEncoder.setBindGroup(0, bindGroup);
   passEncoder.dispatch(width, height);
-  passEncoder.endPass();
+  passEncoder.end();
 
   device.queue.submit([commandEncoder.finish()]);
 

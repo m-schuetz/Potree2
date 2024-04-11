@@ -1,7 +1,7 @@
 import * as Timer from "../renderer/Timer.js";
 
 let vs = `
-	let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+	const pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 		vec2<f32>(0.0, 0.0),
 		vec2<f32>(0.1, 0.0),
 		vec2<f32>(0.1, 0.1),
@@ -10,7 +10,7 @@ let vs = `
 		vec2<f32>(0.0, 0.1)
 	);
 
-	let uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+	const uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
 		vec2<f32>(0.0, 1.0),
 		vec2<f32>(1.0, 1.0),
 		vec2<f32>(1.0, 0.0),
@@ -20,23 +20,23 @@ let vs = `
 	);
 
 	struct Uniforms {
-		uTest : u32;
-		x : f32;
-		y : f32;
-		width : f32;
-		height : f32;
-		near : f32;
+		uTest : u32,
+		x : f32,
+		y : f32,
+		width : f32,
+		height : f32,
+		near : f32,
 	};
 
 	@group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
-		@builtin(vertex_idx) index : u32,
+		@builtin(vertex_index) index : u32,
 	};
 
 	struct VertexOutput {
 		@builtin(position) position : vec4<f32>,
-		@location(0) uv : vec2<f32>;
+		@location(0) uv : vec2<f32>,
 	};
 
 	@vertex
@@ -52,7 +52,7 @@ let vs = `
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		var vi : i32 = vertex.index;
+		var vi : u32 = vertex.index;
 		
 		if(vi == 0 || vi == 3 || vi == 5){
 			output.position.x = x;
@@ -72,18 +72,18 @@ let vs = `
 
 let fs = `
 
-	[[binding(1), set(0)]] var mySampler: sampler;
-	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
-	[[binding(3), set(0)]] var myDepth: texture_2d<f32>;
+	@group(0) @binding(1) var mySampler: sampler;
+	@group(0) @binding(2) var myTexture: texture_2d<f32>;
+	@group(0) @binding(3) var myDepth: texture_2d<f32>;
 
 	struct Uniforms {
-		uTest   : u32;
-		x       : f32;
-		y       : f32;
-		width   : f32;
-		height  : f32;
-		near    : f32;
-		window  : i32;
+		uTest   : u32,
+		x       : f32,
+		y       : f32,
+		width   : f32,
+		height  : f32,
+		near    : f32,
+		window  : i32,
 	};
 	
 	@group(0) @binding(0) var<uniform> uniforms : Uniforms;
@@ -145,9 +145,9 @@ let fs = `
 
 				if(manhattanDistance <= 0.0){
 					weight = 10.0;
-				}elseif(manhattanDistance <= 1.0){
+				}else if(manhattanDistance <= 1.0){
 					weight = 0.3;
-				}elseif(manhattanDistance <= 2.0){
+				}else if(manhattanDistance <= 2.0){
 					weight = 0.01;
 				}else{
 					weight = 0.001;

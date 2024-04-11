@@ -20,18 +20,18 @@ let vs = `
 	);
 
 	struct Uniforms {
-		uTest : u32;
-		x : f32;
-		y : f32;
-		width : f32;
-		height : f32;
-		near : f32;
+		uTest : u32,
+		x : f32,
+		y : f32,
+		width : f32,
+		height : f32,
+		near : f32,
 	};
 
 	@group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
-		@builtin(vertex_idx) index : u32,
+		@builtin(vertex_index) index : u32,
 	};
 
 	struct VertexOutput {
@@ -52,7 +52,7 @@ let vs = `
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		var vi : i32 = vertex.index;
+		var vi : u32 = vertex.index;
 		
 		if(vi == 0 || vi == 3 || vi == 5){
 			output.position.x = x;
@@ -72,9 +72,9 @@ let vs = `
 
 let fs = `
 
-	[[binding(1), set(0)]] var mySampler: sampler;
-	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
-	[[binding(3), set(0)]] var myDepth: texture_2d<f32>;
+	@group(0) @binding(1) var mySampler: sampler;
+	@group(0) @binding(2) var myTexture: texture_2d<f32>;
+	@group(0) @binding(3) var myDepth: texture_2d<f32>;
 
 	let sampleOffsets : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
 		vec2<f32>(-1.0,  0.0),

@@ -29,7 +29,7 @@ let vs = `
 	@group(0) @binding(0) var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
-		@builtin(vertex_idx) index : u32,
+		@builtin(vertex_index) index : u32,
 	};
 
 	struct VertexOutput {
@@ -50,7 +50,7 @@ let vs = `
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		var vi : i32 = vertex.index;
+		var vi : u32 = vertex.index;
 
 		if(vi == 0 || vi == 3 || vi == 5){
 			output.position.x = x;
@@ -70,8 +70,8 @@ let vs = `
 
 let fs = `
 
-	[[binding(1), set(0)]] var mySampler: sampler;
-	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
+	@group(0) @binding(1) var mySampler: sampler;
+	@group(0) @binding(2) var myTexture: texture_2d<f32>;
 
 	struct FragmentInput {
 		@location(0) uv: vec2<f32>;

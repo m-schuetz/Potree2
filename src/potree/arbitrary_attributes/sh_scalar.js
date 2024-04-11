@@ -15,15 +15,15 @@ struct ColorAdjustments {
 };
 
 struct U32s {
-	@offset(0) values : [[stride(4)]] array<u32>,
+	@offset(0) values :  array<u32>,
 };
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
-@binding(1), set(0) var<uniform> in_adjust : ColorAdjustments,
-@binding(3), set(0) var<storage_buffer> ssbo_attribute : [[access(read)]]U32s,
+@group(0) @binding(1) var<uniform> in_adjust : ColorAdjustments,
+@binding(3), set(0) var<storage_buffer> ssbo_attribute : @access(read) U32s,
 
-[[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
-[[binding(1), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
+@group(0) @binding(10) var<uniform_constant> mySampler: sampler;
+@group(0) @binding(1) var<uniform_constant> myTexture: texture_2d<f32>;
 
 @location(0) var<in> in_position : vec4<f32>;
 
@@ -83,8 +83,8 @@ const fs = `
 @location(0) var<in> fragColor : vec4<f32>;
 @location(0) var<out> outColor : vec4<f32>;
 
-[[binding(10), group(0)]] var<uniform_constant> mySampler: sampler;
-[[binding(1), group(0)]] var<uniform_constant> myTexture: texture_2d<f32>;
+@group(0) @binding(10) var<uniform_constant> mySampler: sampler;
+@group(0) @binding(1) var<uniform_constant> myTexture: texture_2d<f32>;
 
 @fragment
 fn sh_scalar() -> void {

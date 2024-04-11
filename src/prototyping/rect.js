@@ -18,7 +18,7 @@ let vs = `
 	);
 
 	@builtin(position) var<out> Position : vec4<f32>,
-	@builtin(vertex_idx) var<in> VertexIndex : i32,
+	@builtin(vertex_index) var<in> VertexIndex : i32,
 
 	struct Uniforms {
 		@offset(0) uTest : u32,
@@ -39,19 +39,19 @@ let vs = `
 		if(VertexIndex == 0){
 			Position.x = uniforms.x;
 			Position.y = uniforms.y;
-		}elseif(VertexIndex == 1){
+		}else if(VertexIndex == 1){
 			Position.x = uniforms.x + uniforms.width;
 			Position.y = uniforms.y;
-		}elseif(VertexIndex == 2){
+		}else if(VertexIndex == 2){
 			Position.x = uniforms.x + uniforms.width;
 			Position.y = uniforms.y + uniforms.height;
-		}elseif(VertexIndex == 3){
+		}else if(VertexIndex == 3){
 			Position.x = uniforms.x;
 			Position.y = uniforms.y;
-		}elseif(VertexIndex == 4){
+		}else if(VertexIndex == 4){
 			Position.x = uniforms.x + uniforms.width;;
 			Position.y = uniforms.y + uniforms.height;
-		}elseif(VertexIndex == 5){
+		}else if(VertexIndex == 5){
 			Position.x = uniforms.x;
 			Position.y = uniforms.y + uniforms.height;
 		}
