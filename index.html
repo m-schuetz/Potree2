@@ -80,7 +80,8 @@ canvas{
 		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
 		"tween":         "./libs/tween/tween.esm.js",
 		"range-select":  "./libs/range-select/RangeSelect.js",
-		"json5":         "./libs/json5/json5.js"
+		"json5":         "./libs/json5/json5.js",
+		"proj4":         "./libs/proj4js/proj4-src.js"
 	}
 }
 </script>
@@ -92,7 +93,7 @@ canvas{
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
 	import {initGUI} from "./src/modules/gui_dat/gui.js";
 	import "range-select";
-	import {proj4} from "./libs/proj4js/proj4-src.js";
+	import {proj4} from "proj4";
 	import {load as loadGLB} from "./src/misc/GLBLoader.js";
 	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 
@@ -136,13 +137,13 @@ canvas{
 	Potree.settings.edlEnabled      = true;
 	Potree.settings.dilateEnabled   = false;
 	Potree.settings.hqsEnabled      = true;
-	Potree.settings.pointBudget     = 8_000_000;
+	Potree.settings.pointBudget     = 2_000_000;
 	Potree.settings.attribute       = "rgba";
 	// Potree.settings.attribute = "intensity";
 	Potree.settings.splatType       = SplatType.QUADS;
 	Potree.settings.splatType       = SplatType.POINTS;
 	Potree.settings.pointSize       = 2;
-	Potree.settings.minNodeSize     = 200;
+	Potree.settings.minNodeSize     = 500;
 	Potree.settings.showBoundingBox = false;
 
 	Potree.events.onFrameStart(() => {
@@ -207,7 +208,7 @@ canvas{
 
 	{
 		
-		// if(false)
+		if(false)
 		PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
 			console.log(pointcloud);
 

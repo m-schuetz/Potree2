@@ -139,7 +139,7 @@ export class Renderer{
 	}
 
 	async init(){
-		this.adapter = await navigator.gpu.requestAdapter();
+		this.adapter = await navigator.gpu.requestAdapter({"powerPreference": "high-performance"});
 
 		this.timestamps.enabled = this.adapter.features.has("timestamp-query");
 
