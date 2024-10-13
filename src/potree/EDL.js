@@ -2,48 +2,49 @@
 import {Timer} from "potree";
 
 let vs = `
-	let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.1)
-	);
 
-	let uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 0.0)
-	);
-
-	[[block]] struct Uniforms {
-		uTest : u32;
-		x : f32;
-		y : f32;
-		width : f32;
-		height : f32;
-		near : f32;
+	struct Uniforms {
+		uTest : u32,
+		x : f32,
+		y : f32,
+		width : f32,
+		height : f32,
+		near : f32,
 	};
 
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 	struct VertexInput {
-		[[builtin(vertex_idx)]] index : u32;
+		@builtin(vertex_index) index : u32,
 	};
 
 	struct VertexOutput {
-		[[builtin(position)]] position : vec4<f32>;
-		[[location(0)]] uv : vec2<f32>;
+		@builtin(position) position : vec4<f32>,
+		@location(0) uv : vec2<f32>,
 	};
 
-	[[stage(vertex)]]
+	@vertex
 	fn main(vertex : VertexInput) -> VertexOutput {
 
 		var output : VertexOutput;
+
+		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+			vec2<f32>(0.0, 0.0),
+			vec2<f32>(0.1, 0.0),
+			vec2<f32>(0.1, 0.1),
+			vec2<f32>(0.0, 0.0),
+			vec2<f32>(0.1, 0.1),
+			vec2<f32>(0.0, 0.1)
+		);
+
+		var uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+			vec2<f32>(0.0, 1.0),
+			vec2<f32>(1.0, 1.0),
+			vec2<f32>(1.0, 0.0),
+			vec2<f32>(0.0, 1.0),
+			vec2<f32>(1.0, 0.0),
+			vec2<f32>(0.0, 0.0)
+		);
 
 		output.position = vec4<f32>(pos[vertex.index], 0.999, 1.0);
 		output.uv = uv[vertex.index];
@@ -53,15 +54,15 @@ let vs = `
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		var vi : i32 = vertex.index;
+		var vi : u32 = vertex.index;
 		
-		if(vi == 0 || vi == 3 || vi == 5){
+		if(vi == 0u || vi == 3u || vi == 5u){
 			output.position.x = x;
 		}else{
 			output.position.x = x + width;
 		}
 
-		if(vi == 0 || vi == 1 || vi == 3){
+		if(vi == 0u || vi == 1u || vi == 3u){
 			output.position.y = y;
 		}else{
 			output.position.y = y + height;
@@ -73,37 +74,30 @@ let vs = `
 
 let fs = `
 
-	[[binding(1), set(0)]] var mySampler: sampler;
-	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
-	[[binding(3), set(0)]] var myDepth: texture_2d<f32>;
+	@binding(1) @group(0) var mySampler   : sampler;
+	@binding(2) @group(0) var myTexture   : texture_2d<f32>;
+	@binding(3) @group(0) var myDepth     : texture_depth_2d;
 
-	let sampleOffsets : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
-		vec2<f32>(-1.0,  0.0),
-		vec2<f32>( 1.0,  0.0),
-		vec2<f32>( 0.0, -1.0),
-		vec2<f32>( 0.0,  1.0)
-	);
-
-	[[block]] struct Uniforms {
-		uTest   : u32;
-		x       : f32;
-		y       : f32;
-		width   : f32;
-		height  : f32;
-		near    : f32;
-		window  : i32;
+	struct Uniforms {
+		uTest   : u32,
+		x       : f32,
+		y       : f32,
+		width   : f32,
+		height  : f32,
+		near    : f32,
+		window  : i32,
 	};
 	
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 	struct FragmentInput {
-		[[builtin(position)]] fragCoord : vec4<f32>;
-		[[location(0)]] uv: vec2<f32>;
+		@builtin(position) fragCoord : vec4<f32>,
+		@location(0) uv: vec2<f32>,
 	};
 
 	struct FragmentOutput{
-		[[builtin(frag_depth)]] depth : f32;
-		[[location(0)]] color : vec4<f32>;
+		@builtin(frag_depth) depth : f32,
+		@location(0) color : vec4<f32>,
 	};
 
 	var<private> fragXY : vec2<f32>;
@@ -117,7 +111,8 @@ let fs = `
 		var fCoord : vec2<f32> = vec2<f32>(fragXY.x + offsetX, fragXY.y + offsetY);
 		var iCoord : vec2<i32> = vec2<i32>(fCoord);
 
-		var d : f32 = textureLoad(myDepth, iCoord, 0).x;
+		var d : f32 = textureLoad(myDepth, iCoord, 0);
+		// var d : f32 = textureLoad(myDepth, iCoord, 0).x;
 		var dl : f32 = toLinear(d, uniforms.near);
 
 		// Artificially reduce depth precision to visualize artifacts
@@ -132,8 +127,26 @@ let fs = `
 		var depth : f32 = readLinearDepth(0.0, 0.0, uniforms.near);
 
 		var sum : f32 = 0.0;
+
+		// var sampleOffsets : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
+		// 	vec2<f32>(-1.0,  0.0),
+		// 	vec2<f32>( 1.0,  0.0),
+		// 	vec2<f32>( 0.0, -1.0),
+		// 	vec2<f32>( 0.0,  1.0)
+		// );
+
+		var sampleOffsets : array<vec2<f32>, 8> = array<vec2<f32>, 8>(
+			vec2<f32>(0.0, 1.0),
+			vec2<f32>(0.7071067811865475, 0.70710678118654769),
+			vec2<f32>(1.0, 0.0),
+			vec2<f32>(0.7071067811865476, -0.7071067811865475),
+			vec2<f32>(0.0, -1.0),
+			vec2<f32>(-0.7071067811865475, -0.7071067811865477),
+			vec2<f32>(-1.0, 0.0),
+			vec2<f32>(-0.7071067811865477, 0.7071067811865474),
+		);
 		
-		for(var i : i32 = 0; i < 4; i = i + 1){
+		for(var i : i32 = 0; i < 8; i = i + 1){
 			var offset : vec2<f32> = sampleOffsets[i];
 			var neighbourDepth : f32 = readLinearDepth(offset.x, offset.y, uniforms.near);
 
@@ -141,31 +154,32 @@ let fs = `
 			// sum = sum + min(log2(depth) - log2(neighbourDepth), 0.0);
 		}
 		
-		var response : f32 = sum / 4.0;
+		var response : f32 = sum / 8.0;
 
 		return response;
 	}
 
-	[[stage(fragment)]]
+	@fragment
 	fn main(input : FragmentInput) -> FragmentOutput {
 
-		fragXY = input.fragCoord.xy;
+		_ = mySampler;
 
+		fragXY = input.fragCoord.xy;
 		var coords : vec2<i32> = vec2<i32>(input.fragCoord.xy);
 
-		var c : vec4<f32> = textureLoad(myTexture, coords, 0);
-		var response : f32 = getEdlResponse(input);
-		var shade : f32 = exp(-response * 100.0);
-
 		var output : FragmentOutput;
-		output.color = vec4<f32>(
-			c.r * shade, 
-			c.g * shade, 
-			c.b * shade, 
-			1.0);
+		output.color = textureLoad(myTexture, coords, 0);
+		output.depth = textureLoad(myDepth, coords, 0);
 
-		var d : f32 = textureLoad(myDepth, coords, 0).x;
-		output.depth = d;
+
+		var response = getEdlResponse(input);
+		// var edlStrength = 0.4f;
+		var edlStrength = 0.2f;
+		var w = exp(-response * 300.0f * edlStrength);
+		output.color.r *= w;
+		output.color.g *= w;
+		output.color.b *= w;
+
 
 		return output;
 	}
@@ -184,12 +198,13 @@ function init(renderer){
 	let {device, swapChainFormat} = renderer;
 
 	pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
-			module: device.createShaderModule({code: vs}),
+			module: device.createShaderModule({code: vs, label: "vs_edl"}),
 			entryPoint: "main",
 		},
 		fragment: {
-			module: device.createShaderModule({code: fs}),
+			module: device.createShaderModule({code: fs, label: "fs_edl"}),
 			entryPoint: "main",
 			targets: [{format: "bgra8unorm"}],
 		},
@@ -199,7 +214,7 @@ function init(renderer){
 		},
 		depthStencil: {
 				depthWriteEnabled: true,
-				depthCompare: "greater",
+				depthCompare: "always",
 				format: "depth32float",
 		},
 	});
@@ -211,6 +226,40 @@ function init(renderer){
 	});
 }
 
+let uniformBindGroupCache = new Map();
+function getUniformBindGroup(renderer, source){
+
+	let data = uniformBindGroupCache.get(source);
+
+	if(data == null || data.version < source.version){
+
+		let sampler = renderer.device.createSampler({
+			magFilter: "linear",
+			minFilter: "linear",
+		});
+		
+		let uniformBindGroup = renderer.device.createBindGroup({
+			layout: pipeline.getBindGroupLayout(0),
+			entries: [
+				{binding: 0, resource: {buffer: uniformBuffer}},
+				{binding: 1, resource: sampler},
+				{binding: 2, resource: source.colorAttachments[0].texture.createView()},
+				{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
+			],
+		});
+
+		let data = {
+			version: source.version, 
+			uniformBindGroup
+		};
+
+		uniformBindGroupCache.set(source, data);
+
+	}
+
+	return uniformBindGroupCache.get(source).uniformBindGroup;
+}
+
 export function EDL(source, drawstate){
 
 	let {renderer, camera, pass} = drawstate;
@@ -220,22 +269,7 @@ export function EDL(source, drawstate){
 
 	Timer.timestamp(passEncoder,"EDL-start");
 
-	let sampler = renderer.device.createSampler({
-		magFilter: "linear",
-		minFilter: "linear",
-	});
-
-	// TODO: possible issue: re-creating bind group every frame
-	// doing that because the render target attachments may change after resize
-	let uniformBindGroup = renderer.device.createBindGroup({
-		layout: pipeline.getBindGroupLayout(0),
-		entries: [
-			{binding: 0, resource: {buffer: uniformBuffer}},
-			{binding: 1, resource: sampler},
-			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
-			{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
-		],
-	});
+	let uniformBindGroup = getUniformBindGroup(renderer, source);
 
 	passEncoder.setPipeline(pipeline);
 

@@ -1,15 +1,15 @@
 
 const PointAttributeTypes = {
-	DATA_TYPE_DOUBLE: {ordinal: 0, name: "double", size: 8},
-	DATA_TYPE_FLOAT:  {ordinal: 1, name: "float",  size: 4},
-	DATA_TYPE_INT8:   {ordinal: 2, name: "int8",   size: 1},
-	DATA_TYPE_UINT8:  {ordinal: 3, name: "uint8",  size: 1},
-	DATA_TYPE_INT16:  {ordinal: 4, name: "int16",  size: 2},
-	DATA_TYPE_UINT16: {ordinal: 5, name: "uint16", size: 2},
-	DATA_TYPE_INT32:  {ordinal: 6, name: "int32",  size: 4},
-	DATA_TYPE_UINT32: {ordinal: 7, name: "uint32", size: 4},
-	DATA_TYPE_INT64:  {ordinal: 8, name: "int64",  size: 8},
-	DATA_TYPE_UINT64: {ordinal: 9, name: "uint64", size: 8}
+	DOUBLE: {ordinal: 0, name: "double", size: 8},
+	FLOAT:  {ordinal: 1, name: "float",  size: 4},
+	INT8:   {ordinal: 2, name: "int8",   size: 1},
+	UINT8:  {ordinal: 3, name: "uint8",  size: 1},
+	INT16:  {ordinal: 4, name: "int16",  size: 2},
+	UINT16: {ordinal: 5, name: "uint16", size: 2},
+	INT32:  {ordinal: 6, name: "int32",  size: 4},
+	UINT32: {ordinal: 7, name: "uint32", size: 4},
+	INT64:  {ordinal: 8, name: "int64",  size: 8},
+	UINT64: {ordinal: 9, name: "uint64", size: 8}
 };
 
 export {PointAttributeTypes};
@@ -20,8 +20,11 @@ export class PointAttribute{
 		this.name = name;
 		this.type = type;
 		this.numElements = numElements;
+		this.byteOffset = null;
 		this.byteSize = this.numElements * this.type.size;
 		this.description = "";
+		this.scale = [1.0, 1.0, 1.0];
+		this.offset = [0.0, 0.0, 0.0];
 		this.range = [Infinity, -Infinity];
 	}
 
@@ -37,20 +40,34 @@ export class PointAttributes{
 
 		if (pointAttributes != null) {
 			for (let i = 0; i < pointAttributes.length; i++) {
-				let pointAttributeName = pointAttributes[i];
-				let pointAttribute = PointAttribute[pointAttributeName];
+				let pointAttribute = pointAttributes[i];
 				this.attributes.push(pointAttribute);
+				pointAttribute.byteOffset = this.byteSize;
 				this.byteSize += pointAttribute.byteSize;
 				this.size++;
 			}
 		}
 	}
 
-
 	add(pointAttribute){
 		this.attributes.push(pointAttribute);
+		pointAttribute.byteOffset = this.byteSize;
 		this.byteSize += pointAttribute.byteSize;
 		this.size++;
-	};
+	}
+
+	indexOf(name){
+		for(let i = 0; i < this.attributes.length; i++){
+			if(this.attributes[i].name === name){
+				return i;
+			}
+		}
+
+		return -1;
+	}
+
+	get(name){
+		return this.attributes.find(a => a.name === name);
+	}
 
 }

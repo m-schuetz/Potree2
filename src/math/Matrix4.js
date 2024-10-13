@@ -141,6 +141,17 @@ export class Matrix4{
 		tmpTranslate.elements[14] = z;
 
 		this.multiplyMatrices(tmpTranslate, this);
+
+		return this;
+	}
+
+	makeTranslate(x, y, z){
+		this.set(
+			1, 0, 0, x,
+			0, 1, 0, y, 
+			0, 0, 1, z, 
+			0, 0, 0, 1,
+		);
 	}
 
 	rotate(angle, axis){
@@ -153,15 +164,27 @@ export class Matrix4{
 		const tx = t * x, ty = t * y;
 
 		tmpMatrix.set(
-			tx * x + c, tx * y - s * z, tx * z + s * y, 0,
-			tx * y + s * z, ty * y + c, ty * z - s * x, 0,
-			tx * z - s * y, ty * z + s * x, t * z * z + c, 0,
-			0, 0, 0, 1
+			tx * x + c      ,   tx * y - s * z  ,  tx * z + s * y  ,  0,
+			tx * y + s * z  ,   ty * y + c      ,  ty * z - s * x  ,  0,
+			tx * z - s * y  ,   ty * z + s * x  ,  t * z * z + c   ,  0,
+			0               ,   0               ,  0               ,  1,
 		);
 
 		this.multiplyMatrices(tmpMatrix, this);
 
 		return this;
+	}
+
+	getMaxScaleOnAxis() {
+
+		const te = this.elements;
+
+		const scaleXSq = te[ 0 ] * te[ 0 ] + te[ 1 ] * te[ 1 ] + te[ 2 ] * te[ 2 ];
+		const scaleYSq = te[ 4 ] * te[ 4 ] + te[ 5 ] * te[ 5 ] + te[ 6 ] * te[ 6 ];
+		const scaleZSq = te[ 8 ] * te[ 8 ] + te[ 9 ] * te[ 9 ] + te[ 10 ] * te[ 10 ];
+
+		return Math.sqrt( Math.max( scaleXSq, scaleYSq, scaleZSq ) );
+
 	}
 
 	invert() {

@@ -15,7 +15,7 @@ export class Box3{
 
 	clone(){
 		return new Box3(
-			this.min.clone(), 
+			this.min.clone(),
 			this.max.clone()
 		);
 	}
@@ -29,8 +29,35 @@ export class Box3{
 		return this.max.clone().sub(this.min);
 	}
 
+	containsPoint(point){
+		if(point.x < this.min.x || point.x > this.max.x) return false;
+		if(point.y < this.min.y || point.y > this.max.y) return false;
+		if(point.z < this.min.z || point.z > this.max.z) return false;
+
+		return true;
+	}
+
 	center(){
 		return this.min.clone().add(this.max).multiplyScalar(0.5);
+	}
+
+	cube(){
+		let cubeSize = Math.max(...this.size().toArray());
+		let min = this.min.clone();
+		let max = this.min.clone().addScalar(cubeSize);
+		let cube = new Box3(min, max);
+
+		return cube;
+	}
+
+	expandByXYZ(x, y, z){
+		this.min.x = Math.min(this.min.x, x);
+		this.min.y = Math.min(this.min.y, y);
+		this.min.z = Math.min(this.min.z, z);
+
+		this.max.x = Math.max(this.max.x, x);
+		this.max.y = Math.max(this.max.y, y);
+		this.max.z = Math.max(this.max.z, z);
 	}
 
 	expandByPoint(point){

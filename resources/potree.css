@@ -1,0 +1,58 @@
+
+canvas{
+	image-rendering: pixelated;
+	display: flex;
+	position: absolute;
+	height: 100%;
+}
+
+td{
+	padding: 2px 10px 0px 0px;
+}
+
+#big_message{
+	position: absolute; 
+	left: calc(50%); 
+	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 4em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+#msg_dbg{
+	position: absolute; 
+	left: 10px; 
+	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 1em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+#msg_resources{
+	position: absolute; 
+	left: 1em; 
+	top: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 1em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+.textButton {
+    background: none;
+    border:     none;
+    margin:     0;
+    padding:    0;
+    cursor:     pointer;
+}

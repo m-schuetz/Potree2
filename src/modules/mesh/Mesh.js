@@ -1,6 +1,7 @@
 
 import {SceneNode} from "../../scene/SceneNode.js";
 import {NormalMaterial} from "./NormalMaterial.js";
+import {renderMeshes} from "potree";
 
 export class Mesh extends SceneNode{
 
@@ -13,6 +14,10 @@ export class Mesh extends SceneNode{
 		if(geometry.boundingBox){
 			this.boundingBox.copy(geometry.boundingBox);
 		}
+	}
+
+	render(drawstate){
+		renderMeshes([this], drawstate);
 	}
 
 }

@@ -18,21 +18,21 @@ let vs = `
 		vec2<f32>(0.0, 1.0)
 	);
 
-	[[builtin(position)]] var<out> Position : vec4<f32>;
-	[[builtin(vertex_idx)]] var<in> VertexIndex : i32;
+	@builtin(position) var<out> Position : vec4<f32>;
+	@builtin(vertex_idx) var<in> VertexIndex : i32;
 
-	[[block]] struct Uniforms {
+	struct Uniforms {
 		[[offset(0)]] uTest : u32;
 		[[offset(4)]] x : f32;
 		[[offset(8)]] y : f32;
 		[[offset(12)]] width : f32;
 		[[offset(16)]] height : f32;
 	};
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	@binding(0) var<uniform> uniforms : Uniforms;
 
-	[[location(0)]] var<out> fragUV : vec2<f32>;
+	@location(0) var<out> fragUV : vec2<f32>;
 
-	[[stage(vertex)]]
+	@vertex
 	fn main() -> void {
 		Position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
 		fragUV = uv[VertexIndex];
@@ -40,19 +40,19 @@ let vs = `
 		if(VertexIndex == 0){
 			Position.x = uniforms.x;
 			Position.y = uniforms.y;
-		}elseif(VertexIndex == 1){
+		}else if(VertexIndex == 1){
 			Position.x = uniforms.x + uniforms.width;
 			Position.y = uniforms.y;
-		}elseif(VertexIndex == 2){
+		}else if(VertexIndex == 2){
 			Position.x = uniforms.x + uniforms.width;
 			Position.y = uniforms.y + uniforms.height;
-		}elseif(VertexIndex == 3){
+		}else if(VertexIndex == 3){
 			Position.x = uniforms.x;
 			Position.y = uniforms.y;
-		}elseif(VertexIndex == 4){
+		}else if(VertexIndex == 4){
 			Position.x = uniforms.x + uniforms.width;;
 			Position.y = uniforms.y + uniforms.height;
-		}elseif(VertexIndex == 5){
+		}else if(VertexIndex == 5){
 			Position.x = uniforms.x;
 			Position.y = uniforms.y + uniforms.height;
 		}
@@ -66,11 +66,11 @@ let vs = `
 `;
 
 let fs = `
-	[[location(0)]] var<out> outColor : vec4<f32>;
+	@location(0) var<out> outColor : vec4<f32>;
 
-	[[location(0)]] var<in> fragUV: vec2<f32>;
+	@location(0) var<in> fragUV: vec2<f32>;
 
-	[[stage(fragment)]]
+	@fragment
 	fn main() -> void {
 
 		#outColor = vec4<f32>(1.0, 0.0, 0.0, 1.0);

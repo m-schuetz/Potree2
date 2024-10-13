@@ -1,0 +1,272 @@
+<html>
+<head>
+<meta http-equiv="origin-trial" content="ApM2LRrizp8n6n1p9IaYNL9tbGYTRob0jgm5wOr1jPQeXXyKTqNbaZKaC2LgVTyizCde6tC6XL0ZeH28L/z3EAEAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY0MzE1NTE5OSwiaXNTdWJkb21haW4iOnRydWV9">
+<style>
+
+td{
+	padding: 2px 10px 0px 0px;
+}
+
+#big_message{
+	position: absolute; 
+	left: calc(50%); 
+	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 4em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+#msg_dbg{
+	position: absolute; 
+	left: 10px; 
+	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 1em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+canvas{
+	image-rendering: pixelated;
+	display: flex;
+	position: absolute;
+	height: 100%;
+}
+
+</style>
+</head>
+<body style="padding: 0; margin: 0">
+
+<div id="potree" style="width: 100%; height: 100%; position: fixed;">
+	<span style="position: relative">
+		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
+	</span>
+</div>
+
+<span id="big_message"></span>
+<span id="msg_dbg"></span>
+
+<script type="importmap">
+{
+	"imports": {
+		"potree":        "./src/Potree.js",
+		"lazperf":       "./libs/laz-perf/laz-perf.js",
+		"toolbar":       "./src/modules/toolbar/toolbar.js",
+		"sidebar":       "./src/modules/sidebar/sidebar.js",
+		"dat.gui":       "./libs/dat.gui/dat.gui.module.js",
+		"stats":         "./libs/stats.js/stats.module.js",
+		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
+		"tween":         "./libs/tween/tween.esm.js",
+		"range-select":  "./libs/range-select/RangeSelect.js",
+		"json5":         "./libs/json5/json5.js"
+	}
+}
+</script>
+
+<script type="module">
+
+	import {Potree} from "potree";
+	import {Vector3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
+	import {WireframeMaterial, TriangleColorMaterial} from "potree";
+	import {initGUI} from "./src/modules/gui_dat/gui.js";
+	import "range-select";
+	import {proj4} from "./libs/proj4js/proj4-src.js";
+	// import {loadGLB} from "./src/prototyping/glbloader/loadGLB.js";
+	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
+
+	console.log(proj4.version);
+
+	// import {installToolbar} from "toolbar";
+	import {installSidebar} from "sidebar";
+
+	let canvas = document.getElementById("canvas");
+	let elPotree = document.getElementById("potree");
+	let potree = await Potree.init(canvas);
+	let {scene, controls} = potree;
+	// installToolbar(potree.renderer.canvas, potree);
+
+	// window.Potree = {
+	// 	version: "abc",
+	// };
+
+	installSidebar(elPotree, potree);
+
+	import {CopcLoader, Image360, Images360, SplatType} from "potree";
+	import {PotreeLoader, Potree3Loader} from "potree";
+	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
+
+	window.Potree = Potree;
+	window.potree = potree;
+	window.Vector3 = Vector3;
+
+	Potree.settings.edlEnabled = true;
+	Potree.settings.dilateEnabled = false;
+	Potree.settings.hqsEnabled = true;
+	Potree.settings.pointBudget = 5_000_000;
+	Potree.settings.attribute = "rgba";
+	// Potree.settings.attribute = "intensity";
+	Potree.settings.splatType = SplatType.QUADS;
+	Potree.settings.splatType = SplatType.POINTS;
+	Potree.settings.pointSize = 4;
+	Potree.settings.minNodeSize = 150;
+
+
+	// default, if not overriden later on
+	controls.set({
+		position: [-19.0, 13.6, 12.2],
+		pivot: [-0.0, 2.2, 3.9],
+	});
+
+	
+
+	Potree.settings.pointBudget = 4_000_000;
+	// Potree.settings.attribute = "classification";
+	Potree.settings.attribute = "rgba";
+
+	
+	// // CopcLoader.load("./sofi.copc.laz").then(pointcloud => {
+	// CopcLoader.load("./autzen-classified.copc.laz").then(pointcloud => {
+
+	// 	// debugger;
+
+	// 	let min = new Vector3(...pointcloud.loader.header.min);
+	// 	let max = new Vector3(...pointcloud.loader.header.max);
+
+	// 	let center = min.add(max).multiplyScalar(0.5);
+	// 	let size = min.distanceTo(max);
+		
+	// 	controls.set({
+	// 		yaw: -0.2,
+	// 		pitch: 0.8,
+	// 		radius: 1.5 * size,
+	// 		pivot: center,
+	// 	});
+
+	// 	scene.add(scene.root, pointcloud);
+
+	// 	// let images = new Images360([]);
+	// 	// scene.add(scene.root, images);
+	// });
+
+	// Potree.load("./nocommit/F_pointclouds/helimap/MLS/MLS_converted/metadata.json").then(pointcloud => {
+	PotreeLoader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.laz_converted/metadata.json").then(pointcloud => {
+	// Potree3Loader.load("./resources/E/resources/pointclouds/helimap/MLS/MLS/aabi_drive2_lv95_nf02_vuxlr_d2_180422_070250_ADJ.potree").then(pointcloud => {
+
+		let box = pointcloud.getBoundingBoxWorld();
+		let min = box.min.clone();
+		let max = box.max.clone();
+
+		let center = min.add(max).multiplyScalar(0.5);
+		let size = min.distanceTo(max);
+
+
+		// add standard attribute mappings
+		let {material} = pointcloud;
+		for(let mapping of Object.values(MAPPINGS)){
+			material.registerMapping(mapping);
+		}
+
+		// controls.set({
+		// 	yaw: -0.2,
+		// 	pitch: 0.8,
+		// 	radius: 1.5 * size,
+		// 	pivot: center,
+		// });
+
+		controls.set({
+			position: [2651955.680390427, 1249304.69893652, 407.0047946025282],
+			pivot: [2651974.184339543, 1249305.0810740874, 403.126100800014],
+		});
+
+		scene.root.children.push(pointcloud);
+
+		let projTo = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs";
+		
+		let long = 8.133038383902338;
+		let lat = 47.39491676370041;
+
+		let result = proj4(projTo, [long, lat]);
+		console.log(result);
+
+		let imageList = [];
+		fetch("./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt").then(async (response) => {
+
+			let text = await response.text();
+			let lines = text.split("\n");
+
+			let min = null;
+			
+			for(let i = 1; i < lines.length; i++){
+				let line = lines[i];
+
+				if(line.trim().length === 0){
+					continue;
+				}
+
+				let tokens = line.split("\t");
+
+				console.log(tokens);
+
+
+				let imgPath = tokens[0];
+				let long = Number(tokens[2]);
+				let lat = Number(tokens[3]);
+				let elevation = Number(tokens[4]);
+
+				let xy = proj4(projTo, [long, lat]);
+
+				if(min == null){
+					min = new Vector3(xy[0], xy[1], 0);
+				}
+
+				let image = new Image360();
+				image.position.x = xy[0] - min.x;
+				image.position.y = xy[1] - min.y;
+				// image.position.z = 396;
+				// image.position.x = xy[0];
+				// image.position.y = xy[1];
+				image.position.z = elevation;
+				image.name = imgPath;
+
+				imageList.push(image);
+			}
+
+			let images = new Images360(imageList);
+			images.position.copy(min);
+			scene.add(scene.root, images);
+		});
+
+	});
+
+	// let origin = new Vector3(0, 0, 0);
+	// let X = new Vector3(10, 0, 0);
+	// let Y = new Vector3(0, 10, 0);
+	// let Z = new Vector3(0, 0, 10);
+	// let red = new Vector3(255, 0, 0);
+	// let green = new Vector3(0, 255, 0);
+	// let blue = new Vector3(0, 0, 255);
+
+	// import {sphere} from "./src/modules/geometries/sphere.js";
+
+	// potree.onUpdate( () => {
+
+	// 	potree.renderer.drawLine(origin, X, red);
+	// 	potree.renderer.drawLine(origin, Y, green);
+	// 	potree.renderer.drawLine(origin, Z, blue);
+
+	// 	potree.renderer.drawSphere(origin, 2);
+	// });
+
+
+
+</script>
+
+</body>
+</html>

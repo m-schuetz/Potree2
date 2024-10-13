@@ -1,6 +1,7 @@
 
 import {Vector3, Matrix4, Box3} from "potree";
-import {Potree} from "potree";
+import {Potree, EventDispatcher} from "potree";
+import * as TWEEN from "tween";
 
 export class OrbitControls{
 
@@ -12,21 +13,16 @@ export class OrbitControls{
 		this.pitch = 0;
 		this.pivot = new Vector3();
 		this.world = new Matrix4();
+		this.dispatcher = new EventDispatcher();
 
-		element.addEventListener('contextmenu', e => {
-			e.preventDefault();
+		this.dispatcher.add('mousemove', e => {
 
-			return false;
-		});
-
-		element.addEventListener('mousemove', e => {
-
-			let dragLeft = e.buttons === 1;
-			let dragRight = e.buttons === 2;
+			let dragLeft = e.event.buttons === 1;
+			let dragRight = e.event.buttons === 2;
 
 			if(dragLeft){
-				let diffX = e.movementX;
-				let diffY = e.movementY;
+				let diffX = e.event.movementX;
+				let diffY = e.event.movementY;
 
 				let ux = diffX / this.element.width;
 				let uy = diffY / this.element.height;
@@ -34,8 +30,8 @@ export class OrbitControls{
 				this.yaw += 6 * ux;
 				this.pitch += 6 * uy;
 			}else if(dragRight){
-				let diffX = e.movementX;
-				let diffY = e.movementY;
+				let diffX = e.event.movementX;
+				let diffY = e.event.movementY;
 
 				let ux = diffX / this.element.width;
 				let uy = diffY / this.element.height;
@@ -46,15 +42,66 @@ export class OrbitControls{
 					uy * this.radius);
 
 			}
+
+			let {x, y} = e.mouse;
+
+			Potree.pick(x, y, (result) => {
+
+			});
 		});
 
-		element.addEventListener('wheel', e => {
-			let diff = Math.sign(e.deltaY);
+		this.dispatcher.add('mousewheel', e => {
+			let diff = -Math.sign(e.delta);
 
 			if(diff > 0){
-				this.radius *= 1.05;
+				this.radius *= 1.1;
 			}else if(diff < 0){
-				this.radius /= 1.05;
+				this.radius /= 1.1;
+			}
+
+		});
+
+		this.dispatcher.add("dblclick", e => {
+
+			let {x, y} = e.mouse;
+
+			if(Potree.hoveredItem){
+
+				let newPivot = Potree.hoveredItem.position;
+				let newRadius = this.getPosition().distanceTo(newPivot) * 0.25;
+
+				let value = {x: 0};
+				let animationDuration = 400;
+				let easing = TWEEN.Easing.Quartic.Out;
+				let tween = new TWEEN.Tween(value).to({x: 1}, animationDuration);
+				tween.easing(easing);
+				
+				let startRadius = this.radius;
+				let targetRadius = newRadius;
+				let startPivot = this.pivot.clone();
+				let targetPivot = newPivot.clone();
+
+				tween.onUpdate(() => {
+					let t = value.x;
+
+					let pivot = new Vector3(
+						(1 - t) * startPivot.x + t * targetPivot.x,
+						(1 - t) * startPivot.y + t * targetPivot.y,
+						(1 - t) * startPivot.z + t * targetPivot.z,
+					);
+
+					let radius = (1 - t) * startRadius + t * targetRadius;
+
+					// this.viewer.setMoveSpeed(this.scene.view.radius);
+					this.set({radius: radius, pivot: pivot});
+				});
+
+				tween.onComplete(() => {
+					// this.tweens = this.tweens.filter(e => e !== tween);
+				});
+
+				tween.start();
+
 			}
 
 		});
@@ -66,7 +113,7 @@ export class OrbitControls{
 		this.radius = radius ?? this.radius;
 
 		if(pivot){
-			if(pivot.x){
+			if(typeof pivot.x !== "undefined"){
 				this.pivot.copy(pivot);
 			}else{
 				this.pivot.set(...pivot);
@@ -88,27 +135,33 @@ export class OrbitControls{
 			this.yaw = yaw;
 			this.pitch = pitch;
 			this.radius = radius;
-
 		} 
 	}
 
-	zoomTo(node, args){
+	zoomTo(node, args = {}){
+
+		// let box = new Box3();
+		// let tmp = new Box3();
+		// node.traverse((node) => {
+
+		// 	let childBox = node.boundingBox;
+
+		// 	if(!childBox.isFinite()){
+		// 		return;
+		// 	}
+
+		// 	tmp.copy(childBox);
+		// 	tmp.applyMatrix4(node.world);
+			
+		// 	box.expandByBox(tmp);
+		// });
 
 		let box = new Box3();
-		let tmp = new Box3();
-		node.traverse((node) => {
-
-			let childBox = node.boundingBox;
-
-			if(!childBox.isFinite()){
-				return;
-			}
-
-			tmp.copy(childBox);
-			tmp.applyMatrix4(node.world);
-			
-			box.expandByBox(tmp);
-		});
+		if(node.getBoundingBoxWorld){
+			box.copy(node.getBoundingBoxWorld());
+		}else{
+			box = node.boundingBox;
+		}
 
 		let pivot = box.center();
 		let multiplier = args.zoom ?? 1.0;
@@ -174,6 +227,22 @@ export class OrbitControls{
 			this.world.multiplyMatrices(flip, this.world);
 		}
 
+	}
+
+	toExpression(){
+
+		let pivot = this.pivot;
+
+		let str = `;
+		controls.set(
+			yaw: ${this.yaw},
+			pitch: ${this.pitch},
+			radius: ${this.radius},
+			pivot: new Vector3(${pivot.x}, ${pivot.y}, ${pivot.z}),
+		);
+		`;
+
+		return str;
 	}
 
 

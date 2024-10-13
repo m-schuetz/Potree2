@@ -1,129 +1,90 @@
 
 import {Geometry, SceneNode, Mesh} from "potree";
 import {Box3, Vector3} from "potree";
-import {PhongMaterial, ColorMode} from "../modules/mesh/PhongMaterial.js";
+import {PhongMaterial, ColorMode} from "potree";
+import {NormalMaterial, WireframeMaterial} from "potree";
 
+let tmpCanvas = null;
+let tmpContext = null;
+function getTmpContext(){
 
-
-export async function load(url){
-
-
-	let response = await fetch(url);
-	let buffer = await response.arrayBuffer();
-	let view = new DataView(buffer);
-
-	let tStart = performance.now();
-
-	let magic = view.getUint32(0, true);
-	let version = view.getUint32(4, true);
-	let length = view.getUint32(8, true);
-	let chunkSize = view.getUint32(12, true);
-	let chunkType = view.getUint32(16, true);
-
-	let jsonBuffer = buffer.slice(20, 20 + chunkSize);
-	let decoder = new TextDecoder();
-	let jsonText = decoder.decode(jsonBuffer);
-	let json = JSON.parse(jsonText);
-
-	console.log(json);
-
-	let binaryChunkOffset = 12 + 8 + chunkSize + 8;
-	let binaryChunkSize = view.getUint32(20 + chunkSize, true);
-	
-	let bufferViews = [];
-	for(let glbBufferView of json.bufferViews){
-
-		let offset = glbBufferView.byteOffset;
-		let size = glbBufferView.byteLength;
-
-		let data = buffer.slice(binaryChunkOffset + offset, binaryChunkOffset + offset + size);
-
-		bufferViews.push({buffer: data});
+	if(tmpCanvas === null){
+		tmpCanvas = document.createElement('canvas');
+		tmpCanvas.width = 8192;
+		tmpCanvas.height = 8192;
+		tmpContext = tmpCanvas.getContext('2d');
 	}
 
+	return tmpContext;
+}
 
-	let geometry = new Geometry();
+export function load(url, callbacks){
 
-	let glbMesh = json.meshes[0];
-	let glbPrimitive = glbMesh.primitives[0];
-	for(let attributeName of Object.keys(glbPrimitive.attributes)){
-		let accessorRef = glbPrimitive.attributes[attributeName];
-		let accessor = json.accessors[accessorRef];
-		let bufferView = bufferViews[accessor.bufferView];
+	let workerPath = "./src/misc/GLBLoaderWorker.js";
+	let worker = new Worker(workerPath, {type: "module"});
 
-		let mappedName = {
-			"COLOR_0": "color",
-			"NORMAL": "normal",
-			"POSITION": "position",
-			"TEXCOORD_0": "uv",
-		}[attributeName] ?? attributeName;
+	let root = new SceneNode("glb root");
 
-		let geomBuffer = {name: mappedName, buffer: new Uint8Array(bufferView.buffer)};
-		geometry.buffers.push(geomBuffer);
+	let images = new Map();
 
-		if(glbPrimitive.indices){
-			let accessor = json.accessors[glbPrimitive.indices];
-			let bufferView = bufferViews[accessor.bufferView];
+	let image_loaded = (e) => {
+		images.set(e.data.imageRef, e.data.imageBitmap);
+	};
 
-			geometry.indices = new Uint32Array(bufferView.buffer);
+	let mesh_batch_loaded = (e) => {
+
+		let imageBitmap = null;
+		if(images.has(e.data.imageRef)){
+			imageBitmap = images.get(e.data.imageRef);
 		}
-	}
 
-	console.log(geometry);
+		let geometryData = e.data.geometry;
 
-	
-	// BOUNDING BOX
-	let boundingBox = new Box3(); {
+		let geometry = new Geometry();
+		geometry.buffers = geometryData.buffers;
+		geometry.indices = geometryData.indices;
+		geometry.numElements = geometryData.numElements;
+		geometry.boundingBox.min.copy(geometryData.boundingBox.min);
+		geometry.boundingBox.max.copy(geometryData.boundingBox.max);
 
-		let buffer = geometry.buffers.find(b => b.name === "position").buffer;
-		let f32 = new Float32Array(buffer.buffer);
+		let mesh = new Mesh("glb mesh", geometry);
 
-		let tmp = new Vector3();
-		for(let i = 0; i < f32.length / 3; i++){
-			tmp.x = f32[3 * i + 0];
-			tmp.y = f32[3 * i + 1];
-			tmp.z = f32[3 * i + 2];
-			boundingBox.expandByPoint(tmp);
+		if(imageBitmap){
+			mesh.material = new PhongMaterial();
+			mesh.material.image = imageBitmap;
+			mesh.material.colorMode = ColorMode.TEXTURE;
+			mesh.material.imageBuffer = e.data.imageBuffer;
+		}else{
+			mesh.material = new PhongMaterial();
+			mesh.material.image = null;
+			mesh.material.colorMode = ColorMode.VERTEX_COLOR;
 		}
-	}
 
-	geometry.boundingBox = boundingBox;
+		root.children.push(mesh);
 
-	let mesh = new Mesh("glb mesh", geometry);
-	let node = new SceneNode("glb node");
-	node.children.push(mesh);
-
-	if(json.images?.length > 0){
-		let image = json.images[0];
-		let buffer = bufferViews[image.bufferView].buffer;
-		let mimeType = image.mimeType;
-
-		var u8 = new Uint8Array(buffer);
-		var blob = new Blob([u8], {type: mimeType});
-		var imageUrl = URL.createObjectURL(blob);
-		var img = document.createElement("img");
-		
-		img.src = imageUrl;
-		await img.decode();
-
-		let imageBitmap = await createImageBitmap(img);
-
-		mesh.material = new PhongMaterial();
-		mesh.material.image = imageBitmap;
-		mesh.material.colorMode = ColorMode.TEXTURE;
-	}else{
-		mesh.material = new PhongMaterial();
-		// mesh.material.image = null;
-		mesh.material.colorMode = ColorMode.VERTEX_COLOR;
-	}
-
-	let duration = performance.now() - tStart;
-	console.log("duration: " + duration  + "ms");
-
+		if(root.children.length === 1){
+			callbacks.onStart(root);
+			callbacks.onNode(mesh);
+		}else{
+			callbacks.onNode(mesh);
+		}
+	};
 
 	
 
-	return node;
+	worker.onmessage = (e) => {
+
+		if(e.data.type === "mesh_batch_loaded"){
+			mesh_batch_loaded(e);
+		}else if(e.data.type === "image_loaded"){
+			image_loaded(e);
+		}
+
+	};
+
+	let absoluteUrl = new URL(url, document.baseURI).href;
+	worker.postMessage({url: absoluteUrl});
+
 
 };
 

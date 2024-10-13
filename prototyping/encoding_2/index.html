@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>encoding test</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<link type="text/css" rel="stylesheet" href="./three.js/examples/main.css">
+</head>
+<body>
+
+<script type="importmap">
+	{
+		"imports": {
+			"three": "./three.js/build/three.module.js",
+			"three/addons/": "./three.js/examples/jsm/"
+		}
+	}
+</script>
+
+<script type="module">
+
+	import * as THREE from 'three';
+	import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+	let container;
+	let camera, scene, renderer;
+
+	let controls, group;
+
+	init();
+	animate();
+
+	function colorSpaceToXYZ(r, g, b){
+		let x = 20 * (r / 256) - 10;
+		let y = 20 * (g / 256) - 0;
+		let z = 20 * (b / 256) - 10;
+
+		return [x, y, z];
+	}
+
+	function fitLine(colors){
+
+		let min = new THREE.Vector3(Infinity, Infinity, Infinity);
+		let max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+		let numColors = colors.length / 3;
+
+		for(let i = 0; i < numColors; i++){
+
+			let r = colors[3 * i + 0];
+			let g = colors[3 * i + 1];
+			let b = colors[3 * i + 2];
+			
+			min.x = Math.min(min.x, r);
+			min.y = Math.min(min.y, g);
+			min.z = Math.min(min.z, b);
+
+			max.x = Math.max(max.x, r);
+			max.y = Math.max(max.y, g);
+			max.z = Math.max(max.z, b);
+		}
+
+		let line = new THREE.Line3(min, max);
+
+		return line;
+	}
+
+	function quantize(colors, line, numSamples){
+
+		let quantized = [];
+		let numColors = colors.length / 3;
+
+		let point = new THREE.Vector3();
+		for(let i = 0; i < numColors; i++){
+			point.x = colors[3 * i + 0];
+			point.y = colors[3 * i + 1];
+			point.z = colors[3 * i + 2];
+			let t = line.closestPointToPointParameter(point);
+			let samples = numSamples - 1; // it's <x> - 1 samples
+			t = Math.round(t * samples) / samples;
+
+			line.at(t, point);
+
+			quantized.push(point.x, point.y, point.z);
+		}
+
+		return quantized;
+	}
+
+	function illustrateColors(colors, offset, numSamples){
+
+		let line = fitLine(colors);
+		let quantized = quantize(colors, line, numSamples);
+
+		{ // LINE
+			let starta = colorSpaceToXYZ(256 * line.start.x, 256 * line.start.y, 256 * line.start.z);
+			let enda = colorSpaceToXYZ(256 * line.end.x, 256 * line.end.y, 256 * line.end.z);
+
+			const geometry = new THREE.BufferGeometry().setFromPoints( [
+				new THREE.Vector3(...starta).add(offset),
+				new THREE.Vector3(...enda).add(offset),
+			] );
+
+			const lineNode = new THREE.Line(geometry);
+			scene.add(lineNode);
+		}
+
+		// FULL-PRECISION COLORS
+		{
+			// SRGB Color Space 
+			let color = new THREE.Color();
+			let positions = [];
+			let numColors = colors.length / 3;
+			for(let i = 0; i < numColors; i++){
+				color.setRGB(
+					colors[3 * i + 0],
+					colors[3 * i + 1],
+					colors[3 * i + 2],
+				);
+
+				let [x, y, z] = colorSpaceToXYZ(
+					256 * color.r,
+					256 * color.g,
+					256 * color.b,
+				);
+				positions.push(
+					x + offset.x, 
+					y + offset.y, 
+					z + offset.z, 
+				);
+
+				// color.convertSRGBToLinear();
+
+				colors[3 * i + 0] = color.r;
+				colors[3 * i + 1] = color.g;
+				colors[3 * i + 2] = color.b;
+			}
+
+			const geometry = new THREE.BufferGeometry();
+			geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+			geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+			geometry.computeBoundingSphere();
+
+			const material = new THREE.PointsMaterial( { size: 0.55, vertexColors: true } );
+			let points = new THREE.Points( geometry, material );
+			scene.add( points );
+		}
+
+		// QUANTIZED COLORS (4 SAMPLES)
+		{
+			let color = new THREE.Color();
+			let quantized = quantize(colors, line, 4);
+			let positions = [];
+			let numColors = colors.length / 3;
+
+			// SRGB Color Space 
+			for(let i = 0; i < numColors; i++){
+				color.setRGB(
+					quantized[3 * i + 0],
+					quantized[3 * i + 1],
+					quantized[3 * i + 2],
+				);
+
+				let [x, y, z] = colorSpaceToXYZ(
+					256 * color.r,
+					256 * color.g,
+					256 * color.b,
+				);
+				positions.push(
+					x + offset.x, 
+					y + offset.y, 
+					z + offset.z, 
+				);
+
+				quantized[3 * i + 0] = color.r;
+				quantized[3 * i + 1] = color.g;
+				quantized[3 * i + 2] = color.b;
+			}
+
+			const geometry = new THREE.BufferGeometry();
+			geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+			geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( quantized, 3 ) );
+			geometry.computeBoundingSphere();
+
+			const material = new THREE.PointsMaterial( { size: 1.5, vertexColors: true } );
+			let points = new THREE.Points( geometry, material );
+			scene.add( points );
+		}
+
+		// // QUANTIZED COLORS (8 SAMPLES)
+		// {
+		// 	let color = new THREE.Color();
+		// 	let quantized = quantize(colors, line, 8);
+		// 	let positions = [];
+		// 	let numColors = colors.length / 3;
+
+		// 	for(let i = 0; i < numColors; i++){
+		// 		color.setRGB(
+		// 			quantized[3 * i + 0],
+		// 			quantized[3 * i + 1],
+		// 			quantized[3 * i + 2],
+		// 		);
+
+		// 		let [x, y, z] = colorSpaceToXYZ(
+		// 			256 * color.r,
+		// 			256 * color.g,
+		// 			256 * color.b,
+		// 		);
+		// 		positions.push(
+		// 			x + offset.x, 
+		// 			y + offset.y, 
+		// 			z + offset.z, 
+		// 		);
+
+		// 		quantized[3 * i + 0] = color.r;
+		// 		quantized[3 * i + 1] = color.g;
+		// 		quantized[3 * i + 2] = color.b;
+		// 	}
+
+		// 	const geometry = new THREE.BufferGeometry();
+		// 	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+		// 	geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( quantized, 3 ) );
+		// 	geometry.computeBoundingSphere();
+
+		// 	const material = new THREE.PointsMaterial( { size: 1.5, vertexColors: true } );
+		// 	let points = new THREE.Points( geometry, material );
+		// 	scene.add( points );
+		// }
+	}
+
+	async function loadStuff(){
+		let byteOffset = 2806623798;
+		let byteSize = 219336;
+		let numVoxels = 18278;
+		let url = "./G/temp/retz/octree.bin";
+
+		let first = byteOffset;
+		let last = first + byteSize - 1;
+
+		let response = await fetch(url, {
+			headers: {
+				'content-type': 'multipart/byteranges',
+				'Range': `bytes=${first}-${last}`,
+			},
+		});
+
+		let buffer = await response.arrayBuffer();
+		let view = new DataView(buffer);
+
+
+		// { // COLORSPACE
+		// 	let color = new THREE.Color();
+		// 	let positions = [];
+		// 	let colors = [];
+		// 	let offset = 8000;
+		// 	for(let i = offset; i < offset + 16; i++)
+		// 	// for(let i = 0; i < 128; i++)
+		// 	// for(let i = 0; i < numVoxels; i++)
+		// 	{
+		// 		let r = view.getUint8(3 * numVoxels + 3 * i + 0);
+		// 		let g = view.getUint8(3 * numVoxels + 3 * i + 1);
+		// 		let b = view.getUint8(3 * numVoxels + 3 * i + 2);
+
+		// 		let x = 20 * (r / 256) - 10;
+		// 		let y = 20 * (g / 256) - 0;
+		// 		let z = 20 * (b / 256) - 10;
+
+		// 		positions.push(x, y, z);
+
+		// 		color.setRGB(r / 256, g / 256, b / 256);
+		// 		color.convertSRGBToLinear();
+
+		// 		colors.push(
+		// 			color.r,
+		// 			color.g,
+		// 			color.b,
+		// 		);
+		// 	}
+
+		// 	const geometry = new THREE.BufferGeometry();
+		// 	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+		// 	geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+		// 	geometry.computeBoundingSphere();
+
+		// 	const material = new THREE.PointsMaterial( { size: 0.5, vertexColors: true } );
+		// 	let points = new THREE.Points( geometry, material );
+		// 	scene.add( points );
+		// }
+
+		if(false)
+		{ // COLORSPACE - encoded
+
+			let min = new THREE.Vector3(Infinity, Infinity, Infinity);
+			let max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+
+			let offset = 3000;
+			let numPoints = 32;
+
+			let color = new THREE.Color();
+			// let positions = [];
+			let colors = [];
+			for(let i = 0; i < numPoints; i++){
+				let r = view.getUint8(3 * numVoxels + 3 * (offset + i) + 0);
+				let g = view.getUint8(3 * numVoxels + 3 * (offset + i) + 1);
+				let b = view.getUint8(3 * numVoxels + 3 * (offset + i) + 2);
+
+				let [x, y, z] = colorSpaceToXYZ(r, g, b);
+
+				// positions.push(x, y, z);
+
+				colors.push(r / 256, g / 256, b / 256);
+			}
+
+			let line = fitLine(colors);
+
+			{ // LINE
+				let starta = colorSpaceToXYZ(256 * line.start.x, 256 * line.start.y, 256 * line.start.z);
+				let enda = colorSpaceToXYZ(256 * line.end.x, 256 * line.end.y, 256 * line.end.z);
+
+				const geometry = new THREE.BufferGeometry().setFromPoints( [
+					new THREE.Vector3(...starta),
+					new THREE.Vector3(...enda),
+				] );
+
+				const lineNode = new THREE.Line(geometry);
+				scene.add(lineNode);
+			}
+			
+			// FULL-PRECISION COLORS
+			{
+				// SRGB Color Space 
+				let positions = [];
+				for(let i = 0; i < numPoints; i++){
+					color.setRGB(
+						colors[3 * i + 0],
+						colors[3 * i + 1],
+						colors[3 * i + 2],
+					);
+
+					let [x, y, z] = colorSpaceToXYZ(
+						256 * color.r,
+						256 * color.g,
+						256 * color.b,
+					);
+					positions.push(x, y, z);
+
+					// color.convertSRGBToLinear();
+
+					colors[3 * i + 0] = color.r;
+					colors[3 * i + 1] = color.g;
+					colors[3 * i + 2] = color.b;
+				}
+
+				const geometry = new THREE.BufferGeometry();
+				geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+				geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+				geometry.computeBoundingSphere();
+
+				const material = new THREE.PointsMaterial( { size: 0.55, vertexColors: true } );
+				let points = new THREE.Points( geometry, material );
+				scene.add( points );
+			}
+
+			// QUANTIZED COLORS
+			{
+
+				let quantized = quantize(colors, line, 4);
+				let positions = [];
+
+				// SRGB Color Space 
+				for(let i = 0; i < numPoints; i++){
+					color.setRGB(
+						quantized[3 * i + 0],
+						quantized[3 * i + 1],
+						quantized[3 * i + 2],
+					);
+
+					let [x, y, z] = colorSpaceToXYZ(
+						256 * color.r,
+						256 * color.g,
+						256 * color.b,
+					);
+					positions.push(x, y, z);
+
+					quantized[3 * i + 0] = color.r;
+					quantized[3 * i + 1] = color.g;
+					quantized[3 * i + 2] = color.b;
+				}
+
+				const geometry = new THREE.BufferGeometry();
+				geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+				geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( quantized, 3 ) );
+				geometry.computeBoundingSphere();
+
+				const material = new THREE.PointsMaterial( { size: 1.5, vertexColors: true } );
+				let points = new THREE.Points( geometry, material );
+				scene.add( points );
+			}
+		}
+
+		{ // VOXELS
+			let positions = [];
+			let colors = [];
+			let color = new THREE.Color();
+			for(let i = 0; i < numVoxels; i++){
+
+				let x = view.getUint8(3 * i + 0);
+				let y = view.getUint8(3 * i + 1);
+				let z = view.getUint8(3 * i + 2);
+
+				let r = view.getUint8(3 * numVoxels + 3 * i + 0);
+				let g = view.getUint8(3 * numVoxels + 3 * i + 1);
+				let b = view.getUint8(3 * numVoxels + 3 * i + 2);
+				
+				positions.push(28 + x / 5, z / 5, 20 + y / 5);
+				// positions.push(38 + x / 5, z / 5, 40 + y / 5);
+
+				color.setRGB(r / 256, g / 256, b / 256);
+				colors.push(color.r, color.g, color.b);
+			}
+
+			const geometry = new THREE.BufferGeometry();
+			geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+			geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+			geometry.computeBoundingSphere();
+
+			const material = new THREE.PointsMaterial( { size: 0.55, vertexColors: true } );
+			let points = new THREE.Points( geometry, material );
+			scene.add( points );
+		}
+
+		let processed = 0;
+		for(let numSamples of [4])
+		// for(let numSamples of [2, 4, 8])
+		{ // VOXELS - quantized colors (4 samples)
+
+			processed++;
+			let positions = [];
+			let colors = [];
+			let color = new THREE.Color();
+			for(let i = 0; i < numVoxels; i++){
+
+				let x = view.getUint8(3 * i + 0);
+				let y = view.getUint8(3 * i + 1);
+				let z = view.getUint8(3 * i + 2);
+
+				let r = view.getUint8(3 * numVoxels + 3 * i + 0);
+				let g = view.getUint8(3 * numVoxels + 3 * i + 1);
+				let b = view.getUint8(3 * numVoxels + 3 * i + 2);
+				
+				positions.push(processed * 6 + x / 5, z / 5, processed * 22 + y / 5);
+
+				color.setRGB(r / 256, g / 256, b / 256);
+				colors.push(color.r, color.g, color.b);
+			}
+
+			// quantize colors
+			let blocksize = 8;
+			let blocksShown = 0;
+			for(let i = 0; i < numVoxels; i += blocksize){
+				let subset = colors.slice(3 * i, 3 * (i + blocksize));
+				let line = fitLine(subset);
+				let quantized = quantize(subset, line, numSamples);
+
+				for(let j = 0; j < quantized.length; j++){
+					colors[3 * i + j] = quantized[j];
+				}
+				
+				let blockIndex = Math.floor(i / blocksize);
+				if((blockIndex % 10) === 0){
+					let offset = new THREE.Vector3(7 * blocksShown, 0, 0);
+					illustrateColors(subset, offset);
+					blocksShown++;
+				}
+			}
+
+			const geometry = new THREE.BufferGeometry();
+			geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+			geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+			geometry.computeBoundingSphere();
+
+			const material = new THREE.PointsMaterial( { size: 0.55, vertexColors: true } );
+			let points = new THREE.Points( geometry, material );
+			scene.add( points );
+		}
+
+		// { // VOXELS - quantized colors (8 samples)
+		// 	let positions = [];
+		// 	let colors = [];
+		// 	let color = new THREE.Color();
+		// 	for(let i = 0; i < numVoxels; i++){
+
+		// 		let x = view.getUint8(3 * i + 0);
+		// 		let y = view.getUint8(3 * i + 1);
+		// 		let z = view.getUint8(3 * i + 2);
+
+		// 		let r = view.getUint8(3 * numVoxels + 3 * i + 0);
+		// 		let g = view.getUint8(3 * numVoxels + 3 * i + 1);
+		// 		let b = view.getUint8(3 * numVoxels + 3 * i + 2);
+				
+		// 		positions.push(2 * 6 + x / 5, z / 5, 2 * 22 + y / 5);
+
+		// 		color.setRGB(r / 256, g / 256, b / 256);
+		// 		colors.push(color.r, color.g, color.b);
+		// 	}
+
+		// 	// quantize colors
+		// 	let blocksize = 16;
+		// 	let blocksShown = 0;
+		// 	for(let i = 0; i < numVoxels; i += blocksize){
+		// 		let subset = colors.slice(3 * i, 3 * (i + blocksize));
+		// 		let line = fitLine(subset);
+		// 		let quantized = quantize(subset, line, 8);
+
+		// 		for(let j = 0; j < quantized.length; j++){
+		// 			colors[3 * i + j] = quantized[j];
+		// 		}
+				
+		// 		// let blockIndex = Math.floor(i / blocksize);
+		// 		// if((blockIndex % 10) === 0){
+		// 		// 	let offset = new THREE.Vector3(7 * blocksShown, 0, 0);
+		// 		// 	illustrateColors(subset, offset);
+		// 		// 	blocksShown++;
+		// 		// }
+		// 	}
+
+		// 	const geometry = new THREE.BufferGeometry();
+		// 	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+		// 	geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+		// 	geometry.computeBoundingSphere();
+
+		// 	const material = new THREE.PointsMaterial( { size: 0.55, vertexColors: true } );
+		// 	let points = new THREE.Points( geometry, material );
+		// 	scene.add( points );
+		// }
+	}
+
+	function init() {
+
+		container = document.createElement( 'div' );
+		document.body.appendChild( container );
+
+		scene = new THREE.Scene();
+		scene.background = new THREE.Color(0);
+		// scene.background = new THREE.Color( 0x808080 );
+
+		camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 500);
+		camera.position.set(-22.853531777612275, 25.71424791399364, 37.21153713076156);
+		// camera.position.set(-20, 20, 20);
+
+		window.camera = camera;
+
+		controls = new OrbitControls( camera, container );
+		controls.target.set(5.285661899597115, 0.7550550080853029, 17.83);
+		// controls.target.set( 0, 0, 0 );
+		controls.update();
+
+		// const floorGeometry = new THREE.PlaneGeometry( 4, 4 );
+		// const floorMaterial = new THREE.MeshStandardMaterial( {
+		// 	color: 0xeeeeee,
+		// 	roughness: 1.0,
+		// 	metalness: 0.0,
+		// 	side: THREE.DoubleSide
+		// } );
+		// const floor = new THREE.Mesh( floorGeometry, floorMaterial );
+		// floor.rotation.x = - Math.PI / 2;
+		// floor.receiveShadow = true;
+		// floor.scale.set(5, 5, 5);
+		// scene.add( floor );
+
+		scene.add( new THREE.HemisphereLight( 0x808080, 0x606060 ) );
+
+		const light = new THREE.DirectionalLight( 0xaaaaaa );
+		light.position.set( 0, 6, 0 );
+		light.castShadow = true;
+		light.shadow.camera.top = 2;
+		light.shadow.camera.bottom = - 2;
+		light.shadow.camera.right = 2;
+		light.shadow.camera.left = - 2;
+		light.shadow.mapSize.set( 4096, 4096 );
+		scene.add( light );
+
+		// const ambient = new THREE.AmbientLight(0xffffffff); // soft white light
+		// scene.add(ambient);
+
+		group = new THREE.Group();
+		scene.add( group );
+
+		renderer = new THREE.WebGLRenderer( { antialias: true } );
+		renderer.setPixelRatio( window.devicePixelRatio );
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		renderer.shadowMap.enabled = true;
+		renderer.gammaInput = false;
+		renderer.gammaOutput = false;
+		renderer.gammaFactor = 2.2;
+		renderer.outputEncoding = THREE.LinearEncoding;
+
+
+
+		container.appendChild( renderer.domElement );
+
+		window.addEventListener( 'resize', onWindowResize );
+
+		loadStuff();
+
+	}
+
+	function onWindowResize() {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}
+
+	function animate() {
+		renderer.setAnimationLoop( render );
+	}
+
+	function render() {
+		renderer.render( scene, camera );
+	}
+
+</script>
+</body>
+</html>

@@ -36,6 +36,14 @@ export class Vector3{
 		return this;
 	}
 
+	divideScalar(s){
+		this.x = this.x / s;
+		this.y = this.y / s;
+		this.z = this.z / s;
+
+		return this;
+	}
+
 	add(b){
 		this.x = this.x + b.x;
 		this.y = this.y + b.y;
@@ -44,10 +52,26 @@ export class Vector3{
 		return this;
 	}
 
+	addScalar(s){
+		this.x = this.x + s;
+		this.y = this.y + s;
+		this.z = this.z + s;
+
+		return this;
+	}
+
 	sub(b){
 		this.x = this.x - b.x;
 		this.y = this.y - b.y;
 		this.z = this.z - b.z;
+
+		return this;
+	}
+
+	subScalar(s){
+		this.x = this.x - s;
+		this.y = this.y - s;
+		this.z = this.z - s;
 
 		return this;
 	}

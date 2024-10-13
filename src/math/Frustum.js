@@ -28,20 +28,46 @@ export class Frustum{
 	setFromMatrix(m){
 
 		let planes = this.planes;
-		let me = m.elements;
-		let me0 = me[ 0 ], me1 = me[ 1 ], me2 = me[ 2 ], me3 = me[ 3 ];
-		let me4 = me[ 4 ], me5 = me[ 5 ], me6 = me[ 6 ], me7 = me[ 7 ];
-		let me8 = me[ 8 ], me9 = me[ 9 ], me10 = me[ 10 ], me11 = me[ 11 ];
+		let me   = m.elements;
+		let me0  = me[ 0 ] , me1  = me[ 1 ] ,  me2 = me[ 2 ] ,  me3 = me[ 3 ];
+		let me4  = me[ 4 ] , me5  = me[ 5 ] ,  me6 = me[ 6 ] ,  me7 = me[ 7 ];
+		let me8  = me[ 8 ] , me9  = me[ 9 ] , me10 = me[ 10 ], me11 = me[ 11 ];
 		let me12 = me[ 12 ], me13 = me[ 13 ], me14 = me[ 14 ], me15 = me[ 15 ];
 
-		planes[ 0 ].setComponents( me3 - me0, me7 - me4, me11 - me8, me15 - me12 ).normalize();
-		planes[ 1 ].setComponents( me3 + me0, me7 + me4, me11 + me8, me15 + me12 ).normalize();
-		planes[ 2 ].setComponents( me3 + me1, me7 + me5, me11 + me9, me15 + me13 ).normalize();
-		planes[ 3 ].setComponents( me3 - me1, me7 - me5, me11 - me9, me15 - me13 ).normalize();
-		planes[ 4 ].setComponents( me3 - me2, me7 - me6, me11 - me10, me15 - me14 ).normalize();
-		planes[ 5 ].setComponents( me3 + me2, me7 + me6, me11 + me10, me15 + me14 ).normalize();
+		// see https://www8.cs.umu.se/kurser/5DV051/HT12/lab/plane_extraction.pdf
+		planes[ 0 ].setComponents( me3 - me0, me7 - me4, me11 -  me8, me15 - me12 ).normalize(); // right
+		planes[ 1 ].setComponents( me3 + me0, me7 + me4, me11 +  me8, me15 + me12 ).normalize(); // left
+		planes[ 2 ].setComponents( me3 + me1, me7 + me5, me11 +  me9, me15 + me13 ).normalize(); // bottom
+		planes[ 3 ].setComponents( me3 - me1, me7 - me5, me11 -  me9, me15 - me13 ).normalize(); // top
+		planes[ 4 ].setComponents( me3 - me2, me7 - me6, me11 - me10, me15 - me14 ).normalize(); // far
+		planes[ 5 ].setComponents( me3 + me2, me7 + me6, me11 + me10, me15 + me14 ).normalize(); // near
+
+		// planes[ 5 ].setComponents( me2, me6, me10, me14 ).normalize();
+
 
 		return this;
+
+	}
+
+	intersectsSphere(sphere) {
+
+		const planes = this.planes;
+		const center = sphere.center;
+		const negRadius = - sphere.radius;
+
+		for ( let i = 0; i < 6; i ++ ) {
+
+			const distance = planes[ i ].distanceToPoint( center );
+
+			if ( distance < negRadius ) {
+
+				return false;
+
+			}
+
+		}
+
+		return true;
 
 	}
 
@@ -49,7 +75,10 @@ export class Frustum{
 
 		const planes = this.planes;
 
-		for ( let i = 0; i < 6; i ++ ) {
+		for ( let i = 0; i < 6; i ++ ) 
+		// for ( let i of [0, 1, 2, 3, 5]) 
+		// for ( let i of [0]) 
+		{
 
 			const plane = planes[ i ];
 

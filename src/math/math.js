@@ -1,13 +1,15 @@
 import { Vector3 } from "./Vector3.js";
 
-
 export * from "./Box3.js";
 export * from "./Frustum.js";
 export * from "./Line3.js";
 export * from "./Matrix4.js";
 export * from "./Plane.js";
+export * from "./Sphere.js";
 export * from "./Ray.js";
 export * from "./Vector3.js";
+export * from "./Vector4.js";
+export * from "./PMath.js";
 
 const _v0 = new Vector3();
 
@@ -29,3 +31,24 @@ export function computeNormal(a, b, c){
 	return target.set( 0, 0, 0 );
 
 }
+
+const π = Math.PI;
+
+export function toRadians(degrees){
+	return π * degrees / 180;
+}
+
+export function toDegrees(radians){
+	return 180 * radians / π;
+}
+
+export function ceilN(value, N){
+	return value + (N - value % N);
+};
+
+export function clamp(value, min, max){
+	if(value < min) return min;
+	if(value > max) return max;
+	
+	return value;
+};

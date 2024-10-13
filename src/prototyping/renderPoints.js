@@ -3,24 +3,25 @@ import {Vector3, Matrix4} from "potree";
 import * as Timer from "../renderer/Timer.js";
 
 const vs = `
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
 };
 
 struct VertexInput{
-	[[location(0)]] pos_point : vec4<f32>;
-	[[location(1)]] color : vec4<f32>;
+	@location(0) pos_point : vec4<f32>;
+	@location(1) color : vec4<f32>;
+	@builtin(vertex_index) index : u32,
 };
 
 struct VertexOutput{
-	[[builtin(position)]] pos : vec4<f32>;
-	[[location(0)]] color : vec4<f32>;
+	@builtin(position) pos : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
-[[stage(vertex)]]
+@vertex
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var viewPos : vec4<f32> = uniforms.worldView * vertex.pos_point;
@@ -28,7 +29,12 @@ fn main(vertex : VertexInput) -> VertexOutput {
 
 	var vout : VertexOutput;
 	vout.pos = uniforms.proj * viewPos;
-	vout.color = c;
+	// vout.color = c;
+
+	c.x = 10.0 * f32(vertex.index);
+	c.y = 0.0;
+	c.z = 0.0;
+	// vout.color = c;
 
 	return vout;
 }
@@ -37,11 +43,11 @@ fn main(vertex : VertexInput) -> VertexOutput {
 const fs = `
 
 struct FragmentInput{
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
 };
 
-[[stage(fragment)]]
-fn main(fragment : FragmentInput) -> [[location(0)]] vec4<f32> {
+@fragment
+fn main(fragment : FragmentInput) -> @location(0) vec4<f32> {
 	return fragment.color;
 }
 `;
@@ -198,7 +204,7 @@ export function render(nodes, drawstate){
 		passEncoder.setVertexBuffer(1, vboColor);
 
 		let numElements = node.geometry.numElements;
-		passEncoder.draw(numElements, 1, 0, 0);
+		passEncoder.draw(numElements, 1, 0, i);
 
 		i++;
 	}

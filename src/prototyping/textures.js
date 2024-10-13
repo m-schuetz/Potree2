@@ -1,45 +1,52 @@
 
 import * as Timer from "../renderer/Timer.js";
 
-let vs = `
-	let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.0),
-		vec2<f32>(0.1, 0.1),
-		vec2<f32>(0.0, 0.1)
-	);
+const source = `
 
-	let uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 1.0),
-		vec2<f32>(1.0, 0.0),
-		vec2<f32>(0.0, 0.0)
-	);
-
-	[[block]] struct Uniforms {
-		[[size(4)]] uTest : u32;
-		[[size(4)]] x : f32;
-		[[size(4)]] y : f32;
-		[[size(4)]] width : f32;
-		[[size(4)]] height : f32;
+	struct Uniforms {
+		uTest : u32;
+		x : f32;
+		y : f32;
+		width : f32;
+		height : f32;
 	};
-	[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+	@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+	@binding(1) @group(0) var mySampler: sampler;
+	@binding(2) @group(0) var myTexture: texture_2d<f32>;
 
 	struct VertexInput {
-		[[builtin(vertex_idx)]] index : u32;
+		@builtin(vertex_index) index : u32,
 	};
 
 	struct VertexOutput {
-		[[builtin(position)]] position : vec4<f32>;
-		[[location(0)]] uv : vec2<f32>;
+		@builtin(position) position : vec4<f32>,
+		@location(0) uv : vec2<f32>,
 	};
 
-	[[stage(vertex)]]
-	fn main(vertex : VertexInput) -> VertexOutput {
+	struct FragmentInput {
+		@location(0) uv: vec2<f32>,
+	};
+
+	@vertex
+	fn main_vertex(vertex : VertexInput) -> VertexOutput {
+
+		var pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+			vec2<f32>(0.0, 0.0),
+			vec2<f32>(0.1, 0.0),
+			vec2<f32>(0.1, 0.1),
+			vec2<f32>(0.0, 0.0),
+			vec2<f32>(0.1, 0.1),
+			vec2<f32>(0.0, 0.1)
+		);
+
+		var uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+			vec2<f32>(0.0, 1.0),
+			vec2<f32>(1.0, 1.0),
+			vec2<f32>(1.0, 0.0),
+			vec2<f32>(0.0, 1.0),
+			vec2<f32>(1.0, 0.0),
+			vec2<f32>(0.0, 0.0)
+		);
 
 		var output : VertexOutput;
 
@@ -51,15 +58,15 @@ let vs = `
 		var width : f32 = uniforms.width * 2.0;
 		var height : f32 = uniforms.height * 2.0;
 
-		var vi : i32 = vertex.index;
+		var vi = vertex.index;
 
-		if(vi == 0 || vi == 3 || vi == 5){
+		if(vi == 0u || vi == 3u || vi == 5u){
 			output.position.x = x;
 		}else{
 			output.position.x = x + width;
 		}
 
-		if(vi == 0 || vi == 1 || vi == 3){
+		if(vi == 0u || vi == 1u || vi == 3u){
 			output.position.y = y;
 		}else{
 			output.position.y = y + height;
@@ -67,19 +74,9 @@ let vs = `
 
 		return output;
 	}
-`;
 
-let fs = `
-
-	[[binding(1), set(0)]] var mySampler: sampler;
-	[[binding(2), set(0)]] var myTexture: texture_2d<f32>;
-
-	struct FragmentInput {
-		[[location(0)]] uv: vec2<f32>;
-	};
-
-	[[stage(fragment)]]
-	fn main(input : FragmentInput) -> [[location(0)]] vec4<f32> {
+	@fragment
+	fn main_fragment(input : FragmentInput) -> @location(0) vec4<f32> {
 
 		var uv : vec2<f32> = input.uv;
 		
@@ -117,7 +114,7 @@ function getGpuTexture(renderer, image){
 		gpuTexture = device.createTexture({
 			size: [image.width, image.height, 1],
 			format: "rgba8unorm",
-			usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST,
+			usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
 		});
 
 		device.queue.copyImageBitmapToTexture(
@@ -141,12 +138,12 @@ function getPipeline(renderer, gpuTexture){
 
 	pipeline = device.createRenderPipeline({
 		vertex: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
+			module: device.createShaderModule({code: source}),
+			entryPoint: "main_vertex",
 		},
 		fragment: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
+			module: device.createShaderModule({code: source}),
+			entryPoint: "main_fragment",
 			targets: [{format: "bgra8unorm"}],
 		},
 		primitive: {
@@ -155,7 +152,7 @@ function getPipeline(renderer, gpuTexture){
 		},
 		depthStencil: {
 			depthWriteEnabled: true,
-			depthCompare: "greater",
+			depthCompare: "always",
 			format: "depth32float",
 		},
 	});

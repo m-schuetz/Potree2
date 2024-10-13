@@ -1,21 +1,19 @@
 
-import {Vector3} from "../math/Vector3.js";
-import {Box3} from "../math/Box3.js";
-import {Matrix4} from "../math/Matrix4.js";
+import {Vector3, Box3, Matrix4} from "potree";
 
 export class SceneNode{
 
 	constructor(name){
 		this.name = name;
 		
-		this.position = new Vector3(0, 0, 0);
-		this.rotation = new Matrix4();
-		this.scale = new Vector3(1, 1, 1);
+		this.position    = new Vector3(0, 0, 0);
+		this.rotation    = new Matrix4();
+		this.scale       = new Vector3(1, 1, 1);
 		this.boundingBox = new Box3();
-
-		this.children = [];
-
-		this.world = new Matrix4();
+		this.renderLayer = 0;
+		this.visible     = true;
+		this.children    = [];
+		this.world       = new Matrix4();
 	}
 
 	updateWorld(){
@@ -61,6 +59,16 @@ export class SceneNode{
 		}
 
 		this.updateWorld();
+	}
+
+	find(name){
+		let result = null;
+
+		this.traverse((node) => {
+			if(node.name === name) result = node;
+		});
+
+		return result;
 	}
 
 };

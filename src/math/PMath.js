@@ -13,3 +13,14 @@ export function toRadians(degrees){
 export function toDegrees(radians){
 	return 180 * radians / π;
 }
+
+export function ceilN(value, N){
+	return value + (N - value % N);
+};
+
+export function clamp(value, min, max){
+	if(value < min) return min;
+	if(value > max) return max;
+	
+	return value;
+};

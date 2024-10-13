@@ -42,5 +42,13 @@ export class Line3{
 		return this.delta( target ).multiplyScalar( t ).add( this.start );
 	}
 
+	delta( target ) {
+		return target.subVectors( this.end, this.start );
+	}
+
+	at(t, target){
+		return this.delta( target ).multiplyScalar( t ).add( this.start );
+	}
+
 }
 

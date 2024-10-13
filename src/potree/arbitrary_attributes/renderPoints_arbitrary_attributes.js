@@ -1,5 +1,5 @@
 
-import {Vector3, Matrix4} from "../../math/math.js";
+import {Vector3, Matrix4} from "potree";
 import {SPECTRAL} from "../../misc/Gradients.js";
 import * as Timer from "../../renderer/Timer.js";
 import {getPipeline} from "./sh_scalar.js";

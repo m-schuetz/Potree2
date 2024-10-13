@@ -1,28 +1,25 @@
 
-import {Vector3, Matrix4} from "../../math/math.js";
+import {Vector3, Matrix4} from "potree";
 
 const vs = `
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
-
-[[location(0)]] var<in> position : vec4<f32>;
-[[location(1)]] var<in> normal : vec4<f32>;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 struct VertexInput {
-	[[location(0)]] position        : vec4<f32>;
-	[[location(1)]] normal          : vec4<f32>;
+	@location(0) position        : vec4<f32>,
+	@location(1) normal          : vec4<f32>,
 };
 
 struct VertexOutput {
-	[[builtin(position)]] position  : vec4<f32>;
-	[[location(3)]] color           : vec4<f32>;
+	@builtin(position) position  : vec4<f32>,
+	@location(3) color           : vec4<f32>,
 };
 
-[[stage(vertex)]]
+@vertex
 fn main(vertex : VertexInput) -> VertexOutput {
 
 	var output : VertexOutput;
@@ -37,23 +34,24 @@ fn main(vertex : VertexInput) -> VertexOutput {
 
 const fs = `
 
-[[block]] struct Uniforms {
-	worldView : mat4x4<f32>;
-	proj : mat4x4<f32>;
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 struct FragmentInput {
-	[[builtin(position)]] position  : vec4<f32>;
-	[[location(3)]] color           : vec4<f32>;
+	@builtin(position) position  : vec4<f32>,
+	@location(3) color           : vec4<f32>,
 };
 
 struct FragmentOutput {
-	[[location(0)]] color : vec4<f32>;
+	@location(0) color : vec4<f32>,
+	@location(1) id : vec4<u32>,
 };
 
-[[stage(fragment)]]
+@fragment
 fn main(fragment : FragmentInput) -> FragmentOutput {
 
 	// var N : vec3<f32> = (uniforms.worldView * vec4<f32>(in_normal.xyz, 0.0)).xyz;
@@ -68,9 +66,9 @@ fn main(fragment : FragmentInput) -> FragmentOutput {
 
 let initialized = false;
 let pipeline = null;
-let uniformBuffer = null;
+// let uniformBuffer = null;
 
-function initialize(renderer){
+function init(renderer){
 
 	if(initialized){
 		return;
@@ -79,6 +77,7 @@ function initialize(renderer){
 	let {device} = renderer;
 
 	pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
 			module: device.createShaderModule({code: vs}),
 			entryPoint: "main",
@@ -103,11 +102,14 @@ function initialize(renderer){
 		fragment: {
 			module: device.createShaderModule({code: fs}),
 			entryPoint: "main",
-			targets: [{format: "bgra8unorm"}],
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint", writeMask: 0},
+			],
 		},
 		primitive: {
 			topology: 'triangle-list',
-			cullMode: 'none',
+			cullMode: 'back',
 		},
 		depthStencil: {
 			depthWriteEnabled: true,
@@ -116,59 +118,88 @@ function initialize(renderer){
 		},
 	});
 
-	const uniformBufferSize = 256; 
-
-	uniformBuffer = device.createBuffer({
-		size: uniformBufferSize,
-		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-	});
+	// const uniformBufferSize = 256; 
+	// uniformBuffer = device.createBuffer({
+	// 	size: uniformBufferSize,
+	// 	usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+	// });
 
 	initialized = true;
 }
 
-export function render(pass, node, drawstate){
-	
-	let {renderer, camera, renderables} = drawstate;
+function updateUniforms(node, uniformsBuffer, drawstate){
+
+	let {renderer, camera} = drawstate;
 	let {device} = renderer;
 
-	initialize(renderer);
+	let world = node.world;
+	let view = camera.view;
+	let worldView = new Matrix4().multiplyMatrices(view, world);
 
-	{ // update uniforms
-		let world = node.world;
-		let view = camera.view;
-		let worldView = new Matrix4().multiplyMatrices(view, world);
+	let tmp = new Float32Array(16);
 
-		let tmp = new Float32Array(16);
+	tmp.set(worldView.elements);
+	device.queue.writeBuffer(
+		uniformsBuffer, 0,
+		tmp.buffer, tmp.byteOffset, tmp.byteLength
+	);
 
-		tmp.set(worldView.elements);
-		device.queue.writeBuffer(
-			uniformBuffer, 0,
-			tmp.buffer, tmp.byteOffset, tmp.byteLength
-		);
+	tmp.set(camera.proj.elements);
+	device.queue.writeBuffer(
+		uniformsBuffer, 64,
+		tmp.buffer, tmp.byteOffset, tmp.byteLength
+	);
+}
 
-		tmp.set(camera.proj.elements);
-		device.queue.writeBuffer(
-			uniformBuffer, 64,
-			tmp.buffer, tmp.byteOffset, tmp.byteLength
-		);
+let uniformsMap = new Map();
+
+function getUniforms(renderer, node){
+
+	if(!uniformsMap.has(node)){
+		const uniformBufferSize = 256; 
+
+		let uniformsBuffer = renderer.device.createBuffer({
+			size: uniformBufferSize,
+			usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+		});
+
+		uniformsMap.set(node, uniformsBuffer);
 	}
 
-	let {passEncoder} = pass;
-	let vbos = renderer.getGpuBuffers(node.geometry);
+	return uniformsMap.get(node);
+}
 
-	passEncoder.setPipeline(pipeline);
+export function render(node, drawstate){
+	
+	let {renderer, pass} = drawstate;
+	let {device} = renderer;
+	let {passEncoder} = pass;
+
+	init(renderer);
+
+	let uniformsBuffer = getUniforms(renderer, node);
+	updateUniforms(node, uniformsBuffer, drawstate);
+
+	// let vbos = renderer.getGpuBuffers(node.geometry);
 
 	let bindGroup = device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
-			{binding: 0, resource: {buffer: uniformBuffer}},
+			{binding: 0, resource: {buffer: uniformsBuffer}},
 		]
 	});
 
+	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
 
-	let vboPosition = vbos.find(item => item.name === "position").vbo;
-	let vboNormal = vbos.find(item => item.name === "normal").vbo;
+	
+
+	let vboPosition = renderer.getGpuBuffer(node.geometry.buffers.find(item => item.name === "position").buffer);
+	let vboNormal   = renderer.getGpuBuffer(node.geometry.buffers.find(item => item.name === "normal").buffer);
+
+	// let vboPosition = vbos.find(item => item.name === "position").vbo;
+	// let vboNormal   = vbos.find(item => item.name === "normal").vbo;
+
 	passEncoder.setVertexBuffer(0, vboPosition);
 	passEncoder.setVertexBuffer(1, vboNormal);
 

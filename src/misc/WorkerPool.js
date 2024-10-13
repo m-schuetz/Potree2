@@ -1,5 +1,15 @@
 
-let workers = [];
+
+class WorkerList{
+
+	constructor(){
+		this.count = 0;
+		this.list = [];
+	}
+
+}
+
+let workers = new Map();
 
 export class WorkerPool{
 	constructor(){
@@ -7,22 +17,39 @@ export class WorkerPool{
 	}
 
 	static getWorker(url, params){
-		if (!workers[url]){
-			workers[url] = [];
+		if (!workers.has(url)){
+			workers.set(url, new WorkerList());
 		}
 
-		if (workers[url].length === 0){
+		if (workers.get(url).list.length === 0){
 			let worker = new Worker(url, params);
-			workers[url].push(worker);
+			workers.get(url).list.push(worker);
+			workers.get(url).count++;
 		}
 
-		let worker = workers[url].pop();
+		let worker = workers.get(url).list.pop();
 
 		return worker;
 	}
 
+	static getWorkerCount(url){
+		if (!workers.has(url)){
+			return 0;
+		}else{
+			return workers.get(url).count;
+		}
+	}
+
+	static getAvailableWorkerCount(url){
+		if (!workers.has(url)){
+			return Infinity;
+		}else{
+			return workers.get(url).list.length;
+		}
+	}
+
 	static returnWorker(url, worker){
-		workers[url].push(worker);
+		workers.get(url).list.push(worker);
 	}
 	
 };

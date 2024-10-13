@@ -1,49 +1,60 @@
 
-import {Vector3, Matrix4} from "../../math/math.js";
+import {Geometry, Vector3, Matrix4} from "potree";
 import {cube, cube_wireframe} from "../geometries/cube.js";
-import {Geometry} from "../../core/Geometry.js";
 
 
-const vs = `
-[[block]] struct Uniforms {
-	[[offset(0)]] worldView : mat4x4<f32>;
-	[[offset(64)]] proj : mat4x4<f32>;
-	[[offset(128)]] screen_width : f32;
-	[[offset(132)]] screen_height : f32;
+const shaderCode = `
+struct Uniforms {
+	worldView : mat4x4<f32>,
+	proj : mat4x4<f32>,
+	screen_width : f32,
+	screen_height : f32,
 };
 
-[[binding(0), set(0)]] var<uniform> uniforms : Uniforms;
+@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
-[[location(0)]] var<in> box_pos : vec4<f32>;
-[[location(1)]] var<in> box_scale : vec4<f32>;
-[[location(2)]] var<in> point_pos : vec4<f32>;
-[[location(3)]] var<in> box_color : vec4<f32>;
+struct VertexIn{
+	@location(0)         box_pos   : vec4<f32>,
+	@location(1)         box_scale : vec4<f32>,
+	@location(2)         point_pos : vec4<f32>,
+	@location(3)         box_color : vec4<f32>,
+};
 
-[[builtin(position)]] var<out> out_pos : vec4<f32>;
-[[location(0)]] var<out> fragColor : vec4<f32>;
+struct VertexOut{
+	@builtin(position)   out_pos   : vec4<f32>,
+	@location(0)         fragColor : vec4<f32>,
+};
 
-[[stage(vertex)]]
-fn main() -> void {
+@vertex
+fn main_vertex(vertex : VertexIn) -> VertexOut {
 	
-	var worldPos : vec4<f32> = box_pos + point_pos * box_scale;
+	var worldPos : vec4<f32> = vertex.box_pos + vertex.point_pos * vertex.box_scale;
 	worldPos.w = 1.0;
 	var viewPos : vec4<f32> = uniforms.worldView * worldPos;
-	out_pos = uniforms.proj * viewPos;
 
-	fragColor = box_color;
+	var vout : VertexOut;
+	vout.fragColor = vertex.box_color;
+	vout.out_pos = uniforms.proj * viewPos;
 
-	return;
+	return vout;
 }
-`;
+struct FragmentIn{
+	@location(0) fragColor : vec4<f32>,
+};
 
-const fs = `
-[[location(0)]] var<in> fragColor : vec4<f32>;
-[[location(0)]] var<out> outColor : vec4<f32>;
+struct FragmentOut{
+	@location(0) outColor : vec4<f32>,
+	@location(1) id : u32,
+};
 
-[[stage(fragment)]]
-fn main() -> void {
-	outColor = fragColor;
-	return;
+@fragment
+fn main_fragment(fragment : FragmentIn) -> FragmentOut {
+
+	var fout : FragmentOut;
+	fout.outColor = fragment.fragColor;
+	fout.id = 0u;
+
+	return fout;
 }
 `;
 
@@ -52,16 +63,19 @@ let pipeline = null;
 let geometry_boxes = null;
 let uniformBuffer = null;
 let bindGroup = null;
-let capacity = 10_000;
+let capacity = 1_000_000;
 
 function createPipeline(renderer){
 
 	let {device} = renderer;
 
+	let module = device.createShaderModule({code: shaderCode});
+
 	pipeline = device.createRenderPipeline({
+		layout: "auto",
 		vertex: {
-			module: device.createShaderModule({code: vs}),
-			entryPoint: "main",
+			module,
+			entryPoint: "main_vertex",
 			buffers: [
 				{ // box position
 					arrayStride: 3 * 4,
@@ -99,9 +113,12 @@ function createPipeline(renderer){
 			]
 		},
 		fragment: {
-			module: device.createShaderModule({code: fs}),
-			entryPoint: "main",
-			targets: [{format: "bgra8unorm"}],
+			module,
+			entryPoint: "main_fragment",
+			targets: [
+				{format: "bgra8unorm"},
+				{format: "r32uint"},
+			],
 		},
 		primitive: {
 			topology: 'triangle-list',
@@ -159,7 +176,10 @@ function init(renderer){
 
 }
 
-function updateUniforms(renderer){
+function updateUniforms(drawstate){
+
+	let {renderer, camera} = drawstate;
+
 	let data = new ArrayBuffer(256);
 	let f32 = new Float32Array(data);
 	let view = new DataView(data);
@@ -183,15 +203,16 @@ function updateUniforms(renderer){
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
 }
 
-export function render(renderer, pass, boxes, camera){
+export function render(boxes, drawstate){
 
+	let {renderer} = drawstate;
 	let {device} = renderer;
 
 	init(renderer);
 
-	updateUniforms(renderer);
+	updateUniforms(drawstate);
 
-	let {passEncoder} = pass;
+	let {passEncoder} = drawstate.pass;
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
@@ -221,26 +242,11 @@ export function render(renderer, pass, boxes, camera){
 			color[4 * i + 3] = 255;
 		}
 
-		device.queue.writeBuffer(vboPosition, 0, position.buffer, 0, position.byteLength);
-		device.queue.writeBuffer(vboScale, 0, scale.buffer, 0, scale.byteLength);
-		device.queue.writeBuffer(vboColor, 0, color.buffer, 0, color.byteLength);
+		let numBoxes = boxes.length;
+		device.queue.writeBuffer(vboPosition, 0, position.buffer, 0, 12 * numBoxes);
+		device.queue.writeBuffer(vboScale, 0, scale.buffer, 0, 12 * numBoxes);
+		device.queue.writeBuffer(vboColor, 0, color.buffer, 0, 4 * numBoxes);
 	}
-
-	// { // wireframe
-	// 	let boxVertices = cube_wireframe.buffers.find(b => b.name === "position").buffer;
-	// 	let vboBoxVertices = renderer.getGpuBuffer(boxVertices);
-	// 	let vboBoxIndices = renderer.getGpuBuffer(cube_wireframe.indices);
-
-	// 	passEncoder.setVertexBuffer(0, vboPosition);
-	// 	passEncoder.setVertexBuffer(1, vboScale);
-	// 	passEncoder.setVertexBuffer(2, vboBoxVertices);
-	// 	passEncoder.setVertexBuffer(3, vboColor);
-	// 	passEncoder.setIndexBuffer(vboBoxIndices, "uint32");
-
-	// 	let numBoxes = boxes.length;
-	// 	let numVertices = cube_wireframe.numElements;
-	// 	passEncoder.drawIndexed(numVertices, numBoxes, 0, 0);
-	// }
 
 	{ // solid
 		let boxVertices = cube.buffers.find(b => b.name === "position").buffer;

@@ -1,4 +1,4 @@
-import {Vector3, computeNormal} from "../math/math.js";
+import {Vector3, computeNormal} from "potree";
 
 export const cube = {
 	vertexCount: 36,

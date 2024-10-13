@@ -1,6 +1,5 @@
 
-import {toRadians, toDegrees} from "../math/PMath.js";
-import {Matrix4, Vector3} from "potree";
+import {Matrix4, Vector3, toRadians, toDegrees} from "potree";
 import {SceneNode} from "./SceneNode.js";
 
 export class Camera extends SceneNode{
@@ -8,12 +7,12 @@ export class Camera extends SceneNode{
 	constructor(name){
 		super(name ?? "camera");
 
-		this.fov = 80;
-		this.near = 0.01;
-		this.far = 10_000;
+		this.fov    = 80;
+		this.near   = 0.01;
+		this.far    = 10_000;
 		this.aspect = 1;
-		this.proj = new Matrix4();
-		this.view = new Matrix4();
+		this.proj   = new Matrix4();
+		this.view   = new Matrix4();
 
 	}
 
@@ -64,6 +63,23 @@ export class Camera extends SceneNode{
 		return dir.sub(origin).normalize();
 	}
 
+	mouseToUnormalizedDirection(u, v){
+		let fovRad = toRadians(this.fov);
+
+		let top = Math.tan(fovRad / 2);
+		let height = 2 * top;
+		let width = this.aspect * height;
+
+		let origin = new Vector3(0, 0, 0).applyMatrix4(this.world);
+		
+		let dir = new Vector3(
+			0.5 * (2.0 * u - 1.0) * width,
+			0.5 * (2.0 * v - 1.0) * height,
+			-1,
+		).applyMatrix4(this.world);
+
+		return dir.sub(origin);
+	}
 
 
 };

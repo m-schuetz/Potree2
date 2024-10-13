@@ -1,0 +1,165 @@
+<html>
+<head>
+	<meta http-equiv="origin-trial" content="AmgwKkyLeQetn/dhGSsOlfOa/QLp1JOUgqyYSeFTadHtP83gkgHrDEj62CN//MgSjDbVwOY/LAr4qg/XyU2YYwMAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY3NTIwOTU5OSwiaXNTdWJkb21haW4iOnRydWV9">
+	<link rel="stylesheet" href="resources/potree.css">
+</head>
+
+<body style="padding: 0; margin: 0">
+
+<div id="potree" style="width: 100%; height: 100%; position: fixed;">
+	<span style="position: relative">
+		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
+	</span>
+</div>
+
+<span id="big_message"></span>
+<pre id="msg_dbg"></pre>
+
+<script type="importmap">
+{
+	"imports": {
+		"potree":        "./src/Potree.js",
+		"lazperf":       "./libs/laz-perf/laz-perf.js",
+		"toolbar":       "./src/modules/toolbar/toolbar.js",
+		"sidebar":       "./src/modules/sidebar/sidebar.js",
+		"dat.gui":       "./libs/dat.gui/dat.gui.module.js",
+		"stats":         "./libs/stats.js/stats.module.js",
+		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
+		"tween":         "./libs/tween/tween.esm.js",
+		"range-select":  "./libs/range-select/RangeSelect.js",
+		"json5":         "./libs/json5/json5.js"
+	}
+}
+</script>
+
+<script type="module">
+
+	import {Potree} from "potree";
+	import {Vector3, Mesh, Geometry, geometries, Points, PointLight, SplatType} from "potree";
+	import {Potree3Loader} from "./src/potree/octree/loader_v3/Potree3Loader.js";
+	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
+	import {initGUI} from "./src/modules/gui_dat/gui.js";
+	import "range-select";
+	import {installSidebar} from "sidebar";
+
+	let canvas = document.getElementById("canvas");
+	let elPotree = document.getElementById("potree");
+	let potree = await Potree.init(canvas);
+	let {scene, controls} = potree;
+
+	installSidebar(elPotree, potree).then(sidebar => {
+		window.sidebar = sidebar;
+		let panelAttributes = sidebar.sections.find(section => section.handler.name === "Attributes").handler;
+		let pointcloud = scene.root.children.find(c => c.constructor.name === "PointCloudOctree");
+		
+		if(panelAttributes && pointcloud){
+			panelAttributes.set(pointcloud);
+		}
+
+	});
+
+	window.Potree = Potree;
+	window.potree = potree;
+	window.Vector3 = Vector3;
+
+	Potree.settings.edlEnabled = true;
+	Potree.settings.dilateEnabled = false;
+	Potree.settings.hqsEnabled = true;
+	Potree.settings.pointBudget = 8_000_000;
+	Potree.settings.attribute = "rgba"; // intensity, classification, ...
+	// Potree.settings.splatType = SplatType.QUADS;
+	Potree.settings.splatType = SplatType.POINTS;
+	Potree.settings.pointSize = 2;
+	Potree.settings.minNodeSize = 100;
+
+	{
+		// Potree3Loader.load("./resources/G/pointclouds/SITN/2561500_1204500_aerial.copc.laz_converted/metadata.json").then(pointcloud => {
+		Potree3Loader.load("https://potree.org/temporary/sitn/pointclouds/lidar_mobile_t1.laz_converted/metadata.json").then(pointcloud => {
+		// Potree3Loader.load("http://5.9.65.151/mschuetz/temporary/2561500_1204500_aerial.copc.laz_converted/metadata.json").then(pointcloud => {
+			scene.root.children.push(pointcloud);
+			pointcloud.position.set(0, 0, 0);
+			pointcloud.name = "Heidentor";
+
+			let min = new Vector3(...pointcloud.loader.metadata.boundingBox.min);
+			let max = new Vector3(...pointcloud.loader.metadata.boundingBox.max);
+
+			let center = max.clone().sub(min).multiplyScalar(0.5);
+			let diagonal = max.sub(min);
+			let campos = center.clone().add(diagonal);
+
+			controls.set({
+				position: campos.toArray(), 
+				pivot:    center.toArray()
+			});
+
+			controls.set({
+				position: [42.5, 36.3, 35.7], 
+				pivot:    [69.3, 63.5, 9.7]
+			});
+
+			let material = pointcloud.material;
+
+			// add lastools visualization of return number and number of returns, if both are present
+			let idx_returnNumber = pointcloud.attributes.indexOf("return number");
+			let idx_numberReturns = pointcloud.attributes.indexOf("number of returns");
+
+			if(idx_returnNumber !== -1 && idx_numberReturns !== -1){
+				material.registerMapping({
+					name: "return nr. & num returns (lastools)",
+					condition: (attribute) => (attribute.name === "return number"),
+					wgsl: `
+						fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+							var att_return_number = attributes[${idx_returnNumber}];
+							var att_num_returns = attributes[${idx_numberReturns}];
+
+							var rn = readU8(node.numPoints * att_return_number.offset + pointID);
+							var nr = readU8(node.numPoints * att_num_returns.offset + pointID);
+
+							if(nr == 1u){
+								return vec4f(1.0, 1.0, 0.0, 1.0);
+							}else{
+								if(rn == 1u){
+									return vec4f(1.0, 0.0, 0.0, 1.0);
+								}else if(rn == nr){
+									return vec4f(0.0, 0.0, 1.0, 1.0);
+								}else{
+									return vec4f(0.0, 1.0, 0.0, 1.0);
+								}
+							}
+						}
+					`,
+				});
+			}
+
+			material.registerMapping({
+				name: "Normal 3xDouble",
+				condition: (attribute) => (attribute.name === "NormalX" && attribute.byteSize === 8),
+				wgsl: `
+					fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+
+						var nx = readF64(node.numPoints * (attrib.offset +  0) + 8 * pointID);
+						var ny = readF64(node.numPoints * (attrib.offset +  8) + 8 * pointID);
+						var nz = readF64(node.numPoints * (attrib.offset + 16) + 8 * pointID);
+
+						var color = vec4f(nx, ny, nz, 1.0);
+
+						return color;
+					}
+				`,
+			});
+
+
+			// add standard attribute mappings
+			for(let mapping of Object.values(MAPPINGS)){
+				material.registerMapping(mapping);
+			}
+		});
+
+	}
+
+
+</script>
+
+</body>
+</html>
