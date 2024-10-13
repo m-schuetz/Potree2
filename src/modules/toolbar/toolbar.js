@@ -1,5 +1,6 @@
 
 import {Gradients, Utils} from "potree";
+import {PointMeasure, DistanceMeasure, HeightMeasure} from "potree";
 
 export async function installToolbar(element, potree){
 
@@ -119,9 +120,7 @@ export async function installToolbar(element, potree){
 			elButton.style.backgroundImage = `url(${dir}/icons/point.svg)`;
 
 			elButton.addEventListener("click", () => {
-				potree.measure.startMeasuring({
-					requiredMarkers: 1,
-				});
+				potree.measure.startMeasuring(new PointMeasure());
 			});
 			
 			elMeasures.appendChild(elButton);
@@ -135,9 +134,7 @@ export async function installToolbar(element, potree){
 			elButton.style.backgroundImage = `url(${dir}/icons/distance.svg)`;
 
 			elButton.addEventListener("click", () => {
-				potree.measure.startMeasuring({
-					
-				});
+				potree.measure.startMeasuring(new DistanceMeasure());
 			});
 			
 			elMeasures.appendChild(elButton);

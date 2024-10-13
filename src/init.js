@@ -61,6 +61,7 @@ function initScene(){
 
 	dbgSphere = new Mesh("sphere", geometries.sphere);
 	dbgSphere.scale.set(0.1, 0.1, 0.1);
+	dbgSphere.visible = false;
 	// dbgSphere.renderLayer = 10;
 	scene.root.children.push(dbgSphere);
 }

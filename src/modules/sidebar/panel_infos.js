@@ -7,6 +7,7 @@ class Panel{
 	constructor(){
 		this.element = document.createElement("div");
 		this.elTable = document.createElement("table");
+		this.prevStrTable = "";
 
 		let elTitle = document.createElement("div");
 		elTitle.classList.add("subsection");
@@ -87,7 +88,11 @@ class Panel{
 		</table>
 		`;
 
-		this.elTable.innerHTML = strTable;
+		// only update DOM if the code changed
+		if(strTable !== this.prevStrTable){
+			this.elTable.innerHTML = strTable;
+			this.prevStrTable = strTable;
+		}
 
 		requestAnimationFrame(this.update.bind(this));
 	}

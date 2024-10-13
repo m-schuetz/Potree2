@@ -61,4 +61,14 @@ export class SceneNode{
 		this.updateWorld();
 	}
 
+	find(name){
+		let result = null;
+
+		this.traverse((node) => {
+			if(node.name === name) result = node;
+		});
+
+		return result;
+	}
+
 };

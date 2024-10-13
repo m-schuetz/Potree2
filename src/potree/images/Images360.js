@@ -279,7 +279,8 @@ export class Images360 extends SceneNode{
 			{
 				// TODO: prototype hack
 				let imageName = image.name.split("\\").at(-1).replaceAll("\"", "");
-				let path      = `./resources/Drive3/${imageName}`;
+				// let path      = `./resources/Drive3/${imageName}`;
+				let path = `https://sitn.ne.ch/web/images/photos360/assets/textures/${imageName}`;
 				let response  = await fetch(path);
 				let buffer    = await response.arrayBuffer();
 				let mimeType  = "image/jpg";
@@ -472,8 +473,18 @@ export class Images360Loader{
 			let lat = Number(tokens[3]);
 			let z = Number(tokens[4]);
 
-			let [x, y] = proj4(target_crs, [long, lat]);
+			if(Number.isNaN(long) || Number.isNaN(lat)){
+				console.log(`could not parse images file. Encountered NaN values at line ${i + 1}`);
+				// throw `could not parse images file. Encountered NaN values at line ${i}`;
+			}
+
+			// let [x, y] = proj4(target_crs, [long, lat]);
+			let [x, y] = [long, lat];
 			box.expandByXYZ(x, y, z);
+
+			// if(y < 1_000_000){
+			// 	console.log(i);
+			// }
 
 			let image = new Image360();
 			image.position.x = x;
@@ -483,6 +494,8 @@ export class Images360Loader{
 
 			imageList.push(image);
 		}
+
+		// debugger;
 
 		for(let image of imageList){
 			image.position.x -= box.min.x;

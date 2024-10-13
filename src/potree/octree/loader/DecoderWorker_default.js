@@ -53,7 +53,9 @@ async function load(event){
 	// pad to multiple of 4 bytes due to GPU requirements.
 	let alignedSize = buffer.byteLength + (4 - (buffer.byteLength % 4));
 	let targetBuffer = new ArrayBuffer(alignedSize);
-	let targetView = new DataView(targetBuffer.buffer);
+	let targetView = new DataView(targetBuffer);
+
+	// debugger;
 
 	let byteOffset = 0;
 	for (let pointAttribute of pointAttributes.attributes) {
@@ -78,13 +80,19 @@ async function load(event){
 			}
 		}else{
 
+			// if(pointAttribute.name === "rgba"){
+			// 	debugger;
+			// }
+
 			for (let j = 0; j < numPoints; j++) {
 
 				for(let k = 0; k < pointAttribute.byteSize; k++){
 					let sourceOffset = j * pointAttributes.byteSize + byteOffset + k;
+					// let targetOffset = j * pointAttributes.byteSize + byteOffset + k;
 					let targetOffset = numPoints * byteOffset + j * pointAttribute.byteSize + k;
 
-					targetBuffer[targetOffset] = buffer[sourceOffset];
+					let value = buffer[sourceOffset];
+					targetBuffer[targetOffset] = value;
 				}
 
 			}
@@ -92,14 +100,13 @@ async function load(event){
 		}
 		
 		byteOffset += pointAttribute.byteSize;
-
 	}
 
 	let statsList = new Array();
 	if(name === "r")
 	{ // compute stats
 
-		let outView = new DataView(targetBuffer.buffer);
+		let outView = new DataView(targetBuffer);
 
 		let attributesByteSize = 0;
 		for(let i = 0; i < pointAttributes.attributes.length; i++){

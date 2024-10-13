@@ -127,6 +127,8 @@ export class PointCloudOctreeNode{
 
 		let attributes = this.octree.loader.attributes;
 		let offset = 0;
+
+		// debugger;
 		for(let i = 0; i < attributes.attributes.length; i++){
 			let attribute = attributes.attributes[i];
 

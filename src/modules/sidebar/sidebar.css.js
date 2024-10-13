@@ -82,6 +82,7 @@ select{
 	width:             100%;
 	display:           flex;
 	gap:               10px;
+	text-wrap:         nowrap;
 }
 .subsection:before, .subsection:after {
 	position:          relative;

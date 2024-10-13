@@ -284,6 +284,8 @@ export class PotreeLoader{
 			let nodeMin = node.boundingBox.min.toArray(); 
 			let nodeMax = node.boundingBox.max.toArray();
 
+			// debugger;
+
 			// if(numPoints === 0){
 			// 	debugger;
 			// }

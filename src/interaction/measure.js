@@ -1,17 +1,89 @@
 
-import {Potree, Mesh, Vector3, geometries} from "potree";
+import {Potree, Mesh, Vector3, geometries, SceneNode} from "potree";
 import {EventDispatcher, KeyCodes, MouseCodes} from "potree";
+
+let counter = 0;
 
 export class Measure{
 
 	constructor(){
-		
+		this.label = `Measure ${counter}`;
 		this.markers = [];
+		this.requiredMarkers = 1;
+		this.maxMarkers = 1;
+		this.showEdges = true;
+		// this.showEdgesClosed = false;
 
+		counter++;
 	}
 
 	addMarker(position){
 		this.markers.push(position.clone());
+	}
+
+	toHtml(){
+		let htmlMarkers = "";
+		for(let i = 0; i < this.markers.length; i++){
+
+			let marker = this.markers[i];
+
+			htmlMarkers += `
+			<tr>
+				<td style="text-align: right">${marker.x.toFixed(3)}</td>
+				<td style="text-align: right">${marker.y.toFixed(3)}</td>
+				<td style="text-align: right">${marker.z.toFixed(3)}</td>
+			</tr>
+			`;
+
+		}
+
+		let html = `
+		<table style="width: 100%">
+			${htmlMarkers}
+		</table>
+		`;
+		
+		return html;
+	}
+
+};
+
+export class PointMeasure extends Measure{
+
+	constructor(){
+		super();
+	}
+
+	addMarker(position){
+		this.markers.push(position.clone());
+	}
+};
+
+export class DistanceMeasure extends Measure{
+
+	constructor(){
+		super();
+		this.requiredMarkers = 0;
+		this.maxMarkers = 100;
+	}
+
+	addMarker(position){
+		this.markers.push(position.clone());
+	}
+
+};
+
+export class HeightMeasure extends Measure{
+
+	constructor(){
+		super();
+		this.requiredMarkers = 2;
+		this.maxMarkers = 2;
+	}
+
+	addMarker(position){
+		this.markers.push(position.clone());
+
 	}
 
 };
@@ -23,13 +95,17 @@ export class MeasureTool{
 		this.renderer = potree.renderer;
 		this.element = potree.renderer.canvas;
 
-		this.cursor = new Mesh("sphere", geometries.sphere);
+		this.node = new SceneNode("MeasureTool");
+		this.cursor = new Mesh("MeasureTool_cursor", geometries.sphere);
 		this.cursor.scale.set(10.5, 10.5, 10.5);
-		this.cursor.renderLayer = 10;
-		this.cursor.visible = false;
-		potree.scene.root.children.push(this.cursor);
+		this.cursor.position.set(67.97, -4.54, -23.56);
+		// this.cursor.renderLayer = 10;
+		this.cursor.visible = true;
 
-		this.currentMeasure = null;
+		this.node.children.push(this.cursor);
+		potree.scene.root.children.push(this.node);
+
+		this.currentMeasurement = null;
 
 		this.measures = [];
 
@@ -47,9 +123,12 @@ export class MeasureTool{
 		let depth = camera.getWorldPosition().distanceTo(this.cursor.position);
 		let radius = depth / 50;
 
-		// console.log(radius);
-
-		this.cursor.scale.set(radius, radius, radius);
+		if(this.currentMeasurement){
+			this.cursor.visible = true;
+			this.cursor.scale.set(radius, radius, radius);
+		}else{
+			this.cursor.visible = false;
+		}
 
 		for(let measure of this.measures){
 
@@ -61,19 +140,20 @@ export class MeasureTool{
 				this.renderer.drawSphere(marker, radius);
 			}
 
-			for(let i = 0; i < measure.markers.length - 1; i++){
-				this.renderer.drawLine(
-					measure.markers[i + 0],
-					measure.markers[i + 1],
-					new Vector3(255, 0, 0),
-				);
+			if(measure.showEdges){
+				for(let i = 0; i < measure.markers.length - 1; i++){
+					this.renderer.drawLine(
+						measure.markers[i + 0],
+						measure.markers[i + 1],
+						new Vector3(255, 0, 0),
+					);
+				}
 			}
 
 		}
 	}
 
 	measureMove(e){
-		// let [x, y] = [e.event.clientX, e.event.clientY];
 		let {x, y} = e.mouse;
 
 		let node = this.cursor;
@@ -93,17 +173,17 @@ export class MeasureTool{
 		console.log(e);
 	}
 
-	startMeasuring(args = {}){
+	startMeasuring(measure){
 
-		if(this.currentMeasure){
+		if(this.currentMeasurement){
 			this.stopMeasuring();
 		}
 
-		let maxMarkers = args.maxMarkers ?? Infinity;
-		let requiredMarkers = args.requiredMarkers ?? null;
+		if(!measure){
+			measure = new Measure();
+		}
 
-		let measure = new Measure();
-		this.currentMeasurement = {measure, args};
+		this.currentMeasurement = measure;
 
 		this.measures.push(measure);
 
@@ -116,15 +196,15 @@ export class MeasureTool{
 			
 				measure.addMarker(markerPos);
 
-				if(measure.markers.length === maxMarkers){
+				if(measure.markers.length === measure.maxMarkers){
 					this.stopMeasuring();
-				}else if(measure.markers.length === requiredMarkers){
+				}else if(measure.markers.length === measure.requiredMarkers){
 					this.stopMeasuring();
 				}
 
 			}else if(e.event.button === MouseCodes.RIGHT){
 
-				if(requiredMarkers && measure.markers.length !== requiredMarkers){
+				if(measure.requiredMarkers && measure.markers.length !== measure.requiredMarkers){
 					this.measures.pop();
 				}
 
@@ -138,6 +218,7 @@ export class MeasureTool{
 	stopMeasuring(){
 		this.dispatcher.removeAll();
 		this.cursor.visible = false;
+		this.currentMeasurement = null;
 	}
 
 };

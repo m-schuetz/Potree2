@@ -80,7 +80,8 @@ canvas{
 		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
 		"tween":         "./libs/tween/tween.esm.js",
 		"range-select":  "./libs/range-select/RangeSelect.js",
-		"json5":         "./libs/json5/json5.js"
+		"json5":         "./libs/json5/json5.js",
+		"proj4":         "./libs/proj4js/proj4-src.js"
 	}
 }
 </script>
@@ -98,8 +99,8 @@ canvas{
 
 	console.log(proj4.version);
 
-	// import {installToolbar} from "toolbar";
-	import {installSidebar} from "sidebar";
+	import {installToolbar} from "toolbar";
+	// import {installSidebar} from "sidebar";
 
 	let canvas = document.getElementById("canvas");
 	let elPotree = document.getElementById("potree");
