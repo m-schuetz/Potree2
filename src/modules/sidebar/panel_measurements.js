@@ -103,34 +103,56 @@ class Panel{
 		
 		let html = "";
 
-		// html += "<table>";
-
 		let i = 0;
 
 		for(let measure of measureTool.measures){
 
+			let prefix = `measure_${i}`;
+
 			html += `
-				<div style="display: grid; grid-template-columns: 1fr 0.1fr">
-					<span style="justify-self: stretch"><b>${measure.label}</b></span>
-					<span>(${measure.constructor.name})</span>
+				<div>
+					<div style="display: grid; grid-template-columns: 1fr 0.1fr" >
+						<span name="test" style="justify-self: stretch"><b>${measure.label}</b></span>
+						<span>(${measure.constructor.name})</span>
+					</div>
+
+					${measure.toHtml(`${prefix}`)}
 				</div>
-
-				<table
-
-				${measure.toHtml()}
+				<br>
 			`;
 
 			i++;
 		}
 
-		// html += "</table>";
-
-
-
 		// only update DOM if the html string changed
 		if(html != this.prevHtml){
 			this.elMeasures.innerHTML = html;
+			// this.elMeasures.onmouseover = () => {
+			// 	console.log("test");
+			// };
 			this.prevHtml = html;
+
+			for(let i = 0; i < measureTool.measures.length; i++){
+				let measure = measureTool.measures[i];
+				let prefix = `measure_${i}`;
+
+				for(let markerIndex = 0; markerIndex < measure.markers.length; markerIndex++){
+					let el = this.elMeasures.querySelector(`#${prefix}_${markerIndex}`);
+
+					if(el){
+						el.onmouseenter = () => {
+							measure.markers_highlighted[markerIndex] = true;
+							console.log("enter!");
+						};
+
+						el.onmouseleave = () => {
+							measure.markers_highlighted[markerIndex] = false;
+							console.log("leavbe!");
+						};
+					}
+				}
+
+			}
 		}
 
 		requestAnimationFrame(this.updateListOfMeasures.bind(this));

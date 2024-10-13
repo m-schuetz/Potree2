@@ -1,5 +1,5 @@
 
-import {Potree, Mesh, Vector3, geometries, SceneNode} from "potree";
+import {Potree, Mesh, Vector3, Vector4, geometries, SceneNode} from "potree";
 import {EventDispatcher, KeyCodes, MouseCodes} from "potree";
 
 let counter = 0;
@@ -9,6 +9,7 @@ export class Measure{
 	constructor(){
 		this.label = `Measure ${counter}`;
 		this.markers = [];
+		this.markers_highlighted = [];
 		this.requiredMarkers = 1;
 		this.maxMarkers = 1;
 		this.showEdges = true;
@@ -21,14 +22,14 @@ export class Measure{
 		this.markers.push(position.clone());
 	}
 
-	toHtml(){
+	toHtml(prefix = ""){
 		let htmlMarkers = "";
 		for(let i = 0; i < this.markers.length; i++){
 
 			let marker = this.markers[i];
 
 			htmlMarkers += `
-			<tr>
+			<tr id="${prefix}_${i}">
 				<td style="text-align: right">${marker.x.toFixed(3)}</td>
 				<td style="text-align: right">${marker.y.toFixed(3)}</td>
 				<td style="text-align: right">${marker.z.toFixed(3)}</td>
@@ -132,14 +133,23 @@ export class MeasureTool{
 
 		for(let measure of this.measures){
 
-			for(let marker of measure.markers){
+			// DRAW MARKERS
+			for(let markerIndex = 0; markerIndex < measure.markers.length; markerIndex++){
+				let marker = measure.markers[markerIndex];
 
 				let depth = camera.getWorldPosition().distanceTo(marker);
 				let radius = depth / 50;
 
-				this.renderer.drawSphere(marker, radius);
+				let args = {
+					color: new Vector4(0, 1, 0, 1)
+				};
+				if(measure.markers_highlighted[markerIndex]){
+					args.color.set(255, 127, 80, 255).multiplyScalar(1 / 255);
+				}
+				this.renderer.drawSphere(marker, radius, args);
 			}
 
+			// DRAW EDGES
 			if(measure.showEdges){
 				for(let i = 0; i < measure.markers.length - 1; i++){
 					this.renderer.drawLine(
@@ -148,6 +158,23 @@ export class MeasureTool{
 						new Vector3(255, 0, 0),
 					);
 				}
+			}
+
+			// DRAW HEIGHT MEASURE
+			if(measure instanceof HeightMeasure && measure.markers.length === 2){
+
+				let low  = measure.markers[0];
+				let high = measure.markers[1];
+				if(low.z > high.z){
+					[low, high] = [high, low];
+				}
+
+				let start = new Vector3(high.x, high.y, high.z);
+				let end = new Vector3(high.x, high.y, low.z);
+
+				this.renderer.drawLine(start, end, new Vector3(0, 0, 255));
+
+				this.renderer.drawLine(low, end, new Vector3(255, 0, 0));
 			}
 
 		}

@@ -2,7 +2,9 @@
 export const css = `
 
 
-tr:hover {background-color: coral;}
+tr:hover {
+	background-color: coral;
+}
 
 
 #potree_sidebar{
@@ -113,6 +115,14 @@ select{
 
 table{
 	color: white;
+	border: none;
+	border-collapse: collapse;
+}
+
+tr{
+	border: none;
+	padding: none;
+	margin: none;
 }
 
 .sidebarlabel{

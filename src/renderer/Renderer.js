@@ -736,8 +736,8 @@ export class Renderer{
 		this.draws.boxes.push([position, size, color]);
 	}
 
-	drawSphere(position, radius){
-		this.draws.spheres.push([position, radius]);
+	drawSphere(position, radius, args = {}){
+		this.draws.spheres.push([position, radius, args]);
 	}
 
 	drawMesh(args){

@@ -15,6 +15,7 @@ struct Mat4s { values : array<mat4x4<f32>> };
 
 @binding(0) @group(0) var<uniform> uniforms     : Uniforms;
 @binding(1) @group(0) var<storage, read> worldViewArray : Mat4s;
+@binding(2) @group(0) var<storage, read> colors : array<vec4<f32>>;
 
 struct VertexIn{
 	@builtin(instance_index) instanceID    : u32,
@@ -42,14 +43,13 @@ struct FragmentOut{
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
 	var worldView = worldViewArray.values[vertex.instanceID];
-	
-	// var worldPos : vec4<f32> = vertex.sphere_pos + vertex.point_pos * vertex.sphere_radius;
 	var worldPos : vec4<f32> = vertex.point_pos * vertex.sphere_radius;
 	worldPos.w = 1.0;
 	var viewPos : vec4<f32> = worldView * worldPos;
 
 	var vout : VertexOut;
-	vout.fragColor = vec4<f32>(vertex.point_normal.xyz, 1.0);
+	// vout.fragColor = vec4<f32>(vertex.point_normal.xyz, 1.0);
+	vout.fragColor = colors[vertex.instanceID];
 	vout.out_pos = uniforms.proj * viewPos;
 
 	return vout;
@@ -71,9 +71,12 @@ let pipeline = null;
 let geometry_spheres = null;
 let uniformBuffer = null;
 let mat4Buffer;
+let colorsBuffer;
+
 let bindGroup = null;
 let capacity = 10_000;
 let f32Matrices = new Float32Array(16 * capacity);
+let f32Colors = new Float32Array(4 * capacity);
 
 function createPipeline(renderer){
 
@@ -176,11 +179,17 @@ function init(renderer){
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
+		colorsBuffer = device.createBuffer({
+			size: 16 * capacity,
+			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+		});
+
 		bindGroup = device.createBindGroup({
 			layout: pipeline.getBindGroupLayout(0),
 			entries: [
 				{binding: 0, resource: {buffer: uniformBuffer}},
 				{binding: 1, resource: {buffer: mat4Buffer}},
+				{binding: 2, resource: {buffer: colorsBuffer}},
 			],
 		});
 	}
@@ -258,12 +267,27 @@ export function render(spheres, drawstate){
 			worldView.multiplyMatrices(view, world);
 
 			f32Matrices.set(worldView.elements, 16 * i);
+
+			if(sphere[2].color){
+				let color = sphere[2].color;
+				f32Colors[4 * i + 0] = color.x;
+				f32Colors[4 * i + 1] = color.y;
+				f32Colors[4 * i + 2] = color.z;
+				f32Colors[4 * i + 3] = color.w;
+			}else{
+				f32Colors[4 * i + 0] = 1.0;
+				f32Colors[4 * i + 1] = 0.0;
+				f32Colors[4 * i + 2] = 0.0;
+				f32Colors[4 * i + 3] = 1.0;
+			}
+			
 		}
 
 		let numSpheres = spheres.length;
 		device.queue.writeBuffer(vboPosition, 0, position.buffer, 0, 12 * numSpheres);
 		device.queue.writeBuffer(vboRadius, 0, radius.buffer, 0, 4 * numSpheres);
 		device.queue.writeBuffer(mat4Buffer, 0, f32Matrices.buffer, 0, 64 * numSpheres);
+		device.queue.writeBuffer(colorsBuffer, 0, f32Colors.buffer, 0, 16 * numSpheres);
 	}
 
 	{ // solid
