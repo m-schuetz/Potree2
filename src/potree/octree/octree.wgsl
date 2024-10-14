@@ -290,6 +290,7 @@ fn toQuadPos(vertexID : u32, viewPos : vec4<f32>, node : Node) -> vec4<f32>{
 	}
 
 	var position = uniforms.proj * tmpViewPos;
+	// position.x = position.x + 100.0f;
 
 	return position;
 };
@@ -491,7 +492,7 @@ struct FragmentInput {
 
 struct FragmentOutput {
 	@location(0) color : vec4<f32>,
-	@location(1) point_id : u32,
+	@location(1) point_id : vec4<f32>,
 };
 
 @fragment
@@ -501,7 +502,8 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 
 	var output : FragmentOutput;
 	output.color = fragment.color;
-	output.point_id = fragment.point_id;
+	// output.point_id = fragment.point_id;
+	output.point_id = vec4<f32>(0.0f, 0.0f, 0.0f, 0.0f);
 
 	var uv = vec2<f32>(
 		fragment.frag_position.x - fragment.point_position.x,
@@ -520,7 +522,7 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 		// 	discard;
 		// }
 		// TODO
-		weight = 0.1f;
+		weight = 1.0f;
 
 		var weighted = fragment.color.xyz * weight;
 

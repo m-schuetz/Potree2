@@ -483,80 +483,80 @@ function renderNotSoBasic(){
 
 	let fboTarget = (!dilateEnabled && !edlEnabled) ? screenbuffer : fbo_0;
 	
-	if(hqsEnabled){
+	// if(hqsEnabled){
 
-		Timer.timestampSep(renderer, "HQS(total)-start");
+	// 	Timer.timestampSep(renderer, "HQS(total)-start");
 
-		let fbo_hqs_depth = renderer.getFramebuffer("hqs depth");
-		let fbo_hqs_sum = getSumBuffer(renderer);
+	// 	let fbo_hqs_depth = renderer.getFramebuffer("hqs depth");
+	// 	let fbo_hqs_sum = getSumBuffer(renderer);
 
-		fbo_hqs_sum.setSize(...screenbuffer.size);
-		fbo_hqs_depth.setSize(...screenbuffer.size);
+	// 	fbo_hqs_sum.setSize(...screenbuffer.size);
+	// 	fbo_hqs_depth.setSize(...screenbuffer.size);
 
-		{ // depth pass
-			let pass = startPass(renderer, fbo_hqs_depth, "HQS-depth");
-			let drawstate = {renderer, camera, renderables, pass};
+	// 	{ // depth pass
+	// 		let pass = startPass(renderer, fbo_hqs_depth, "HQS-depth");
+	// 		let drawstate = {renderer, camera, renderables, pass};
 
-			renderPointsOctree(octrees, drawstate, ["hqs-depth"]);
+	// 		renderPointsOctree(octrees, drawstate, ["hqs-depth"]);
 
-			endPass(pass);
-		}
+	// 		endPass(pass);
+	// 	}
 
-		{ // attribute pass
-			fbo_hqs_sum.depth = fbo_hqs_depth.depth;
+	// 	{ // attribute pass
+	// 		fbo_hqs_sum.depth = fbo_hqs_depth.depth;
 
-			let pass = startSumPass(renderer, fbo_hqs_sum, "HQS-accumulate");
-			let drawstate = {renderer, camera, renderables, pass};
+	// 		let pass = startSumPass(renderer, fbo_hqs_sum, "HQS-accumulate");
+	// 		let drawstate = {renderer, camera, renderables, pass};
 
-			renderPointsOctree(octrees, drawstate, ["additive_blending"]);
+	// 		renderPointsOctree(octrees, drawstate, ["additive_blending"]);
 
-			endPass(pass);
-		}
+	// 		endPass(pass);
+	// 	}
 
-		{ // normalization pass
-			let pass = startPass(renderer, fboTarget, "HQS-normalize");
-			let drawstate = {renderer, camera, renderables, pass};
+	// 	{ // normalization pass
+	// 		let pass = startPass(renderer, fboTarget, "HQS-normalize");
+	// 		let drawstate = {renderer, camera, renderables, pass};
 
-			// Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
-			hqs_normalize(fbo_hqs_sum, drawstate);
-			// Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
+	// 		// Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
+	// 		hqs_normalize(fbo_hqs_sum, drawstate);
+	// 		// Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
 
-			endPass(pass);
-		}
+	// 		endPass(pass);
+	// 	}
 
-		fbo_source = fboTarget;
+	// 	fbo_source = fboTarget;
 
-		Timer.timestampSep(renderer, "HQS(total)-end");
+	// 	Timer.timestampSep(renderer, "HQS(total)-end");
 
-	}else if(forwardRendering){
+	// }else if(forwardRendering){
 
-		// // render directly to screenbuffer
-		// let pass = startPass(renderer, screenbuffer);
-		// let drawstate = {renderer, camera, renderables, pass};
+	// 	// // render directly to screenbuffer
+	// 	// let pass = startPass(renderer, screenbuffer);
+	// 	// let drawstate = {renderer, camera, renderables, pass};
 
-		// for(let [key, nodes] of renderables){
-		// 	for(let node of nodes){
-		// 		if(typeof node.render !== "undefined"){
-		// 			node.render(drawstate);
-		// 		}
-		// 	}
-		// }
+	// 	// for(let [key, nodes] of renderables){
+	// 	// 	for(let node of nodes){
+	// 	// 		if(typeof node.render !== "undefined"){
+	// 	// 			node.render(drawstate);
+	// 	// 		}
+	// 	// 	}
+	// 	// }
 
-		// renderer.renderDrawCommands(drawstate);
+	// 	// renderer.renderDrawCommands(drawstate);
 
-		// endPass(pass);
-	}else{
+	// 	// endPass(pass);
+	// }else{
 
-		// render to intermediate framebuffer
-		let pass = startPass(renderer, fbo_0, "render to intermediate");
-		let drawstate = {renderer, camera, renderables, pass};
+	// 	// render to intermediate framebuffer
+	// 	let pass = startPass(renderer, fbo_0, "render to intermediate");
+	// 	let drawstate = {renderer, camera, renderables, pass};
 
-		renderPointsOctree(octrees, drawstate);
+	// 	renderPointsOctree(octrees, drawstate);
 
-		endPass(pass);
+	// 	endPass(pass);
 
-		fbo_source = fbo_0;
-	}
+	// 	fbo_source = fbo_0;
+	// }
 
 
 	// // DILATE
@@ -585,6 +585,7 @@ function renderNotSoBasic(){
 	// 	new Vector3(0, 255, 0),
 	// );
 
+	if(false)
 	{ // render everything but point clouds
 		let pass = revisitPass(renderer, fbo_source, "render everything else");
 		let drawstate = {renderer, camera, renderables, pass};
@@ -606,16 +607,127 @@ function renderNotSoBasic(){
 		endPass(pass);
 	}
 
-	// EDL
-	if(edlEnabled){ 
-		let pass = startPass(renderer, screenbuffer, "EDL");
+	{ // DEBUG: try MSAA
+
+		let fbo_msaa = renderer.getFramebuffer("msaa_test", {sampleCount: 4});
+		fbo_msaa.setSize(...screenbuffer.size);
+
+		let target = fbo_msaa;
+
+		let view = target.colorAttachments[0].texture.createView();
+		let resolveTarget = renderer.context.getCurrentTexture().createView();
+
+		let colorAttachments = [
+			{view, resolveTarget, loadOp: "clear", storeOp: 'store', clearValue: [0, 0, 0, 0]}
+		];
+
+		if(target.colorAttachments.length === 2){
+			let view = target.colorAttachments[1].texture.createView();
+			colorAttachments.push({view, loadOp: "clear", storeOp: 'store', clearValue: [0, 0, 0, 0]});
+		}
+
+		let renderPassDescriptor = {
+			label: "msaa test",
+			colorAttachments,
+			depthStencilAttachment: {
+				view: target.depth.texture.createView(),
+				depthLoadOp: "clear",
+				depthStoreOp: "store",
+				depthClearValue: 0,
+			},
+			sampleCount: 4,
+		};
+
+		let timestampEntry = null;
+		if(renderer.timestamps.enabled){
+			
+			let startIndex = 2 * renderer.timestamps.entries.length;
+
+			renderPassDescriptor.timestampWrites = {
+				querySet:                  renderer.timestamps.querySet,
+				beginningOfPassWriteIndex: startIndex,
+				endOfPassWriteIndex:       startIndex + 1,
+			};
+
+			timestampEntry = {
+				startIndex : startIndex,
+				endIndex   : startIndex + 1,
+				label      : "msaa test",
+			};
+
+			renderer.timestamps.entries.push(timestampEntry);
+		}
+
+		const commandEncoder = renderer.device.createCommandEncoder();
+		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+		// let pass = revisitPass(renderer, fbo_source, "render everything else");
+		let pass = {commandEncoder, passEncoder, timestampEntry};
 		let drawstate = {renderer, camera, renderables, pass};
 
-		EDL(fbo_source, drawstate);
+		// renderQuadsOctree(octrees, drawstate);
+		renderPointsOctree(octrees, drawstate);
+		renderer.renderDrawCommands(drawstate);
 
-		endPass(pass);
+		passEncoder.end();
+
+		if(timestampEntry)
+		if(renderer.timestamps.resultBuffer){
+
+			let {resultBuffer} = renderer.timestamps;
+
+			if(resultBuffer.mapState === "mapped"){
+				debugger;
+			}
+			
+			let byteOffset = 256 * timestampEntry.startIndex / 2;
+			commandEncoder.resolveQuerySet(
+				renderer.timestamps.querySet, timestampEntry.startIndex, 2, 
+				renderer.timestamps.resolveBuffer, byteOffset
+			);
+
+			commandEncoder.copyBufferToBuffer(
+				renderer.timestamps.resolveBuffer, byteOffset,
+				renderer.timestamps.resultBuffer, byteOffset,
+				256
+			);
+		}
+
+		let commandBuffer = commandEncoder.finish();
+		renderer.device.queue.submit([commandBuffer]);
+
+
+		// let pass = revisitPass(renderer, fbo_source, "render everything else");
+		// let drawstate = {renderer, camera, renderables, pass};
+
+		// for(let [key, nodes] of renderables){
+		// 	for(let node of nodes){
+		// 		let hasRender = typeof node.render !== "undefined";
+		// 		let isOctree = node.constructor.name === "PointCloudOctree";
+		// 		let isImages360 = node.constructor.name === "Images360";
+
+		// 		if(hasRender && !isOctree){
+		// 			node.render(drawstate);
+		// 		}
+		// 	}
+		// }
+
+		// renderer.renderDrawCommands(drawstate);
+
+		// endPass(pass);
 	}
 
+	// EDL
+	// if(edlEnabled){ 
+	// 	let pass = startPass(renderer, screenbuffer, "EDL");
+	// 	let drawstate = {renderer, camera, renderables, pass};
+
+	// 	EDL(fbo_source, drawstate);
+
+	// 	endPass(pass);
+	// }
+
+	if(false)
 	{ // HANDLE PICKING
 
 		let renderedObjects = Potree.state.renderedObjects;
@@ -882,6 +994,8 @@ function renderNotSoBasic(){
 
 		renderer.timestamps.resultBuffer = null;
 
+
+		if(entries.length > 0)
 		resultBuffer.mapAsync(GPUMapMode.READ).then(() => {
 			let data = resultBuffer.getMappedRange();
 			let view = new DataView(data);

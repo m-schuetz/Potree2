@@ -10,6 +10,7 @@ export class InputHandler extends EventDispatcher {
 		this.renderer = potree.renderer;
 		this.domElement = this.renderer.canvas;
 		this.enabled = true;
+		this.hoveredElements = [];
 		
 		this.inputListeners = [];
 		this.blacklist = new Set();

@@ -482,7 +482,7 @@ async function renderOctree(octree, drawstate, flags){
 	for(let i = 0; i < nodes.length; i++){
 		let node = nodes[i];
 
-		if(node.__pixelSize <= 500 || true){
+		if(node.__pixelSize <= 300 && false){
 			smallNodes.push([i, node]);
 			node.isSmallNode = true;
 		}else{
@@ -501,44 +501,44 @@ async function renderOctree(octree, drawstate, flags){
 	updateNodesBuffer(octree, largeNodes, prefixSum, octreeState_quads, drawstate, flags, pass);
 	updateNodesBuffer(octree, smallNodes, prefixSum, octreeState_points, drawstate, flags, pass);
 
-	// { // DRAW LARGE NODES AS QUADS
-	// 	let {pipeline, uniformBindGroup, nodesBindGroup} = octreeState_quads;
-	// 	let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
+	{ // DRAW LARGE NODES AS QUADS
+		let {pipeline, uniformBindGroup, nodesBindGroup} = octreeState_quads;
+		let {bindGroup} = getGradient(renderer, pipeline, Potree.settings.gradient);
 
-	// 	pass.passEncoder.setPipeline(pipeline);
-	// 	pass.passEncoder.setBindGroup(0, uniformBindGroup);
-	// 	pass.passEncoder.setBindGroup(1, bindGroup);
-	// 	pass.passEncoder.setBindGroup(3, nodesBindGroup);
+		pass.passEncoder.setPipeline(pipeline);
+		pass.passEncoder.setBindGroup(0, uniformBindGroup);
+		pass.passEncoder.setBindGroup(1, bindGroup);
+		pass.passEncoder.setBindGroup(3, nodesBindGroup);
 
-	// 	for(let [index, node] of largeNodes){
+		for(let [index, node] of largeNodes){
 
-	// 		let numElements = node.geometry.numElements;
+			let numElements = node.geometry.numElements;
 
-	// 		let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
-	// 		pass.passEncoder.setBindGroup(2, bufferBindGroup);
+			let bufferBindGroup = getCachedBufferBindGroup(renderer, pipeline, node);
+			pass.passEncoder.setBindGroup(2, bufferBindGroup);
 
-	// 		if(node.dirty){
+			if(node.dirty){
 
-	// 			let gpuBuffer = renderer.getGpuBuffer(node.geometry.buffer);
-	// 			renderer.device.queue.writeBuffer(
-	// 				gpuBuffer, 0, node.geometry.buffer, 0, node.geometry.buffer.byteLength);
+				let gpuBuffer = renderer.getGpuBuffer(node.geometry.buffer);
+				renderer.device.queue.writeBuffer(
+					gpuBuffer, 0, node.geometry.buffer, 0, node.geometry.buffer.byteLength);
 
-	// 			node.dirty = false;
-	// 		}
+				node.dirty = false;
+			}
 
-	// 		if(octree.showBoundingBox === true){
-	// 			let box = node.boundingBox.clone().applyMatrix4(octree.world);
-	// 			let position = box.min.clone();
-	// 			position.add(box.max).multiplyScalar(0.5);
-	// 			let size = box.size();
-	// 			let color = new Vector3(255, 255, 0);
-	// 			renderer.drawBoundingBox(position, size, color);
-	// 		}
+			if(octree.showBoundingBox === true){
+				let box = node.boundingBox.clone().applyMatrix4(octree.world);
+				let position = box.min.clone();
+				position.add(box.max).multiplyScalar(0.5);
+				let size = box.size();
+				let color = new Vector3(255, 255, 0);
+				renderer.drawBoundingBox(position, size, color);
+			}
 
 			
-	// 		pass.passEncoder.draw(6 * numElements, 1, 0, index);
-	// 	}
-	// }
+			pass.passEncoder.draw(6 * numElements, 1, 0, index);
+		}
+	}
 
 	
 	{ // DRAW SMALL NODES AS POINTS

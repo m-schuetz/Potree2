@@ -142,6 +142,7 @@ export class Renderer{
 		this.adapter = await navigator.gpu.requestAdapter({"powerPreference": "high-performance"});
 
 		this.timestamps.enabled = this.adapter.features.has("timestamp-query");
+		// this.timestamps.enabled = false;
 
 		let requiredFeatures = [];
 
@@ -685,7 +686,7 @@ export class Renderer{
 		}
 	}
 
-	getFramebuffer(id){
+	getFramebuffer(id, args = {}){
 
 		if(this.framebuffers.has(id)){
 			return this.framebuffers.get(id);
@@ -701,13 +702,15 @@ export class Renderer{
 						| GPUTextureUsage.COPY_SRC 
 						| GPUTextureUsage.COPY_DST 
 						| GPUTextureUsage.RENDER_ATTACHMENT,
+					sampleCount: args.sampleCount ?? 1,
 				},{
 					size: size,
-					format: "r32uint",
+					format: this.swapChainFormat,
 					usage: GPUTextureUsage.TEXTURE_BINDING 
 						| GPUTextureUsage.COPY_SRC 
 						| GPUTextureUsage.COPY_DST 
 						| GPUTextureUsage.RENDER_ATTACHMENT,
+					sampleCount: args.sampleCount ?? 1,
 				}],
 				depthDescriptor: {
 					size: size,
@@ -716,7 +719,9 @@ export class Renderer{
 						| GPUTextureUsage.COPY_SRC 
 						| GPUTextureUsage.COPY_DST 
 						| GPUTextureUsage.RENDER_ATTACHMENT,
-				}
+					sampleCount: args.sampleCount ?? 1,
+				},
+				sampleCount: args.sampleCount ?? 1,
 			};
 
 			let framebuffer = new RenderTarget(this, descriptor);
@@ -812,15 +817,20 @@ export class Renderer{
 	}
 
 	renderDrawCommands(drawstate){
-		renderBoxes(this.draws.boxes, drawstate);
+
 		renderSpheres(this.draws.spheres, drawstate);
-		// renderBoundingSpheres(this.draws.spheres, drawstate);
-		renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
-		// renderPoints(this.draws.points, drawstate);
-		// renderQuads(this.draws.quads, drawstate);
-		// renderVoxels(this.draws.voxels, drawstate);
-		renderMeshes(this.draws.meshes, drawstate);
 		renderLines(this.draws.lines, drawstate);
+
+
+		// renderBoxes(this.draws.boxes, drawstate);
+		// renderSpheres(this.draws.spheres, drawstate);
+		// // renderBoundingSpheres(this.draws.spheres, drawstate);
+		// renderBoundingBoxes(this.draws.boundingBoxes, drawstate);
+		// // renderPoints(this.draws.points, drawstate);
+		// // renderQuads(this.draws.quads, drawstate);
+		// // renderVoxels(this.draws.voxels, drawstate);
+		// renderMeshes(this.draws.meshes, drawstate);
+		// renderLines(this.draws.lines, drawstate);
 
 		for(let listener of this.drawListeners){
 			listener(drawstate);

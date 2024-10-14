@@ -7,10 +7,12 @@ export class RenderTarget{
 		this.size = params.size ?? [128, 128];
 		this.renderer = renderer;
 		this.version = 0;
+		this.sampleCount = params.sampleCount ?? 1;
 
 		{ // COLOR ATTACHMENTS
 			let descriptors = params.colorDescriptors ?? [{
 				size: this.size,
+				sampleCount: this.sampleCount,
 				format: "r32uint",
 				usage: GPUTextureUsage.TEXTURE_BINDING 
 					| GPUTextureUsage.COPY_SRC 
@@ -28,6 +30,7 @@ export class RenderTarget{
 		{ // DEPTH ATTACHMENT
 			let descriptor = params.depthDescriptor ?? {
 				size: this.size,
+				sampleCount: this.sampleCount,
 				format: "depth32float",
 				usage: GPUTextureUsage.TEXTURE_BINDING 
 					| GPUTextureUsage.COPY_SRC 

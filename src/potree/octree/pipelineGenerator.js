@@ -189,7 +189,7 @@ export async function makePipeline(renderer, args = {}){
 			entryPoint: "main_fragment",
 			targets: [
 				{format: format, blend: blend},
-				{format: "r32uint", blend: undefined}
+				{format: format, blend: undefined}
 			],
 		},
 		primitive: {
@@ -201,6 +201,9 @@ export async function makePipeline(renderer, args = {}){
 			depthWriteEnabled: depthWrite,
 			depthCompare: "greater-equal",
 			format: "depth32float",
+		},
+		multisample: {
+			count: 4,
 		},
 	});
 

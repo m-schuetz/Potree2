@@ -142,7 +142,7 @@ struct FragmentIn{
 struct FragmentOut{
 	@location(0) color : vec4<f32>,
 	@builtin(frag_depth) depth : f32,
-	@location(1) id : u32,
+	@location(1) id : vec4<f32>,
 };
 
 @fragment
@@ -152,7 +152,7 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 	fout.color = fragment.color;
 
 	fout.depth = fragment.position.z * 1.002;
-	fout.id = 0u;
+	fout.id = vec4<f32>(0.0f, 0.0f, 0.0f, 0.0f);
 
 	return fout;
 }
@@ -173,6 +173,7 @@ function createPipeline(renderer){
 	let module = device.createShaderModule({code: shaderCode});
 
 	pipeline = device.createRenderPipeline({
+		label: "renderLines",
 		layout: "auto",
 		vertex: {
 			module,
@@ -184,7 +185,7 @@ function createPipeline(renderer){
 			entryPoint: "main_fragment",
 			targets: [
 				{format: "bgra8unorm"},
-				{format: "r32uint"},
+				{format: "bgra8unorm"},
 			],
 		},
 		primitive: {
@@ -195,6 +196,9 @@ function createPipeline(renderer){
 			depthWriteEnabled: true,
 			depthCompare: 'greater',
 			format: "depth32float",
+		},
+		multisample: {
+			count: 4,
 		},
 	});
 

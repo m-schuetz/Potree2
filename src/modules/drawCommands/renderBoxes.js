@@ -72,6 +72,7 @@ function createPipeline(renderer){
 	let module = device.createShaderModule({code: shaderCode});
 
 	pipeline = device.createRenderPipeline({
+		label: "renderBoxes",
 		layout: "auto",
 		vertex: {
 			module,

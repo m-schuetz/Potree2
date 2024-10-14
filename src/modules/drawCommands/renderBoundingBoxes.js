@@ -188,6 +188,7 @@ function createPipeline(renderer){
 	let {device} = renderer;
 	
 	pipeline = device.createRenderPipeline({
+		label: "renderBoundingBoxes",
 		layout: "auto",
 		vertex: {
 			module: device.createShaderModule({code: shaderSource}),
