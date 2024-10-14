@@ -3,6 +3,89 @@ import {Gradients, Utils} from "potree";
 import {PointMeasure, DistanceMeasure, HeightMeasure} from "potree";
 let dir = new URL(import.meta.url + "/../").href;
 
+function createMarkerTable(measure, prefix = ""){
+	let htmlMarkers = "";
+
+	htmlMarkers += `
+		<thead>
+			<tr>
+				<th style="text-align: left;  width: 10%;"></th>
+				<th style="text-align: right; width: 30%;">x</th>
+				<th style="text-align: right; width: 30%;">y</th>
+				<th style="text-align: right; width: 30%;">z</th>
+			</tr>
+		</thead>
+	`;
+
+	for(let i = 0; i < measure.markers.length; i++){
+
+		let marker = measure.markers[i];
+
+		htmlMarkers += `
+			<tr id="${prefix}_${i}">
+				<td style="text-align: left">${i + 1}</td>
+				<td style="text-align: right">${marker.x.toFixed(3)}</td>
+				<td style="text-align: right">${marker.y.toFixed(3)}</td>
+				<td style="text-align: right">${marker.z.toFixed(3)}</td>
+			</tr>
+		`;
+
+	}
+
+	let html = `
+	<table style="width: 100%">
+		${htmlMarkers}
+	</table>
+	`;
+	
+	return html;
+}
+
+function createDistanceTable(measure){
+
+	let html = `<table>`;
+
+	html += `
+		<thead>
+			<tr>
+				<th style="text-align: left;  width: 10%;"></th>
+				<th style="text-align: left;  width: 30%;"></th>
+				<th style="text-align: right; width: 30%;">distance</th>
+				<th style="text-align: right; width: 30%;">total</th>
+			</tr>
+		</thead>
+	`;
+
+	let total = 0;
+	for(let i = 0; i < measure.markers.length; i++){
+
+		let distance = 0;
+
+		if(i > 0){
+			let a = measure.markers[i - 1];
+			let b = measure.markers[i];
+
+			distance = b.distanceTo(a);
+			total = total + distance;
+		}
+
+		html += `
+			<tr>
+				<td style="text-align: left">${i + 1}</td>
+				<td style="text-align: left"></td>
+				<td style="text-align: right">${distance.toFixed(3)}</td>
+				<td style="text-align: right">${total.toFixed(3)}</td>
+			</tr>
+		`;
+	}
+
+	html += "</table>";
+
+	return html;
+
+}
+
+
 class Panel{
 
 	constructor(){
@@ -112,11 +195,30 @@ class Panel{
 			html += `
 				<div>
 					<div style="display: grid; grid-template-columns: 1fr 0.1fr" >
-						<span name="test" style="justify-self: stretch"><b>${measure.label}</b></span>
+						<span name="test" style="justify-self: stretch; font-size: 1.3em;"><b>${measure.label}</b></span>
 						<span>(${measure.constructor.name})</span>
 					</div>
 
-					${measure.toHtml(`${prefix}`)}
+					${createMarkerTable(measure, `${prefix}`)}
+			`;
+
+			if(measure instanceof DistanceMeasure){
+				html += `
+					${createDistanceTable(measure)}
+				`;
+			}
+
+			if(measure instanceof HeightMeasure){
+				let height = 0;
+				if(measure.markers.length === 2){
+					height = Math.abs(measure.markers[1].z - measure.markers[0].z);
+				}
+				html += `
+					height: ${height.toFixed(3)}
+				`;
+			}
+
+			html += `
 				</div>
 				<br>
 			`;

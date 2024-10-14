@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="origin-trial" content="AmgwKkyLeQetn/dhGSsOlfOa/QLp1JOUgqyYSeFTadHtP83gkgHrDEj62CN//MgSjDbVwOY/LAr4qg/XyU2YYwMAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY3NTIwOTU5OSwiaXNTdWJkb21haW4iOnRydWV9">
@@ -22,7 +23,7 @@ td{
 
 #msg_dbg{
 	position: absolute; 
-	left: 10px; 
+	right: 10px; 
 	bottom: 10px; 
 	color: white;
 	text-shadow: 4px 4px 4px black;
@@ -35,7 +36,7 @@ td{
 
 #msg_resources{
 	position: absolute; 
-	left: 400px; 
+	right: 10px; 
 	top: 10px; 
 	color: white;
 	text-shadow: 4px 4px 4px black;
@@ -107,8 +108,8 @@ canvas{
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
 	
-	installToolbar(potree.renderer.canvas, potree);
 
+	
 	installSidebar(elPotree, potree).then(sidebar => {
 		window.sidebar = sidebar;
 		let panelAttributes = sidebar.sections.find(section => section.handler.name === "Attributes").handler;
@@ -117,8 +118,8 @@ canvas{
 		if(panelAttributes && pointcloud){
 			panelAttributes.set(pointcloud);
 		}
-
 	});
+	installToolbar(elPotree, potree);
 	// window.sidebar.toggle();
 
 	window.Potree = Potree;
@@ -134,7 +135,7 @@ canvas{
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
 	import {PotreeLoader, Potree3Loader} from "potree";
 	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
-	import {PointMeasure} from "potree";
+	import {PointMeasure, DistanceMeasure, HeightMeasure} from "potree";
 
 	Potree.settings.edlEnabled      = true;
 	Potree.settings.dilateEnabled   = false;
@@ -152,6 +153,22 @@ canvas{
 	let measure = new PointMeasure();
 	measure.markers.push(new Vector3(50, -250, 12));
 	potree.measure.measures.push(measure);
+
+	let md = new DistanceMeasure();
+	md.markers.push(new Vector3(-160.293,  133.898,  38.785));
+	md.markers.push(new Vector3(-162.407, -166.239,  60.978));
+	md.markers.push(new Vector3(  35.218,   96.909,  16.592));
+	md.markers.push(new Vector3( 119.764, -141.932, -37.834));
+	md.markers.push(new Vector3( 233.900, -301.512, -25.681));
+	md.markers.push(new Vector3( 338.525, -152.500, -36.777));
+	md.markers.push(new Vector3( 239.184,   13.420, -20.925));
+	potree.measure.measures.push(md);
+
+	let mh = new HeightMeasure();
+	mh.markers.push(new Vector3(154.639, 122.273,  56.751));
+	mh.markers.push(new Vector3( 17.252, -70.069, -48.931));
+	potree.measure.measures.push(mh);
+
 
 	Potree.events.onFrameStart(() => {
 		let report = Potree.renderer.createResourceReport();
@@ -171,10 +188,12 @@ canvas{
 
 		controls.zoomTo(pointcloud);
 
-		// controls.set({
-		// 	position: [-16.7, 5.9, 13.2], 
-		// 	pivot:    [0.3, 1.5, 7.0]
-		// });
+		
+
+		controls.set({
+			position: [245.1, -536.2, 343.5], 
+			pivot:    [144.2, -23.0, -87.8]
+		});
 	});
 	
 

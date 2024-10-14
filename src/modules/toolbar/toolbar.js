@@ -16,61 +16,94 @@ export async function installToolbar(element, potree){
 	elToolbar.id = "potree_toolbar";
 
 	elToolbar.innerHTML = `
-		<span>
-			<div class="potree_toolbar_label">
-				Attribute
-			</div>
-			<div id="attributes_panel">
 
-			</div>
-		</span>
+		<div id="toolbar_content" style="display: flex;">
+			<span>
+				<div class="potree_toolbar_label">
+					Attribute
+				</div>
+				<div id="attributes_panel">
 
-		<span class="potree_toolbar_separator"></span>
+				</div>
+			</span>
 
-		<span>
-			<div class="potree_toolbar_label">
-				Gradients
-			</div>
-			<div>
-				<span id="gradient_schemes" name="gradient_schemes"></span>
-			</div>
-			<div id="gradient_drop">
-				
-			</div>
-		</span>
+			<span class="potree_toolbar_separator"></span>
 
-		<span class="potree_toolbar_separator"></span>
+			<span>
+				<div class="potree_toolbar_label">
+					Gradients
+				</div>
+				<div>
+					<span id="gradient_schemes" name="gradient_schemes"></span>
+				</div>
+				<div id="gradient_drop">
+					
+				</div>
+			</span>
 
-		<span>
-			<div class="potree_toolbar_label">
-				Measure
-			</div>
-			<div id="measures_panel"></div>
-		</span>
+			<span class="potree_toolbar_separator"></span>
 
-		<span class="potree_toolbar_separator"></span>
+			<span>
+				<div class="potree_toolbar_label">
+					Measure
+				</div>
+				<div id="measures_panel"></div>
+			</span>
 
-		<span>
-			<div class="potree_toolbar_label">
-				Display
-			</div>
-			<div id="display_panel"></div>
-		</span>
+			<span class="potree_toolbar_separator"></span>
 
-		<!--
-		<span class="potree_toolbar_separator"></span>
+			<span>
+				<div class="potree_toolbar_label">
+					Display
+				</div>
+				<div id="display_panel"></div>
+			</span>
 
-		<span>
-			<div class="potree_toolbar_label">
-				<span data-i18n="appearance.nb_max_pts">Point Budget</span>: 
-				<span id="lblPointBudget" style="display: inline-block; width: 3em;">3.0M</span>
-			</div>
-			<div>
-				<input id="sldPointBudget" type="range" min="1" max="100" value="30" class="slider">
-			</div>
-		</span>
-		-->
+			<!--
+			<span class="potree_toolbar_separator"></span>
+
+			<span>
+				<div class="potree_toolbar_label">
+					<span data-i18n="appearance.nb_max_pts">Point Budget</span>: 
+					<span id="lblPointBudget" style="display: inline-block; width: 3em;">3.0M</span>
+				</div>
+				<div>
+					<input id="sldPointBudget" type="range" min="1" max="100" value="30" class="slider">
+				</div>
+			</span>
+			-->
+		</div>
+		<div id="toolbar_openclose">
+			<!--<span style="cursor: pointer;">︽</span>-->
+			<input type="button" class="potree_toolbar_openclose" style="background-image: url(${dir}/icons/openclose.svg); "></input>
+		</div>
 	`;
+
+			// <span style="transform: rotate(-90deg);">⟫</span>
+			// <span style="transform: rotate(-90deg);">»</span>
+			// <span>︿</span>
+
+		// transform: rotate(-180deg);
+
+	{
+		
+		const element = elToolbar.querySelector("#toolbar_openclose");
+		const elContent = elToolbar.querySelector("#toolbar_content");
+		const elOpenClose = elToolbar.querySelector("#toolbar_openclose");
+
+		element.onclick = () => {
+			
+			
+			if(elContent.classList.contains("toolbar_closed")){
+				elContent.classList.remove("toolbar_closed");
+				elOpenClose.classList.remove("toolbar_openclose_flipped");
+			}else{
+				elContent.classList.add("toolbar_closed");
+				elOpenClose.classList.add("toolbar_openclose_flipped");
+			}
+
+		};
+	}
 
 	{ // ATTRIBUTE
 		const elContainer = elToolbar.querySelector("#attributes_panel");
@@ -135,6 +168,20 @@ export async function installToolbar(element, potree){
 
 			elButton.addEventListener("click", () => {
 				potree.measure.startMeasuring(new DistanceMeasure());
+			});
+			
+			elMeasures.appendChild(elButton);
+		}
+
+		{ // Height
+			let elButton = document.createElement("input");
+			elButton.classList.add("potree_toolbar_button");
+			elButton.type = "button";
+			elButton.title = "Height Measure";
+			elButton.style.backgroundImage = `url(${dir}/icons/height.svg)`;
+
+			elButton.addEventListener("click", () => {
+				potree.measure.startMeasuring(new HeightMeasure());
 			});
 			
 			elMeasures.appendChild(elButton);

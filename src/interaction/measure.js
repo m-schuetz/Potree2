@@ -22,31 +22,6 @@ export class Measure{
 		this.markers.push(position.clone());
 	}
 
-	toHtml(prefix = ""){
-		let htmlMarkers = "";
-		for(let i = 0; i < this.markers.length; i++){
-
-			let marker = this.markers[i];
-
-			htmlMarkers += `
-			<tr id="${prefix}_${i}">
-				<td style="text-align: right">${marker.x.toFixed(3)}</td>
-				<td style="text-align: right">${marker.y.toFixed(3)}</td>
-				<td style="text-align: right">${marker.z.toFixed(3)}</td>
-			</tr>
-			`;
-
-		}
-
-		let html = `
-		<table style="width: 100%">
-			${htmlMarkers}
-		</table>
-		`;
-		
-		return html;
-	}
-
 };
 
 export class PointMeasure extends Measure{

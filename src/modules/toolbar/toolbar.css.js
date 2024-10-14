@@ -10,9 +10,19 @@ export const css = `
 	padding: 0.3em 0.8em;
 	font-family: "system-ui";
 	border-radius: 0em 0em 0.3em 0.3em;
-	display: flex;
-	transform: scale(1.3, 1.3);
+	transform: scale(1.0, 1.0);
 	transform-origin: top left;
+	overflow:hidden;
+	left: 50%;
+  	transform: translate(-50%, -00%);
+}
+
+#toolbar_openclose{
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	width: 1px;
+	height: 5px;
 }
 
 .potree_toolbar_label{
@@ -20,6 +30,32 @@ export const css = `
 	font-size: smaller;
 	opacity: 0.9;
 	padding: 0.1em 0.5em 0.5em 0.5em;
+}
+
+.toolbar_openclose_flipped{
+	transform: rotate(-180deg);
+}
+
+.potree_toolbar_openclose{
+	width: 13px; 
+	height: 12px; 
+	cursor: pointer;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-color: transparent;
+	border: none;
+	opacity: 0.6;
+	transform: translateY(-7px);
+}
+
+.potree_toolbar_openclose:hover{
+	filter: brightness(120%);
+	filter: drop-shadow(0px 0px 6px white) drop-shadow(0px 0px 6px white);
+}
+
+.toolbar_closed{
+	height: 0px;
+	overflow:hidden;
 }
 
 .potree_toolbar_separator{

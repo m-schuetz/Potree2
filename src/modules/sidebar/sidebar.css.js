@@ -1,17 +1,23 @@
 
 export const css = `
 
+:root {
+	--line-height:  1.6em;
+	--text-color:   #dddddd;
+}
 
-tr:hover {
+
+tbody tr:hover {
 	background-color: coral;
 }
 
 
 #potree_sidebar{
-	background: #333333;
-	color: #ffffff;
-	font-family: Calibri;
-	overflow: hidden;
+	background:    #333333;
+	color:         var(--text-color);
+	font-family:   Calibri;
+	overflow:      auto;
+	line-height:   var(--line-height);
 }
 
 #potree_sidebar_section_selection{
@@ -28,7 +34,7 @@ tr:hover {
 }
 
 #potree_sidebar_content{
-
+	overflow:      auto;
 }
 
 #potree_sidebar_footer{
@@ -114,14 +120,24 @@ select{
 }
 
 table{
-	color: white;
-	border: none;
+	width:           100%;
+	border:          none;
 	border-collapse: collapse;
 }
 
+
+th {
+	border-bottom: 1px solid rgba(255, 255, 255, 0.9);
+	padding: 2px 10px 0px 0px;
+}
+
+td{
+	border-top: 1px solid rgba(255, 255, 255, 0.2);
+	padding: 2px 10px 0px 0px;
+}
+
 tr{
-	border: none;
-	padding: none;
+	padding: 5;
 	margin: none;
 }
 
