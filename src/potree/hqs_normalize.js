@@ -15,7 +15,7 @@ let shaderCode = `
 	@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 	@binding(1) @group(0) var mySampler   : sampler;
 	@binding(2) @group(0) var myTexture   : texture_2d<f32>;
-	@binding(3) @group(0) var tex_pointID : texture_2d<u32>;
+	// @binding(3) @group(0) var tex_pointID : texture_2d<u32>;
 	@binding(4) @group(0) var myDepth     : texture_depth_2d;
 
 	struct VertexInput {
@@ -35,7 +35,7 @@ let shaderCode = `
 	struct FragmentOutput{
 		@builtin(frag_depth) depth : f32,
 		@location(0) color : vec4<f32>,
-		@location(1) pointID : u32,
+		// @location(1) pointID : u32,
 	};
 
 	fn toLinear(depth: f32, near: f32) -> f32{
@@ -117,7 +117,7 @@ let shaderCode = `
 		_ = mySampler;
 		_ = myTexture;
 		_ = myDepth;
-		_ = tex_pointID;
+		// _ = tex_pointID;
 
 		var window = uniforms.window;
 		window = 2;
@@ -189,7 +189,7 @@ let shaderCode = `
 
 		output.color = c / c.w;
 		output.depth = textureLoad(myDepth, vec2<i32>(closestCoords), 0);
-		output.pointID = textureLoad(tex_pointID, vec2<i32>(closestCoords), 0).r;
+		// output.pointID = textureLoad(tex_pointID, vec2<i32>(closestCoords), 0).r;
 
 		return output;
 	}
@@ -200,7 +200,7 @@ let shaderCode = `
 		_ = mySampler;
 		_ = myTexture;
 		_ = myDepth;
-		_ = tex_pointID;
+		// _ = tex_pointID;
 
 		var color = textureLoad(myTexture, vec2<i32>(input.fragCoord.xy), 0);
 
@@ -218,7 +218,7 @@ let shaderCode = `
 
 		output.color = color;
 		output.depth = textureLoad(myDepth, vec2<i32>(input.fragCoord.xy), 0);
-		output.pointID = textureLoad(tex_pointID, vec2<i32>(input.fragCoord.xy), 0).r;
+		// output.pointID = textureLoad(tex_pointID, vec2<i32>(input.fragCoord.xy), 0).r;
 
 		return output;
 	}
@@ -229,7 +229,7 @@ let shaderCode = `
 		_ = mySampler;
 		_ = myTexture;
 		_ = myDepth;
-		_ = tex_pointID;
+		// _ = tex_pointID;
 
 		var color = textureLoad(myTexture, vec2<i32>(input.fragCoord.xy), 0);
 
@@ -247,7 +247,7 @@ let shaderCode = `
 
 		output.color = color;
 		output.depth = textureLoad(myDepth, vec2<i32>(input.fragCoord.xy), 0);
-		output.pointID = textureLoad(tex_pointID, vec2<i32>(input.fragCoord.xy), 0).r;
+		// output.pointID = textureLoad(tex_pointID, vec2<i32>(input.fragCoord.xy), 0).r;
 
 		return output;
 	}
@@ -282,7 +282,7 @@ function init(renderer){
 			entryPoint: "main_fs",
 			targets: [
 				{format: "bgra8unorm"},
-				{format: "r32uint", blend: undefined}
+				// {format: "r32uint", blend: undefined}
 			],
 		},
 		primitive: {
@@ -307,7 +307,7 @@ function init(renderer){
 			entryPoint: "main_fs_quads",
 			targets: [
 				{format: "bgra8unorm"},
-				{format: "r32uint", blend: undefined}
+				// {format: "r32uint", blend: undefined}
 			],
 		},
 		primitive: {
@@ -332,7 +332,7 @@ function init(renderer){
 			entryPoint: "main_fs_voxels",
 			targets: [
 				{format: "bgra8unorm"},
-				{format: "r32uint", blend: undefined}
+				// {format: "r32uint", blend: undefined}
 			],
 		},
 		primitive: {
@@ -387,8 +387,8 @@ export function hqs_normalize(source, drawstate){
 			{binding: 0, resource: {buffer: uniformBuffer}},
 			{binding: 1, resource: sampler},
 			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
-			{binding: 3, resource: source.colorAttachments[1].texture.createView()},
-			{binding: 4, resource: source.depth.texture.createView({aspect: "depth-only"})}
+			// {binding: 3, resource: source.colorAttachments[1].texture.createView()},
+			{binding: 4, resource: source.depth.texture.createView({aspect: "depth-only"})} 
 		],
 	});
 

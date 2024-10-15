@@ -139,7 +139,8 @@ canvas{
 
 	Potree.settings.edlEnabled      = true;
 	Potree.settings.dilateEnabled   = false;
-	Potree.settings.hqsEnabled      = false;
+	Potree.settings.hqsEnabled      = true;
+	Potree.settings.sampleCount     = 1;
 	Potree.settings.pointBudget     = 8_000_000;
 	Potree.settings.attribute       = "rgba";
 	// Potree.settings.attribute = "intensity";
@@ -195,6 +196,70 @@ canvas{
 			pivot:    [144.2, -23.0, -87.8]
 		});
 	});
+
+	
+
+	// Potree3Loader.load("./resources/pointclouds/CA16_SolanaBeach.potree").then(pointcloud => {
+	// 	console.log(pointcloud);
+
+	// 	scene.root.children.push(pointcloud);
+
+	// 	// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
+	// 	pointcloud.name = "New Format";
+
+	// 	let material = pointcloud.material;
+
+	// 	controls.zoomTo(pointcloud);
+
+		
+
+	// 	controls.set({
+	// 		position: [6247542.9, 1941183.6, 94.9],
+	// 		pivot:    [6247696.5, 1941394.7, -29.2]
+	// 	});
+	// });
+
+	// PotreeLoader.load("./resources/pointclouds/CA16_SolanaBeach/metadata.json").then(pointcloud => {
+	// 	console.log(pointcloud);
+
+	// 	scene.root.children.push(pointcloud);
+
+	// 	// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
+	// 	pointcloud.name = "Old Format";
+
+	// 	let material = pointcloud.material;
+
+	// 	// controls.zoomTo(pointcloud);
+
+	// 	controls.set({
+	// 		position: [6247542.9, 1941183.6, 94.9], 
+	// 		pivot:    [6247696.5, 1941394.7, -29.2]
+	// 	});
+
+	// });
+
+	// PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
+	// 	console.log(pointcloud);
+
+	// 	scene.root.children.push(pointcloud);
+
+	// 	// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
+	// 	pointcloud.name = "SITN 2022";
+
+	// 	let material = pointcloud.material;
+
+	// 	controls.set({
+	// 		position: [2552249.3, 1197175.4, 554.1],
+	// 		pivot:    [2552120.0, 1197638.8, 204.9]
+	// 	});
+	// 	controls.set({
+	// 		position: [2558301.3, 1184586.7, 17112.5], 
+	// 		pivot:    [2552120.0, 1197638.8, 204.9]
+	// 	});
+
+	// 	// [2547035.6, 1212135.1, 1022.5], 
+	// 	// [2547043.3, 1212154.7, 1000.0]
+	// });
 	
 
 

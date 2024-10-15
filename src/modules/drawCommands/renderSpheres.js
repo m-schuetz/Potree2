@@ -67,88 +67,97 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 `;
 
 let initialized = false;
-let pipeline = null;
+let pipelineCache = new Map();
 let geometry_spheres = null;
 let uniformBuffer = null;
 let mat4Buffer;
 let colorsBuffer;
 
+let bindGroupLayout = null;
 let bindGroup = null;
 let capacity = 10_000;
 let f32Matrices = new Float32Array(16 * capacity);
 let f32Colors = new Float32Array(4 * capacity);
 
-function createPipeline(renderer){
+function getPipeline(renderer){
 
 	let {device} = renderer;
 
-	let module = device.createShaderModule({code: shaderSource});
 
-	pipeline = device.createRenderPipeline({
-		label: "renderSpheres",
-		layout: "auto",
-		vertex: {
-			module: module,
-			entryPoint: "main_vertex",
-			buffers: [
-				{ // sphere position
-					arrayStride: 3 * 4,
-					stepMode: "instance",
-					attributes: [{ 
-						shaderLocation: 0,
-						offset: 0,
-						format: "float32x3",
-					}],
-				},{ // sphere radius
-					arrayStride: 4,
-					stepMode: "instance",
-					attributes: [{ 
-						shaderLocation: 1,
-						offset: 0,
-						format: "float32",
-					}],
-				},{ // sphere-vertices position
-					arrayStride: 3 * 4,
-					stepMode: "vertex",
-					attributes: [{ 
-						shaderLocation: 2,
-						offset: 0,
-						format: "float32x3",
-					}],
-				},{ // sphere normal
-					arrayStride: 4 * 3,
-					stepMode: "vertex",
-					attributes: [{ 
-						shaderLocation: 3,
-						offset: 0,
-						format: "float32x3",
-					}],
-				}
-			]
-		},
-		fragment: {
-			module: module,
-			entryPoint: "main_fragment",
-			targets: [
-				{format: "bgra8unorm"},
-				{format: "bgra8unorm"},
-			],
-		},
-		primitive: {
-			topology: 'triangle-list',
-			cullMode: 'back',
-		},
-		depthStencil: {
-			depthWriteEnabled: true,
-			depthCompare: 'greater',
-			format: "depth32float",
-		},
-		multisample: {
-			count: 4,
-		},
-	});
+	let key = `samplecount=${Potree.settings.sampleCount}`;
+	if(!pipelineCache.has(key)){
+		let module = device.createShaderModule({code: shaderSource});
 
-	return pipeline;
+		let pipeline = device.createRenderPipeline({
+			label: "renderSpheres",
+			layout: device.createPipelineLayout({
+				bindGroupLayouts: [bindGroupLayout],
+			}),
+			vertex: {
+				module: module,
+				entryPoint: "main_vertex",
+				buffers: [
+					{ // sphere position
+						arrayStride: 3 * 4,
+						stepMode: "instance",
+						attributes: [{ 
+							shaderLocation: 0,
+							offset: 0,
+							format: "float32x3",
+						}],
+					},{ // sphere radius
+						arrayStride: 4,
+						stepMode: "instance",
+						attributes: [{ 
+							shaderLocation: 1,
+							offset: 0,
+							format: "float32",
+						}],
+					},{ // sphere-vertices position
+						arrayStride: 3 * 4,
+						stepMode: "vertex",
+						attributes: [{ 
+							shaderLocation: 2,
+							offset: 0,
+							format: "float32x3",
+						}],
+					},{ // sphere normal
+						arrayStride: 4 * 3,
+						stepMode: "vertex",
+						attributes: [{ 
+							shaderLocation: 3,
+							offset: 0,
+							format: "float32x3",
+						}],
+					}
+				]
+			},
+			fragment: {
+				module: module,
+				entryPoint: "main_fragment",
+				targets: [
+					{format: "bgra8unorm"},
+					// {format: "bgra8unorm"},
+				],
+			},
+			primitive: {
+				topology: 'triangle-list',
+				cullMode: 'back',
+			},
+			depthStencil: {
+				depthWriteEnabled: true,
+				depthCompare: 'greater',
+				format: "depth32float",
+			},
+			multisample: {
+				count: Potree.settings.sampleCount,
+			},
+		});
+
+		pipelineCache.set(key, pipeline);
+	}
+
+	return pipelineCache.get(key);
 }
 
 function init(renderer){
@@ -168,8 +177,6 @@ function init(renderer){
 	});
 
 	{
-		pipeline = createPipeline(renderer);
-
 		let {device} = renderer;
 		const uniformBufferSize = 256;
 
@@ -188,8 +195,25 @@ function init(renderer){
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
+		bindGroupLayout = device.createBindGroupLayout({
+			label: "renderSpheres",
+			entries: [{
+				binding: 0,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'uniform'},
+			},{
+				binding: 1,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'read-only-storage'},
+			},{
+				binding: 2,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'read-only-storage'},
+			}]
+		});
+
 		bindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
+			layout: bindGroupLayout,
 			entries: [
 				{binding: 0, resource: {buffer: uniformBuffer}},
 				{binding: 1, resource: {buffer: mat4Buffer}},
@@ -239,6 +263,8 @@ export function render(spheres, drawstate){
 	updateUniforms(drawstate);
 
 	let {passEncoder} = drawstate.pass;
+
+	let pipeline = getPipeline(renderer); 
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);

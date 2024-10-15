@@ -45,6 +45,8 @@ export const SCALAR = {
 				color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 			}
 
+			//color.r = 1.0f;
+
 			return color;
 		}
 	`,
@@ -71,6 +73,10 @@ export const VECTOR3 = {
 				r = f32(readU16(offset + 0u));
 				g = f32(readU16(offset + 2u));
 				b = f32(readU16(offset + 4u));
+				if(r == 0.0f){
+					g = 255.0f;
+				}
+				
 			}else if(attrib.datatype == TYPES_UINT32){
 				r = f32(readU32(offset + 0u));
 				g = f32(readU32(offset + 4u));
@@ -87,6 +93,8 @@ export const VECTOR3 = {
 			if(r > 255.0) { r = r / 256.0; }
 			if(g > 255.0) { g = g / 256.0; }
 			if(b > 255.0) { b = b / 256.0; }
+
+			
 
 			var color = vec4f(r, g, b, 255.0) / 255.0;
 

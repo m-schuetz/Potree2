@@ -161,48 +161,57 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 let vbo_lines = null;
 let initialized = false;
-let pipeline = null;
+let pipelineCache = new Map();
 let uniformBuffer = null;
+let bindGroupLayout = null;
 let bindGroup = null;
 let capacity = 1_000_000;
 
-function createPipeline(renderer){
+function getPipeline(renderer){
 
 	let {device} = renderer;
 
-	let module = device.createShaderModule({code: shaderCode});
+	let key = `samplecount=${Potree.settings.sampleCount}`;
 
-	pipeline = device.createRenderPipeline({
-		label: "renderLines",
-		layout: "auto",
-		vertex: {
-			module,
-			entryPoint: "main_vertex",
-			buffers: []
-		},
-		fragment: {
-			module,
-			entryPoint: "main_fragment",
-			targets: [
-				{format: "bgra8unorm"},
-				{format: "bgra8unorm"},
-			],
-		},
-		primitive: {
-			topology: 'triangle-list',
-			cullMode: 'none',
-		},
-		depthStencil: {
-			depthWriteEnabled: true,
-			depthCompare: 'greater',
-			format: "depth32float",
-		},
-		multisample: {
-			count: 4,
-		},
-	});
+	if(!pipelineCache.has(key)){
+		let module = device.createShaderModule({code: shaderCode});
 
-	return pipeline;
+		let pipeline = device.createRenderPipeline({
+			label: "renderLines",
+			layout: device.createPipelineLayout({
+				bindGroupLayouts: [bindGroupLayout],
+			}),
+			vertex: {
+				module,
+				entryPoint: "main_vertex",
+				buffers: []
+			},
+			fragment: {
+				module,
+				entryPoint: "main_fragment",
+				targets: [
+					{format: "bgra8unorm"},
+					// {format: "bgra8unorm"},
+				],
+			},
+			primitive: {
+				topology: 'triangle-list',
+				cullMode: 'none',
+			},
+			depthStencil: {
+				depthWriteEnabled: true,
+				depthCompare: 'greater',
+				format: "depth32float",
+			},
+			multisample: {
+				count: Potree.settings.sampleCount,
+			},
+		});
+
+		pipelineCache.set(key, pipeline);
+	}
+
+	return pipelineCache.get(key);
 }
 
 function createBuffer(renderer, data){
@@ -256,10 +265,26 @@ function init(renderer){
 	}
 
 	{
-		pipeline = createPipeline(renderer);
 
 		let {device} = renderer;
 		const uniformBufferSize = 256;
+
+		bindGroupLayout = device.createBindGroupLayout({
+			label: "renderLines",
+			entries: [{
+				binding: 0,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'uniform'},
+			},{
+				binding: 1,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'read-only-storage'},
+			},{
+				binding: 2,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'read-only-storage'},
+			}]
+		});
 
 		uniformBuffer = device.createBuffer({
 			size: uniformBufferSize,
@@ -267,7 +292,7 @@ function init(renderer){
 		});
 
 		bindGroup = device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
+			layout: bindGroupLayout,
 			entries: [
 				{binding: 0, resource: {buffer: uniformBuffer}},
 				{binding: 1, resource: {buffer: vbo_lines[0].vbo}},
@@ -324,6 +349,8 @@ export function render(lines, drawstate){
 	updateUniforms(drawstate);
 
 	let {passEncoder} = drawstate.pass;
+
+	let pipeline = getPipeline(renderer); 
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);

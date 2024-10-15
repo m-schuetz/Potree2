@@ -125,6 +125,7 @@ const settings = {
 	updateEnabled: true,
 	gradient: Gradients.SPECTRAL,
 	splatType: SplatType.POINTS,
+	sampleCount: 4,
 };
 
 const state = {

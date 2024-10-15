@@ -88,3 +88,4 @@ resources/pointclouds/morro_bay.potree
 resources/pointclouds/ot_35120A4202A_1_1.potree
 resources/test/coordinates_new.txt
 resources/test/coordinates.txt
+resources/pointclouds/*

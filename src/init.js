@@ -115,14 +115,15 @@ function getSumBuffer(renderer){
 				format: "rgba16float",
 				usage: GPUTextureUsage.TEXTURE_BINDING 
 					| GPUTextureUsage.RENDER_ATTACHMENT,
-			},{
-				size: size,
-				format: "r32uint",
-				usage: GPUTextureUsage.TEXTURE_BINDING 
-					| GPUTextureUsage.COPY_SRC 
-					| GPUTextureUsage.COPY_DST 
-					| GPUTextureUsage.RENDER_ATTACHMENT,
 			}
+			// ,{
+			// 	size: size,
+			// 	format: "r32uint",
+			// 	usage: GPUTextureUsage.TEXTURE_BINDING 
+			// 		| GPUTextureUsage.COPY_SRC 
+			// 		| GPUTextureUsage.COPY_DST 
+			// 		| GPUTextureUsage.RENDER_ATTACHMENT,
+			// }
 		],
 		depthDescriptor: {
 			size: size,
@@ -159,6 +160,7 @@ function startPass(renderer, target, label){
 	}
 
 	let renderPassDescriptor = {
+		label: "init-startPass",
 		colorAttachments,
 		depthStencilAttachment: {
 			view: target.depth.texture.createView(),
@@ -263,6 +265,7 @@ function startSumPass(renderer, target, label){
 	}
 
 	let renderPassDescriptor = {
+		label: "startSumPass",
 		colorAttachments,
 		depthStencilAttachment: {
 			view: target.depth.texture.createView(),
@@ -483,80 +486,80 @@ function renderNotSoBasic(){
 
 	let fboTarget = (!dilateEnabled && !edlEnabled) ? screenbuffer : fbo_0;
 	
-	// if(hqsEnabled){
+	if(hqsEnabled){
 
-	// 	Timer.timestampSep(renderer, "HQS(total)-start");
+		Timer.timestampSep(renderer, "HQS(total)-start");
 
-	// 	let fbo_hqs_depth = renderer.getFramebuffer("hqs depth");
-	// 	let fbo_hqs_sum = getSumBuffer(renderer);
+		let fbo_hqs_depth = renderer.getFramebuffer("hqs depth");
+		let fbo_hqs_sum = getSumBuffer(renderer);
 
-	// 	fbo_hqs_sum.setSize(...screenbuffer.size);
-	// 	fbo_hqs_depth.setSize(...screenbuffer.size);
+		fbo_hqs_sum.setSize(...screenbuffer.size);
+		fbo_hqs_depth.setSize(...screenbuffer.size);
 
-	// 	{ // depth pass
-	// 		let pass = startPass(renderer, fbo_hqs_depth, "HQS-depth");
-	// 		let drawstate = {renderer, camera, renderables, pass};
+		{ // depth pass
+			let pass = startPass(renderer, fbo_hqs_depth, "HQS-depth");
+			let drawstate = {renderer, camera, renderables, pass};
 
-	// 		renderPointsOctree(octrees, drawstate, ["hqs-depth"]);
+			renderPointsOctree(octrees, drawstate, ["hqs-depth"]);
 
-	// 		endPass(pass);
-	// 	}
+			endPass(pass);
+		}
 
-	// 	{ // attribute pass
-	// 		fbo_hqs_sum.depth = fbo_hqs_depth.depth;
+		{ // attribute pass
+			fbo_hqs_sum.depth = fbo_hqs_depth.depth;
 
-	// 		let pass = startSumPass(renderer, fbo_hqs_sum, "HQS-accumulate");
-	// 		let drawstate = {renderer, camera, renderables, pass};
+			let pass = startSumPass(renderer, fbo_hqs_sum, "HQS-accumulate");
+			let drawstate = {renderer, camera, renderables, pass};
 
-	// 		renderPointsOctree(octrees, drawstate, ["additive_blending"]);
+			renderPointsOctree(octrees, drawstate, ["additive_blending"]);
 
-	// 		endPass(pass);
-	// 	}
+			endPass(pass);
+		}
 
-	// 	{ // normalization pass
-	// 		let pass = startPass(renderer, fboTarget, "HQS-normalize");
-	// 		let drawstate = {renderer, camera, renderables, pass};
+		{ // normalization pass
+			let pass = startPass(renderer, fboTarget, "HQS-normalize");
+			let drawstate = {renderer, camera, renderables, pass};
 
-	// 		// Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
-	// 		hqs_normalize(fbo_hqs_sum, drawstate);
-	// 		// Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
+			// Timer.timestamp(pass.passEncoder, "HQS-normalize-start");
+			hqs_normalize(fbo_hqs_sum, drawstate);
+			// Timer.timestamp(pass.passEncoder, "HQS-normalize-end");
 
-	// 		endPass(pass);
-	// 	}
+			endPass(pass);
+		}
 
-	// 	fbo_source = fboTarget;
+		fbo_source = fboTarget;
 
-	// 	Timer.timestampSep(renderer, "HQS(total)-end");
+		Timer.timestampSep(renderer, "HQS(total)-end");
 
-	// }else if(forwardRendering){
+	}else if(forwardRendering){
 
-	// 	// // render directly to screenbuffer
-	// 	// let pass = startPass(renderer, screenbuffer);
-	// 	// let drawstate = {renderer, camera, renderables, pass};
+		// // render directly to screenbuffer
+		// let pass = startPass(renderer, screenbuffer);
+		// let drawstate = {renderer, camera, renderables, pass};
 
-	// 	// for(let [key, nodes] of renderables){
-	// 	// 	for(let node of nodes){
-	// 	// 		if(typeof node.render !== "undefined"){
-	// 	// 			node.render(drawstate);
-	// 	// 		}
-	// 	// 	}
-	// 	// }
+		// for(let [key, nodes] of renderables){
+		// 	for(let node of nodes){
+		// 		if(typeof node.render !== "undefined"){
+		// 			node.render(drawstate);
+		// 		}
+		// 	}
+		// }
 
-	// 	// renderer.renderDrawCommands(drawstate);
+		// renderer.renderDrawCommands(drawstate);
 
-	// 	// endPass(pass);
-	// }else{
+		// endPass(pass);
+	}else{
 
-	// 	// render to intermediate framebuffer
-	// 	let pass = startPass(renderer, fbo_0, "render to intermediate");
-	// 	let drawstate = {renderer, camera, renderables, pass};
+		// render to intermediate framebuffer
+		// let pass = startPass(renderer, fbo_0, "render to intermediate");
+		// let drawstate = {renderer, camera, renderables, pass};
 
-	// 	renderPointsOctree(octrees, drawstate);
+		// renderPointsOctree(octrees, drawstate);
 
-	// 	endPass(pass);
+		// endPass(pass);
 
-	// 	fbo_source = fbo_0;
-	// }
+		// fbo_source = fbo_0;
+	}
 
 
 	// // DILATE
@@ -607,23 +610,26 @@ function renderNotSoBasic(){
 		endPass(pass);
 	}
 
+	if(Potree.settings.hqsEnabled === false)
 	{ // DEBUG: try MSAA
 
-		let fbo_msaa = renderer.getFramebuffer("msaa_test", {sampleCount: 4});
+		let fbo_msaa = renderer.getFramebuffer(`msaa_test_samplecount=${Potree.settings.sampleCount}`, {sampleCount: Potree.settings.sampleCount});
 		fbo_msaa.setSize(...screenbuffer.size);
 
 		let target = fbo_msaa;
+		let colorAttachments;
 
-		let view = target.colorAttachments[0].texture.createView();
-		let resolveTarget = renderer.context.getCurrentTexture().createView();
-
-		let colorAttachments = [
-			{view, resolveTarget, loadOp: "clear", storeOp: 'store', clearValue: [0, 0, 0, 0]}
-		];
-
-		if(target.colorAttachments.length === 2){
-			let view = target.colorAttachments[1].texture.createView();
-			colorAttachments.push({view, loadOp: "clear", storeOp: 'store', clearValue: [0, 0, 0, 0]});
+		if(Potree.settings.sampleCount == 1){
+			let view = renderer.context.getCurrentTexture().createView();
+			colorAttachments = [
+				{view, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
+			];
+		}else{
+			let view = target.colorAttachments[0].texture.createView();
+			let resolveTarget = renderer.context.getCurrentTexture().createView();
+			colorAttachments = [
+				{view, resolveTarget, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
+			];
 		}
 
 		let renderPassDescriptor = {
@@ -635,7 +641,7 @@ function renderNotSoBasic(){
 				depthStoreOp: "store",
 				depthClearValue: 0,
 			},
-			sampleCount: 4,
+			sampleCount: Potree.settings.sampleCount,
 		};
 
 		let timestampEntry = null;
@@ -695,37 +701,17 @@ function renderNotSoBasic(){
 
 		let commandBuffer = commandEncoder.finish();
 		renderer.device.queue.submit([commandBuffer]);
-
-
-		// let pass = revisitPass(renderer, fbo_source, "render everything else");
-		// let drawstate = {renderer, camera, renderables, pass};
-
-		// for(let [key, nodes] of renderables){
-		// 	for(let node of nodes){
-		// 		let hasRender = typeof node.render !== "undefined";
-		// 		let isOctree = node.constructor.name === "PointCloudOctree";
-		// 		let isImages360 = node.constructor.name === "Images360";
-
-		// 		if(hasRender && !isOctree){
-		// 			node.render(drawstate);
-		// 		}
-		// 	}
-		// }
-
-		// renderer.renderDrawCommands(drawstate);
-
-		// endPass(pass);
 	}
 
 	// EDL
-	// if(edlEnabled){ 
-	// 	let pass = startPass(renderer, screenbuffer, "EDL");
-	// 	let drawstate = {renderer, camera, renderables, pass};
+	if(Potree.settings.hqsEnabled && edlEnabled){ 
+		let pass = startPass(renderer, screenbuffer, "EDL");
+		let drawstate = {renderer, camera, renderables, pass};
 
-	// 	EDL(fbo_source, drawstate);
+		EDL(fbo_source, drawstate);
 
-	// 	endPass(pass);
-	// }
+		endPass(pass);
+	}
 
 	if(false)
 	{ // HANDLE PICKING

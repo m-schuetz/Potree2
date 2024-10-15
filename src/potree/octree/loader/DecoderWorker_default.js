@@ -92,7 +92,8 @@ async function load(event){
 					let targetOffset = numPoints * byteOffset + j * pointAttribute.byteSize + k;
 
 					let value = buffer[sourceOffset];
-					targetBuffer[targetOffset] = value;
+					// targetBuffer[targetOffset] = value;
+					targetView.setUint8(targetOffset, value);
 				}
 
 			}

@@ -264,8 +264,8 @@ fn toQuadPos(vertexID : u32, viewPos : vec4<f32>, node : Node) -> vec4<f32>{
 	// QUAD
 	var localIndex = vertexID % 6u;
 
-	var transX = node.spacing * 0.690f;
-	var transY = node.spacing * 0.690f;
+	var transX = node.spacing * 0.707f;
+	var transY = node.spacing * 0.707f;
 
 	var tmpViewPos = viewPos;
 
@@ -384,6 +384,14 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 	
 	{ // compute vertex position
 		position = readPosition(pointID, node);
+
+		// DEBUG
+		var size_x = node.max_x - node.min_x;
+		var size_y = node.max_y - node.min_y;
+		var size_z = node.max_z - node.min_z;
+		var u = (position.x - node.min_x) / size_x;
+		var v = (position.y - node.min_y) / size_y;
+		var w = (position.z - node.min_z) / size_z;
 		
 		viewPos = uniforms.worldView * position;
 		projPos = uniforms.proj * viewPos;
@@ -410,8 +418,22 @@ fn main_vertex(vertex : VertexInput) -> VertexOutput {
 				viewPos = uniforms.worldView * voxelVertexPos;
 				projPos = uniforms.proj * viewPos;
 			}
-
 		}
+
+		// if(u > 0.5f || v > 0.5f || w > 0.5f){
+		// 	projPos.x = 10.0f;
+		// 	projPos.w = 1.0f;
+		// }
+
+		var childIndex = 0u;
+		if(u > 0.5f) {childIndex += 4u;}
+		if(v > 0.5f) {childIndex += 2u;}
+		if(w > 0.5f) {childIndex += 1u;}
+
+		if((node.childmask & (1u << childIndex)) > 0u){
+			projPos.x = 10.0f;
+			projPos.w = 1.0f;
+		}	
 
 	}
 

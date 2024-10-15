@@ -76,7 +76,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 	}
 
 	let key_mappings = octree.material.mappings.map(m => m.name + "_" + m.inputs.join("_"))
-	let key = `${octree.state_id}_${flags.join(";")}_${key_mappings}`;
+	let key = `${octree.state_id}_${flags.join(";")}_${key_mappings}_samplecount=${Potree.settings.sampleCount}`;
 
 	let state = octreeStates.get(key);
 
@@ -482,7 +482,7 @@ async function renderOctree(octree, drawstate, flags){
 	for(let i = 0; i < nodes.length; i++){
 		let node = nodes[i];
 
-		if(node.__pixelSize <= 300 && false){
+		if(node.__pixelSize <= 300 ){
 			smallNodes.push([i, node]);
 			node.isSmallNode = true;
 		}else{
@@ -537,6 +537,11 @@ async function renderOctree(octree, drawstate, flags){
 
 			
 			pass.passEncoder.draw(6 * numElements, 1, 0, index);
+
+			Potree.state.numPoints   += node.geometry.numPoints;
+			Potree.state.numVoxels   += node.geometry.numVoxels;
+			Potree.state.numElements += node.geometry.numElements;
+			Potree.state.numNodes++;
 		}
 	}
 

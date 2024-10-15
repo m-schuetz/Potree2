@@ -131,6 +131,10 @@ export function createPanel(){
 			(checkbox) => {Potree.settings.showBoundingBox = checkbox.checked;}
 		);
 
+		addCheckbox("MSAA", "chkMSAA", Potree.settings.sampleCount > 1, 
+			(checkbox) => {Potree.settings.sampleCount = checkbox.checked ? 4 : 1;}
+		);
+
 		addCheckbox("update", "chkUpdate", Potree.settings.updateEnabled, 
 			(checkbox) => {Potree.settings.updateEnabled = checkbox.checked;}
 		);
