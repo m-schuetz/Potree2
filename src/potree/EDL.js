@@ -89,20 +89,20 @@ let shaderCode = `
 		return near / depth;
 	}
 
-	fn readLinearDepth(offsetX : f32, offsetY : f32, near : f32) -> f32 {
+	fn readLinearDepth(offsetX : f32, offsetY : f32, near : f32, sampleIndex : u32) -> f32 {
 
 		var fCoord : vec2<f32> = vec2<f32>(fragXY.x + offsetX, fragXY.y + offsetY);
 		var iCoord : vec2<i32> = vec2<i32>(fCoord);
 
-		var d : f32 = textureLoad(myDepth, iCoord, 0);
+		var d : f32 = textureLoad(myDepth, iCoord, sampleIndex);
 		var dl : f32 = toLinear(d, uniforms.near);
 
 		return dl;
 	}
 
-	fn getEdlResponse(input : FragmentInput) -> f32 {
+	fn getEdlResponse(input : FragmentInput, sampleIndex: u32) -> f32 {
 
-		var depth : f32 = readLinearDepth(0.0, 0.0, uniforms.near);
+		var depth : f32 = readLinearDepth(0.0, 0.0, uniforms.near, sampleIndex);
 		var sum : f32 = 0.0;
 
 		var sampleOffsets : array<vec2<f32>, 8> = array<vec2<f32>, 8>(
@@ -118,7 +118,7 @@ let shaderCode = `
 		
 		for(var i : i32 = 0; i < 8; i = i + 1){
 			var offset : vec2<f32> = sampleOffsets[i];
-			var neighbourDepth : f32 = readLinearDepth(offset.x, offset.y, uniforms.near);
+			var neighbourDepth : f32 = readLinearDepth(offset.x, offset.y, uniforms.near, sampleIndex);
 
 			sum = sum + max(log2(depth) - log2(neighbourDepth), 0.0);
 		}
@@ -133,16 +133,31 @@ let shaderCode = `
 		fragXY = input.fragCoord.xy;
 		var coords : vec2<i32> = vec2<i32>(input.fragCoord.xy);
 
-		var output : FragmentOutput;
-		output.color = textureLoad(myTexture, coords, 0);
-		output.depth = textureLoad(myDepth, coords, 0);
-
-		var response = getEdlResponse(input);
 		var edlStrength = 0.2f;
+
+		var output : FragmentOutput;
+		var color = textureLoad(myTexture, coords, 0);
+		output.depth = textureLoad(myDepth, coords, 0);
+		var response = getEdlResponse(input, 0);
 		var w = exp(-response * 300.0f * edlStrength);
-		output.color.r *= w;
-		output.color.g *= w;
-		output.color.b *= w;
+
+		if(sampleCount == 4){
+			color = color + textureLoad(myTexture, coords, 1);
+			color = color + textureLoad(myTexture, coords, 2);
+			color = color + textureLoad(myTexture, coords, 3);
+			color = color * 0.25f;
+
+			w = w + exp(-getEdlResponse(input, 1) * 300.0f * edlStrength);
+			w = w + exp(-getEdlResponse(input, 2) * 300.0f * edlStrength);
+			w = w + exp(-getEdlResponse(input, 3) * 300.0f * edlStrength);
+			w = w * 0.25f;
+		}
+
+		color.r *= w;
+		color.g *= w;
+		color.b *= w;
+
+		output.color = color;
 
 		return output;
 	}
@@ -207,7 +222,15 @@ function getPipeline(renderer, renderTarget){
 
 	if(!pipelineCache.has(key)){
 		let {device} = renderer;
-		let module = device.createShaderModule({code: shaderCode, label: "EDL"});
+
+		let code = shaderCode;
+		if(sampleCount > 1){
+			code = code.replaceAll("texture_2d", "texture_multisampled_2d");
+			code = code.replaceAll("texture_depth_2d", "texture_depth_multisampled_2d");
+		}
+		code = code.replaceAll("sampleCount", sampleCount);
+
+		let module = device.createShaderModule({code, label: "EDL"});
 
 		let layout = getLayout(renderer, renderTarget);
 		

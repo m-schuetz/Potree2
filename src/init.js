@@ -704,28 +704,33 @@ function renderNotSoBasic(){
 		let commandBuffer = commandEncoder.finish();
 		renderer.device.queue.submit([commandBuffer]);
 
-		if(Potree.settings.sampleCount > 1)
+		if(Potree.settings.quality === Quality.MSAA)
 		{ // RESOLVE
-			let view = target.colorAttachments[0].texture.createView();
+			let view = screenbuffer.colorAttachments[0].texture.createView();
+			// let view = target.colorAttachments[0].texture.createView();
 			let resolveTarget = renderer.context.getCurrentTexture().createView();
 			let colorAttachments = [
-				{view, resolveTarget, loadOp: "load", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
+				{view, loadOp: "load", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
 			];
 
 			let renderPassDescriptor = {
 				label: "resolve",
 				colorAttachments,
 				depthStencilAttachment: {
-					view: target.depth.texture.createView(),
+					view: screenbuffer.depth.texture.createView(),
 					depthLoadOp: "clear",
 					depthStoreOp: "store",
 					depthClearValue: 0,
 				},
-				sampleCount: Potree.settings.sampleCount,
+				// sampleCount: Potree.settings.sampleCount,
 			};
 
 			const commandEncoder = renderer.device.createCommandEncoder();
 			const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+			let pass = {commandEncoder, passEncoder};
+			let drawstate = {renderer, camera, renderables, pass};
+			EDL(target, drawstate);
 
 			passEncoder.end();
 			let commandBuffer = commandEncoder.finish();
