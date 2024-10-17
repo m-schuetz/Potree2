@@ -11,6 +11,7 @@ export class RenderTarget{
 
 		{ // COLOR ATTACHMENTS
 			let descriptors = params.colorDescriptors ?? [{
+				label: "color attachment",
 				size: this.size,
 				sampleCount: this.sampleCount,
 				format: "r32uint",
@@ -29,6 +30,7 @@ export class RenderTarget{
 
 		{ // DEPTH ATTACHMENT
 			let descriptor = params.depthDescriptor ?? {
+				label: "depth attachment",
 				size: this.size,
 				sampleCount: this.sampleCount,
 				format: "depth32float",

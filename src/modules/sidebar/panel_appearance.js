@@ -1,5 +1,5 @@
 
-import {Gradients, Utils} from "potree";
+import {Gradients, Utils, Quality} from "potree";
 let dir = new URL(import.meta.url + "/../").href;
 
 class Panel{
@@ -123,17 +123,56 @@ export function createPanel(){
 		// 	(checkbox) => {Potree.settings.edlEnabled = checkbox.checked;}
 		// );
 
-		addCheckbox("High-Quality", "chkHQS", Potree.settings.hqsEnabled, 
-			(checkbox) => {Potree.settings.hqsEnabled = checkbox.checked;}
-		);
+		// addCheckbox("High-Quality", "chkHQS", Potree.settings.hqsEnabled, 
+		// 	(checkbox) => {Potree.settings.hqsEnabled = checkbox.checked;}
+		// );
+
+		{
+			let template = document.createElement('template');
+			template.innerHTML = `
+				<div>Quality</div>
+				<div style="grid-column: span 2;">
+					<input type="radio" id="standard" name="quality" value="Standard">
+					<label for="standard">Standard</label>
+					<input type="radio" id="msaa" name="quality" value="MSAA">
+					<label for="msaa">MSAA</label>
+					<input type="radio" id="blending" name="quality" value="Blending">
+					<label for="blending">Blending</label>
+				</div>
+			`;
+
+			let nodes = template.content.childNodes;
+			elContainer.append(...nodes);
+
+			if(Potree.settings.quality === Quality.STANDARD){
+				elContainer.querySelector(`#standard`).checked = true;
+			}else if(Potree.settings.quality === Quality.BLENDING){
+				elContainer.querySelector(`#blending`).checked = true;
+			}else if(Potree.settings.quality === Quality.MSAA){
+				elContainer.querySelector(`#msaa`).checked = true;
+			}
+
+			elContainer.querySelector(`#standard`).addEventListener("change", () => {
+				Potree.settings.quality = Quality.STANDARD;
+				Potree.settings.sampleCount = 1;
+			});
+			elContainer.querySelector(`#blending`).addEventListener("change", () => {
+				Potree.settings.quality = Quality.BLENDING;
+				Potree.settings.sampleCount = 1;
+			});
+			elContainer.querySelector(`#msaa`).addEventListener("change", () => {
+				Potree.settings.quality = Quality.MSAA;
+				Potree.settings.sampleCount = 4;
+			});
+		}
 
 		addCheckbox("show bounding box", "chkShowBoundingBox", Potree.settings.showBoundingBox, 
 			(checkbox) => {Potree.settings.showBoundingBox = checkbox.checked;}
 		);
 
-		addCheckbox("MSAA", "chkMSAA", Potree.settings.sampleCount > 1, 
-			(checkbox) => {Potree.settings.sampleCount = checkbox.checked ? 4 : 1;}
-		);
+		// addCheckbox("MSAA", "chkMSAA", Potree.settings.sampleCount > 1, 
+		// 	(checkbox) => {Potree.settings.sampleCount = checkbox.checked ? 4 : 1;}
+		// );
 
 		addCheckbox("update", "chkUpdate", Potree.settings.updateEnabled, 
 			(checkbox) => {Potree.settings.updateEnabled = checkbox.checked;}

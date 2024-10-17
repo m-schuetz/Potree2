@@ -1,7 +1,7 @@
 
 import {Timer} from "potree";
 
-let vs = `
+let shaderCode = `
 
 	struct Uniforms {
 		uTest : u32,
@@ -13,6 +13,8 @@ let vs = `
 	};
 
 	@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+	@binding(2) @group(0) var myTexture         : texture_2d<f32>;
+	@binding(3) @group(0) var myDepth           : texture_depth_2d;
 
 	struct VertexInput {
 		@builtin(vertex_index) index : u32,
@@ -24,7 +26,7 @@ let vs = `
 	};
 
 	@vertex
-	fn main(vertex : VertexInput) -> VertexOutput {
+	fn main_vertex(vertex : VertexInput) -> VertexOutput {
 
 		var output : VertexOutput;
 
@@ -70,25 +72,6 @@ let vs = `
 
 		return output;
 	}
-`;
-
-let fs = `
-
-	@binding(1) @group(0) var mySampler   : sampler;
-	@binding(2) @group(0) var myTexture   : texture_2d<f32>;
-	@binding(3) @group(0) var myDepth     : texture_depth_2d;
-
-	struct Uniforms {
-		uTest   : u32,
-		x       : f32,
-		y       : f32,
-		width   : f32,
-		height  : f32,
-		near    : f32,
-		window  : i32,
-	};
-	
-	@binding(0) @group(0) var<uniform> uniforms : Uniforms;
 
 	struct FragmentInput {
 		@builtin(position) fragCoord : vec4<f32>,
@@ -112,12 +95,7 @@ let fs = `
 		var iCoord : vec2<i32> = vec2<i32>(fCoord);
 
 		var d : f32 = textureLoad(myDepth, iCoord, 0);
-		// var d : f32 = textureLoad(myDepth, iCoord, 0).x;
 		var dl : f32 = toLinear(d, uniforms.near);
-
-		// Artificially reduce depth precision to visualize artifacts
-		// var di : u32 = u32(10.0 * dl);
-		// dl = f32(di);
 
 		return dl;
 	}
@@ -125,15 +103,7 @@ let fs = `
 	fn getEdlResponse(input : FragmentInput) -> f32 {
 
 		var depth : f32 = readLinearDepth(0.0, 0.0, uniforms.near);
-
 		var sum : f32 = 0.0;
-
-		// var sampleOffsets : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
-		// 	vec2<f32>(-1.0,  0.0),
-		// 	vec2<f32>( 1.0,  0.0),
-		// 	vec2<f32>( 0.0, -1.0),
-		// 	vec2<f32>( 0.0,  1.0)
-		// );
 
 		var sampleOffsets : array<vec2<f32>, 8> = array<vec2<f32>, 8>(
 			vec2<f32>(0.0, 1.0),
@@ -151,7 +121,6 @@ let fs = `
 			var neighbourDepth : f32 = readLinearDepth(offset.x, offset.y, uniforms.near);
 
 			sum = sum + max(log2(depth) - log2(neighbourDepth), 0.0);
-			// sum = sum + min(log2(depth) - log2(neighbourDepth), 0.0);
 		}
 		
 		var response : f32 = sum / 8.0;
@@ -160,10 +129,7 @@ let fs = `
 	}
 
 	@fragment
-	fn main(input : FragmentInput) -> FragmentOutput {
-
-		_ = mySampler;
-
+	fn main_fragment(input : FragmentInput) -> FragmentOutput {
 		fragXY = input.fragCoord.xy;
 		var coords : vec2<i32> = vec2<i32>(input.fragCoord.xy);
 
@@ -171,93 +137,165 @@ let fs = `
 		output.color = textureLoad(myTexture, coords, 0);
 		output.depth = textureLoad(myDepth, coords, 0);
 
-
 		var response = getEdlResponse(input);
-		// var edlStrength = 0.4f;
 		var edlStrength = 0.2f;
 		var w = exp(-response * 300.0f * edlStrength);
 		output.color.r *= w;
 		output.color.g *= w;
 		output.color.b *= w;
 
-
 		return output;
 	}
 `;
 
-let pipeline = null;
-// let uniformBindGroup = null;
+// let layout = null;
+let initialized = false;
+let pipelineCache = new Map();
 let uniformBuffer = null;
+
+
+function getLayout(renderer, renderTarget){
+
+	let sampleCount = renderTarget.colorAttachments[0].texture.sampleCount;
+
+	let layout = null;
+	
+	if(sampleCount === 1){
+		layout = renderer.device.createBindGroupLayout({
+			label: "EDL",
+			entries: [{
+				binding: 0,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'uniform'},
+			},{
+				binding: 2,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				texture: {multisampled: false, sampleType: "unfilterable-float"},
+			},{
+				binding: 3,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				texture: {multisampled: false, sampleType: "depth"},
+			}]
+		});
+	}else{
+		layout = renderer.device.createBindGroupLayout({
+			label: "EDL",
+			entries: [{
+				binding: 0,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'uniform'},
+			},{
+				binding: 2,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				texture: {multisampled: true, sampleType: "unfilterable-float"},
+			},{
+				binding: 3,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				texture: {multisampled: true, sampleType: "depth"},
+			}]
+		});
+	}
+
+	return layout;
+}
+
+function getPipeline(renderer, renderTarget){
+
+	let sampleCount = renderTarget.colorAttachments[0].texture.sampleCount;
+
+	let key = `sampleCount=${sampleCount}`;
+
+	if(!pipelineCache.has(key)){
+		let {device} = renderer;
+		let module = device.createShaderModule({code: shaderCode, label: "EDL"});
+
+		let layout = getLayout(renderer, renderTarget);
+		
+		let pipeline = device.createRenderPipeline({
+			label: EDL,
+			layout: device.createPipelineLayout({
+				bindGroupLayouts: [layout],
+			}),
+			vertex: {module, entryPoint: "main_vertex"},
+			fragment: {
+				module,
+				entryPoint: "main_fragment",
+				targets: [{format: "bgra8unorm"}],
+			},
+			primitive: {
+				topology: 'triangle-list',
+				cullMode: 'none',
+			},
+			depthStencil: {
+					depthWriteEnabled: true,
+					depthCompare: "always",
+					format: "depth32float",
+			},
+		});
+
+		pipelineCache.set(key, pipeline);
+	}
+
+	return pipelineCache.get(key);
+}
 
 function init(renderer){
 
-	if(pipeline !== null){
-		return;
-	}
-
-	let {device, swapChainFormat} = renderer;
-
-	pipeline = device.createRenderPipeline({
-		layout: "auto",
-		vertex: {
-			module: device.createShaderModule({code: vs, label: "vs_edl"}),
-			entryPoint: "main",
-		},
-		fragment: {
-			module: device.createShaderModule({code: fs, label: "fs_edl"}),
-			entryPoint: "main",
-			targets: [{format: "bgra8unorm"}],
-		},
-		primitive: {
-			topology: 'triangle-list',
-			cullMode: 'none',
-		},
-		depthStencil: {
-				depthWriteEnabled: true,
-				depthCompare: "always",
-				format: "depth32float",
-		},
-	});
+	if(initialized) return;
 
 	let uniformBufferSize = 256;
-	uniformBuffer = device.createBuffer({
+	uniformBuffer = renderer.device.createBuffer({
 		size: uniformBufferSize,
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	});
+
+	initialized = true;
 }
 
 let uniformBindGroupCache = new Map();
 function getUniformBindGroup(renderer, source){
 
-	let data = uniformBindGroupCache.get(source);
+	// let data = uniformBindGroupCache.get(source);
 
-	if(data == null || data.version < source.version){
+	// if(data == null || data.version < source.version){
 
-		let sampler = renderer.device.createSampler({
-			magFilter: "linear",
-			minFilter: "linear",
-		});
+	// 	let layout = getLayout(renderer, source);
 		
-		let uniformBindGroup = renderer.device.createBindGroup({
-			layout: pipeline.getBindGroupLayout(0),
-			entries: [
-				{binding: 0, resource: {buffer: uniformBuffer}},
-				{binding: 1, resource: sampler},
-				{binding: 2, resource: source.colorAttachments[0].texture.createView()},
-				{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
-			],
-		});
+	// 	let uniformBindGroup = renderer.device.createBindGroup({
+	// 		label: "EDL",
+	// 		layout,
+	// 		entries: [
+	// 			{binding: 0, resource: {buffer: uniformBuffer}},
+	// 			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
+	// 			{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
+	// 		],
+	// 	});
 
-		let data = {
-			version: source.version, 
-			uniformBindGroup
-		};
+	// 	let data = {
+	// 		version: source.version, 
+	// 		uniformBindGroup
+	// 	};
 
-		uniformBindGroupCache.set(source, data);
+	// 	uniformBindGroupCache.set(source, data);
 
-	}
+	// }
 
-	return uniformBindGroupCache.get(source).uniformBindGroup;
+	// return uniformBindGroupCache.get(source).uniformBindGroup;
+
+	let layout = getLayout(renderer, source);
+	
+	// TODO: cache this?
+	let uniformBindGroup = renderer.device.createBindGroup({
+		label: "EDL",
+		layout,
+		entries: [
+			{binding: 0, resource: {buffer: uniformBuffer}},
+			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
+			{binding: 3, resource: source.depth.texture.createView({aspect: "depth-only"})}
+		],
+	});
+
+	return uniformBindGroup;
 }
 
 export function EDL(source, drawstate){
@@ -271,7 +309,7 @@ export function EDL(source, drawstate){
 
 	let uniformBindGroup = getUniformBindGroup(renderer, source);
 
-	passEncoder.setPipeline(pipeline);
+	passEncoder.setPipeline(getPipeline(renderer, source));
 
 	{ // update uniforms
 		let source = new ArrayBuffer(32);

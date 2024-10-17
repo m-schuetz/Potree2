@@ -2,7 +2,7 @@
 import {Vector3, Ray} from "potree";
 import {
 	Scene, SceneNode, Camera, OrbitControls, PotreeControls, StationaryControls, Mesh, RenderTarget,
-	PointCloudOctree,
+	PointCloudOctree, Quality
 } from "potree";
 import {Renderer, Timer, EventDispatcher, InputHandler} from "potree";
 import {drawTexture, loadImage, drawImage} from "./prototyping/textures.js";
@@ -466,7 +466,8 @@ function renderNotSoBasic(){
 
 	Timer.frameStart(renderer);
 	
-	let hqsEnabled = Potree.settings.hqsEnabled;
+	// let hqsEnabled = Potree.settings.hqsEnabled;
+	let blendingEnabled = Potree.settings.quality === Quality.BLENDING;
 	let edlEnabled = Potree.settings.edlEnabled;
 	let dilateEnabled = Potree.settings.dilateEnabled;
 
@@ -482,11 +483,11 @@ function renderNotSoBasic(){
 	fbo_0.setSize(...screenbuffer.size);
 	fbo_1.setSize(...screenbuffer.size);
 	
-	let forwardRendering = !(hqsEnabled || dilateEnabled || edlEnabled);
+	let forwardRendering = !(blendingEnabled || dilateEnabled || edlEnabled);
 
 	let fboTarget = (!dilateEnabled && !edlEnabled) ? screenbuffer : fbo_0;
 	
-	if(hqsEnabled){
+	if(blendingEnabled){
 
 		Timer.timestampSep(renderer, "HQS(total)-start");
 
@@ -610,7 +611,7 @@ function renderNotSoBasic(){
 		endPass(pass);
 	}
 
-	if(Potree.settings.hqsEnabled === false)
+	if(!blendingEnabled)
 	{ // DEBUG: try MSAA
 
 		let fbo_msaa = renderer.getFramebuffer(`msaa_test_samplecount=${Potree.settings.sampleCount}`, {sampleCount: Potree.settings.sampleCount});
@@ -620,7 +621,8 @@ function renderNotSoBasic(){
 		let colorAttachments;
 
 		if(Potree.settings.sampleCount == 1){
-			let view = renderer.context.getCurrentTexture().createView();
+			// let view = renderer.context.getCurrentTexture().createView();
+			let view = target.colorAttachments[0].texture.createView();
 			colorAttachments = [
 				{view, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
 			];
@@ -628,7 +630,7 @@ function renderNotSoBasic(){
 			let view = target.colorAttachments[0].texture.createView();
 			let resolveTarget = renderer.context.getCurrentTexture().createView();
 			colorAttachments = [
-				{view, resolveTarget, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
+				{view, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
 			];
 		}
 
@@ -701,10 +703,45 @@ function renderNotSoBasic(){
 
 		let commandBuffer = commandEncoder.finish();
 		renderer.device.queue.submit([commandBuffer]);
+
+		if(Potree.settings.sampleCount > 1)
+		{ // RESOLVE
+			let view = target.colorAttachments[0].texture.createView();
+			let resolveTarget = renderer.context.getCurrentTexture().createView();
+			let colorAttachments = [
+				{view, resolveTarget, loadOp: "load", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
+			];
+
+			let renderPassDescriptor = {
+				label: "resolve",
+				colorAttachments,
+				depthStencilAttachment: {
+					view: target.depth.texture.createView(),
+					depthLoadOp: "clear",
+					depthStoreOp: "store",
+					depthClearValue: 0,
+				},
+				sampleCount: Potree.settings.sampleCount,
+			};
+
+			const commandEncoder = renderer.device.createCommandEncoder();
+			const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+			passEncoder.end();
+			let commandBuffer = commandEncoder.finish();
+			renderer.device.queue.submit([commandBuffer]);
+		}else{
+			let pass = startPass(renderer, screenbuffer, "EDL");
+			let drawstate = {renderer, camera, renderables, pass};
+
+			EDL(target, drawstate);
+
+			endPass(pass);
+		}
 	}
 
 	// EDL
-	if(Potree.settings.hqsEnabled && edlEnabled){ 
+	if(Potree.settings.quality === Quality.BLENDING && edlEnabled){ 
 		let pass = startPass(renderer, screenbuffer, "EDL");
 		let drawstate = {renderer, camera, renderables, pass};
 

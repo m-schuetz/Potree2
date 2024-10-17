@@ -111,6 +111,12 @@ export const SplatType = {
 	VOXELS:   2,
 };
 
+export const Quality = {
+	STANDARD: 0,
+	BLENDING: 1,
+	MSAA:     2,
+};
+
 const settings = {
 	pointSize: 3,
 	pointBudget: 2_000_000,
@@ -126,6 +132,8 @@ const settings = {
 	gradient: Gradients.SPECTRAL,
 	splatType: SplatType.POINTS,
 	sampleCount: 4,
+	quality: Quality.MSAA,
+	// quality: Quality.STANDARD,
 };
 
 const state = {
