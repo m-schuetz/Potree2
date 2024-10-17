@@ -79,12 +79,19 @@ let capacity = 10_000;
 let f32Matrices = new Float32Array(16 * capacity);
 let f32Colors = new Float32Array(4 * capacity);
 
-function getPipeline(renderer){
+function getPipeline(drawstate){
 
+	let {renderer} = drawstate;
 	let {device} = renderer;
 
+	let targets = [{format: "bgra8unorm"}];
 
-	let key = `samplecount=${Potree.settings.sampleCount}`;
+	if(drawstate.pass.renderPassDescriptor.colorAttachments.length === 2){
+		targets.push({format: "r32float"});
+	}
+
+	let key = `samplecount=${Potree.settings.sampleCount}_targetcount=${targets.length}`;
+
 	if(!pipelineCache.has(key)){
 		let module = device.createShaderModule({code: shaderSource});
 
@@ -135,10 +142,7 @@ function getPipeline(renderer){
 			fragment: {
 				module: module,
 				entryPoint: "main_fragment",
-				targets: [
-					{format: "bgra8unorm"},
-					// {format: "bgra8unorm"},
-				],
+				targets,
 			},
 			primitive: {
 				topology: 'triangle-list',
@@ -264,7 +268,7 @@ export function render(spheres, drawstate){
 
 	let {passEncoder} = drawstate.pass;
 
-	let pipeline = getPipeline(renderer); 
+	let pipeline = getPipeline(drawstate); 
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);

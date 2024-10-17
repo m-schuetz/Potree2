@@ -436,6 +436,7 @@ export function generatePipeline(renderer, args = {}){
 	console.groupEnd();
 
 	const pipeline = device.createRenderPipeline({
+		label: "renderQuadsOctree",
 		vertex: {
 			module: device.createShaderModule({code: vsBase}),
 			entryPoint: "main",

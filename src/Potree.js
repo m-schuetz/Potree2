@@ -132,7 +132,8 @@ const settings = {
 	gradient: Gradients.SPECTRAL,
 	splatType: SplatType.POINTS,
 	sampleCount: 4,
-	quality: Quality.MSAA,
+	// quality: Quality.MSAA,
+	quality: Quality.BLENDING,
 	// quality: Quality.STANDARD,
 };
 

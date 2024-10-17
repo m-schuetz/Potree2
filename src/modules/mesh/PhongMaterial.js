@@ -205,6 +205,7 @@ function getPipeline(drawstate, node){
 	let module = device.createShaderModule({code: shaderSource});
 
 	let pipeline = device.createRenderPipeline({
+		label: "phongMaterial",
 		layout: "auto",
 		vertex: {
 			module,

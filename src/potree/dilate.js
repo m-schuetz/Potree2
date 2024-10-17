@@ -227,6 +227,7 @@ function init(renderer){
 	let module = device.createShaderModule({code: shaderSource});
 
 	pipeline = device.createRenderPipeline({
+		label: "dilate",
 		layout: "auto",
 		vertex: {
 			module: module,

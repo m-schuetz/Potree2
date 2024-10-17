@@ -110,6 +110,7 @@ function createPipeline(renderer){
 	let {device} = renderer;
 
 	pipeline = device.createRenderPipeline({
+		label: "renderVoxels",
 		layout: "auto",
 		vertex: {
 			module: device.createShaderModule({code: vs}),

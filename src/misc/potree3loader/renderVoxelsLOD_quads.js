@@ -256,6 +256,7 @@ function getState(renderer, node){
 		let {device} = renderer;
 
 		let pipeline = device.createRenderPipeline({
+			label: "renderVoxelsLOD",
 			layout: "auto",
 			vertex: {
 				module: device.createShaderModule({code: shaderSource}),

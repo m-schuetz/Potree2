@@ -74,6 +74,7 @@ function createPipeline(renderer){
 	let {device} = renderer;
 
 	pipeline = device.createRenderPipeline({
+		label: "renderLines",
 		layout: "auto",
 		vertex: {
 			module: device.createShaderModule({code: vs}),

@@ -514,7 +514,8 @@ struct FragmentInput {
 
 struct FragmentOutput {
 	@location(0) color : vec4<f32>,
-	@location(1) point_id : vec4<f32>,
+	// @location(1) point_id : vec4<f32>,
+	@location(1) point_id : f32,
 };
 
 @fragment
@@ -525,7 +526,9 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 	var output : FragmentOutput;
 	output.color = fragment.color;
 	// output.point_id = fragment.point_id;
-	output.point_id = vec4<f32>(0.0f, 0.0f, 0.0f, 0.0f);
+	// output.point_id = vec4<f32>(0.0f, 0.0f, 0.0f, 0.0f);
+	output.point_id = bitcast<f32>(fragment.point_id);
+	
 
 	var uv = vec2<f32>(
 		fragment.frag_position.x - fragment.point_position.x,

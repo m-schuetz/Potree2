@@ -215,6 +215,7 @@ export function getPipeline(renderer, octree, attributeName){
 		let vsCode = vs.replace("import {getColor};", colorSampler);
 
 		let pipeline = device.createRenderPipeline({
+			label: "sh_scalar",
 			vertexStage: {
 				module: device.createShaderModule({code: vsCode}),
 				entryPoint: "main",

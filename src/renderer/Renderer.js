@@ -703,16 +703,15 @@ export class Renderer{
 						| GPUTextureUsage.COPY_DST 
 						| GPUTextureUsage.RENDER_ATTACHMENT,
 					sampleCount: args.sampleCount ?? 1,
+				},{
+					size: size,
+					format: "r32float",
+					usage: GPUTextureUsage.TEXTURE_BINDING 
+						| GPUTextureUsage.COPY_SRC 
+						| GPUTextureUsage.COPY_DST 
+						| GPUTextureUsage.RENDER_ATTACHMENT,
+					sampleCount: args.sampleCount ?? 1,
 				}
-				// ,{
-				// 	size: size,
-				// 	format: this.swapChainFormat,
-				// 	usage: GPUTextureUsage.TEXTURE_BINDING 
-				// 		| GPUTextureUsage.COPY_SRC 
-				// 		| GPUTextureUsage.COPY_DST 
-				// 		| GPUTextureUsage.RENDER_ATTACHMENT,
-				// 	sampleCount: args.sampleCount ?? 1,
-				// }
 				],
 				depthDescriptor: {
 					size: size,

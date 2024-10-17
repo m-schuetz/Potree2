@@ -116,14 +116,14 @@ function getSumBuffer(renderer){
 				usage: GPUTextureUsage.TEXTURE_BINDING 
 					| GPUTextureUsage.RENDER_ATTACHMENT,
 			}
-			// ,{
-			// 	size: size,
-			// 	format: "r32uint",
-			// 	usage: GPUTextureUsage.TEXTURE_BINDING 
-			// 		| GPUTextureUsage.COPY_SRC 
-			// 		| GPUTextureUsage.COPY_DST 
-			// 		| GPUTextureUsage.RENDER_ATTACHMENT,
-			// }
+			,{
+				size: size,
+				format: "r32float",
+				usage: GPUTextureUsage.TEXTURE_BINDING 
+					| GPUTextureUsage.COPY_SRC 
+					| GPUTextureUsage.COPY_DST 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
+			}
 		],
 		depthDescriptor: {
 			size: size,
@@ -193,7 +193,7 @@ function startPass(renderer, target, label){
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-	return {commandEncoder, passEncoder, timestampEntry};
+	return {commandEncoder, passEncoder, timestampEntry, renderPassDescriptor};
 }
 
 function revisitPass(renderer, target, label){
@@ -241,7 +241,7 @@ function revisitPass(renderer, target, label){
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-	return {commandEncoder, passEncoder, timestampEntry};
+	return {commandEncoder, passEncoder, timestampEntry, renderPassDescriptor};
 }
 
 function startSumPass(renderer, target, label){
@@ -298,7 +298,7 @@ function startSumPass(renderer, target, label){
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-	return {commandEncoder, passEncoder, timestampEntry};
+	return {commandEncoder, passEncoder, timestampEntry, renderPassDescriptor};
 }
 
 function endPass(pass){
@@ -621,17 +621,14 @@ function renderNotSoBasic(){
 		let target = fbo_msaa;
 		let colorAttachments;
 
-		if(Potree.settings.sampleCount == 1){
-			let view = target.colorAttachments[0].texture.createView();
-			colorAttachments = [
-				{view, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
-			];
-		}else{
-			let view = target.colorAttachments[0].texture.createView();
-			colorAttachments = [
-				{view, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
-			];
-		}
+		let view = target.colorAttachments[0].texture.createView();
+		let view2 = target.colorAttachments[1].texture.createView();
+
+		colorAttachments = [
+			{view, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]},
+			{view: view2, loadOp: "clear", storeOp: 'store', clearValue: [0.0, 0.0, 0.0, 0.0]},
+		];
+		
 
 		let renderPassDescriptor = {
 			label: "msaa test",
@@ -669,7 +666,7 @@ function renderNotSoBasic(){
 		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
 		// let pass = revisitPass(renderer, fbo_source, "render everything else");
-		let pass = {commandEncoder, passEncoder, timestampEntry};
+		let pass = {commandEncoder, passEncoder, timestampEntry, renderPassDescriptor};
 		let drawstate = {renderer, camera, renderables, pass};
 
 		// renderQuadsOctree(octrees, drawstate);

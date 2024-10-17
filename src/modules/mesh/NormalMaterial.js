@@ -77,6 +77,7 @@ function init(renderer){
 	let {device} = renderer;
 
 	pipeline = device.createRenderPipeline({
+		label: "normalMaterial",
 		layout: "auto",
 		vertex: {
 			module: device.createShaderModule({code: vs}),

@@ -275,6 +275,7 @@ function createPipeline(renderer){
 	let {device} = renderer;
 	
 	pipeline = device.createRenderPipeline({
+		label: "generateVoxels",
 		vertex: {
 			module: device.createShaderModule({code: shaderSource}),
 			entryPoint: "main_vertex",

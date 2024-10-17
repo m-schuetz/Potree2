@@ -84,6 +84,7 @@ function createPipeline(renderer){
 	let module = device.createShaderModule({code: shaderSource});
 
 	pipeline = device.createRenderPipeline({
+		label: "renderBoundingSpheres",
 		layout: "auto",
 		vertex: {
 			module: module,

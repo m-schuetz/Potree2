@@ -125,6 +125,7 @@ function init(renderer){
 	let module = device.createShaderModule({code: shaderCode});
 
 	pipeline = device.createRenderPipeline({
+		label: "Images360",
 		layout: "auto",
 		vertex: {
 			module,

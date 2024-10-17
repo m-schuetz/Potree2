@@ -107,6 +107,7 @@ async function init(renderer){
 	let tStart = Date.now();
 
 	let testPipeline = device.createRenderPipelineAsync({
+		label: "3DTiles",
 		layout: device.createPipelineLayout({
 			bindGroupLayouts: [
 				layout_0, layout_1
@@ -142,6 +143,7 @@ async function init(renderer){
 
 
 	pipeline = device.createRenderPipeline({
+		label: "3DTiles",
 		layout: device.createPipelineLayout({
 			bindGroupLayouts: [
 				layout_0, layout_1

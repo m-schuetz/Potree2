@@ -235,7 +235,7 @@ function getPipeline(renderer, renderTarget){
 		let layout = getLayout(renderer, renderTarget);
 		
 		let pipeline = device.createRenderPipeline({
-			label: EDL,
+			label: "EDL",
 			layout: device.createPipelineLayout({
 				bindGroupLayouts: [layout],
 			}),

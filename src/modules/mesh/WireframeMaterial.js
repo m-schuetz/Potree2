@@ -102,6 +102,7 @@ function getPipeline(drawstate, node){
 	}
 
 	let pipeline = device.createRenderPipeline({
+		label: "wireframeMaterial",
 		layout: "auto",
 		vertex: {
 			module: device.createShaderModule({code: vs}),

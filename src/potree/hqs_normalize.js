@@ -35,7 +35,7 @@ let shaderCode = `
 	struct FragmentOutput{
 		@builtin(frag_depth) depth : f32,
 		@location(0) color : vec4<f32>,
-		// @location(1) pointID : u32,
+		@location(1) pointID : f32,
 	};
 
 	fn toLinear(depth: f32, near: f32) -> f32{
@@ -261,17 +261,25 @@ let pipeline_points = null;
 let pipeline_quads = null;
 let pipeline_voxels = null;
 
-function init(renderer){
+function init(drawstate){
 
 	if(initialized){
 		return;
 	}
 
+	let renderer = drawstate.renderer;
 	let {device, swapChainFormat} = renderer;
+
+	let targetCount = drawstate.pass?.renderPassDescriptor?.colorAttachments?.length ?? 1;
+	let targets = [{format: "bgra8unorm"}];
+	if(targetCount === 2){
+		targets.push({format: "r32float"});
+	}
 
 	let module = device.createShaderModule({code: shaderCode});
 
 	pipeline_points = device.createRenderPipeline({
+		label: "hqs_normalize_points",
 		layout: "auto",
 		vertex: {
 			module,
@@ -280,10 +288,7 @@ function init(renderer){
 		fragment: {
 			module,
 			entryPoint: "main_fs",
-			targets: [
-				{format: "bgra8unorm"},
-				// {format: "r32uint", blend: undefined}
-			],
+			targets,
 		},
 		primitive: {
 			topology: 'triangle-list',
@@ -297,6 +302,7 @@ function init(renderer){
 	});
 
 	pipeline_quads = device.createRenderPipeline({
+		label: "hqs_normalize_quads",
 		layout: "auto",
 		vertex: {
 			module,
@@ -305,10 +311,7 @@ function init(renderer){
 		fragment: {
 			module,
 			entryPoint: "main_fs_quads",
-			targets: [
-				{format: "bgra8unorm"},
-				// {format: "r32uint", blend: undefined}
-			],
+			targets,
 		},
 		primitive: {
 			topology: 'triangle-list',
@@ -322,6 +325,7 @@ function init(renderer){
 	});
 
 	pipeline_voxels = device.createRenderPipeline({
+		label: "hqs_normalize_voxels",
 		layout: "auto",
 		vertex: {
 			module,
@@ -330,10 +334,7 @@ function init(renderer){
 		fragment: {
 			module,
 			entryPoint: "main_fs_voxels",
-			targets: [
-				{format: "bgra8unorm"},
-				// {format: "r32uint", blend: undefined}
-			],
+			targets,
 		},
 		primitive: {
 			topology: 'triangle-list',
@@ -360,7 +361,7 @@ export function hqs_normalize(source, drawstate){
 	let {renderer, camera, pass} = drawstate;
 	let {passEncoder} = pass;
 
-	init(renderer);
+	init(drawstate);
 
 	Timer.timestamp(passEncoder,"hqs-normalize-start");
 

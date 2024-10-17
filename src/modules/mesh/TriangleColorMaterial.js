@@ -125,6 +125,7 @@ function getPipeline(drawstate, node){
 	}
 
 	let pipeline = device.createRenderPipeline({
+		label: "triangleColorMaterial",
 		layout: "auto",
 		vertex: {
 			module: device.createShaderModule({code: vs}),

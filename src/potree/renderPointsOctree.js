@@ -66,8 +66,9 @@ function getGradient(renderer, pipeline, gradient){
  
 let ids = 0;
 
-function getOctreeState(renderer, octree, attributeName, flags = []){
+function getOctreeState(drawstate, octree, attributeName, flags = []){
 
+	let {renderer} = drawstate;
 	let {device} = renderer;
 
 	if(typeof octree.state_id === "undefined"){
@@ -75,8 +76,10 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 		ids++;
 	}
 
+	let targetCount = drawstate.pass?.renderPassDescriptor?.colorAttachments?.length ?? 1;
+
 	let key_mappings = octree.material.mappings.map(m => m.name + "_" + m.inputs.join("_"))
-	let key = `${octree.state_id}_${flags.join(";")}_${key_mappings}_samplecount=${Potree.settings.sampleCount}`;
+	let key = `${octree.state_id}_${flags.join(";")}_${key_mappings}_samplecount=${Potree.settings.sampleCount}_targetcount=${targetCount}`;
 
 	let state = octreeStates.get(key);
 
@@ -142,7 +145,7 @@ function getOctreeState(renderer, octree, attributeName, flags = []){
 
 		octreeStates.set(key, state);
 
-		makePipeline(renderer, {octree, state, flags, key});
+		makePipeline(drawstate, {octree, state, flags, key});
 
 		return null;
 	}else if(state.stage === "building"){
@@ -411,8 +414,8 @@ async function renderOctree(octree, drawstate, flags){
 	
 	let attributeName = Potree.settings.attribute;
 
-	let octreeState_points = getOctreeState(renderer, octree, attributeName, [...flags, "SPLAT_TYPE_0"]);
-	let octreeState_quads = getOctreeState(renderer, octree, attributeName, [...flags, "SPLAT_TYPE_1"]);
+	let octreeState_points = getOctreeState(drawstate, octree, attributeName, [...flags, "SPLAT_TYPE_0"]);
+	let octreeState_quads = getOctreeState(drawstate, octree, attributeName, [...flags, "SPLAT_TYPE_1"]);
 
 	if(!octreeState_points) return;
 	if(!octreeState_quads) return;

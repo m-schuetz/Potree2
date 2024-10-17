@@ -153,6 +153,7 @@ function init(renderer){
 	let module = device.createShaderModule({code: shaderCode});
 
 	pipeline = device.createRenderPipeline({
+		label: "sphereMap",
 		layout: "auto",
 		vertex: {
 			module,

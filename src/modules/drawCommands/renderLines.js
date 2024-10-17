@@ -167,11 +167,18 @@ let bindGroupLayout = null;
 let bindGroup = null;
 let capacity = 1_000_000;
 
-function getPipeline(renderer){
+function getPipeline(drawstate){
 
+	let {renderer} = drawstate;
 	let {device} = renderer;
 
-	let key = `samplecount=${Potree.settings.sampleCount}`;
+	let targets = [{format: "bgra8unorm"}];
+
+	if(drawstate.pass.renderPassDescriptor.colorAttachments.length === 2){
+		targets.push({format: "r32float"});
+	}
+
+	let key = `samplecount=${Potree.settings.sampleCount}_targetcount=${targets.length}`;
 
 	if(!pipelineCache.has(key)){
 		let module = device.createShaderModule({code: shaderCode});
@@ -189,10 +196,7 @@ function getPipeline(renderer){
 			fragment: {
 				module,
 				entryPoint: "main_fragment",
-				targets: [
-					{format: "bgra8unorm"},
-					// {format: "bgra8unorm"},
-				],
+				targets,
 			},
 			primitive: {
 				topology: 'triangle-list',
@@ -350,7 +354,7 @@ export function render(lines, drawstate){
 
 	let {passEncoder} = drawstate.pass;
 
-	let pipeline = getPipeline(renderer); 
+	let pipeline = getPipeline(drawstate); 
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);

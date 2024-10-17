@@ -3,10 +3,10 @@ import {Potree, SplatType} from "potree";
 
 // let shaderModuleCache = new Map();
 
-export async function makePipeline(renderer, args = {}){
+export async function makePipeline(drawstate, args = {}){
 
-	// console.log("generating octree pipeline");
-
+	
+	let {renderer} = drawstate;
 	let {device} = renderer;
 	let {octree, state, flags} = args;
 
@@ -51,6 +51,20 @@ export async function makePipeline(renderer, args = {}){
 			},
 		};
 	}
+
+	let targetCount = drawstate.pass?.renderPassDescriptor?.colorAttachments?.length ?? 1;
+	let targets = [{format, blend}];
+	if(targetCount === 2){
+		targets.push({format: "r32float"});
+		// targets.push({format: "bgra8unorm"});
+	}
+
+	let sampleCount = Potree.settings.sampleCount;
+
+	if(flags.includes("additive_blending") || flags.includes("hqs-depth")){
+		sampleCount = 1;
+	}
+	
 
 	let modifiedShaderSource = shaderSource;
 
@@ -187,10 +201,7 @@ export async function makePipeline(renderer, args = {}){
 		fragment: {
 			module: module,
 			entryPoint: "main_fragment",
-			targets: [
-				{format: format, blend: blend},
-				// {format: format, blend: undefined}
-			],
+			targets,
 		},
 		primitive: {
 			topology: topology,
@@ -203,7 +214,7 @@ export async function makePipeline(renderer, args = {}){
 			format: "depth32float",
 		},
 		multisample: {
-			count: Potree.settings.sampleCount,
+			count: sampleCount,
 		},
 	});
 
