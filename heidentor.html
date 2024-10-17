@@ -1,60 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="origin-trial" content="AmgwKkyLeQetn/dhGSsOlfOa/QLp1JOUgqyYSeFTadHtP83gkgHrDEj62CN//MgSjDbVwOY/LAr4qg/XyU2YYwMAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY3NTIwOTU5OSwiaXNTdWJkb21haW4iOnRydWV9">
-<style>
-
-td{
-	padding: 2px 10px 0px 0px;
-}
-
-#big_message{
-	position: absolute; 
-	left: calc(50%); 
-	bottom: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 4em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
-
-#msg_dbg{
-	position: absolute; 
-	right: 10px; 
-	bottom: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 1em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
-
-#msg_resources{
-	position: absolute; 
-	right: 10px; 
-	top: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 1em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
-
-canvas{
-	image-rendering: pixelated;
-	display: flex;
-	position: absolute;
-	height: 100%;
-}
-
-</style>
+<link rel="stylesheet" href="./resources/potree.css">
 </head>
 <body style="padding: 0; margin: 0">
 
@@ -147,28 +94,28 @@ canvas{
 	Potree.settings.splatType       = SplatType.QUADS;
 	// Potree.settings.splatType       = SplatType.POINTS;
 	Potree.settings.pointSize       = 2;
-	Potree.settings.minNodeSize     = 200;
+	Potree.settings.minNodeSize     = 50;
 	Potree.settings.showBoundingBox = false;
 
 
-	let measure = new PointMeasure();
-	measure.markers.push(new Vector3(50, -250, 12));
-	potree.measure.measures.push(measure);
+	// let measure = new PointMeasure();
+	// measure.markers.push(new Vector3(50, -250, 12));
+	// potree.measure.measures.push(measure);
 
-	let md = new DistanceMeasure();
-	md.markers.push(new Vector3(-160.293,  133.898,  38.785));
-	md.markers.push(new Vector3(-162.407, -166.239,  60.978));
-	md.markers.push(new Vector3(  35.218,   96.909,  16.592));
-	md.markers.push(new Vector3( 119.764, -141.932, -37.834));
-	md.markers.push(new Vector3( 233.900, -301.512, -25.681));
-	md.markers.push(new Vector3( 338.525, -152.500, -36.777));
-	md.markers.push(new Vector3( 239.184,   13.420, -20.925));
-	potree.measure.measures.push(md);
+	// let md = new DistanceMeasure();
+	// md.markers.push(new Vector3(-160.293,  133.898,  38.785));
+	// md.markers.push(new Vector3(-162.407, -166.239,  60.978));
+	// md.markers.push(new Vector3(  35.218,   96.909,  16.592));
+	// md.markers.push(new Vector3( 119.764, -141.932, -37.834));
+	// md.markers.push(new Vector3( 233.900, -301.512, -25.681));
+	// md.markers.push(new Vector3( 338.525, -152.500, -36.777));
+	// md.markers.push(new Vector3( 239.184,   13.420, -20.925));
+	// potree.measure.measures.push(md);
 
-	let mh = new HeightMeasure();
-	mh.markers.push(new Vector3(154.639, 122.273,  56.751));
-	mh.markers.push(new Vector3( 17.252, -70.069, -48.931));
-	potree.measure.measures.push(mh);
+	// let mh = new HeightMeasure();
+	// mh.markers.push(new Vector3(154.639, 122.273,  56.751));
+	// mh.markers.push(new Vector3( 17.252, -70.069, -48.931));
+	// potree.measure.measures.push(mh);
 
 
 	Potree.events.onFrameStart(() => {

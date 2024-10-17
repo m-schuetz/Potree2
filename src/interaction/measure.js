@@ -97,7 +97,8 @@ export class MeasureTool{
 
 	update(){
 		let depth = camera.getWorldPosition().distanceTo(this.cursor.position);
-		let radius = depth / 50;
+		let radiusFactor = 100;
+		let radius = depth / radiusFactor;
 
 		if(this.currentMeasurement){
 			this.cursor.visible = true;
@@ -113,7 +114,7 @@ export class MeasureTool{
 				let marker = measure.markers[markerIndex];
 
 				let depth = camera.getWorldPosition().distanceTo(marker);
-				let radius = depth / 50;
+				let radius = depth / radiusFactor;
 
 				let args = {
 					color: new Vector4(0, 1, 0, 1)

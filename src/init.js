@@ -611,24 +611,23 @@ function renderNotSoBasic(){
 		endPass(pass);
 	}
 
-	if(!blendingEnabled)
-	{ // DEBUG: try MSAA
+	if(!blendingEnabled){ 
 
-		let fbo_msaa = renderer.getFramebuffer(`msaa_test_samplecount=${Potree.settings.sampleCount}`, {sampleCount: Potree.settings.sampleCount});
+		let framebufferID = `msaa_test_samplecount=${Potree.settings.sampleCount}`;
+		let framebufferConfig = {sampleCount: Potree.settings.sampleCount};
+		let fbo_msaa = renderer.getFramebuffer(framebufferID, framebufferConfig);
 		fbo_msaa.setSize(...screenbuffer.size);
 
 		let target = fbo_msaa;
 		let colorAttachments;
 
 		if(Potree.settings.sampleCount == 1){
-			// let view = renderer.context.getCurrentTexture().createView();
 			let view = target.colorAttachments[0].texture.createView();
 			colorAttachments = [
 				{view, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
 			];
 		}else{
 			let view = target.colorAttachments[0].texture.createView();
-			let resolveTarget = renderer.context.getCurrentTexture().createView();
 			colorAttachments = [
 				{view, loadOp: "clear", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
 			];
@@ -704,11 +703,10 @@ function renderNotSoBasic(){
 		let commandBuffer = commandEncoder.finish();
 		renderer.device.queue.submit([commandBuffer]);
 
-		if(Potree.settings.quality === Quality.MSAA)
-		{ // RESOLVE
+		if(Potree.settings.quality === Quality.MSAA){
+			// RESOLVE & EDL FOR MSAA FRAMEBUFFER
+
 			let view = screenbuffer.colorAttachments[0].texture.createView();
-			// let view = target.colorAttachments[0].texture.createView();
-			let resolveTarget = renderer.context.getCurrentTexture().createView();
 			let colorAttachments = [
 				{view, loadOp: "load", storeOp: 'store', clearValue: [0.1, 0.2, 0.3, 1.0]}
 			];
@@ -722,7 +720,6 @@ function renderNotSoBasic(){
 					depthStoreOp: "store",
 					depthClearValue: 0,
 				},
-				// sampleCount: Potree.settings.sampleCount,
 			};
 
 			const commandEncoder = renderer.device.createCommandEncoder();
@@ -736,6 +733,8 @@ function renderNotSoBasic(){
 			let commandBuffer = commandEncoder.finish();
 			renderer.device.queue.submit([commandBuffer]);
 		}else{
+			// EDL FOR NON-MSAA FRAMEBUFFER
+
 			let pass = startPass(renderer, screenbuffer, "EDL");
 			let drawstate = {renderer, camera, renderables, pass};
 
