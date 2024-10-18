@@ -133,7 +133,7 @@ const settings = {
 	splatType: SplatType.POINTS,
 	sampleCount: 4,
 	// quality: Quality.MSAA,
-	quality: Quality.BLENDING,
+	quality: Quality.MSAA,
 	// quality: Quality.STANDARD,
 };
 

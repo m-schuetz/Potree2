@@ -19,6 +19,8 @@ import {
 import {dilate, EDL, hqs_normalize} from "potree";
 import Stats from "stats";
 import * as TWEEN from "tween";
+// import "readPixels" from "potree";
+// src\renderer\readPixels.js
 
 let frame = 0;
 let lastFpsCount = 0;
@@ -611,6 +613,7 @@ function renderNotSoBasic(){
 		endPass(pass);
 	}
 
+	let target = null;
 	if(!blendingEnabled){ 
 
 		let framebufferID = `msaa_test_samplecount=${Potree.settings.sampleCount}`;
@@ -618,7 +621,7 @@ function renderNotSoBasic(){
 		let fbo_msaa = renderer.getFramebuffer(framebufferID, framebufferConfig);
 		fbo_msaa.setSize(...screenbuffer.size);
 
-		let target = fbo_msaa;
+		target = fbo_msaa;
 		let colorAttachments;
 
 		let view = target.colorAttachments[0].texture.createView();
@@ -741,14 +744,20 @@ function renderNotSoBasic(){
 		}
 	}
 
-	// EDL
-	if(Potree.settings.quality === Quality.BLENDING && edlEnabled){ 
-		let pass = startPass(renderer, screenbuffer, "EDL");
-		let drawstate = {renderer, camera, renderables, pass};
+	// // EDL
+	// if(Potree.settings.quality === Quality.BLENDING && edlEnabled){ 
+	// 	let pass = startPass(renderer, screenbuffer, "EDL");
+	// 	let drawstate = {renderer, camera, renderables, pass};
 
-		EDL(fbo_source, drawstate);
+	// 	EDL(fbo_source, drawstate);
 
-		endPass(pass);
+	// 	endPass(pass);
+	// }
+
+	{
+		readPixels(renderer, screenbuffer.colorAttachments[0].texture, 10, 10, 16, 16, () => {
+			console.log("test");
+		});
 	}
 
 	if(false)
@@ -760,7 +769,7 @@ function renderNotSoBasic(){
 		let searchWindow = 3;
 		let wh = searchWindow / 2;
 		// console.log(mouse);
-		renderer.readPixels(fbo_source.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, searchWindow, searchWindow).then(buffer => {
+		renderer.readPixels(target.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, searchWindow, searchWindow).then(buffer => {
 
 			let maxID = Math.max(...new Uint32Array(buffer));
 
