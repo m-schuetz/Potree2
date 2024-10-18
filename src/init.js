@@ -754,13 +754,18 @@ function renderNotSoBasic(){
 	// 	endPass(pass);
 	// }
 
-	{
-		readPixels(renderer, screenbuffer.colorAttachments[0].texture, 10, 10, 16, 16, () => {
-			console.log("test");
-		});
-	}
+	// {
+	// 	readPixels(renderer, target.colorAttachments[1].texture, 10, 10, 16, 16, (buffer) => {
 
-	if(false)
+	// 		let indices = new Uint32Array(buffer);
+
+			
+
+	// 		console.log("test");
+	// 	});
+	// }
+
+	// if(false)
 	{ // HANDLE PICKING
 
 		let renderedObjects = Potree.state.renderedObjects;
@@ -769,7 +774,8 @@ function renderNotSoBasic(){
 		let searchWindow = 3;
 		let wh = searchWindow / 2;
 		// console.log(mouse);
-		renderer.readPixels(target.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, searchWindow, searchWindow).then(buffer => {
+		readPixels(renderer, target.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, searchWindow, searchWindow).then(buffer => {
+		// renderer.readPixels(target.colorAttachments[1].texture, mouse.x - wh, mouse.y - wh, searchWindow, searchWindow).then(buffer => {
 
 			let maxID = Math.max(...new Uint32Array(buffer));
 
@@ -993,6 +999,7 @@ function renderNotSoBasic(){
 			dbgSphere.position.copy(Potree.pickPosition);
 			dbgSphere.scale.set(radius, radius, radius);
 			dbgSphere.updateWorld();
+			// dbgSphere.visible = true;
 		}
 
 		for(let {x, y, callback} of Potree.pickQueue){

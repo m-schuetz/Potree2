@@ -472,13 +472,14 @@ export class Renderer{
 
 		let format = params.format ?? "rgba8uint";
 		let label  = params.label ?? "missing texture label";
+		let sampleCount = params.sampleCount ?? 1;
 
 		let texture = this.device.createTexture({
 			size: [width, height, 1],
 			format: format,
 			arrayLayerCount: 1,
 			mipLevelCount: 1,
-			sampleCount: 1,
+			sampleCount: sampleCount,
 			dimension: "2d",
 			label: label,
 			usage: 

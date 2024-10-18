@@ -101,8 +101,14 @@ export class MeasureTool{
 		let radius = depth / radiusFactor;
 
 		if(this.currentMeasurement){
-			this.cursor.visible = true;
-			this.cursor.scale.set(radius, radius, radius);
+			// this.cursor.visible = true;
+			// this.cursor.scale.set(radius, radius, radius);
+
+
+			let args = {
+				color: new Vector4(0, 1, 0, 1)
+			};
+			this.renderer.drawSphere(this.cursor.position, radius, args);
 		}else{
 			this.cursor.visible = false;
 		}
