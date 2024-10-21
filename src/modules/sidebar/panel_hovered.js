@@ -127,6 +127,18 @@ class Panel{
 				<td class="table_attributes_td">${strPos}</td>
 			</tr>
 			`;
+		}else if(hoveredItem){
+			// Object.keys
+
+			for(let key of Object.keys(hoveredItem)){
+				valueRows += `
+				<tr>
+					<td>${key}</td>
+					<td class="table_attributes_td">${hoveredItem[key]}</td>
+				</tr>
+				`;
+			}
+
 		}
 
 		let strTable = `

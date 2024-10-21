@@ -97,7 +97,7 @@ export class PointCloudOctree extends SceneNode{
 		});
 
 		let numPoints = 0;
-		let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
+		let needsUnfiltered = !["position", "rgba", "elevation"].includes(Potree.settings.attribute);
 		this.root.__pixelSize = 10000;
 
 		while (priorityQueue.size() > 0) {
@@ -282,7 +282,7 @@ export class PointCloudOctree extends SceneNode{
 			this.updateVisibility_additive(camera, renderer);
 
 			let replacingVisibleNodes = [];
-			let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
+			let needsUnfiltered = !["position", "rgba", "elevation"].includes(Potree.settings.attribute);
 
 			for(let node of this.visibleNodes){
 

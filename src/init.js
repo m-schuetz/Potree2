@@ -784,9 +784,10 @@ function renderNotSoBasic(){
 			}
 
 			let node = null;
+			let object = null;
 			let counter = 0;
 			for(let i = 0; i < renderedObjects.length; i++){
-				let object = renderedObjects[i];
+				object = renderedObjects[i];
 
 				if(maxID < counter + object.numElements){
 					node = object.node;
@@ -801,19 +802,7 @@ function renderNotSoBasic(){
 			if(node?.constructor.name === "PointCloudOctreeNode"){
 
 				let pointBuffer = node.geometry.buffer;
-				let view = new DataView(pointBuffer);
-
 				let point = node.getPoint(elementIndex);
-
-				// let x = view.getFloat32(12 * elementIndex + 0, true);
-				// let y = view.getFloat32(12 * elementIndex + 4, true);
-				// let z = view.getFloat32(12 * elementIndex + 8, true);
-
-				// x = x + node.octree.position.x;
-				// y = y + node.octree.position.y;
-				// z = z + node.octree.position.z;
-
-				// let position = new Vector3(x, y, z);
 
 				Potree.pickPosition.copy(point.position);
 
@@ -988,6 +977,15 @@ function renderNotSoBasic(){
 					object: node.tdtile,
 				};
 
+			}else if(object?.type === "Spheres"){
+				Potree.hoveredItem = {
+					type: "Spheres",
+					// instance: null,
+					// node: node,
+					pointIndex: elementIndex,
+					// position: position,
+					object: object,
+				};
 			}else{
 				Potree.hoveredItem = null;
 			}

@@ -97,7 +97,7 @@ export class MeasureTool{
 
 	update(){
 		let depth = camera.getWorldPosition().distanceTo(this.cursor.position);
-		let radiusFactor = 100;
+		let radiusFactor = 50;
 		let radius = depth / radiusFactor;
 
 		if(this.currentMeasurement){

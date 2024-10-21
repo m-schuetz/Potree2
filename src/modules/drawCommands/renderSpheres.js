@@ -5,10 +5,11 @@ import {sphere} from "../geometries/sphere.js";
 
 const shaderSource = `
 struct Uniforms {
-	worldView : mat4x4<f32>,
-	proj : mat4x4<f32>,
-	screen_width : f32,
-	screen_height : f32,
+	worldView         : mat4x4<f32>,
+	proj              : mat4x4<f32>,
+	screen_width      : f32,
+	screen_height     : f32,
+	globalPrimitiveID : u32,
 };
 
 struct Mat4s { values : array<mat4x4<f32>> };
@@ -26,17 +27,19 @@ struct VertexIn{
 };
 
 struct VertexOut{
-	@builtin(position)   out_pos   : vec4<f32>,
-	@location(0)         fragColor : vec4<f32>,
+	@builtin(position)                out_pos    : vec4<f32>,
+	@location(0)                      fragColor  : vec4<f32>,
+	@location(1) @interpolate(flat)   instanceID : u32,
 };
 
 struct FragmentIn{
-	@location(0) fragColor : vec4<f32>,
+	@location(0) fragColor  : vec4<f32>,
+	@location(1) @interpolate(flat)   instanceID : u32,
 };
 
 struct FragmentOut{
 	@location(0) outColor : vec4<f32>,
-	@location(1) id : vec4<f32>,
+	@location(1) id : f32,
 };
 
 @vertex
@@ -48,9 +51,9 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	var viewPos : vec4<f32> = worldView * worldPos;
 
 	var vout : VertexOut;
-	// vout.fragColor = vec4<f32>(vertex.point_normal.xyz, 1.0);
 	vout.fragColor = colors[vertex.instanceID];
 	vout.out_pos = uniforms.proj * viewPos;
+	vout.instanceID = vertex.instanceID;
 
 	return vout;
 }
@@ -60,7 +63,9 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout : FragmentOut;
 	fout.outColor = fragment.fragColor;
-	fout.id = vec4<f32>(0.0f, 0.0f, 0.0f, 0.0f);
+	// fout.id = vec4<f32>(uniforms.globalPrimitiveID, 0.0f, 0.0f, 0.0f);
+	fout.id = bitcast<f32>(uniforms.globalPrimitiveID + fragment.instanceID);
+	// fout.id = bitcast<f32>(1234u);
 
 	return fout;
 }
@@ -249,9 +254,12 @@ function updateUniforms(drawstate){
 
 	{ // misc
 		let size = renderer.getSize();
+		let globalPrimitiveID = Potree.state.numElements;
 
 		view.setUint32(128, size.width, true);
 		view.setUint32(132, size.height, true);
+		view.setUint32(136, globalPrimitiveID, true);
+		
 	}
 
 	renderer.device.queue.writeBuffer(uniformBuffer, 0, data, 0, data.byteLength);
@@ -345,6 +353,10 @@ export function render(spheres, drawstate){
 
 		let numIndices = sphere.indices.length;
 		passEncoder.drawIndexed(numIndices, numSpheres);
+
+		Potree.state.numElements += numSpheres;
+		Potree.state.renderedElements += numSpheres;
+		Potree.state.renderedObjects.push({type: "Spheres", spheres, numElements: spheres.length});
 	}
 
 
