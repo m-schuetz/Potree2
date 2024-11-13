@@ -98,24 +98,24 @@
 	Potree.settings.showBoundingBox = false;
 
 
-	let measure = new PointMeasure();
-	measure.markers.push(new Vector3(50, -250, 12));
-	potree.measure.measures.push(measure);
+	// let measure = new PointMeasure();
+	// measure.markers.push(new Vector3(50, -250, 12));
+	// potree.measure.measures.push(measure);
 
-	let md = new DistanceMeasure();
-	md.markers.push(new Vector3(-160.293,  133.898,  38.785));
-	md.markers.push(new Vector3(-162.407, -166.239,  60.978));
-	md.markers.push(new Vector3(  35.218,   96.909,  16.592));
-	md.markers.push(new Vector3( 119.764, -141.932, -37.834));
-	md.markers.push(new Vector3( 233.900, -301.512, -25.681));
-	md.markers.push(new Vector3( 338.525, -152.500, -36.777));
-	md.markers.push(new Vector3( 239.184,   13.420, -20.925));
-	potree.measure.measures.push(md);
+	// let md = new DistanceMeasure();
+	// md.markers.push(new Vector3(-160.293,  133.898,  38.785));
+	// md.markers.push(new Vector3(-162.407, -166.239,  60.978));
+	// md.markers.push(new Vector3(  35.218,   96.909,  16.592));
+	// md.markers.push(new Vector3( 119.764, -141.932, -37.834));
+	// md.markers.push(new Vector3( 233.900, -301.512, -25.681));
+	// md.markers.push(new Vector3( 338.525, -152.500, -36.777));
+	// md.markers.push(new Vector3( 239.184,   13.420, -20.925));
+	// potree.measure.measures.push(md);
 
-	let mh = new HeightMeasure();
-	mh.markers.push(new Vector3(154.639, 122.273,  56.751));
-	mh.markers.push(new Vector3( 17.252, -70.069, -48.931));
-	potree.measure.measures.push(mh);
+	// let mh = new HeightMeasure();
+	// mh.markers.push(new Vector3(154.639, 122.273,  56.751));
+	// mh.markers.push(new Vector3( 17.252, -70.069, -48.931));
+	// potree.measure.measures.push(mh);
 
 
 	Potree.events.onFrameStart(() => {
