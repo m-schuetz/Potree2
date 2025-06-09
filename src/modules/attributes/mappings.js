@@ -67,14 +67,20 @@ export const VECTOR3 = {
 				r = f32(readU8(offset + 0u));
 				g = f32(readU8(offset + 1u));
 				b = f32(readU8(offset + 2u));
+				// r = 255.0f;
 			}else if(attrib.datatype == TYPES_UINT16){
 				r = f32(readU16(offset + 0u));
 				g = f32(readU16(offset + 2u));
 				b = f32(readU16(offset + 4u));
+				// g = 255.0f;
 			}else if(attrib.datatype == TYPES_UINT32){
 				r = f32(readU32(offset + 0u));
 				g = f32(readU32(offset + 4u));
 				b = f32(readU32(offset + 8u));
+				// b = 255.0f;
+			}else{
+				// r = 255.0f;
+				// b = 255.0f;
 			}
 
 			// if(pointID < 10000u){

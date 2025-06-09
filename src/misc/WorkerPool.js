@@ -25,6 +25,8 @@ export class WorkerPool{
 			let worker = new Worker(url, params);
 			workers.get(url).list.push(worker);
 			workers.get(url).count++;
+
+			console.log(`creating worker. url: ${url}, params: ${Object.entries(params).join()}`);
 		}
 
 		let worker = workers.get(url).list.pop();

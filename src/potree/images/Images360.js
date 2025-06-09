@@ -226,6 +226,7 @@ export class Images360 extends SceneNode{
 			console.log("drag", e);
 		});
 
+		// if(false)
 		this.dispatcher.addEventListener("click", async (e) => {
 			console.log("clicked: ", e.hovered.image.name);
 
@@ -280,7 +281,8 @@ export class Images360 extends SceneNode{
 				// TODO: prototype hack
 				let imageName = image.name.split("\\").at(-1).replaceAll("\"", "");
 				// let path      = `./resources/Drive3/${imageName}`;
-				let path = `https://sitn.ne.ch/web/images/photos360/assets/textures/${imageName}`;
+				let path      = `./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive2/${imageName}`;
+				// let path = `https://sitn.ne.ch/web/images/photos360/assets/textures/${imageName}`;
 				let response  = await fetch(path);
 				let buffer    = await response.arrayBuffer();
 				let mimeType  = "image/jpg";
@@ -340,6 +342,12 @@ export class Images360 extends SceneNode{
 
 				this.stationaryControls.sphereMap.imageRotation = image.rotation;
 				// this.stationaryControls.sphereMap.rotation.copy(rotation);
+
+				this.stationaryControls.sphereMap.imageRotation.set(
+					Math.PI * image.rotation.x / 180,
+					Math.PI * image.rotation.z / 180,
+					Math.PI * image.rotation.y / 180,
+				);
 
 			}
 
@@ -478,24 +486,21 @@ export class Images360Loader{
 				// throw `could not parse images file. Encountered NaN values at line ${i}`;
 			}
 
-			// let [x, y] = proj4(target_crs, [long, lat]);
-			let [x, y] = [long, lat];
+			let [x, y] = proj4(target_crs, [long, lat]);
+			// let [x, y] = [long, lat];
 			box.expandByXYZ(x, y, z);
-
-			// if(y < 1_000_000){
-			// 	console.log(i);
-			// }
 
 			let image = new Image360();
 			image.position.x = x;
 			image.position.y = y;
 			image.position.z = z;
-			image.name = imgPath;
+			image.name = imgPath.replaceAll("\"", "");
+			image.rotation.x = Number(tokens[5]);
+			image.rotation.y = Number(tokens[6]);
+			image.rotation.z = Number(tokens[7]);
 
 			imageList.push(image);
 		}
-
-		// debugger;
 
 		for(let image of imageList){
 			image.position.x -= box.min.x;

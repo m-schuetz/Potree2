@@ -88,3 +88,5 @@ resources/pointclouds/morro_bay.potree
 resources/pointclouds/ot_35120A4202A_1_1.potree
 resources/test/coordinates_new.txt
 resources/test/coordinates.txt
+resources/pointclouds/DIM_PointCloud_Stadl1119_wgs_utm33n_converted/*
+resources/pointclouds/ot_XYZRGBI_16CFC01_160907001_converted/*
