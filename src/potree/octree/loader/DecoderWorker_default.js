@@ -28,7 +28,7 @@ async function load(event){
 	let buffer;
 	if(event.data.byteSize === 0){
 		buffer = new ArrayBuffer(0);
-		console.warn(`loaded node with 0 bytes: ${name}`);
+		// console.warn(`loaded node with 0 bytes: ${name}`);
 	}else{
 		let {url, byteOffset, byteSize} = event.data;
 		let first = byteOffset;

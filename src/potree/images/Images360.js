@@ -231,130 +231,134 @@ export class Images360 extends SceneNode{
 			console.log("clicked: ", e.hovered.image.name);
 
 			let image = e.hovered.image;
-			let position = this.position.clone().add(image.position);
 
-			// this.stationaryControls.pivot.copy(position);
-			// this.stationaryControls.radius = 0;
-			this.stationaryControls.setLabel(`Currently viewing: ${image.name}`);
-
-			let controls = Potree.instance.controls;
-
-			let radius_start = controls.radius;
-			let pivot_start = controls.pivot.clone();
-			let radius_end = 0;
-			let pivot_end = image.position.clone().add(this.position);
-
-			// debugger;
-
-			this.stationaryControls.set({
-				radius: controls.radius,
-				yaw:    controls.yaw,
-				pitch:  controls.pitch,
-				pivot:  controls.pivot,
-			});
-
-			Potree.instance.setControls(this.stationaryControls);
-
-
-			console.log({pivot_start, pivot_end});
-
-			let value = {x: 0};
-			let animationDuration = 200;
-			let tween = new TWEEN.Tween(value).to({x: 1}, animationDuration);
-			tween.easing(TWEEN.Easing.Quartic.Out);
-
-			tween.onUpdate(() => {
-				let t = value.x;
-				let radius = (1 - t) * radius_start + t * radius_end;
-				let pivot = new Vector3(
-					(1 - t) * pivot_start.x + t * pivot_end.x,
-					(1 - t) * pivot_start.y + t * pivot_end.y,
-					(1 - t) * pivot_start.z + t * pivot_end.z,
-				);
-				
-				this.stationaryControls.set({pivot, radius});
-			});
-			tween.onComplete(() => {});
-			tween.start();
-
-			{
-				// TODO: prototype hack
-				let imageName = image.name.split("\\").at(-1).replaceAll("\"", "");
-				// let path      = `./resources/Drive3/${imageName}`;
-				let path      = `./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive2/${imageName}`;
-				// let path = `https://sitn.ne.ch/web/images/photos360/assets/textures/${imageName}`;
-				let response  = await fetch(path);
-				let buffer    = await response.arrayBuffer();
-				let mimeType  = "image/jpg";
-
-				var u8 = new Uint8Array(buffer);
-				var blob = new Blob([u8], {type: mimeType});
-
-				let imageBitmap = await createImageBitmap(blob);
-
-				// let prev = {
-				// 	image: this.stationaryControls.sphereMap.image,
-				// 	texture: this.stationaryControls.sphereMap.texture,
-				// };
-				
-				this.stationaryControls.sphereMap.setImage(imageBitmap);
-
-				// if(prevImage !== imageBitmap){
-				// 	// remove old image
-
-
-				// }
-
-				window.factors = window.factors = [
-					-1, -2 * Math.PI / 4, 
-					1, 0, 
-					1, 0,
-				]
-				// let [a, b, c, d, e, f] = window.factors ?? [0, 0, 0, 0, 0, 0];
-
-				// let yaw = new Matrix4().rotate(
-				// 	a * image.rotation.x - b,
-				// 	new Vector3(0, 0, 1));
-				// let pitch = new Matrix4().rotate(
-				// 	-image.rotation.y,
-				// 	new Vector3(1, 0, 0));
-				// let roll = new Matrix4().rotate(
-				// 	+image.rotation.z - 0 * Math.PI / 4,
-				// 	new Vector3(0, 1, 0));
-				
-				// let radians = (degrees) => Math.PI * degrees / 180;
-				// let yaw = new Matrix4().rotate(
-				// 	-image.rotation.x - 2 * Math.PI / 4,
-				// 	new Vector3(0, 0, 1));
-				// let pitch = new Matrix4().rotate(
-				// 	-image.rotation.y,
-				// 	new Vector3(1, 0, 0));
-				// let roll = new Matrix4().rotate(
-				// 	+image.rotation.z - 0 * Math.PI / 4,
-				// 	new Vector3(0, 1, 0));
-
-				// let rotation = new Matrix4()
-				// 	.multiplyMatrices(yaw, pitch);
-
-				// let rotation = new Matrix4().multiply(pitch).multiply(yaw);
-				// let rotation = new Matrix4().multiply(roll).multiply(pitch).multiply(yaw);
-				// let rotation = new Matrix4().multiply(yaw).multiply(pitch);
-
-				this.stationaryControls.sphereMap.imageRotation = image.rotation;
-				// this.stationaryControls.sphereMap.rotation.copy(rotation);
-
-				this.stationaryControls.sphereMap.imageRotation.set(
-					Math.PI * image.rotation.x / 180,
-					Math.PI * image.rotation.z / 180,
-					Math.PI * image.rotation.y / 180,
-				);
-
-			}
-
-			console.log(position);
-
+			// this.focus(image);
 		});
 
+	}
+
+	async focus(image){
+		let position = this.position.clone().add(image.position);
+
+		// this.stationaryControls.pivot.copy(position);
+		// this.stationaryControls.radius = 0;
+		this.stationaryControls.setLabel(`Currently viewing: ${image.name}`);
+
+		let controls = Potree.instance.controls;
+
+		let radius_start = controls.radius;
+		let pivot_start = controls.pivot.clone();
+		let radius_end = 0;
+		let pivot_end = image.position.clone().add(this.position);
+
+		// debugger;
+
+		this.stationaryControls.set({
+			radius: controls.radius,
+			yaw:    controls.yaw,
+			pitch:  controls.pitch,
+			pivot:  controls.pivot,
+		});
+
+		Potree.instance.setControls(this.stationaryControls);
+
+
+		console.log({pivot_start, pivot_end});
+
+		let value = {x: 0};
+		let animationDuration = 200;
+		let tween = new TWEEN.Tween(value).to({x: 1}, animationDuration);
+		tween.easing(TWEEN.Easing.Quartic.Out);
+
+		tween.onUpdate(() => {
+			let t = value.x;
+			let radius = (1 - t) * radius_start + t * radius_end;
+			let pivot = new Vector3(
+				(1 - t) * pivot_start.x + t * pivot_end.x,
+				(1 - t) * pivot_start.y + t * pivot_end.y,
+				(1 - t) * pivot_start.z + t * pivot_end.z,
+			);
+			
+			this.stationaryControls.set({pivot, radius});
+		});
+		tween.onComplete(() => {});
+		tween.start();
+
+		{
+			// TODO: prototype hack
+			let imageName = image.name.split("\\").at(-1).replaceAll("\"", "");
+			// let path      = `./resources/Drive3/${imageName}`;
+			let path      = `./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive2/${imageName}`;
+			// let path = `https://sitn.ne.ch/web/images/photos360/assets/textures/${imageName}`;
+			let response  = await fetch(path);
+			let buffer    = await response.arrayBuffer();
+			let mimeType  = "image/jpg";
+
+			var u8 = new Uint8Array(buffer);
+			var blob = new Blob([u8], {type: mimeType});
+
+			let imageBitmap = await createImageBitmap(blob);
+
+			// let prev = {
+			// 	image: this.stationaryControls.sphereMap.image,
+			// 	texture: this.stationaryControls.sphereMap.texture,
+			// };
+			
+			this.stationaryControls.sphereMap.setImage(imageBitmap);
+
+			// if(prevImage !== imageBitmap){
+			// 	// remove old image
+
+
+			// }
+
+			// window.factors = window.factors = [
+			// 	-1, -2 * Math.PI / 4, 
+			// 	1, 0, 
+			// 	1, 0,
+			// ]
+			// let [a, b, c, d, e, f] = window.factors ?? [0, 0, 0, 0, 0, 0];
+
+			// let yaw = new Matrix4().rotate(
+			// 	a * image.rotation.x - b,
+			// 	new Vector3(0, 0, 1));
+			// let pitch = new Matrix4().rotate(
+			// 	-image.rotation.y,
+			// 	new Vector3(1, 0, 0));
+			// let roll = new Matrix4().rotate(
+			// 	+image.rotation.z - 0 * Math.PI / 4,
+			// 	new Vector3(0, 1, 0));
+			
+			// let radians = (degrees) => Math.PI * degrees / 180;
+			// let yaw = new Matrix4().rotate(
+			// 	-image.rotation.x - 2 * Math.PI / 4,
+			// 	new Vector3(0, 0, 1));
+			// let pitch = new Matrix4().rotate(
+			// 	-image.rotation.y,
+			// 	new Vector3(1, 0, 0));
+			// let roll = new Matrix4().rotate(
+			// 	+image.rotation.z - 0 * Math.PI / 4,
+			// 	new Vector3(0, 1, 0));
+
+			// let rotation = new Matrix4()
+			// 	.multiplyMatrices(yaw, pitch);
+
+			// let rotation = new Matrix4().multiply(pitch).multiply(yaw);
+			// let rotation = new Matrix4().multiply(roll).multiply(pitch).multiply(yaw);
+			// let rotation = new Matrix4().multiply(yaw).multiply(pitch);
+
+			// this.stationaryControls.sphereMap.imageRotation = image.rotation;
+			// this.stationaryControls.sphereMap.imageRotation.copy(rotation);
+
+			// this.stationaryControls.sphereMap.imageRotation.set(
+			// 	Math.PI * image.rotation.x / 180,
+			// 	Math.PI * image.rotation.z / 180,
+			// 	Math.PI * image.rotation.y / 180,
+			// );
+
+		}
+
+		console.log(position);
 	}
 
 	setHovered(index){

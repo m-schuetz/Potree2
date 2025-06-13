@@ -6,7 +6,7 @@
 <body style="padding: 0; margin: 0">
 
 <div id="potree" style="width: 100%; height: 100%; position: fixed;">
-	<span style="position: relative">
+	<span style="position: relative; width: 100%; height: 100%; display: flex">
 		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
 		<pre id="msg_resources"></pre>
 		<pre id="msg_dbg"></pre>
@@ -36,7 +36,7 @@
 <script type="module">
 
 	import {Potree} from "potree";
-	import {Vector3, Box3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
+	import {Vector3, Matrix4, Box3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
 	import {CopcLoader, Image360, Images360, Images360Loader, SplatType} from "potree";
 	import {PotreeLoader, Potree3Loader, TDTilesLoader} from "potree";
@@ -104,54 +104,54 @@
 
 	
 	// TDTilesLoader.load("https://sitn.ne.ch/3dtiles/chaux81123/Production_1_pro_tie_3d_cesium.json").then(tiles => {
-	if(false)
-	await TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
-		tiles.name = "le_locle_est";
-		tiles.projector = proj4("EPSG:4978", target_crs);
+	
+	// await TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
+	// 	tiles.name = "le_locle_est";
+	// 	tiles.projector = proj4("EPSG:4978", target_crs);
 
-		let box = tiles.root.boundingVolume.toBox();
-		let bbox = new Box3();
+	// 	let box = tiles.root.boundingVolume.toBox();
+	// 	let bbox = new Box3();
 
-		bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.min.z]));
-		bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.max.z]));
-		bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.min.z]));
-		bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.max.z]));
-		bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.min.z]));
-		bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.max.z]));
-		bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.min.z]));
-		bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.max.z]));
-		tiles.boundingBox.copy(bbox);
+	// 	bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.min.z]));
+	// 	bbox.expandByXYZ(...tiles.project([box.min.x, box.min.y, box.max.z]));
+	// 	bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.min.z]));
+	// 	bbox.expandByXYZ(...tiles.project([box.min.x, box.max.y, box.max.z]));
+	// 	bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.min.z]));
+	// 	bbox.expandByXYZ(...tiles.project([box.max.x, box.min.y, box.max.z]));
+	// 	bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.min.z]));
+	// 	bbox.expandByXYZ(...tiles.project([box.max.x, box.max.y, box.max.z]));
+	// 	tiles.boundingBox.copy(bbox);
 
-		scene.root.children.push(tiles);
-	});
+	// 	scene.root.children.push(tiles);
+	// });
 
-	if(false)
-	await PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
-		scene.root.children.push(pointcloud);
-		pointcloud.name = "SITN 2022";
+	
+	// await PotreeLoader.load("https://sitn.ne.ch/lidar/pointclouds/aerial/2022/lidar2022/metadata.json").then(pointcloud => {
+	// 	scene.root.children.push(pointcloud);
+	// 	pointcloud.name = "SITN 2022";
 
-		// let material = pointcloud.material;
+	// 	// let material = pointcloud.material;
 
-		// controls.zoomTo(pointcloud);
-	});
+	// 	// controls.zoomTo(pointcloud);
+	// });
 		
 	// if(false)
 	// Potree3Loader.load("../resources/pointclouds/lion.potree").then(pointcloud => {
 	// Potree3Loader.load("../resources/pointclouds/meroe.potree").then(pointcloud => {
 	// Potree3Loader.load("../resources/pointclouds/eclepens.potree").then(pointcloud => {
-	if(false)
-	await Potree3Loader.load("../resources/pointclouds/sitn_subset.potree").then(pointcloud => {
-		pointcloud.name = "SITN";
-		scene.root.children.push(pointcloud);
+	
+	// await Potree3Loader.load("../resources/pointclouds/sitn_subset.potree").then(pointcloud => {
+	// 	pointcloud.name = "SITN";
+	// 	scene.root.children.push(pointcloud);
 
-		// controls.zoomTo(pointcloud);
+	// 	// controls.zoomTo(pointcloud);
 
 		
-		// controls.set({
-		// 	position: [625.7, -668.1, 610.2], 
-		// 	pivot:    [177.0, -82.9, 41.8]
-		// });
-	});
+	// 	// controls.set({
+	// 	// 	position: [625.7, -668.1, 610.2], 
+	// 	// 	pivot:    [177.0, -82.9, 41.8]
+	// 	// });
+	// });
 
 	// await Potree3Loader.load("../resources/pointclouds/ot_35120A4202A_1_1.potree").then(pointcloud => {
 	// 	pointcloud.name = "CA13 - ot_35120A4202A_1_1";
@@ -182,12 +182,86 @@
 		// let images = await Images360Loader.load("./resources/E/resources/pointclouds/helimap/MLS/IMG/Drive3/coordinates.txt", target_crs);
 		scene.add(scene.root, images);
 
-		controls.zoomTo(pointcloud);
+		// controls.zoomTo(pointcloud);
 
+		// controls.set({
+		// 	position: [2652439.9, 1249589.9, 398.4], 
+		// 	pivot:    [2652431.3, 1249585.4, 396.0]
+		// });
+		
+		
 		controls.set({
-			position: [2652439.9, 1249589.9, 398.4], 
-			pivot:    [2652431.3, 1249585.4, 396.0]
+			position: [2652394.461, 1249580.064, 400.508], 
+			pivot:    [2652393.183, 1249564.299, 394.711]
 		});
+
+		// let image = images.images.find(i => i.name == "pano_0000_000655.jpg")
+		let image = images.images.find(i => i.name == "pano_0000_000355.jpg")
+		// let image = images.images.find(i => i.name == "aabi\\IMG\\Drive2\\pano_0000_000646.jpg")
+		if(image){
+			await images.focus(image);
+			Potree.debug.images = images;
+			Potree.debug.image = image;
+
+			images.stationaryControls.pitch = 0.1;
+			images.stationaryControls.yaw = 3.109981424173467;
+
+			{
+				// debugger
+				let t = Potree.debug.images.stationaryControls.sphereMap.rotation;
+				t.makeIdentity();
+				t.rotate(Math.PI * (-image.rotation.z) / 180, new Vector3(1, 0, 0));
+				t.rotate(Math.PI * (image.rotation.y) / 180, new Vector3(0, 1, 0));
+				t.rotate(Math.PI * (270 - image.rotation.x) / 180, new Vector3(0, 0, 1));
+			}
+			// {
+			// 	let t = Potree.debug.images.stationaryControls.sphereMap.rotation;
+			// 	t.makeIdentity();
+			// 	t.rotate(Math.PI * (2.40987899389324) / 180, new Vector3(1, 0, 0));
+			// 	t.rotate(Math.PI * (-1.26130953497127) / 180, new Vector3(0, 1, 0));
+			// 	t.rotate(Math.PI * (270 - 83.5135664645553) / 180, new Vector3(0, 0, 1));
+			// }
+
+
+			// { // orientation
+			// 	let {course, pitch, roll} = image360;
+			// 	this.sphere.rotation.set(
+			// 		THREE.Math.degToRad(+roll + 90),
+			// 		THREE.Math.degToRad(-pitch),
+			// 		THREE.Math.degToRad(-course + 90),
+			// 		"ZYX"
+			// 	);
+			// }
+			// let t = new Matrix4();
+
+			// let course = image.rotation.x;
+			// let pitch = image.rotation.y;
+			// let roll = image.rotation.z;
+
+			// t.rotate(Math.PI * (-course - 180) / 180, new Vector3(0, 0, 1));
+			// t.rotate(Math.PI * (-course - 180) / 180, new Vector3(0, 0, 1));
+
+			// Potree.debug.images.stationaryControls.sphereMap.rotation = t;
+			
+			// Potree.debug.images.stationaryControls.sphereMap.imageRotation.set(
+			// 	Math.PI * (image.rotation.x) / 180,
+			// 	Math.PI * (image.rotation.y) / 180,
+			// 	Math.PI * (image.rotation.z) / 180,
+			// )
+
+			// Potree.debug.images.stationaryControls.sphereMap.imageRotation.set(
+			// 	Math.PI * (65.31380436750321) / 180,
+			// 	Math.PI * (-1.12950779042762) / 180,
+			// 	Math.PI * (-1.17419851470608) / 180,
+			// )
+		}
+
+		
+		
+		
+
+
+		
 		
 	});
 

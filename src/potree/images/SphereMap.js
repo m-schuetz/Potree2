@@ -56,56 +56,6 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	var vout : VertexOut;
 	vout.uv = vertex.uv;
 	vout.position = uniforms.proj * uniforms.worldView * vec4<f32>(100000.0 * vertex.position.xyz, 1.0);
-	// vout.rayd = rayd;
-
-
-	// var QUAD_POS : array<vec3<f32>, 6> = array<vec3<f32>, 6>(
-	// 	vec3<f32>(-1.0, -1.0, 0.000001),
-	// 	vec3<f32>( 1.0, -1.0, 0.000001),
-	// 	vec3<f32>( 1.0,  1.0, 0.000001),
-
-	// 	vec3<f32>(-1.0, -1.0, 0.000001),
-	// 	vec3<f32>( 1.0,  1.0, 0.000001),
-	// 	vec3<f32>(-1.0,  1.0, 0.000001),
-	// );
-
-	// var pos = vec4<f32>(QUAD_POS[vertex.vertexID], 1.0);
-	
-	// var fovy = uniforms.fovy;
-	// var aspect = uniforms.screen_width / uniforms.screen_height;
-	// var top = tan(fovy / 2.0);
-	// var bottom = -top;
-	// var right = top * aspect;
-	// var left = -right;
-
-	// var a_top = fovy * 0.5;
-	// var a_bottom = -fovy * 0.5;
-	// var a_left = -a_top * aspect;
-	// var a_right = a_top * aspect;
-
-	// var xy = uniforms.camdir.xy;
-	// var yaw = -atan2(uniforms.camdir.y, uniforms.camdir.x) - PI / 2.0;
-	// var pitch = atan2(uniforms.camdir.z, length(xy));
-
-	// // var rayd = vec2<f32>(uniforms.camdir.x, uniforms.camdir.y);
-	// // var rayd = vec2<f32>(pitch, 0.0);
-
-	// var rayd = vec2<f32>(0.0, 0.0);
-	// if(vertex.vertexID == 0u || vertex.vertexID == 3u){
-	// 	rayd = vec2<f32>(a_left + yaw, a_bottom + pitch);
-	// }else if(vertex.vertexID == 1u){
-	// 	rayd = vec2<f32>(a_right + yaw, a_bottom + pitch);
-	// }else if(vertex.vertexID == 2u || vertex.vertexID == 4u){
-	// 	rayd = vec2<f32>(a_right + yaw, a_top + pitch);
-	// }else if(vertex.vertexID == 5u){
-	// 	rayd = vec2<f32>(a_left + yaw, a_top + pitch);
-	// }
-
-
-	// var vout : VertexOut;
-	// vout.uv = pos.xy;
-	// vout.position = pos;
-	// vout.rayd = rayd;
 
 	return vout;
 }
@@ -263,18 +213,20 @@ export class SphereMap extends SceneNode{
 			// let yaw = new Matrix4().rotate(angle, new Vector3(0, 0, 1));
 
 			let imageRotation = this.imageRotation ?? new Vector3();
-			let [a, b, c, d, e, f] = window.factors ?? [0, 0, 0, 0, 0, 0];
+			// let [a, b, c, d, e, f] = window.factors ?? [0, 0, 0, 0, 0, 0];
 
-			let yaw = new Matrix4().rotate(
-				a * imageRotation.x + b,
-				new Vector3(0, 0, 1));
-			let pitch = new Matrix4().rotate(
-				c * imageRotation.y + d,
-				new Vector3(1, 0, 0));
-			let roll = new Matrix4().rotate(
-				e * imageRotation.z + f,
-				new Vector3(0, 1, 0));
-			let rotate = new Matrix4().multiply(roll).multiply(pitch).multiply(yaw);
+			// let yaw = new Matrix4().rotate(
+			// 	a * imageRotation.x + b,
+			// 	new Vector3(0, 0, 1));
+			// let pitch = new Matrix4().rotate(
+			// 	c * imageRotation.y + d,
+			// 	new Vector3(1, 0, 0));
+			// let roll = new Matrix4().rotate(
+			// 	e * imageRotation.z + f,
+			// 	new Vector3(0, 1, 0));
+			// let rotate = new Matrix4().multiply(roll).multiply(pitch).multiply(yaw);
+
+			let rotate = this.rotation;
 
 			let toCamera = new Matrix4().translate(...camera.getWorldPosition().toArray());
 			// let rotate = this.rotation;

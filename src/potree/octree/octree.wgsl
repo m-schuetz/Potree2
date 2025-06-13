@@ -533,6 +533,10 @@ fn main_fragment(fragment : FragmentInput) -> FragmentOutput {
 		output.color = vec4<f32>(weighted, weight);
 	}
 
+	// if(fragment.frag_position.x < 1024.0f){
+	// 	output.color.w = 0.0f;
+	// }
+
 	return output;
 }
 

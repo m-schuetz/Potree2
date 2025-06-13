@@ -978,6 +978,7 @@ export async function init(){
 	window.orbitControls = new OrbitControls(renderer.canvas);
 
 	potree.controls_list = [controls];
+	potree.camera = camera;
 	potree.controls = controls;
 	potree.addEventListener = addEventListener;
 	potree.removeEventListener = removeEventListener;
