@@ -97,7 +97,7 @@ export class PointCloudOctree extends SceneNode{
 		});
 
 		let numPoints = 0;
-		let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
+		// let needsUnfiltered = !["position", "rgba"].includes(Potree.settings.attribute);
 		this.root.__pixelSize = 10000;
 
 		while (priorityQueue.size() > 0) {
@@ -115,13 +115,13 @@ export class PointCloudOctree extends SceneNode{
 
 			lru.touch(node, lru_timestamp);
 
-			if(needsUnfiltered && !node.unfilteredLoaded){
-				if(unfilteredLoadQueue.length < 40){
-					unfilteredLoadQueue.push(node);
-				}
+			// if(needsUnfiltered && !node.unfilteredLoaded){
+			// 	if(unfilteredLoadQueue.length < 40){
+			// 		unfilteredLoadQueue.push(node);
+			// 	}
 
-				continue;
-			}
+			// 	continue;
+			// }
 
 			_sphere.center.x = 0.5 * (node.boundingBox.min.x + node.boundingBox.max.x);
 			_sphere.center.y = 0.5 * (node.boundingBox.min.y + node.boundingBox.max.y);

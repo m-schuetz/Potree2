@@ -31,6 +31,7 @@ struct Node {
 	splatType   : u32,
 	chunkOffset : u32,
 	isVoxelNode : u32,
+	index       : u32,
 };
 
 struct AttributeDescriptor{

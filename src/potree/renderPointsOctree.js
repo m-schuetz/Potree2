@@ -11,7 +11,7 @@ let gradientSampler_clamp = null;
 let initialized = false;
 let gradientTextureMap = new Map();
 
-const WGSL_NODE_BYTESIZE = 52;
+const WGSL_NODE_BYTESIZE = 56;
 const tmp = new ArrayBuffer(10_000_000);
 let dbgUploadedInFrame = 0;
 
@@ -254,6 +254,10 @@ function updateUniforms(octree, octreeState, drawstate, flags){
 			let material = octree.material;
 			let mapping = material.selectedMappings.get(attributeName);
 
+			if(!mapping){
+				console.error(`No mapping found for attribute ${attributeName}`);
+			}
+
 			let stride = 64;
 			attributeView.setUint32(  index * stride +  0,         args.offset, true);
 			attributeView.setUint32(  index * stride +  4,         numElements, true);
@@ -340,6 +344,7 @@ function updateNodesBuffer(octree, nodes, prefixSum, octreeState, drawstate, fla
 			splatType = 1;
 		}
 
+
 		view.setUint32 (WGSL_NODE_BYTESIZE * i +  0, node.geometry.numElements, true);
 		view.setUint32 (WGSL_NODE_BYTESIZE * i +  4, prefixSum[i], true);
 		view.setFloat32(WGSL_NODE_BYTESIZE * i +  8, bbWorld.min.x + bb.min.x, true);
@@ -353,6 +358,7 @@ function updateNodesBuffer(octree, nodes, prefixSum, octreeState, drawstate, fla
 		view.setUint32 (WGSL_NODE_BYTESIZE * i + 40, splatType, true);
 		// view.setUint32 (WGSL_NODE_BYTESIZE * i + 44, node.gpuChunks[0].offset, true);
 		view.setUint32 (WGSL_NODE_BYTESIZE * i + 48, node.geometry.numVoxels > 0 ? 1 : 0, true);
+		view.setUint32 (WGSL_NODE_BYTESIZE * i + 52, i, true);
 
 		// debugger;
 

@@ -1,57 +1,19 @@
 <html>
 <head>
-<meta http-equiv="origin-trial" content="ApM2LRrizp8n6n1p9IaYNL9tbGYTRob0jgm5wOr1jPQeXXyKTqNbaZKaC2LgVTyizCde6tC6XL0ZeH28L/z3EAEAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY0MzE1NTE5OSwiaXNTdWJkb21haW4iOnRydWV9">
-<style>
-
-td{
-	padding: 2px 10px 0px 0px;
-}
-
-#big_message{
-	position: absolute; 
-	left: calc(50%); 
-	bottom: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 4em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
-
-#msg_dbg{
-	position: absolute; 
-	left: 10px; 
-	bottom: 10px; 
-	color: white;
-	text-shadow: 4px 4px 4px black;
-	font-size: 1em;
-	font-weight: bold;
-	font-family: "Consolas";
-	/* from https://stackoverflow.com/a/14249403/913630 */
-	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
-}
-
-canvas{
-	image-rendering: pixelated;
-	display: flex;
-	position: absolute;
-	height: 100%;
-}
-
-</style>
+<meta http-equiv="origin-trial" content="AmgwKkyLeQetn/dhGSsOlfOa/QLp1JOUgqyYSeFTadHtP83gkgHrDEj62CN//MgSjDbVwOY/LAr4qg/XyU2YYwMAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY3NTIwOTU5OSwiaXNTdWJkb21haW4iOnRydWV9">
+<link rel="stylesheet" href="resources/potree.css">
 </head>
 <body style="padding: 0; margin: 0">
 
 <div id="potree" style="width: 100%; height: 100%; position: fixed;">
-	<span style="position: relative">
+	<span style="position: relative; width: 100%; height: 100%; display: flex">
 		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
+		<pre id="msg_resources"></pre>
+		<pre id="msg_dbg"></pre>
 	</span>
 </div>
 
 <span id="big_message"></span>
-<span id="msg_dbg"></span>
 
 <script type="importmap">
 {
@@ -64,7 +26,9 @@ canvas{
 		"stats":         "./libs/stats.js/stats.module.js",
 		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
 		"tween":         "./libs/tween/tween.esm.js",
-		"range-select":  "./libs/range-select/RangeSelect.js"
+		"range-select":  "./libs/range-select/RangeSelect.js",
+		"json5":         "./libs/json5/json5.js",
+		"proj4":         "./libs/proj4js/proj4-src.js"
 	}
 }
 </script>
@@ -72,13 +36,14 @@ canvas{
 <script type="module">
 
 	import {Potree} from "potree";
-	import {Vector3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
+	import {Vector3, Matrix4, Box3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
-	import {initGUI} from "./src/modules/gui_dat/gui.js";
+	import {CopcLoader, Image360, Images360, Images360Loader, SplatType} from "potree";
+	import {PotreeLoader, Potree3Loader, TDTilesLoader} from "potree";
 	import "range-select";
-	import {proj4} from "./libs/proj4js/proj4-src.js";
+	import {proj4} from "proj4";
+	import * as TWEEN from "tween";
 	import {load as loadGLB} from "./src/misc/GLBLoader.js";
-	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
 
 	console.log(proj4.version);
 
@@ -112,7 +77,6 @@ canvas{
 		pivot: [-0.0, 2.2, 3.9],
 	});
 
-	import {CopcLoader, Image360, Images360, SplatType} from "potree";
 	Potree.settings.pointBudget = 4_000_000;
 	// Potree.settings.pointBudget = 30_000;
 	// Potree.settings.attribute = "classification";
@@ -151,21 +115,21 @@ canvas{
 	// 	scene.root.children.push(pointcloud);
 	// });
 
-	loadGLB("./resources/models/australia_gas.glb", {
-		onStart: (node) => {
-			node.rotation.makeIdentity();
-			node.rotation.rotate(1.2, {x: 1, y: 0, z: 0});
-			node.rotation.rotate(-0.1, {x: 0, y: 1, z: 0});
-			node.scale.set(2, 2, 2);
-			node.position.set(-25, -10, 10);
+	// loadGLB("./resources/models/australia_gas.glb", {
+	// 	onStart: (node) => {
+	// 		node.rotation.makeIdentity();
+	// 		node.rotation.rotate(1.2, {x: 1, y: 0, z: 0});
+	// 		node.rotation.rotate(-0.1, {x: 0, y: 1, z: 0});
+	// 		node.scale.set(2, 2, 2);
+	// 		node.position.set(-25, -10, 10);
 
-			node.name = "australia_gas";
+	// 		node.name = "australia_gas";
 
-			scene.root.children.push(node);
-		}, onNode: (mesh) => {
-			console.log(mesh);
-		}
-	});
+	// 		scene.root.children.push(node);
+	// 	}, onNode: (mesh) => {
+	// 		console.log(mesh);
+	// 	}
+	// });
 
 	// Potree.load("./resources/models/ruins.glb").then(model => {
 
@@ -175,29 +139,27 @@ canvas{
 
 	// });
 
-	Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/heidentor/metadata.json").then(pointcloud => {
 
-		scene.root.children.push(pointcloud);
+	// 	scene.root.children.push(pointcloud);
 
-		controls.set({
-			position: [20, 20, 20], 
-			pivot: [0, 0, 0]
-		});
+	// 	controls.set({
+	// 		position: [20, 20, 20], 
+	// 		pivot: [0, 0, 0]
+	// 	});
 
-	});
+	// });
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	Potree.load("./resources/pointclouds/las14_extra_attributes/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip.laz_converted_brotli/metadata.json").then(pointcloud => {
 
 		window.pointcloud = pointcloud;
 		pointcloud.name = "sitn extra attributes";
 
-		// controls.set({
-		// 	position: [2561569.7, 1204855.7, 818.0], 
-		// 	pivot: [2561737.6, 1205229.8, 439.5]
-		// 	// position: [2561582.3, 1205181.5, 524.3], 
-		// 	// pivot: [2561594.6, 1205221.8, 480.1]
-		// });
+		controls.set({
+			position: [2524983.3, 1198404.6, 1804.2], 
+			pivot:    [2524519.8, 1197632.3, 1122.9]
+		});
 
 		let material = pointcloud.material;
 
@@ -205,112 +167,112 @@ canvas{
 
 
 		// register a new "runtime attribute"
-		material.registerAttribute("animated elevation");
+		// material.registerAttribute("animated elevation");
 
-		material.registerMapping({
-			name: "animated elevation",
-			condition: (attribute) => (attribute.name === "animated elevation"),
-			wgsl: `
-				fn map_animated_elevation(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-					var u = position.x / 500.0;
-					var v = position.y / 500.0;
-					var d = length(vec2<f32>(u - 0.5, v - 0.5));
+		// material.registerMapping({
+		// 	name: "animated elevation",
+		// 	condition: (attribute) => (attribute.name === "animated elevation"),
+		// 	wgsl: `
+		// 		fn map_animated_elevation(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+		// 			var u = position.x / 500.0;
+		// 			var v = position.y / 500.0;
+		// 			var d = length(vec2<f32>(u - 0.5, v - 0.5));
 
-					var value = (uniforms.world * position).z;
-					var w = (value - 430.0) / (570.0 - 430.0);
-					var uv : vec2<f32> = vec2<f32>(w, 0.0);
-					var color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
+		// 			var value = (uniforms.world * position).z;
+		// 			var w = (value - 430.0) / (570.0 - 430.0);
+		// 			var uv : vec2<f32> = vec2<f32>(w, 0.0);
+		// 			var color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
 
-					if(cos(30.0 * d - 2.0 * uniforms.time) < -0.7){
-						color.w = 0.0;
-					}
+		// 			if(cos(30.0 * d - 2.0 * uniforms.time) < -0.7){
+		// 				color.w = 0.0;
+		// 			}
 
-					return color;
-				}
-			`,
-		});
+		// 			return color;
+		// 		}
+		// 	`,
+		// });
 
-		// register an attribute->color mapping that automatically applies 
-		// to attributes that fullfill a given condition
-		material.registerMapping({
-			name: "normal (trimble 2-15-15)",
-			condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
-			wgsl: `
-				fn map_normal_trimble_2_15_15(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-					var PI = 3.1415;
-					var HML = (2.0 * PI) / 32767.0;
-					var VML = PI / 32767.0;
+		// // register an attribute->color mapping that automatically applies 
+		// // to attributes that fullfill a given condition
+		// material.registerMapping({
+		// 	name: "normal (trimble 2-15-15)",
+		// 	condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
+		// 	wgsl: `
+		// 		fn map_normal_trimble_2_15_15(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+		// 			var PI = 3.1415;
+		// 			var HML = (2.0 * PI) / 32767.0;
+		// 			var VML = PI / 32767.0;
 					
-					var offset = node.numPoints * attrib.offset + 4u * vertex.vertexID;
-					var value = readU32(offset);
+		// 			var offset = node.numPoints * attrib.offset + 4u * vertex.vertexID;
+		// 			var value = readU32(offset);
 
-					var mask_15b = (1u << 15u) - 1u;
+		// 			var mask_15b = (1u << 15u) - 1u;
 
-					var dim = value & 3u;
-					var horzAngle = f32((value >>  2u) & mask_15b);
-					var vertAngle = f32((value >> 17u) & mask_15b);
+		// 			var dim = value & 3u;
+		// 			var horzAngle = f32((value >>  2u) & mask_15b);
+		// 			var vertAngle = f32((value >> 17u) & mask_15b);
 
-					var ang = (VML * vertAngle) - 0.5 * PI;
-					var zvl = sin(ang);
-					var xml = sqrt( 1.0 - (zvl * zvl));
+		// 			var ang = (VML * vertAngle) - 0.5 * PI;
+		// 			var zvl = sin(ang);
+		// 			var xml = sqrt( 1.0 - (zvl * zvl));
 
-					var normal : vec3<f32>;
-					normal.x = xml * cos(HML * horzAngle);
-					normal.y = xml * sin(HML * horzAngle);
-					normal.z = zvl;
+		// 			var normal : vec3<f32>;
+		// 			normal.x = xml * cos(HML * horzAngle);
+		// 			normal.y = xml * sin(HML * horzAngle);
+		// 			normal.z = zvl;
 
-					var color = vec4<f32>(normal, 1.0);
+		// 			var color = vec4<f32>(normal, 1.0);
 
-					color = vec4<f32>(
-						1.0 * normal.x, 
-						1.0 * normal.y, 
-						1.0 * normal.z,
-						1.0,
-					);
+		// 			color = vec4<f32>(
+		// 				1.0 * normal.x, 
+		// 				1.0 * normal.y, 
+		// 				1.0 * normal.z,
+		// 				1.0,
+		// 			);
 
-					return color;
-				}
-			`,
-		});
+		// 			return color;
+		// 		}
+		// 	`,
+		// });
 
-		material.registerMapping({
-			name: "group",
-			condition: (attribute) => (attribute.name === "Group"),
-			wgsl: `
-				fn map_terrascan_group(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-					var offset = node.numPoints * attrib.offset + 4u * vertex.vertexID;
-					var value = readU32(offset);
+		// material.registerMapping({
+		// 	name: "group",
+		// 	condition: (attribute) => (attribute.name === "Group"),
+		// 	wgsl: `
+		// 		fn map_terrascan_group(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+		// 			var offset = node.numPoints * attrib.offset + 4u * vertex.vertexID;
+		// 			var value = readU32(offset);
 
-					var w = f32(value) / 1234.0;
-					w = f32(value % 10u) / 10.0;
-					var uv = vec2<f32>(w, 0.0);
+		// 			var w = f32(value) / 1234.0;
+		// 			w = f32(value % 10u) / 10.0;
+		// 			var uv = vec2<f32>(w, 0.0);
 
-					var color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
+		// 			var color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
 
-					return color;
-				}
-			`,
-		});
+		// 			return color;
+		// 		}
+		// 	`,
+		// });
 
-		material.registerMapping({
-			name: "distance",
-			condition: (attribute) => (attribute.name === "Distance"),
-			wgsl: `
-				fn map_terrascan_distance(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-					var offset = node.numPoints * attrib.offset + 4u * vertex.vertexID;
-					var value = readI32(offset);
+		// material.registerMapping({
+		// 	name: "distance",
+		// 	condition: (attribute) => (attribute.name === "Distance"),
+		// 	wgsl: `
+		// 		fn map_terrascan_distance(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
+		// 			var offset = node.numPoints * attrib.offset + 4u * vertex.vertexID;
+		// 			var value = readI32(offset);
 
-					// assuming distance in meters
-					var distance = f32(value) / 1000.0;
-					var w = distance / 30.0;
-					var uv = vec2<f32>(w, 0.0);
+		// 			// assuming distance in meters
+		// 			var distance = f32(value) / 1000.0;
+		// 			var w = distance / 30.0;
+		// 			var uv = vec2<f32>(w, 0.0);
 
-					var color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
+		// 			var color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
 
-					return color;
-				}
-			`,
-		});
+		// 			return color;
+		// 		}
+		// 	`,
+		// });
 
 		// Potree.settings.attribute = "Normal";
 

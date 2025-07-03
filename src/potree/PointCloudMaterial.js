@@ -74,6 +74,13 @@ export class PointCloudMaterial{
 
 	registerAttribute(attribute){
 
+		if(typeof attribute === 'string'){
+			let name = attribute;
+
+			attribute = new AttributeSettings();
+			attribute.name = name;
+		}
+
 		if(this.attributes.has(attribute.name)){
 			throw `an attribute with the id '${attribute.name}' is already registered`;
 		}

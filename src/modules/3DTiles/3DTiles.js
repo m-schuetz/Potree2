@@ -872,7 +872,7 @@ export class TDTiles extends SceneNode{
 					// renderer.draw(geometries.boundingSphere, {position: pos, scale: size});
 					// renderer.draw(geometries.boundingBox, {position: pos, scale: size});
 
-					renderer.drawSphere(pos, 0.6 * size);
+					// renderer.drawSphere(pos, 0.6 * size);
 				}
 
 			}else{
@@ -892,7 +892,7 @@ export class TDTiles extends SceneNode{
 					// 	color,
 					// );
 
-					renderer.drawSphere(pos, 0.6 * size);
+					// renderer.drawSphere(pos, 0.6 * size);
 				}
 			}
 
