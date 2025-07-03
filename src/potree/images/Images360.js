@@ -232,7 +232,7 @@ export class Images360 extends SceneNode{
 
 			let image = e.hovered.image;
 
-			// this.focus(image);
+			this.focus(image);
 		});
 
 	}
