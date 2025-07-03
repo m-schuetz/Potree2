@@ -39,7 +39,7 @@
 	import {Vector3, Matrix4, Box3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
 	import {WireframeMaterial, TriangleColorMaterial} from "potree";
 	import {CopcLoader, Image360, Images360, Images360Loader, SplatType} from "potree";
-	import {PotreeLoader, Potree3Loader, TDTilesLoader} from "potree";
+	import {PotreeLoader, Potree3Loader, TDTilesLoader, MAPPINGS} from "potree";
 	import "range-select";
 	import {proj4} from "proj4";
 	import * as TWEEN from "tween";
@@ -60,21 +60,29 @@
 	Potree.settings.hqsEnabled = true;
 	Potree.settings.pointBudget = 4_000_000;
 
-	Potree.settings.attribute = "rgba";
+	Potree.settings.attribute = "Normal";
 	Potree.settings.pointSize = 3;
 	Potree.settings.splatType = SplatType.POINTS;
 
 	Potree.load("./resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip.laz_converted_brotli/metadata.json").then(pointcloud => {
+	// Potree.load("./resources/pointclouds/lidar_mobile_t1.laz_converted/metadata.json").then(pointcloud => {
 
 		window.pointcloud = pointcloud;
 		pointcloud.name = "sitn extra attributes";
 
+		// controls.set({
+		// 	position: [2558868.0, 1203445.1, 477.2], 
+		// 	pivot:    [2558924.3, 1203418.2, 436.7]
+		// });
 		controls.set({
 			position: [2524983.3, 1198404.6, 1804.2], 
 			pivot:    [2524519.8, 1197632.3, 1122.9]
 		});
 
 		let material = pointcloud.material;
+
+		// material.registerMapping(MAPPINGS.TERRASCAN_GROUP);
+		// material.registerMapping(MAPPINGS.TERRASCAN_NORMAL);
 
 		// Lastools visualization for return number + number of returns
 		let idx_returnNumber = pointcloud.attributes.indexOf("return number");
@@ -150,6 +158,56 @@
 				}
 			`,
 		});
+
+		// NORMAL
+		material.registerMapping({
+			name: "normal",
+			condition: (attribute) => (attribute.name === "Normal"),
+			inputs: [],
+			wgsl: `
+				fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
+
+					var offsetX = node.numPoints * (attrib.offset +  0u) + 8u * pointID;
+					var offsetY = node.numPoints * (attrib.offset +  8u) + 8u * pointID;
+					var offsetZ = node.numPoints * (attrib.offset + 16u) + 8u * pointID;
+
+					var nx = readF64(offsetX);
+					var ny = readF64(offsetY);
+					var nz = readF64(offsetZ);
+					
+					var color = vec4(nx, ny, nz, 1.0f);
+
+					return color;
+				}
+			`,
+		});
+		// let idx_normalX = pointcloud.attributes.indexOf("NormalX");
+		// let idx_normalY = pointcloud.attributes.indexOf("NormalY");
+		// let idx_normalZ = pointcloud.attributes.indexOf("NormalZ");
+		// debugger;
+		// if(idx_normalX > 0 && idx_normalY > 0 && idx_normalZ > 0){
+		// 	material.registerMapping({
+		// 		name: "normal",
+		// 		condition: (attribute) => (attribute.name === "Normal"),
+		// 		inputs: [],
+		// 		wgsl: `
+		// 			fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
+
+		// 				var att_normalX = attributes[${idx_normalX}];
+		// 				var att_normalY = attributes[${idx_normalY}];
+		// 				var att_normalZ = attributes[${idx_normalZ}];
+
+		// 				var nx = readF64(node.numPoints * att_normalX.offset + pointID);
+		// 				var ny = readF64(node.numPoints * att_normalY.offset + pointID);
+		// 				var nz = readF64(node.numPoints * att_normalZ.offset + pointID);
+						
+		// 				var color = vec4(nx, ny, nz, 1.0f);
+
+		// 				return color;
+		// 			}
+		// 		`,
+		// 	});
+		// }
 
 		scene.root.children.push(pointcloud);
 	});
