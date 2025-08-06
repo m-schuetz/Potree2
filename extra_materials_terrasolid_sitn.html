@@ -44,6 +44,7 @@
 	import {proj4} from "proj4";
 	import * as TWEEN from "tween";
 	import {load as loadGLB} from "./src/misc/GLBLoader.js";
+	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
 
 	console.log(proj4.version);
 
@@ -151,138 +152,25 @@
 	// });
 
 	// Potree.load("./resources/pointclouds/CA13/metadata.json").then(pointcloud => {
-	Potree.load("./resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip.laz_converted_brotli/metadata.json").then(pointcloud => {
+	Potree.load("./resources/pointclouds/lidar2022_las14_extra_attributes.las_converted/metadata.json").then(pointcloud => {
 
 		window.pointcloud = pointcloud;
 		pointcloud.name = "sitn extra attributes";
 
 		controls.set({
-			position: [2524983.3, 1198404.6, 1804.2], 
-			pivot:    [2524519.8, 1197632.3, 1122.9]
+			position: [2562044.2, 1204892.3, 809.3],
+			pivot:    [2562237.4, 1205156.4, 467.7]
 		});
 
 		let material = pointcloud.material;
 
 		console.log(material.attributes);
-
-
-		// register a new "runtime attribute"
-		// material.registerAttribute("animated elevation");
-
-		// material.registerMapping({
-		// 	name: "animated elevation",
-		// 	condition: (attribute) => (attribute.name === "animated elevation"),
-		// 	wgsl: `
-		// 		fn map_animated_elevation(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-		// 			var u = position.x / 500.0;
-		// 			var v = position.y / 500.0;
-		// 			var d = length(vec2<f32>(u - 0.5, v - 0.5));
-
-		// 			var value = (uniforms.world * position).z;
-		// 			var w = (value - 430.0) / (570.0 - 430.0);
-		// 			var uv : vec2<f32> = vec2<f32>(w, 0.0);
-		// 			var color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
-
-		// 			if(cos(30.0 * d - 2.0 * uniforms.time) < -0.7){
-		// 				color.w = 0.0;
-		// 			}
-
-		// 			return color;
-		// 		}
-		// 	`,
-		// });
-
-		// // register an attribute->color mapping that automatically applies 
-		// // to attributes that fullfill a given condition
-		// material.registerMapping({
-		// 	name: "normal (trimble 2-15-15)",
-		// 	condition: (attribute) => (attribute.description === "Normal vector 2+15+15 bits"),
-		// 	wgsl: `
-		// 		fn map_normal_trimble_2_15_15(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-		// 			var PI = 3.1415;
-		// 			var HML = (2.0 * PI) / 32767.0;
-		// 			var VML = PI / 32767.0;
-					
-		// 			var offset = node.numPoints * attrib.offset + 4u * vertex.vertexID;
-		// 			var value = readU32(offset);
-
-		// 			var mask_15b = (1u << 15u) - 1u;
-
-		// 			var dim = value & 3u;
-		// 			var horzAngle = f32((value >>  2u) & mask_15b);
-		// 			var vertAngle = f32((value >> 17u) & mask_15b);
-
-		// 			var ang = (VML * vertAngle) - 0.5 * PI;
-		// 			var zvl = sin(ang);
-		// 			var xml = sqrt( 1.0 - (zvl * zvl));
-
-		// 			var normal : vec3<f32>;
-		// 			normal.x = xml * cos(HML * horzAngle);
-		// 			normal.y = xml * sin(HML * horzAngle);
-		// 			normal.z = zvl;
-
-		// 			var color = vec4<f32>(normal, 1.0);
-
-		// 			color = vec4<f32>(
-		// 				1.0 * normal.x, 
-		// 				1.0 * normal.y, 
-		// 				1.0 * normal.z,
-		// 				1.0,
-		// 			);
-
-		// 			return color;
-		// 		}
-		// 	`,
-		// });
-
-		// material.registerMapping({
-		// 	name: "group",
-		// 	condition: (attribute) => (attribute.name === "Group"),
-		// 	wgsl: `
-		// 		fn map_terrascan_group(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-		// 			var offset = node.numPoints * attrib.offset + 4u * vertex.vertexID;
-		// 			var value = readU32(offset);
-
-		// 			var w = f32(value) / 1234.0;
-		// 			w = f32(value % 10u) / 10.0;
-		// 			var uv = vec2<f32>(w, 0.0);
-
-		// 			var color = textureSampleLevel(gradientTexture, sampler_repeat, uv, 0.0);
-
-		// 			return color;
-		// 		}
-		// 	`,
-		// });
-
-		// material.registerMapping({
-		// 	name: "distance",
-		// 	condition: (attribute) => (attribute.name === "Distance"),
-		// 	wgsl: `
-		// 		fn map_terrascan_distance(vertex : VertexInput, attrib : AttributeDescriptor, node : Node, position : vec4<f32>) -> vec4<f32> {
-		// 			var offset = node.numPoints * attrib.offset + 4u * vertex.vertexID;
-		// 			var value = readI32(offset);
-
-		// 			// assuming distance in meters
-		// 			var distance = f32(value) / 1000.0;
-		// 			var w = distance / 30.0;
-		// 			var uv = vec2<f32>(w, 0.0);
-
-		// 			var color = textureSampleLevel(gradientTexture, sampler_clamp, uv, 0.0);
-
-		// 			return color;
-		// 		}
-		// 	`,
-		// });
-
-		// Potree.settings.attribute = "Normal";
+		
+		material.registerMapping(MAPPINGS.TERRASCAN_NORMAL);
+		material.registerMapping(MAPPINGS.TERRASCAN_GROUP);
 
 		scene.root.children.push(pointcloud);
 	});
-
-
-
-
-
 
 
 

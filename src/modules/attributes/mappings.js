@@ -377,6 +377,43 @@ export const TERRASCAN_DISTANCE = {
 	`,
 };
 
+export const NODE_INDEX = {
+	name: "nodeIndex",
+	condition: (attribute) => (attribute.name === "nodeIndex"),
+	inputs: [],
+	wgsl: `
+		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
+			
+			var color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+			color.r = f32(((node.index * 123456u) >>  0u) & 0xff) / 256.0f;
+			color.g = f32(((node.index * 123456u) >>  8u) & 0xff) / 256.0f;
+			color.b = f32(((node.index * 123456u) >> 16u) & 0xff) / 256.0f;
+
+			return color;
+		}
+	`,
+}
+
+export const POINT_INDEX = {
+	name: "pointIndex",
+	condition: (attribute) => (attribute.name === "pointIndex"),
+	inputs: [],
+	wgsl: `
+		fn mapping(pointID : u32, attrib : AttributeDescriptor, node : Node, position : vec4f) -> vec4f {
+			
+			var color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
+			color.r = f32((pointID >>  0u) & 0xff) / 256.0f;
+			color.g = f32((pointID >>  8u) & 0xff) / 256.0f;
+			color.b = f32((pointID >> 16u) & 0xff) / 256.0f;
+
+			return color;
+		}
+	`,
+};
+
+
 
 export const MAPPINGS = {
 	LAS_INTENSITY_GRADIENT, 
@@ -391,4 +428,6 @@ export const MAPPINGS = {
 	ELEVATION,
 	SCALAR,
 	VECTOR3,
+	NODE_INDEX,
+	POINT_INDEX
 };
