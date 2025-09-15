@@ -80,7 +80,8 @@ canvas{
 		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
 		"tween":         "./libs/tween/tween.esm.js",
 		"range-select":  "./libs/range-select/RangeSelect.js",
-		"json5":         "./libs/json5/json5.js"
+		"json5":         "./libs/json5/json5.js",
+		"proj4":         "./libs/proj4js/proj4-src.js"
 	}
 }
 </script>
@@ -98,14 +99,15 @@ canvas{
 
 	console.log(proj4.version);
 
-	// import {installToolbar} from "toolbar";
+	import {installToolbar} from "toolbar";
 	import {installSidebar} from "sidebar";
 
 	let canvas = document.getElementById("canvas");
 	let elPotree = document.getElementById("potree");
 	let potree = await Potree.init(canvas);
 	let {scene, controls} = potree;
-	// installToolbar(potree.renderer.canvas, potree);
+	
+	installToolbar(potree.renderer.canvas, potree);
 
 	installSidebar(elPotree, potree).then(sidebar => {
 		window.sidebar = sidebar;
@@ -132,6 +134,7 @@ canvas{
 	import {CopcLoader, Image360, Images360, SplatType} from "potree";
 	import {PotreeLoader, Potree3Loader} from "potree";
 	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
+	import {PointMeasure} from "potree";
 
 	Potree.settings.edlEnabled      = true;
 	Potree.settings.dilateEnabled   = false;
@@ -145,33 +148,34 @@ canvas{
 	Potree.settings.minNodeSize     = 200;
 	Potree.settings.showBoundingBox = false;
 
+
+	let measure = new PointMeasure();
+	measure.markers.push(new Vector3(50, -250, 12));
+	potree.measure.measures.push(measure);
+
 	Potree.events.onFrameStart(() => {
 		let report = Potree.renderer.createResourceReport();
 
 		document.getElementById("msg_resources").innerText = report;
 	});
 
-	// swiss coordinate reference system
-	// let target_crs = "+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs ";
-	
-	// standard CRS of 3D Tiles, see: https://docs.ogc.org/cs/22-025r4/22-025r4.html
-	// proj4.defs("EPSG:4978","+proj=geocent +datum=WGS84 +units=m +no_defs +type=crs");
-
-		
-	// if(false)
-	Potree3Loader.load("../resources/pointclouds/AHN5_2023_C_01DZ2.potree").then(pointcloud => {
+	Potree3Loader.load("./resources/pointclouds/eclepens.potree").then(pointcloud => {
 		console.log(pointcloud);
 
 		scene.root.children.push(pointcloud);
 
 		// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
-		pointcloud.name = "AHN5";
+		pointcloud.name = "Heidentor";
 
 		let material = pointcloud.material;
 
-		controls.zoomTo(pointcloud);
-	});
+		// controls.zoomTo(pointcloud);
 
+		controls.set({
+			position: [425.4, -792.6, 547.9], 
+			pivot:    [85.8, -34.0, -63.8]
+		});
+	});
 	
 
 

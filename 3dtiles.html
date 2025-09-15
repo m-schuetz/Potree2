@@ -96,13 +96,14 @@
 
 	// default, if not overriden later on
 	controls.set({
-		position: [2546599.1, 1211503.9, 955.9], 
-		pivot:    [2546612.5, 1211565.2, 922.6]
+		position: [2546905.2, 1211744.0, 953.8], 
+		pivot:    [2546909.4, 1211789.9, 925.9]
 	});
 
 	// * Awaiting the loaders is done to guarantee the order in which they appear in the GUI. It is not essential, though.
 
-	await TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
+	await TDTilesLoader.load("./resources/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
+	// await TDTilesLoader.load("https://sitn.ne.ch/3dtiles/le_locle_est/LeLocle_objmCesium3DTiles.json").then(tiles => {
 		tiles.name = "le_locle_est";
 		tiles.projector = proj4("EPSG:4978", target_crs);
 

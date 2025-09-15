@@ -93,3 +93,9 @@ resources/pointclouds/ot_XYZRGBI_16CFC01_160907001_converted/*
 resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip.laz_converted/*
 resources/pointclouds/aerial_lidar2019_2524_1197_laz14_dip.laz_converted_brotli/*
 resources/pointclouds/lidar_mobile_t1.laz_converted/*
+resources/le_locle_est/*
+resources/pointclouds/lidar2022_las14_extra_attributes_v3.potree
+resources/pointclouds/lidar2022_las14_extra_attributes.las_converted/hierarchy.bin
+resources/pointclouds/lidar2022_las14_extra_attributes.las_converted/octree.bin
+resources/pointclouds/lidar2022_las14_extra_attributes.las_converted/metadata.json
+resources/pointclouds/lidar2022_las14_extra_attributes.las_converted/log.txt
