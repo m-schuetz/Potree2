@@ -1,5 +1,6 @@
 
 import {SceneNode, Vector3, Vector4, Matrix4, Box3, Frustum, EventDispatcher, StationaryControls, RenderTarget} from "potree";
+import {Timer} from "potree";
 import {compose} from "./compose.js";
 import {RadixSortKernel} from "radix-sort-esm";
 
@@ -276,6 +277,7 @@ export class GaussianSplats extends SceneNode{
 
 	render(drawstate){
 
+
 		let {renderer, camera} = drawstate;
 		let {device} = renderer;
 
@@ -294,8 +296,8 @@ export class GaussianSplats extends SceneNode{
 		let renderPassDescriptor = {
 			colorAttachments,
 			depthStencilAttachment: {
-				view: fbo_blending.depth.texture.createView(),
-				depthLoadOp: "clear", depthClearValue: 0,
+				view: renderer.screenbuffer.depth.texture.createView(),
+				depthLoadOp: "load",
 				depthStoreOp: "store",
 			},
 			sampleCount: 1,
@@ -374,6 +376,7 @@ export class GaussianSplats extends SceneNode{
 		}
 
 		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+		Timer.timestamp(passEncoder, "gaussians-start");
 
 		this.updateUniforms(drawstate);
 
@@ -399,6 +402,7 @@ export class GaussianSplats extends SceneNode{
 		passEncoder.draw(6 * this.numSplats);
 
 		
+		Timer.timestamp(passEncoder, "gaussians-end");
 		passEncoder.end();
 
 		// commandEncoder.copyTextureToTexture(
@@ -410,12 +414,10 @@ export class GaussianSplats extends SceneNode{
 		let commandBuffer = commandEncoder.finish();
 		renderer.device.queue.submit([commandBuffer]);
 		
-
 		compose(renderer, 
 			fbo_blending, 
 			renderer.screenbuffer
 		);
 	}
-
 
 }

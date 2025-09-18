@@ -1,6 +1,4 @@
 
-// import {SplatType, Timer} from "potree";
-
 let shaderCode = `
 	// struct Uniforms {
 	// 	uTest     : u32,
@@ -12,11 +10,8 @@ let shaderCode = `
 	// 	window    : i32,
 	// };
 
-	// @binding(0) @group(0) var<uniform> uniforms : Uniforms;
 	@binding(1) @group(0) var mySampler   : sampler;
 	@binding(2) @group(0) var myTexture   : texture_2d<f32>;
-	// @binding(3) @group(0) var tex_pointID : texture_2d<u32>;
-	// @binding(4) @group(0) var myDepth     : texture_depth_2d;
 
 	@group(0) @binding(0) var accumTex : texture_2d<f32>;
 	@group(0) @binding(1) var accumSampler : sampler;
@@ -42,28 +37,17 @@ let shaderCode = `
 		_ = mySampler;
 		_= myTexture;
 
-		// let uv = pos.xy / vec2<f32>(outputResolution);
-		// let acc = textureSample(accumTex, accumSampler, uv);
-		// let color = acc.rgb / max(acc.a, 1e-6);
-
 		var size = textureDimensions(myTexture);
 		var uv = vec2f(
 			pos.x / f32(size.x),
 			pos.y / f32(size.y)
 		);
-		// var color = vec4f(0.0f, 1.0f, 0.0f, 1.0f);
-		// color.x = uv.x;
-		// color.y = uv.y;
 
 		var sourceColor = textureSample(myTexture, mySampler, uv);
-		var color = vec4f(sourceColor.xyz, 0.5f);
 
-		return color;
+		return sourceColor;
 	}
 `;
-
-// let pipeline = null;
-// let uniformBuffer = null;
 
 let initialized = false;
 let pipeline = null;
@@ -80,17 +64,17 @@ function init(renderer){
 
 	let blend = {
 		color: {
-			// srcFactor: "one",
-			// dstFactor: "one-minus-src-alpha",
-			srcFactor: "one-minus-dst-alpha",
-			dstFactor: "one",
+			srcFactor: "one",
+			dstFactor: "one-minus-src-alpha",
+			// srcFactor: "one-minus-dst-alpha",
+			// dstFactor: "one",
 			operation: "add",
 		},
 		alpha: {
-			// srcFactor: "one",
-			// dstFactor: "one-minus-src-alpha",
-			srcFactor: "one-minus-dst-alpha",
-			dstFactor: "one",
+			srcFactor: "one",
+			dstFactor: "one-minus-src-alpha",
+			// srcFactor: "one-minus-dst-alpha",
+			// dstFactor: "one",
 			operation: "add",
 		},
 	};
@@ -111,11 +95,6 @@ function init(renderer){
 		primitive: {
 			topology: 'triangle-list',
 			cullMode: 'none',
-		},
-		depthStencil: {
-				depthWriteEnabled: false,
-				depthCompare: "always",
-				format: "depth32float",
 		},
 	});
 
@@ -141,18 +120,12 @@ export function compose(renderer, source, target){
 
 	let colorAttachments = [{
 		view: target.colorAttachments[0].texture.createView(), 
-		loadOp: "clear", 
-		clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+		loadOp: "load", 
 		storeOp: 'store',
 	}];
 
 	let renderPassDescriptor = {
 		colorAttachments,
-		depthStencilAttachment: {
-			view: target.depth.texture.createView(),
-			depthLoadOp: "load",
-			depthStoreOp: "store",
-		},
 		sampleCount: 1,
 	};
 
