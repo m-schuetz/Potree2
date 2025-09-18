@@ -56,9 +56,7 @@ let shaderCode = `
 		// color.y = uv.y;
 
 		var sourceColor = textureSample(myTexture, mySampler, uv);
-		var color = vec4f(sourceColor.xyz, 1.0f);
-		// var c = sourceColor.rgb / max(sourceColor.a, 1e-6);
-		// var color = vec4f(c, 1.0f);
+		var color = vec4f(sourceColor.xyz, 0.5f);
 
 		return color;
 	}
@@ -80,6 +78,23 @@ function init(renderer){
 
 	let module = device.createShaderModule({code: shaderCode});
 
+	let blend = {
+		color: {
+			// srcFactor: "one",
+			// dstFactor: "one-minus-src-alpha",
+			srcFactor: "one-minus-dst-alpha",
+			dstFactor: "one",
+			operation: "add",
+		},
+		alpha: {
+			// srcFactor: "one",
+			// dstFactor: "one-minus-src-alpha",
+			srcFactor: "one-minus-dst-alpha",
+			dstFactor: "one",
+			operation: "add",
+		},
+	};
+
 	pipeline = device.createRenderPipeline({
 		layout: "auto",
 		vertex: {
@@ -90,7 +105,7 @@ function init(renderer){
 			module,
 			entryPoint: "main_fs",
 			targets: [
-				{format: "bgra8unorm"},
+				{format: "bgra8unorm", blend: blend},
 			],
 		},
 		primitive: {

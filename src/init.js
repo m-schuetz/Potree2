@@ -629,8 +629,6 @@ function renderNotSoBasic(){
 				}
 			}
 		}
-
-
 	}
 
 	{ // HANDLE PICKING

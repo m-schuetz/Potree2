@@ -99,3 +99,4 @@ resources/pointclouds/lidar2022_las14_extra_attributes.las_converted/hierarchy.b
 resources/pointclouds/lidar2022_las14_extra_attributes.las_converted/octree.bin
 resources/pointclouds/lidar2022_las14_extra_attributes.las_converted/metadata.json
 resources/pointclouds/lidar2022_las14_extra_attributes.las_converted/log.txt
+resources/models/gardentable.ply
