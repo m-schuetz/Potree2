@@ -22,7 +22,11 @@
 		"tuple": "cpp",
 		"xlocmes": "cpp",
 		"xloctime": "cpp",
-		"xutility": "cpp"
+		"xutility": "cpp",
+		"filesystem": "cpp",
+		"sstream": "cpp",
+		"algorithm": "cpp",
+		"limits": "cpp"
 	},
 	"files.trimTrailingWhitespace": false,
 	"editor.fontSize": 28,

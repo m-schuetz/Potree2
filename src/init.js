@@ -593,6 +593,7 @@ function renderNotSoBasic(){
 			for(let node of nodes){
 				let hasRender = typeof node.render !== "undefined";
 				let isOctree = node.constructor.name === "PointCloudOctree";
+				let isGS = node.constructor.name === "GaussianSplats";
 				let isImages360 = node.constructor.name === "Images360";
 
 				if(hasRender && !isOctree){
@@ -614,6 +615,10 @@ function renderNotSoBasic(){
 		EDL(fbo_source, drawstate);
 
 		endPass(pass);
+	}
+
+	{ // Render Gaussian Splats into their own render target, then compose with previously rendered stuff
+
 	}
 
 	{ // HANDLE PICKING

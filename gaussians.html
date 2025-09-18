@@ -1,0 +1,194 @@
+<html>
+<head>
+<meta http-equiv="origin-trial" content="AmgwKkyLeQetn/dhGSsOlfOa/QLp1JOUgqyYSeFTadHtP83gkgHrDEj62CN//MgSjDbVwOY/LAr4qg/XyU2YYwMAAABdeyJvcmlnaW4iOiJodHRwczovL3BvdHJlZS5vcmc6NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY3NTIwOTU5OSwiaXNTdWJkb21haW4iOnRydWV9">
+<style>
+
+td{
+	padding: 2px 10px 0px 0px;
+}
+
+#big_message{
+	position: absolute; 
+	left: calc(50%); 
+	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 4em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+#msg_dbg{
+	position: absolute; 
+	left: 10px; 
+	bottom: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 1em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+#msg_resources{
+	position: absolute; 
+	left: 400px; 
+	top: 10px; 
+	color: white;
+	text-shadow: 4px 4px 4px black;
+	font-size: 1em;
+	font-weight: bold;
+	font-family: "Consolas";
+	/* from https://stackoverflow.com/a/14249403/913630 */
+	text-shadow: 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black, 0 0 4px black;
+}
+
+canvas{
+	image-rendering: pixelated;
+	display: flex;
+	position: absolute;
+	height: 100%;
+}
+
+</style>
+</head>
+<body style="padding: 0; margin: 0">
+
+<div id="potree" style="width: 100%; height: 100%; position: fixed;">
+	<span style="position: relative">
+		<canvas id="canvas" width="800" height="600" style="width: 100%; height: 100%;"></canvas>
+		<!-- <input id="btn_toggle" type="button" value="toggle" style="position: absolute; left: 10px; top: 10px"></input> -->
+	</span>
+</div>
+
+<span id="big_message"></span>
+<pre id="msg_dbg"></pre>
+<pre id="msg_resources"></pre>
+
+<script type="importmap">
+{
+	"imports": {
+		"potree":        "./src/Potree.js",
+		"lazperf":       "./libs/laz-perf/laz-perf.js",
+		"toolbar":       "./src/modules/toolbar/toolbar.js",
+		"sidebar":       "./src/modules/sidebar/sidebar.js",
+		"dat.gui":       "./libs/dat.gui/dat.gui.module.js",
+		"stats":         "./libs/stats.js/stats.module.js",
+		"BinaryHeap":    "./libs/BinaryHeap/BinaryHeap.js",
+		"tween":         "./libs/tween/tween.esm.js",
+		"range-select":  "./libs/range-select/RangeSelect.js",
+		"json5":         "./libs/json5/json5.js",
+		"proj4":         "./libs/proj4js/proj4-src.js"
+	}
+}
+</script>
+
+<script type="module">
+
+	import {Potree} from "potree";
+	import {Vector3, Mesh, Geometry, geometries, Points, PointLight} from "potree";
+	import {WireframeMaterial, TriangleColorMaterial} from "potree";
+	import {initGUI} from "./src/modules/gui_dat/gui.js";
+	import "range-select";
+	import {proj4} from "./libs/proj4js/proj4-src.js";
+	import {load as loadGLB} from "./src/misc/GLBLoader.js";
+	// import {GlbVoxelLoader} from "./src/misc/glbvoxels/GlbVoxelLoader.js";
+
+	console.log(proj4.version);
+
+	import {installToolbar} from "toolbar";
+	import {installSidebar} from "sidebar";
+
+	let canvas = document.getElementById("canvas");
+	let elPotree = document.getElementById("potree");
+	let potree = await Potree.init(canvas);
+	let {scene, controls} = potree;
+	
+	installToolbar(potree.renderer.canvas, potree);
+
+	installSidebar(elPotree, potree).then(sidebar => {
+		window.sidebar = sidebar;
+		let panelAttributes = sidebar.sections.find(section => section.handler.name === "Attributes").handler;
+		let pointcloud = scene.root.children.find(c => c.constructor.name === "PointCloudOctree");
+		
+		if(panelAttributes && pointcloud){
+			panelAttributes.set(pointcloud);
+		}
+
+	});
+	// window.sidebar.toggle();
+
+	window.Potree = Potree;
+	window.potree = potree;
+	window.Vector3 = Vector3;
+
+	// default, if not overriden later on
+	controls.set({
+		position: [2.2, 3.4, 5.3], 
+		pivot:    [-0.2, -0.1, 1.3]
+	});
+
+	import {CopcLoader, Image360, Images360, SplatType, GaussianSplats} from "potree";
+	import {PotreeLoader, Potree3Loader, GSLoader} from "potree";
+	import {MAPPINGS} from "./src/modules/attributes/mappings.js";
+	import {PointMeasure} from "potree";
+
+	Potree.settings.edlEnabled      = true;
+	Potree.settings.dilateEnabled   = false;
+	Potree.settings.hqsEnabled      = true;
+	Potree.settings.pointBudget     = 8_000_000;
+	Potree.settings.attribute       = "rgba";
+	// Potree.settings.attribute = "intensity";
+	Potree.settings.splatType       = SplatType.QUADS;
+	Potree.settings.splatType       = SplatType.POINTS;
+	Potree.settings.pointSize       = 2;
+	Potree.settings.minNodeSize     = 200;
+	Potree.settings.showBoundingBox = false;
+
+
+	let measure = new PointMeasure();
+	measure.markers.push(new Vector3(50, -250, 12));
+	potree.measure.measures.push(measure);
+
+	Potree.events.onFrameStart(() => {
+		let report = Potree.renderer.createResourceReport();
+
+		document.getElementById("msg_resources").innerText = report;
+	});
+
+	// let splats = new GaussianSplats();
+	// scene.root.children.push(splats);
+
+	let splats2 = await GSLoader.load("./resources/models/gardentable.ply");
+	// splats2.rotation.rotate(-Math.PI / 2, {x: 1, y: 0, z: 0});
+	scene.root.children.push(splats2);
+	// console.log(splats2);
+
+
+	// Potree3Loader.load("./resources/pointclouds/eclepens.potree").then(pointcloud => {
+	// 	console.log(pointcloud);
+
+	// 	scene.root.children.push(pointcloud);
+
+	// 	// pointcloud.position.set(2547035.6, 1212135.1, 1022.5);
+	// 	pointcloud.name = "Heidentor";
+
+	// 	let material = pointcloud.material;
+
+	// 	// controls.zoomTo(pointcloud);
+
+	// 	controls.set({
+	// 		position: [425.4, -792.6, 547.9], 
+	// 		pivot:    [85.8, -34.0, -63.8]
+	// 	});
+	// });
+	
+
+
+</script>
+
+</body>
+</html>
