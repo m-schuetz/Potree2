@@ -9,14 +9,16 @@ struct Uniforms {
 	size             : f32,
 	elementCounter   : u32,
 	hoveredIndex     : i32,
+	numSplats        : u32,
 };
 
-@group(0) @binding(0) var<uniform> uniforms : Uniforms;
+@group(0) @binding(0) var<uniform> uniforms    : Uniforms;
+@group(0) @binding(1) var<storage> a_ordering  : array<u32>;
 
-@group(0) @binding(1) var<storage> a_positions : array<f32>;
-@group(0) @binding(2) var<storage> a_color     : array<vec4f>;
-@group(0) @binding(3) var<storage> a_rotation  : array<vec4f>;
-@group(0) @binding(4) var<storage> a_scale     : array<f32>;
+@group(0) @binding(2) var<storage> a_positions : array<f32>;
+@group(0) @binding(3) var<storage> a_color     : array<vec4f>;
+@group(0) @binding(4) var<storage> a_rotation  : array<vec4f>;
+@group(0) @binding(5) var<storage> a_scale     : array<f32>;
 
 
 struct VertexIn{
@@ -36,8 +38,7 @@ struct FragmentIn{
 };
 
 struct FragmentOut{
-	@location(0) color : vec4<f32>,
-	@location(1) point_id : u32,
+	@location(0) color : vec4<f32>
 };
 
 // Adapted from glm mat3_cast: https://github.com/g-truc/glm/blob/2d4c4b4dd31fde06cfffad7915c2b3006402322f/glm/gtc/quaternion.inl#L47
@@ -80,8 +81,11 @@ fn toMat3(q : vec4f) -> mat3x3f{
 @vertex
 fn main_vertex(vertex : VertexIn) -> VertexOut {
 
-	var splatIndex = vertex.vertex_index / 6u;
+
 	var localVertexIndex = vertex.vertex_index % 6u;
+
+	var idx = vertex.vertex_index / 6u;
+	var splatIndex = a_ordering[idx];
 
 	var splatPos =  vec4f(
 		a_positions[3u * splatIndex + 0], 
@@ -153,6 +157,19 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	var splatScale = 1.0f;
 	var sqrt8 = sqrt(8.0f);
 
+	// if(length(vscale) < 0.4f){
+	// 	eigenValue1 = 0.0f;
+	// }
+
+	// if(length(vscale) < 0.44f || length(vscale) > 0.45654f){
+	// 	eigenValue1 = 0.0f;
+	// }
+
+	// // if(splatIndex < 28111){
+	// if(splatIndex == 28111){
+	// 	eigenValue1 = 0.0f;
+	// }
+
 	var MAX_SCREENSPACE_SPLATSIZE = 300.0f;
 	var basisVector1 = eigenVector1 * splatScale * min(sqrt8 * sqrt(eigenValue1), MAX_SCREENSPACE_SPLATSIZE);
 	var basisVector2 = eigenVector2 * splatScale * min(sqrt8 * sqrt(eigenValue2), MAX_SCREENSPACE_SPLATSIZE);
@@ -201,9 +218,16 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 
 	var fout = FragmentOut();
 	//fout.point_id = uniforms.elementCounter + fragment.pointID;
-	fout.point_id = 0u;
+	// fout.point_id = 0u;
 	// fout.color = fragment.color * (1.0f - d);
-	fout.color = fragment.color;
+
+	var opacity = fragment.color.a * (1.0f - d);
+	opacity = clamp(opacity, 0.0f, 1.0f);
+	// opacity = 1.0f;
+
+	// opacity = exp(-0.5 * d) * fragment.color.a;
+
+	fout.color = vec4f(fragment.color.xyz * opacity, opacity);
 
 	if(d > 1.0f) {
 		discard;

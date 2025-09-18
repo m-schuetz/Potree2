@@ -1,5 +1,7 @@
 
-import {SceneNode, Vector3, Vector4, Matrix4, Box3, Frustum, EventDispatcher, StationaryControls} from "potree";
+import {SceneNode, Vector3, Vector4, Matrix4, Box3, Frustum, EventDispatcher, StationaryControls, RenderTarget} from "potree";
+import {compose} from "./compose.js";
+import {RadixSortKernel} from "radix-sort-esm";
 
 let initialized = false;
 let pipeline = null;
@@ -8,6 +10,16 @@ let uniformsGpuBuffer = null;
 let layout = null;
 let bindGroup = null;
 let stateCache = new Map();
+let fbo_blending = null;
+let ordering = new ArrayBuffer(10_000_000 * 8);
+
+let splatSortKeys = null;
+// let splatSortKeys_tmp = null;
+let splatSortValues = null;
+// let splatSortValues_tmp = null;
+let radixSortKernel = null;
+
+let pipeline_depth = null;
 
 let defaultSampler = null;
 
@@ -49,6 +61,28 @@ async function init(renderer){
 
 	// splatBuffer = renderer.createBuffer({size: 128});
 
+
+	let size = [128, 128, 1];
+	let descriptor = {
+		size: size,
+		colorDescriptors: [
+			{
+				size: size,
+				format: "rgba16float",
+				usage: GPUTextureUsage.TEXTURE_BINDING 
+					| GPUTextureUsage.RENDER_ATTACHMENT,
+			}
+		],
+		depthDescriptor: {
+			size: size,
+			format: "depth32float",
+			usage: GPUTextureUsage.TEXTURE_BINDING 
+				| GPUTextureUsage.RENDER_ATTACHMENT,
+		}
+	};
+
+	fbo_blending = new RenderTarget(renderer, descriptor);
+
 	layout = renderer.device.createBindGroupLayout({
 		label: "gaussian splat uniforms",
 		entries: [
@@ -72,6 +106,10 @@ async function init(renderer){
 				binding: 4,
 				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
 				buffer: {type: 'read-only-storage'},
+			},{
+				binding: 5,
+				visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				buffer: {type: 'read-only-storage'},
 			}
 		],
 	});
@@ -92,6 +130,24 @@ async function init(renderer){
 
 	let tStart = Date.now();
 
+	// let depthWrite = false;
+	let blend = {
+		color: {
+			// srcFactor: "one",
+			// dstFactor: "one-minus-src-alpha",
+			srcFactor: "one-minus-dst-alpha",
+			dstFactor: "one",
+			operation: "add",
+		},
+		alpha: {
+			// srcFactor: "one",
+			// dstFactor: "one-minus-src-alpha",
+			srcFactor: "one-minus-dst-alpha",
+			dstFactor: "one",
+			operation: "add",
+		},
+	};
+
 	pipeline = device.createRenderPipeline({
 		layout: device.createPipelineLayout({
 			bindGroupLayouts: [layout],
@@ -105,8 +161,7 @@ async function init(renderer){
 			module,
 			entryPoint: "main_fragment",
 			targets: [
-				{format: "bgra8unorm"},
-				{format: "r32uint"},
+				{format: "rgba16float", blend: blend}
 			],
 		},
 		primitive: {
@@ -114,12 +169,30 @@ async function init(renderer){
 			cullMode: 'none',
 		},
 		depthStencil: {
-			depthWriteEnabled: true,
+			depthWriteEnabled: false,
 			depthCompare: 'greater',
 			format: "depth32float",
 		},
 	});
 	let duration = Date.now() - tStart;
+
+	{
+		splatSortKeys        = renderer.createBuffer({size: 4 * 10_000_000});
+		splatSortValues      = renderer.createBuffer({size: 4 * 10_000_000});
+	}
+
+	{
+		let shaderPath = `${import.meta.url}/../gaussians_distance.wgsl`;
+		let response = await fetch(shaderPath);
+		let shaderSource = await response.text();
+
+		let module = device.createShaderModule({code: shaderSource});
+		pipeline_depth = device.createComputePipeline({
+			layout: "auto",
+			compute: {module: module}
+		});
+	}
+
 
 	initialized = true;
 }
@@ -131,6 +204,7 @@ export class GaussianSplats extends SceneNode{
 
 		this.url = url;
 		this.dispatcher = new EventDispatcher();
+		this.initialized = false;
 
 		this.positions = new Float32Array([
 			0.2, 0.2, 0.0,
@@ -184,6 +258,7 @@ export class GaussianSplats extends SceneNode{
 			view.setFloat32(offset + 8, 10.0, true);
 			view.setUint32 (offset + 12, Potree.state.renderedElements, true);
 			view.setInt32  (offset + 16, this.hoveredIndex ?? -1, true);
+			view.setUint32 (offset + 20, this.numSplats, true);
 		}
 
 		renderer.device.queue.writeBuffer(uniformsGpuBuffer, 0, uniformsBuffer, 0, uniformsBuffer.byteLength);
@@ -207,6 +282,45 @@ export class GaussianSplats extends SceneNode{
 		init(renderer);
 		if(!initialized) return;
 
+		fbo_blending.setSize(...renderer.screenbuffer.size);
+
+		let colorAttachments = [{
+			view: fbo_blending.colorAttachments[0].texture.createView(), 
+			loadOp: "clear", 
+			clearValue: { r: 0.0, g: 0.0, b: 0.0, a: 0.0 },
+			storeOp: 'store',
+		}];
+
+		let renderPassDescriptor = {
+			colorAttachments,
+			depthStencilAttachment: {
+				view: fbo_blending.depth.texture.createView(),
+				depthLoadOp: "clear", depthClearValue: 0,
+				depthStoreOp: "store",
+			},
+			sampleCount: 1,
+		};
+
+
+		if(this.numSplats === 0) return;
+
+		// TODO: Sort splats
+
+		if(!this.radixSortKernel || this.radixSortKernel.count != splatBuffers.numSplats){
+			this.radixSortKernel = new RadixSortKernel({
+				device,
+				keys: splatSortKeys,
+				values: splatSortValues,
+				count: this.numSplats,
+				bit_count: 32,
+				// workgroup_size: { x: settings.workgroup_size, y: settings.workgroup_size },
+				// check_order: settings.check_order,
+				// local_shuffle: settings.local_shuffle,
+				// avoid_bank_conflicts: settings.avoid_bank_conflicts,
+			})
+		}
+
+		// Transfer data to GPU
 		if(this.splatData && splatBuffers.numSplats === 0){
 			// create splat buffer
 			splatBuffers.numSplats = this.numSplats;
@@ -228,17 +342,42 @@ export class GaussianSplats extends SceneNode{
 			transfer(splatBuffers.scale, this.splatData.scale);
 		}
 
-		if(splatBuffers.numSplats === 0) return;
+		const commandEncoder = renderer.device.createCommandEncoder();
 
-		// TODO: Sort splats
+		{ // SORT
 
-		init(renderer);
+			let pass = commandEncoder.beginComputePass()
 
-		if(!initialized) return;
+			// First, create a buffer of depth values
+			let bindGroup = device.createBindGroup({
+				layout: pipeline_depth.getBindGroupLayout(0),
+				entries: [
+				{ binding: 0, resource: { buffer: uniformsGpuBuffer }},
+				{ binding: 1, resource: { buffer: splatBuffers.position }},
+				{ binding: 2, resource: { buffer: splatSortKeys }},
+				{ binding: 3, resource: { buffer: splatSortValues }},
+				],
+			});
+
+			pass.setPipeline(pipeline_depth);
+			pass.setBindGroup(0, bindGroup);
+			let workgroupSize = 64;
+			let numGroups = Math.ceil(this.numSplats / workgroupSize);
+			pass.dispatchWorkgroups(numGroups, 1, 1);
+
+
+			// then sort
+			this.radixSortKernel.dispatch(pass);
+			pass.end();
+
+
+		}
+
+		const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
 		this.updateUniforms(drawstate);
 
-		let {passEncoder} = drawstate.pass;
+		// let {passEncoder} = drawstate.pass;
 		passEncoder.setPipeline(pipeline);
 
 		// Bind groups should be cached...but I honestly don't care. 
@@ -248,15 +387,34 @@ export class GaussianSplats extends SceneNode{
 			layout: layout,
 			entries: [
 				{binding: 0, resource: {buffer: uniformsGpuBuffer}},
-				{binding: 1, resource: {buffer: splatBuffers.position}},
-				{binding: 2, resource: {buffer: splatBuffers.color}},
-				{binding: 3, resource: {buffer: splatBuffers.rotation}},
-				{binding: 4, resource: {buffer: splatBuffers.scale}},
+				{binding: 1, resource: {buffer: splatSortValues}},
+				{binding: 2, resource: {buffer: splatBuffers.position}},
+				{binding: 3, resource: {buffer: splatBuffers.color}},
+				{binding: 4, resource: {buffer: splatBuffers.rotation}},
+				{binding: 5, resource: {buffer: splatBuffers.scale}},
 			],
 		});
 		passEncoder.setBindGroup(0, bindGroup);
 
 		passEncoder.draw(6 * this.numSplats);
+
+		
+		passEncoder.end();
+
+		// commandEncoder.copyTextureToTexture(
+		// 	{ texture: fbo_blending.colorAttachments[0].texture },
+		// 	{ texture: renderer.screenbuffer.colorAttachments[0].texture },
+		// 	[...renderer.screenbuffer.size, 1]
+		// );
+
+		let commandBuffer = commandEncoder.finish();
+		renderer.device.queue.submit([commandBuffer]);
+		
+
+		compose(renderer, 
+			fbo_blending, 
+			renderer.screenbuffer
+		);
 	}
 
 

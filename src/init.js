@@ -596,7 +596,7 @@ function renderNotSoBasic(){
 				let isGS = node.constructor.name === "GaussianSplats";
 				let isImages360 = node.constructor.name === "Images360";
 
-				if(hasRender && !isOctree){
+				if(hasRender && !isOctree && !isGS){
 					node.render(drawstate);
 				}
 			}
@@ -618,6 +618,18 @@ function renderNotSoBasic(){
 	}
 
 	{ // Render Gaussian Splats into their own render target, then compose with previously rendered stuff
+		let drawstate = {renderer, camera, renderables};
+
+		for(let [key, nodes] of renderables){
+			for(let node of nodes){
+				let isGS = node.constructor.name === "GaussianSplats";
+
+				if(isGS){
+					node.render(drawstate);
+				}
+			}
+		}
+
 
 	}
 

@@ -96,11 +96,15 @@ export class GSLoader{
 					let G = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_color + 4, true);
 					let B = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_color + 8, true);
 
-					let O = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_opacity);
+					let clamp = v => Math.min(Math.max(v, 0), 1);
+					let O = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_opacity, true);
 					let opacity = (1.0 / (1.0 + Math.exp(-O)));
 
+					// let opacity = buffer.get<float>(srcOffset + header.OFFSETS_OPACITY);
+					// opacity = (1.0 / (1.0 + std::exp(-opacity)));
+
+
 					let CO = 0.28209479177387814; // spherical harmonics coefficient
-					let clamp = v => Math.min(Math.max(v, 0), 1);
 					let r = clamp(0.5 + CO * R, 0, 1);
 					let g = clamp(0.5 + CO * G, 0, 1);
 					let b = clamp(0.5 + CO * B, 0, 1);
