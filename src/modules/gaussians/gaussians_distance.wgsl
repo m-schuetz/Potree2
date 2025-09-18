@@ -38,6 +38,7 @@ fn main_vertex(@builtin(global_invocation_id) id: vec3<u32>) {
 	var value = splatIndex;
 
 	// depth = 10000.0f - depth;
+	// depth = f32(splatIndex);
 
 	o_keys[splatIndex] = bitcast<u32>(depth);
 	o_values[splatIndex] = splatIndex;

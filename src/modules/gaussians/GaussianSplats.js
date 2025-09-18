@@ -4,25 +4,17 @@ import {Timer} from "potree";
 import {compose} from "./compose.js";
 import {RadixSortKernel} from "radix-sort-esm";
 
+let initializing = false;
 let initialized = false;
 let pipeline = null;
 let uniformsBuffer = new ArrayBuffer(512);
 let uniformsGpuBuffer = null;
 let layout = null;
-let bindGroup = null;
-let stateCache = new Map();
 let fbo_blending = null;
-let ordering = new ArrayBuffer(10_000_000 * 8);
 
 let splatSortKeys = null;
-// let splatSortKeys_tmp = null;
 let splatSortValues = null;
-// let splatSortValues_tmp = null;
-let radixSortKernel = null;
-
 let pipeline_depth = null;
-
-let defaultSampler = null;
 
 let splatBuffers = {
 	numSplats: 0,
@@ -49,9 +41,10 @@ let _dirz      = new Vector3();
 
 async function init(renderer){
 
-	if(initialized){
-		return;
-	}
+	if(initialized) return;
+	if(initializing) return;
+
+	initializing = true;
 	
 	let {device} = renderer;
 
@@ -59,9 +52,6 @@ async function init(renderer){
 		size: uniformsBuffer.byteLength,
 		usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 	});
-
-	// splatBuffer = renderer.createBuffer({size: 128});
-
 
 	let size = [128, 128, 1];
 	let descriptor = {
@@ -115,14 +105,6 @@ async function init(renderer){
 		],
 	});
 
-	// bindGroup = device.createBindGroup({
-	// 	layout: layout,
-	// 	entries: [
-	// 		{binding: 0, resource: {buffer: uniformsGpuBuffer}},
-	// 		{binding: 1, resource: {buffer: splatBuffer}},
-	// 	],
-	// });
-
 	let shaderPath = `${import.meta.url}/../gaussians.wgsl`;
 	let response = await fetch(shaderPath);
 	let shaderSource = await response.text();
@@ -131,7 +113,6 @@ async function init(renderer){
 
 	let tStart = Date.now();
 
-	// let depthWrite = false;
 	let blend = {
 		color: {
 			// srcFactor: "one",
@@ -177,12 +158,11 @@ async function init(renderer){
 	});
 	let duration = Date.now() - tStart;
 
-	{
+
+	{ // sort stuff
 		splatSortKeys        = renderer.createBuffer({size: 4 * 10_000_000});
 		splatSortValues      = renderer.createBuffer({size: 4 * 10_000_000});
-	}
 
-	{
 		let shaderPath = `${import.meta.url}/../gaussians_distance.wgsl`;
 		let response = await fetch(shaderPath);
 		let shaderSource = await response.text();
@@ -303,22 +283,15 @@ export class GaussianSplats extends SceneNode{
 			sampleCount: 1,
 		};
 
-
 		if(this.numSplats === 0) return;
 
-		// TODO: Sort splats
-
-		if(!this.radixSortKernel || this.radixSortKernel.count != splatBuffers.numSplats){
+		if(!this.radixSortKernel || this.radixSortKernel.count != this.numSplats){
 			this.radixSortKernel = new RadixSortKernel({
 				device,
 				keys: splatSortKeys,
 				values: splatSortValues,
 				count: this.numSplats,
 				bit_count: 32,
-				// workgroup_size: { x: settings.workgroup_size, y: settings.workgroup_size },
-				// check_order: settings.check_order,
-				// local_shuffle: settings.local_shuffle,
-				// avoid_bank_conflicts: settings.avoid_bank_conflicts,
 			})
 		}
 
@@ -397,19 +370,12 @@ export class GaussianSplats extends SceneNode{
 				{binding: 5, resource: {buffer: splatBuffers.scale}},
 			],
 		});
+
 		passEncoder.setBindGroup(0, bindGroup);
-
 		passEncoder.draw(6 * this.numSplats);
-
+		passEncoder.end();
 		
 		Timer.timestamp(passEncoder, "gaussians-end");
-		passEncoder.end();
-
-		// commandEncoder.copyTextureToTexture(
-		// 	{ texture: fbo_blending.colorAttachments[0].texture },
-		// 	{ texture: renderer.screenbuffer.colorAttachments[0].texture },
-		// 	[...renderer.screenbuffer.size, 1]
-		// );
 
 		let commandBuffer = commandEncoder.finish();
 		renderer.device.queue.submit([commandBuffer]);

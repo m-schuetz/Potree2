@@ -160,13 +160,9 @@ canvas{
 	});
 
 
+
 	let splats2 = await GSLoader.load("./resources/models/gardentable.ply");
 	scene.root.children.push(splats2);
-
-	// let dbgSphere = new Mesh("sphere", geometries.sphere);
-	// dbgSphere.scale.set(2.3, 2.3, 0.1);
-	// dbgSphere.position.z = 1.0;
-	// scene.root.children.push(dbgSphere);
 
 	Potree3Loader.load("./resources/pointclouds/eclepens.potree").then(pointcloud => {
 		pointcloud.scale.set(0.005, 0.005, 0.005);
@@ -175,6 +171,22 @@ canvas{
 
 		scene.root.children.push(pointcloud);
 	});
+	
+	// let dbgSphere = new Mesh("sphere", geometries.sphere);
+	// dbgSphere.scale.set(2.3, 2.3, 0.1);
+	// dbgSphere.position.z = 1.0;
+	// scene.root.children.push(dbgSphere);
+
+	// setTimeout(() => {
+
+	// 	Potree3Loader.load("./resources/pointclouds/eclepens.potree").then(pointcloud => {
+	// 		pointcloud.scale.set(0.005, 0.005, 0.005);
+	// 		pointcloud.position.set(-2, -2, 1);
+	// 		pointcloud.name = "Eclepens";
+
+	// 		scene.root.children.push(pointcloud);
+	// 	});
+	// }, 1000);
 
 
 

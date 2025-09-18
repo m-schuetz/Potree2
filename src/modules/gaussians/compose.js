@@ -110,13 +110,7 @@ function init(renderer){
 
 export function compose(renderer, source, target){
 
-	// let {renderer, camera, pass} = drawstate;
-	// let {passEncoder} = pass;
-
-
 	init(renderer);
-
-
 
 	let colorAttachments = [{
 		view: target.colorAttachments[0].texture.createView(), 
@@ -132,62 +126,26 @@ export function compose(renderer, source, target){
 	const commandEncoder = renderer.device.createCommandEncoder();
 	const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 
-
-
-
-	// Timer.timestamp(passEncoder,"hqs-normalize-start");
-
 	let sampler = renderer.device.createSampler({
 		magFilter: "linear",
 		minFilter: "linear",
 	});
 
-	// TODO: possible issue: re-creating bind group every frame
-	// doing that because the render target attachments may change after resize
-
 	let bindGroup = renderer.device.createBindGroup({
 		layout: pipeline.getBindGroupLayout(0),
 		entries: [
-			// {binding: 0, resource: {buffer: uniformBuffer}},
 			{binding: 1, resource: sampler},
 			{binding: 2, resource: source.colorAttachments[0].texture.createView()},
-			// {binding: 3, resource: source.colorAttachments[1].texture.createView()},
-			// {binding: 4, resource: source.depth.texture.createView({aspect: "depth-only"})}
 		],
 	});
 
 	passEncoder.setPipeline(pipeline);
 	passEncoder.setBindGroup(0, bindGroup);
 
-	// { // update uniforms
-	// 	let source = new ArrayBuffer(32);
-	// 	let view = new DataView(source);
-
-	// 	let size = Potree.settings.pointSize;
-	// 	let window = Math.round((size - 1) / 2);
-
-			
-	// 	view.setFloat32(4, 0, true);
-	// 	view.setFloat32(8, 0, true);
-	// 	view.setFloat32(12, 1, true);
-	// 	view.setFloat32(16, 1, true);
-	// 	view.setFloat32(20, camera.near, true);
-	// 	view.setInt32(24, window, true);
-		
-	// 	renderer.device.queue.writeBuffer(
-	// 		uniformBuffer, 0,
-	// 		source, 0, source.byteLength
-	// 	);
-
-	// 	passEncoder.setBindGroup(0, uniformBindGroup);
-	// }
-
 	passEncoder.draw(6, 1, 0, 0);
 
 	passEncoder.end();
 	let commandBuffer = commandEncoder.finish();
 	renderer.device.queue.submit([commandBuffer]);
-
-	// Timer.timestamp(passEncoder,"hqs-normalize-end");
 
 }

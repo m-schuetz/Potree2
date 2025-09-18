@@ -208,6 +208,8 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	vout.position = uniforms.proj * viewPos;
 	vout.color = a_color[splatIndex];
 
+	// vout.color = vec4f(f32(idx) / 400000.0f, 0.0f, 0.0f, 0.01f);
+
 	return vout;
 }
 
