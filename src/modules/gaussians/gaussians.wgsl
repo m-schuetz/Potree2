@@ -208,8 +208,6 @@ fn main_vertex(vertex : VertexIn) -> VertexOut {
 	vout.position = uniforms.proj * viewPos;
 	vout.color = a_color[splatIndex];
 
-	// vout.color = vec4f(f32(idx) / 400000.0f, 0.0f, 0.0f, 0.01f);
-
 	return vout;
 }
 
@@ -219,25 +217,17 @@ fn main_fragment(fragment : FragmentIn) -> FragmentOut {
 	var d = length(fragment.uv);
 
 	var fout = FragmentOut();
-	//fout.point_id = uniforms.elementCounter + fragment.pointID;
-	// fout.point_id = 0u;
-	// fout.color = fragment.color * (1.0f - d);
 
 	var opacity = fragment.color.a * (1.0f - d);
-	opacity = clamp(opacity, 0.0f, 1.0f);
-	// opacity = 1.0f;
-
-	// opacity = exp(-0.5 * d) * fragment.color.a;
-
 	fout.color = vec4f(fragment.color.xyz * opacity, opacity);
 
 	if(d > 1.0f) {
 		discard;
 	}
 
-	if(fout.color.a == 0.0f){
-		discard;
-	}
+	// if(fout.color.a == 0.0f){
+	// 	discard;
+	// }
 	
 
 	return fout;

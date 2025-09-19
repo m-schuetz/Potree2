@@ -17,10 +17,17 @@ struct Uniforms {
 @group(0) @binding(2) var<storage, read_write> o_keys : array<u32>;
 @group(0) @binding(3) var<storage, read_write> o_values : array<u32>;
 
-@compute @workgroup_size(64)
-fn main_vertex(@builtin(global_invocation_id) id: vec3<u32>) {
+@compute @workgroup_size(16,16)
+fn main_vertex(
+	@builtin(global_invocation_id) id: vec3<u32>,
+	@builtin(num_workgroups) numWorkgroups: vec3<u32>,
+	@builtin(workgroup_id) workgroupCoord: vec3<u32>,
+	@builtin(local_invocation_index) localIndex: u32,
+) {
 
-	var splatIndex = id.x;
+	var workgroupIndex = workgroupCoord.x + workgroupCoord.y * numWorkgroups.x;
+	var threadIndex = 16u * 16u * workgroupIndex + localIndex;
+	var splatIndex = threadIndex;
 
 	if(splatIndex >= uniforms.numSplats){ 
 		return; 

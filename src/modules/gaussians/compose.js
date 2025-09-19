@@ -1,20 +1,7 @@
 
 let shaderCode = `
-	// struct Uniforms {
-	// 	uTest     : u32,
-	// 	x         : f32,
-	// 	y         : f32,
-	// 	width     : f32,
-	// 	height    : f32,
-	// 	near      : f32,
-	// 	window    : i32,
-	// };
-
-	@binding(1) @group(0) var mySampler   : sampler;
-	@binding(2) @group(0) var myTexture   : texture_2d<f32>;
-
-	@group(0) @binding(0) var accumTex : texture_2d<f32>;
-	@group(0) @binding(1) var accumSampler : sampler;
+	@group(0) @binding(1) var mySampler   : sampler;
+	@group(0) @binding(2) var myTexture   : texture_2d<f32>;
 
 	@vertex
 	fn main_vs(@builtin(vertex_index) index : u32) -> @builtin(position) vec4<f32> {
@@ -66,15 +53,11 @@ function init(renderer){
 		color: {
 			srcFactor: "one",
 			dstFactor: "one-minus-src-alpha",
-			// srcFactor: "one-minus-dst-alpha",
-			// dstFactor: "one",
 			operation: "add",
 		},
 		alpha: {
 			srcFactor: "one",
 			dstFactor: "one-minus-src-alpha",
-			// srcFactor: "one-minus-dst-alpha",
-			// dstFactor: "one",
 			operation: "add",
 		},
 	};

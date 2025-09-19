@@ -16,6 +16,8 @@ let splatSortKeys = null;
 let splatSortValues = null;
 let pipeline_depth = null;
 
+let dbg = 0;
+
 let splatBuffers = {
 	numSplats: 0,
 
@@ -197,6 +199,7 @@ export class GaussianSplats extends SceneNode{
 		]);
 
 		this.splatData = null;
+		this.numSplatsUploaded = 0;
 	}
 
 	setHovered(index){
@@ -303,24 +306,34 @@ export class GaussianSplats extends SceneNode{
 			splatBuffers.color    = renderer.createBuffer({size: this.numSplats * 16});
 			splatBuffers.rotation = renderer.createBuffer({size: this.numSplats * 16});
 			splatBuffers.scale    = renderer.createBuffer({size: this.numSplats * 12});
-			
-			let transfer = (target, source) => {
+		}
+
+		if(this.numSplatsLoaded > this.numSplatsUploaded){
+			let transfer = (target, source, offset, size) => {
 				device.queue.writeBuffer(
-					target, 0,
-					source, 0, source.byteLength 
+					target, offset,
+					source, offset, 
+					size 
 				);
 			};
 
-			transfer(splatBuffers.position, this.splatData.positions);
-			transfer(splatBuffers.color, this.splatData.color);
-			transfer(splatBuffers.rotation, this.splatData.rotation);
-			transfer(splatBuffers.scale, this.splatData.scale);
+			let numNew = this.numSplatsLoaded - this.numSplatsUploaded;
+			transfer(splatBuffers.position, this.splatData.positions, 12 * this.numSplatsUploaded, 12 * numNew);
+			transfer(splatBuffers.color   , this.splatData.color    , 16 * this.numSplatsUploaded, 16 * numNew);
+			transfer(splatBuffers.rotation, this.splatData.rotation , 16 * this.numSplatsUploaded, 16 * numNew);
+			transfer(splatBuffers.scale   , this.splatData.scale    , 12 * this.numSplatsUploaded, 12 * numNew);
+
+			this.numSplatsUploaded += numNew;
+
+			// transfer(splatBuffers.position, this.splatData.positions);
+			// transfer(splatBuffers.color, this.splatData.color);
+			// transfer(splatBuffers.rotation, this.splatData.rotation);
+			// transfer(splatBuffers.scale, this.splatData.scale);
 		}
 
 		const commandEncoder = renderer.device.createCommandEncoder();
 
 		{ // SORT
-
 			let pass = commandEncoder.beginComputePass()
 
 			// First, create a buffer of depth values
@@ -336,10 +349,8 @@ export class GaussianSplats extends SceneNode{
 
 			pass.setPipeline(pipeline_depth);
 			pass.setBindGroup(0, bindGroup);
-			let workgroupSize = 64;
-			let numGroups = Math.ceil(this.numSplats / workgroupSize);
-			pass.dispatchWorkgroups(numGroups, 1, 1);
-
+			let numGroups = Math.ceil(Math.sqrt(this.numSplats / 256));
+			pass.dispatchWorkgroups(numGroups, numGroups, 1);
 
 			// then sort
 			this.radixSortKernel.dispatch(pass);

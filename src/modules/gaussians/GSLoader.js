@@ -6,6 +6,7 @@ export class GSLoader{
 
 	constructor(){
 		this.numSplats = 0;
+		this.numSplatsLoaded = 0;
 		this.bytesPerSplat = 0;
 
 		this.offset_position = 0;
@@ -63,11 +64,6 @@ export class GSLoader{
 
 		{ // load splat data
 			let numSplats = Math.floor(loader.numSplats / 1);
-			let first = loader.firstContentByte;
-			let last = first + numSplats * loader.bytesPerSplat;
-			let response = await fetch(url, {headers : { "Range": `bytes=${first}-${last}`}});
-			let buffer = await response.arrayBuffer();
-			let view = new DataView(buffer);
 
 			let positions = new ArrayBuffer(12 * numSplats);
 			let color     = new ArrayBuffer(16 * numSplats);
@@ -79,76 +75,100 @@ export class GSLoader{
 			let v_rotation  = new DataView(rotation);
 			let v_scale     = new DataView(scale);
 
-			for(let splatIndex = 0; splatIndex < numSplats; splatIndex++){
+			let numSplatsLoaded = 0;
 
-				{ // POSITION
-					let x = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_position + 0, true);
-					let y = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_position + 4, true);
-					let z = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_position + 8, true);
+			let BATCH_SIZE = 10_000;
+			let loadBatch = async (firstIndex, count) => {
+				let first = loader.firstContentByte + firstIndex * loader.bytesPerSplat;
+				let last = first + count * loader.bytesPerSplat;
+				let response = await fetch(url, {headers : { "Range": `bytes=${first}-${last}`}});
+				let buffer = await response.arrayBuffer();
+				let view = new DataView(buffer);
 
-					v_positions.setFloat32(12 * splatIndex + 0, x, true);
-					v_positions.setFloat32(12 * splatIndex + 4, y, true);
-					v_positions.setFloat32(12 * splatIndex + 8, z, true);
-				}
+				// console.log(`loading splats ${firstIndex} to ${count}`);
 
-				{ // COLOR & OPACITY
-					let R = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_color + 0, true);
-					let G = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_color + 4, true);
-					let B = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_color + 8, true);
+				for(let splatIndex = 0; splatIndex < count; splatIndex++){
 
-					let clamp = v => Math.min(Math.max(v, 0), 1);
-					let O = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_opacity, true);
-					let opacity = (1.0 / (1.0 + Math.exp(-O)));
+					let targetIndex = numSplatsLoaded;
 
-					// let opacity = buffer.get<float>(srcOffset + header.OFFSETS_OPACITY);
-					// opacity = (1.0 / (1.0 + std::exp(-opacity)));
+					{ // POSITION
+						let x = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_position + 0, true);
+						let y = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_position + 4, true);
+						let z = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_position + 8, true);
 
-
-					let CO = 0.28209479177387814; // spherical harmonics coefficient
-					let r = clamp(0.5 + CO * R, 0, 1);
-					let g = clamp(0.5 + CO * G, 0, 1);
-					let b = clamp(0.5 + CO * B, 0, 1);
-
-					v_color.setFloat32(16 * splatIndex +  0, r, true);
-					v_color.setFloat32(16 * splatIndex +  4, g, true);
-					v_color.setFloat32(16 * splatIndex +  8, b, true);
-					v_color.setFloat32(16 * splatIndex + 12, opacity, true);
-				}
-
-				{ // SCALE
-					let sx = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_scale + 0, true);
-					let sy = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_scale + 4, true);
-					let sz = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_scale + 8, true);
-
-					sx = Math.exp(sx);
-					sy = Math.exp(sy);
-					sz = Math.exp(sz);
-
-					v_scale.setFloat32(12 * splatIndex + 0, sx, true);
-					v_scale.setFloat32(12 * splatIndex + 4, sy, true);
-					v_scale.setFloat32(12 * splatIndex + 8, sz, true);
-
-					if(splatIndex < 5){
-						console.log({sx, sy, sz});
+						v_positions.setFloat32(12 * targetIndex + 0, x, true);
+						v_positions.setFloat32(12 * targetIndex + 4, y, true);
+						v_positions.setFloat32(12 * targetIndex + 8, z, true);
 					}
+
+					{ // COLOR & OPACITY
+						let R = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_color + 0, true);
+						let G = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_color + 4, true);
+						let B = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_color + 8, true);
+
+						let clamp = v => Math.min(Math.max(v, 0), 1);
+						let O = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_opacity, true);
+						let opacity = (1.0 / (1.0 + Math.exp(-O)));
+
+						let CO = 0.28209479177387814; // spherical harmonics coefficient
+						let r = clamp(0.5 + CO * R, 0, 1);
+						let g = clamp(0.5 + CO * G, 0, 1);
+						let b = clamp(0.5 + CO * B, 0, 1);
+
+						v_color.setFloat32(16 * targetIndex +  0, r, true);
+						v_color.setFloat32(16 * targetIndex +  4, g, true);
+						v_color.setFloat32(16 * targetIndex +  8, b, true);
+						v_color.setFloat32(16 * targetIndex + 12, opacity, true);
+					}
+
+					{ // SCALE
+						let sx = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_scale + 0, true);
+						let sy = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_scale + 4, true);
+						let sz = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_scale + 8, true);
+
+						sx = Math.exp(sx);
+						sy = Math.exp(sy);
+						sz = Math.exp(sz);
+
+						v_scale.setFloat32(12 * targetIndex + 0, sx, true);
+						v_scale.setFloat32(12 * targetIndex + 4, sy, true);
+						v_scale.setFloat32(12 * targetIndex + 8, sz, true);
+
+						// if(splatIndex < 5){
+						// 	console.log({sx, sy, sz});
+						// }
+					}
+
+					{ // ROTATION
+						let w = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_rotation +  0, true);
+						let x = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_rotation +  4, true);
+						let y = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_rotation +  8, true);
+						let z = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_rotation + 12, true);
+
+						let length = Math.sqrt(x * x + y * y + z * z + w * w);
+
+						v_rotation.setFloat32(16 * targetIndex +  0, x / length, true);
+						v_rotation.setFloat32(16 * targetIndex +  4, y / length, true);
+						v_rotation.setFloat32(16 * targetIndex +  8, z / length, true);
+						v_rotation.setFloat32(16 * targetIndex + 12, w / length, true);
+					}
+
+					numSplatsLoaded++;
 				}
 
-				{ // ROTATION
-					let w = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_rotation +  0, true);
-					let x = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_rotation +  4, true);
-					let y = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_rotation +  8, true);
-					let z = view.getFloat32(splatIndex * loader.bytesPerSplat + loader.offset_rotation + 12, true);
+				splats.numSplatsLoaded = numSplatsLoaded;
 
-					let length = Math.sqrt(x * x + y * y + z * z + w * w);
-
-					v_rotation.setFloat32(16 * splatIndex +  0, x / length, true);
-					v_rotation.setFloat32(16 * splatIndex +  4, y / length, true);
-					v_rotation.setFloat32(16 * splatIndex +  8, z / length, true);
-					v_rotation.setFloat32(16 * splatIndex + 12, w / length, true);
+				if(numSplatsLoaded < numSplats){
+					let first = numSplatsLoaded;
+					let count = Math.min(numSplats - numSplatsLoaded, BATCH_SIZE);
+					loadBatch(numSplatsLoaded, count);
 				}
-			}
+			};
+
+			loadBatch(0, BATCH_SIZE);
 
 			splats.numSplats = numSplats;
+			splats.numSplatsLoaded = numSplatsLoaded;
 			splats.splatData = {positions, color, rotation, scale };
 		}
 
